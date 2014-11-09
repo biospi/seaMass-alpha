@@ -1,0 +1,2 @@
+add_executable (seamass_restoration restoration.cpp)
+target_link_libraries (seamass_restoration LINK_PUBLIC seamass_core)
