@@ -114,14 +114,14 @@ int main(int argc, char *argv[])
 	int instrument_type = 0;
 	try
 	{
-		H5::Group& as = file.openGroup("/instrumentConfigurationList/instrumentConfiguration/0/componentList/analyzer");
+		H5::Group as = file.openGroup("/instrumentConfigurationList/instrumentConfiguration/0/componentList/analyzer");
 		hsize_t na = as.getNumObjs();
 		for (size_t i = 0; i < na; i++)
 		{
 			try
 			{
 				ostringstream oss; oss << as.getObjnameByIdx(i) << "/cvParam/MS:1000484";
-				H5::Group& a = as.openGroup(oss.str());
+				H5::Group a = as.openGroup(oss.str());
 				instrument_type = 1;
 				break;
 			}

@@ -2,12 +2,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(MKL REQUIRED)
 
-find_package(OpenMP REQUIRED)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-
 set(_SAVED_HDF5_DIR ${HDF5_DIR})
-find_package(HDF5 "1.8.5" NO_MODULE REQUIRED)
+find_package(HDF5 "1.8.5" NO_MODULE)
 if(NOT HDF5_FOUND)
  set(HDF5_DIR ${_SAVED_HDF5_DIR} CACHE PATH "HDF5 install dir" FORCE)
  find_package(HDF5 "1.8.5" REQUIRED)
