@@ -27,11 +27,8 @@
 
 
 HDF5File::
-HDF5File(const string& _filename)
+HDF5File(const string& filename)
 {
-    ostringstream oss; oss << _filename << ".h5";
-    filename = oss.str();
-
     file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (file < 0)
     {
