@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 {
 	H5::Exception::dontPrint();
 	seamass::notice();
-	if (argc < 8)
+	if (argc != 8)
 	{
 		cout << "Usage" << endl;
 		cout << "-----" << endl;
@@ -253,114 +253,6 @@ int main(int argc, char *argv[])
 		}
 
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	/*
-
-
-	// this maps between our memory efficient spectrum ordering and spectra ordered by scan start time
-	std::vector<size_t> sorted_indicies(ns);
-
-	// data arrays passed on to seaMass
-
-
-
-
-
-
-
-
-
-
-
-
-
-	// sort scan start times of all spectra in dataset
-	vector< std::pair<double, size_t> > ssts(ns);
-	vector<int> ms1s(ns);
-	vector<double> precursors(ns);
-	for (size_t i = 0; i < ns; i++)
-	{
-		H5::Group& s = ss.openGroup(ss.getObjnameByIdx(i));
-
-		// read scan start times
-		try
-		{
-			H5::Group& cv = s.openGroup("scanList/scan/0/cvParam/MS:1000016");
-			Attribute& sst_a = cv.openAttribute("value");
-			H5std_string sst_s("");
-			sst_a.read(StrType(0, H5T_VARIABLE), sst_s);
-			ssts[i] = pair<double, size_t>(atof(sst_s.c_str()),i);			
-		}
-		catch (const FileIException& e)
-		{
-			ssts[i] = pair<double, size_t>(-1.0,i);
-		}
-
-		// read if MS1 spectrum
-		try
-		{
-			H5::Group& cv = s.openGroup("cvParam/MS:1000579");
-			ms1s[i] = true;
-		}
-		catch (const FileIException& e)
-		{
-			ms1s[i] = false;
-		} 
-	}
-	sort(ssts.begin(), ssts.end());
-	// write scan_start_times
-	for (size_t i = 0; i < ns; i++) scan_start_times[i] = ssts[i].first;
-    
-	// get indicies from our special sorted list to the scan start time order
-	vector< std::pair<size_t, size_t> > sis(ns);
-	for (size_t i = 0; i < ns; i++)
-	{
-		sis[i] = std::pair<size_t, size_t>(ssts[i].second, i);
-	}
-	std::sort(sis.begin(), sis.end());
-	// write sorted_indicies
-	for (size_t i = 0; i < ns; i++) sorted_indicies[i] = sis[i].second;
-    
-
-
-	for (size_t i = 0; i < scan_start_times.size(); i++)
-	{
-		cout << scan_start_times[i] << endl;
-	}
-
-	//seaMass = new seaMassRestoration(msd.run.id, instrument_type, debug);
-
-
-	/*vector<hsize_t> ids(ns); // indices
-	vector<double> ssts(ns); // start scan times
-	vector<string> pscs(ns); // preset scan configurations
-	vector<bool> ms1s(ns);   // is it an ms1 spectrum?
-	vector<bool> pmss(ns);   // is it a profile mode spectrum?
-	for (hsize_t i = 0; i < ns; i++)
-	{
-		ids[i] = i;
-
-
-
-		cout << ids[i] << "," << ssts[i] << "," << pscs[i] << "," << ms1s[i] << "," << pmss[i] << endl;
-	*/
 
 	return 0;
 }

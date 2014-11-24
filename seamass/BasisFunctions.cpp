@@ -90,18 +90,20 @@ BasisResampleMZ(vector<Basis*>& bases,
                 const vector<fp>& gs,
                 const vector<li>& _is,
                 const vector<ii>& js,
-                double rc,
+                ii rci,
                 ii order,
                 bool transient) :
     Basis(bases, 2, 0, transient),
     is(_is)
 {
+	double rc = pow(2.0, (double) -rci) * 60 / 1.0033548378;
+
     ///////////////////////////////////////////////////////////////////////
     // create A as a temporary COO matrix
     
     // calculate indicies of non-empty spectra
-    cm.l[1] = -1;
-    cm.o[1] = -1;
+    cm.l[1] = numeric_limits<ii>::min();
+    cm.o[1] = numeric_limits<ii>::min();
     cm.n[1] = js.size();
 
     // init arrays
@@ -123,7 +125,7 @@ BasisResampleMZ(vector<Basis*>& bases,
         mz_min = mzs[js[j]].front() < mz_min ? mzs[js[j]].front() : mz_min;
         mz_max = mzs[js[j]].back() > mz_max ? mzs[js[j]].back() : mz_max;
     }
-    cm.l[0] = 1;
+    cm.l[0] = rci;
     cm.o[0] = (ii) floor(mz_min * rc);
     cm.n[0] = ((ii) ceil(mz_max * rc)) + order - cm.o[0];
 
@@ -198,8 +200,11 @@ BasisResampleMZ(vector<Basis*>& bases,
         // display progress update
         #pragma omp critical
         {
-            for (int i = 0; i < 256; ++i) cout << '\b';
-            cout << index << " BasisResampleMZ " << setw(1+(int)(log10((float)cm.n[1]))) << ++done << "/" << cm.n[1] << " " << flush;
+			if (done % 100 == 0)
+			{
+				for (int i = 0; i < 256; ++i) cout << '\b';
+				cout << index << " BasisResampleMZ " << setw(1+(int)(log10((float)cm.n[1]))) << ++done << "/" << cm.n[1] << " " << flush;
+			}
         }
     }
     for (int i = 0; i < 256; ++i) cout << '\b';
@@ -273,11 +278,12 @@ BasisResampleRT(vector<Basis*>& bases,
                 Basis* parent,
                 const vector<double>& rts,
                 const vector<ii>& js,
-                double rc,
+                ii rci,
                 ii order,
                 bool transient) :
     Basis(bases, parent->get_cm().d, parent, transient)
 {
+	double rc = pow(2.0, (double) -rci);
     double sp = 1.0 / rc;
     
     // create A as a temporary COO matrix
@@ -297,7 +303,7 @@ BasisResampleRT(vector<Basis*>& bases,
     cm.l[0] = parent->get_cm().l[0];
     cm.o[0] = parent->get_cm().o[0];
     cm.n[0] = parent->get_cm().n[0];
-    cm.l[1] = 1;
+    cm.l[1] = rci;
     cm.o[1] = (ii) floor(rts.front() / sp);
     cm.n[1] = ((ii) ceil(rts.back() / sp)) + order - cm.o[1];
 

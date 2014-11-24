@@ -23,23 +23,22 @@
 //
 
 
-#ifndef _SEAMASSRESTORATION_HDF5File_HPP_
-#define _SEAMASSRESTORATION_HDF5File_HPP_
+#ifndef _SEAMASSRESTORATION_SMOFILE_HPP_
+#define _SEAMASSRESTORATION_SMOFILE_HPP_
 
 
 #include "core.hpp"
-#include <hdf5.h>
 
 
-class HDF5File
+class SMOFile
 {
 protected:
     string filename;
-    hid_t file;
+    int file;
     
 public:
-	HDF5File(const string& filename);
-	~HDF5File();
+	SMOFile(const string& filename);
+	~SMOFile();
     
     void write_cs(const string& objectname,
                   const CoeffsMetadata& cm,
@@ -52,5 +51,5 @@ public:
 };
 
 
-#endif // _SEAMASSRESTORATION_HDF5File_HPP_
+#endif // _SEAMASSRESTORATION_SMOFILE_HPP_
 

@@ -436,7 +436,7 @@ step(ii iteration, double shrinkage)
 
 void
 OptimiserASRL::
-write_h5(const HDF5File& file, const string& datafilename, const vector<ii>& scale_bases,
+write_h5(const SMOFile& file, const string& datafilename, const vector<ii>& scale_bases,
          const vector<li>& is, const vector<ii>& js)
 {
     vector<double> tic(js.size(),0);

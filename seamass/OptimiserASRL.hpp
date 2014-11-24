@@ -29,7 +29,7 @@
 
 #include "core.hpp"
 #include "BasisFunctions.hpp"
-#include "HDF5File.hpp"
+#include "SMOFile.hpp"
 
 
 class OptimiserASRL
@@ -59,7 +59,7 @@ public:
     void threshold(double threshold);
     vector< vector<fp> >& get_cs() { return cs; }
     
-    void write_h5(const HDF5File& file, const string& datafilename,
+    void write_h5(const SMOFile& file, const string& datafilename,
                   const vector<ii>& scale_bases, const vector<li>& is, const vector<ii>& js);
     void calc_error(const std::string& id);
 };

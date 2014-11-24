@@ -22,12 +22,13 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#include "SMOFile.hpp"
 
-#include "HDF5File.hpp"
+#include <hdf5.h>
 
 
-HDF5File::
-HDF5File(const string& filename)
+SMOFile::
+SMOFile(const string& filename)
 {
     file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (file < 0)
@@ -37,8 +38,8 @@ HDF5File(const string& filename)
 }
 
 
-HDF5File::
-~HDF5File()
+SMOFile::
+~SMOFile()
 {
 	if (H5Fclose(file) < 0)
     {
@@ -49,7 +50,7 @@ HDF5File::
 
 // only supports cm with dimension 2 at present
 void
-HDF5File::
+SMOFile::
 write_cs(const string& objectname, const CoeffsMetadata& cm, const vector<fp>& cs) const
 {
     cout << "Writing " << filename << "/" << objectname << endl;
@@ -91,7 +92,7 @@ write_cs(const string& objectname, const CoeffsMetadata& cm, const vector<fp>& c
 
 
 void
-HDF5File::
+SMOFile::
 write_fs(const string& objectname,
          const vector<fp>& fs,
          const vector<li>& is,

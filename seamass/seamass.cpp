@@ -28,13 +28,13 @@
 #include "seamass.hpp"
 #include "BasisFunctions.hpp"
 #include "OptimiserASRL.hpp"
+#include "SMOFile.hpp"
+#include "VizFile.hpp"
 
 namespace seamass
 {
 
-
 using namespace std;
-
 
 void notice()
 {
@@ -44,7 +44,6 @@ void notice()
     cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
     cout << endl;
 }
-
 
 void process(const std::string& id,
              const std::string& config_id,
@@ -66,14 +65,16 @@ void process(const std::string& id,
     cout << endl;
 
 	ostringstream oss; oss << id << ".smo";
-	HDF5File* h5out = 0;
-	if (debug) h5out = new HDF5File(oss.str()); 
+	SMOFile* h5out = 0;
+	if (debug) h5out = new SMOFile(oss.str()); 
+
+	VizFile* vizout = new VizFile(id);
 
     ////////////////////////////////////////////////////////////////////////////////////
     // INIT RAW DATA AND MZ BASIS
     
     // difference between carbon12 and carbon13
-    double rc_mz = pow(2.0, (double) rc0_mz) * 60 / 1.0033548378;
+    double rc_mz = pow(2.0, (double) -rc0_mz) * 60 / 1.0033548378;
 
     // Ensure the raw data is in binned format
     bin_mzs_intensities(mzs, intensities, instrument_type);
@@ -92,7 +93,7 @@ void process(const std::string& id,
     
     // Construct BasisResampleMZ root node
     cout << endl << "Spectrometry rc_mz=" << rc0_mz << ":" << rc_mz << endl;
-    BasisResampleMZ* bResampleMZ = new BasisResampleMZ(bases, mzs, gs, is, js, rc_mz, order);
+    BasisResampleMZ* bResampleMZ = new BasisResampleMZ(bases, mzs, gs, is, js, rc0_mz, order);
     for (ii j = 0; j < (ii) mzs.size(); j++) vector<double>().swap(mzs[j]);
     while (bases.back()->get_cm().n[0] > order + 1)
     {
@@ -103,7 +104,8 @@ void process(const std::string& id,
     double duration = 0.0;
     for (ii rcr = rc0_rt; rcr <= rc1_rt; rcr++)
     {
-        double rc_rt = pow(2.0, (double) rcr);
+		double start = omp_get_wtime();
+        double rc_rt = pow(2.0, (double) -rcr);
         cout << endl << "Chromatography rc_rt=" << rcr << ":" << rc_rt << endl;
         
         ////////////////////////////////////////////////////////////////////////////////////
@@ -114,7 +116,7 @@ void process(const std::string& id,
         
         // BasisResampleRT
         vector<ii> scale_bases(1, n_core_bases);
-        BasisResampleRT* bResampleRT = new BasisResampleRT(bases, bResampleMZ, rts, js, rc_rt, order);
+        BasisResampleRT* bResampleRT = new BasisResampleRT(bases, bResampleMZ, rts, js, rcr, order);
         while (bases.back()->get_cm().n[0] > order + 1)
         {
             new BasisDyadicScale(bases, bases.back(), 0, order);
@@ -154,9 +156,7 @@ void process(const std::string& id,
 
             for (ii i = 0; grad > tolerance; i++)
             {
-                double start = omp_get_wtime();
                 grad = optimiser->step(i, shrinkage);
-                duration += omp_get_wtime() - start;
                 
                 ii nnz = 0;
                 for (ii j = 0; j < (ii) bases.size(); j++)
@@ -215,8 +215,9 @@ void process(const std::string& id,
                     oss << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L0/" << setfill('0') << setw(8) << i;
                     optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
                 }
-             }
-            
+            }
+			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
+
             //////////////////////////////////////////////////////////////////////////////////
             // OUTPUT
 			if (debug)
@@ -226,31 +227,18 @@ void process(const std::string& id,
 				optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
 			}
 
-            // output coeffs csv
-            ostringstream oss3; oss3 << id << "_" << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol << ".csv";
-            cout << "Writing " << oss3.str() << endl;
-            ofstream ofs(oss3.str().c_str());
-            for (ii j = n_core_bases; j < (ii) bases.size(); j++)
-            if (!bases[j]->is_transient())
-            for (ii y = 0; y < bases[j]->get_cm().n[1]; ++y)
-            for (ii x = 0; x < bases[j]->get_cm().n[0]; ++x)
-            if (optimiser->get_cs()[j][x + y*bases[j]->get_cm().n[0]] > 0.0)
-            {
-                ofs << bases[j]->get_cm().l[0] << ","
-                    << bases[j]->get_cm().l[1] << ","
-                    << bases[j]->get_cm().o[0] + x << ","
-                    << bases[j]->get_cm().o[1] + y << ","
-                    << optimiser->get_cs()[j][x + y*bases[j]->get_cm().n[0]] << endl;
-            }
-            ofs.close();
-            
-            ostringstream oss2; oss2 << id << "_" << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol << ".error.csv";
-            //optimiser->calc_error(oss2.str());
-            
+            // output viz r-tree
+			start = omp_get_wtime();
+			vizout->write_cs(bases, n_core_bases, optimiser->get_cs());
+ 			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
+
+            //ostringstream oss2; oss2 << id << "_" << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol << ".error.csv";
+            //optimiser->calc_error(oss2.str());           
             delete optimiser;
         }
         
     }
+	delete vizout;
     
     // output mzML
     for (ii j = 0; j < js.size(); j++)
@@ -264,10 +252,6 @@ void process(const std::string& id,
     
     ////////////////////////////////////////////////////////////////////////////////////
     for (ii j = 0; j < bases.size(); j++) delete bases[j];
-   
-    cout << "Duration: " << duration << endl;
-    //ii minutes = (int) (duration/60);
-    //cout << "Finished, Wall Time: " << minutes << "m" << setprecision(3) << (duration - 60*minutes) << "s" << endl;
 	
 	if (debug) delete h5out; 
 	omp_set_num_threads(_threads);
