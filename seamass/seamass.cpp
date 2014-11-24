@@ -265,9 +265,8 @@ void process(const std::string& id,
     ////////////////////////////////////////////////////////////////////////////////////
     for (ii j = 0; j < bases.size(); j++) delete bases[j];
    
-    cout << "Duration: " << duration << endl;
-    //ii minutes = (int) (duration/60);
-    //cout << "Finished, Wall Time: " << minutes << "m" << setprecision(3) << (duration - 60*minutes) << "s" << endl;
+    ii minutes = (int) (duration/60);
+    cout << "Finished, Duration: " << minutes << "m" << setprecision(3) << (duration - 60*minutes) << "s" << endl;
 	
 	if (debug) delete h5out; 
 	omp_set_num_threads(_threads);
