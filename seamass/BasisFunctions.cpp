@@ -24,6 +24,7 @@
 
 
 #include "BasisFunctions.hpp"
+#include <limits>
 
 
 Basis::

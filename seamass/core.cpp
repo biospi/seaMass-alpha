@@ -24,7 +24,7 @@
 
 
 #include "core.hpp"
-
+#include <limits>
 
 CoeffsMetadata::
 CoeffsMetadata(ii _dc) :

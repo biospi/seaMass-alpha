@@ -1,7 +1,7 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 find_package(SpatialIndex REQUIRED)
-find_package(Boost 1.57 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.54 REQUIRED COMPONENTS system filesystem)
 
 add_executable(viz_client
 	viz_client.cpp

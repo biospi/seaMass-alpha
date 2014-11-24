@@ -27,6 +27,8 @@
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
+#include <limits>
+#include <math.h>
 
 #include <omp.h>
 #include <SpatialIndex.h>
@@ -87,7 +89,7 @@ public:
 	  index(0)
 	{
 		ostringstream oss; oss << basename << "_" << setfill('0') << setw(5) << chunk_index++ << "_0.out";
-		ofstream ofs(oss.str());
+		ofstream ofs(oss.str().c_str());
 		start = omp_get_wtime();
 	}
 
@@ -139,14 +141,14 @@ public:
 		}
 	}
 
-	void visitData(MyPair& pair)
+	void visitData(const MyPair& pair)
 	{
 		chunk[index] = pair;
 
 		if (++index == chunk.size())		
 		{
 			ostringstream oss; oss << basename << "_" << setfill('0') << setw(5) << chunk_index << "_" << omp_get_wtime() - start << ".out";
-			ofstream ofs(oss.str());
+			ofstream ofs(oss.str().c_str());
 			for (size_t i = 0; i < chunk.size(); i++)
 			{
 				double w = 0.25 * (chunk[i].r->getHigh(0) - chunk[i].r->getLow(0));
@@ -192,21 +194,18 @@ int main(int argc, char *argv[])
 		cout << "<out_h>:   Output height in pixels" << endl;
 		return 0;
 	}
-	string in_dir = argv[1];
+	string in_dir(argv[1]);
 	double mz_min = atof(argv[2]);
 	double mz_max = atof(argv[3]);
 	double rt_min = atof(argv[4]);
 	double rt_max = atof(argv[5]);
-	int shrink = atoi(argv[6]);
-	int out_w  = atoi(argv[7]);
-	int out_h  = atoi(argv[8]);
+	int out_w  = atoi(argv[6]);
+	int out_h  = atoi(argv[7]);
 
 	int lastdot = in_dir.find_last_of("."); 
 	string basename = (lastdot == string::npos) ? in_dir : in_dir.substr(0, lastdot);
-	ostringstream out_dir; out_dir << basename << ".out";
 
-	string baseName = in_dir;
-	IStorageManager* diskfile = StorageManager::loadDiskStorageManager(baseName);
+	IStorageManager* diskfile = StorageManager::loadDiskStorageManager(basename);
 	// this will try to locate and open an already existing storage manager.
 
 	StorageManager::IBuffer* file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
@@ -231,6 +230,8 @@ int main(int argc, char *argv[])
 
 	MyQueryStrategy qs(r, basename);
 	tree->queryStrategy(qs);
+
+    cout << endl << endl;
 
 	return 0;
 }

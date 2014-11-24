@@ -1,4 +1,5 @@
 #!/bin/bash                                                     
+. /opt/intel/bin/iccvars.sh intel64
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"                   
 mkdir $DIR/build
 pushd $DIR/build

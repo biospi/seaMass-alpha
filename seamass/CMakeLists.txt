@@ -9,7 +9,7 @@ endif()
 
 find_package(MKL REQUIRED)
 find_package(SpatialIndex REQUIRED)
-find_package(Boost 1.57 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.54 REQUIRED COMPONENTS system filesystem)
 
 
 add_library(seamass
