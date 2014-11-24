@@ -70,19 +70,19 @@ print(ostream& out) const
     out << "lc=[";
     for (ii i = 0; i < d; i++)
     {
-        if (l[i] >= 0) out << l[i]; else out << "?";
+        if (l[i] == numeric_limits<ii>::min()) out << "?"; else out << l[i]; 
         if (i < d-1) out << ",";
     }
     out << "] oc=[";
     for (ii i = 0; i < d; i++)
     {
-        if (o[i] >= 0) out << o[i]; else out << "?";
+        if (o[i] == numeric_limits<ii>::min()) out << "?"; else out << o[i];  
         if (i < d-1) out << ",";
     }
     out << "] nc=[";
     for (ii i = 0; i < d; i++)
     {
-        if (n[i] >= 0) out << n[i]; else out << "?";
+        if (n[i] == numeric_limits<ii>::min()) out << "?"; else out << n[i];  
         if (i < d-1) out << ",";
     }
     out << "]:" << size();

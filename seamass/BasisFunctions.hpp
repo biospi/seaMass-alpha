@@ -93,7 +93,7 @@ public:
                     const vector<fp>& gs,
                     const vector<li>& is,
                     const vector<ii>& js,
-                    double rc,
+                    ii rc,
                     ii order = 3,
                     bool transient = false);
     
@@ -119,7 +119,7 @@ public:
                     Basis* parent,
                     const vector<double>& rts,
                     const vector<ii>& js,
-                    double rc,
+                    ii rc,
                     ii order = 3,
                     bool transient = false);
     
