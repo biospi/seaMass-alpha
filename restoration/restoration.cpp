@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	{
 		cout << "Usage" << endl;
 		cout << "-----" << endl;
-		cout << "seamass <in_file> <mz_res> <rt_res> <shrinkage> <tol> <threads> <out_type>" << endl;
+		cout << "restoration <in_file> <mz_res> <rt_res> <shrinkage> <tol> <threads> <out_type>" << endl;
 		cout << endl;
 		cout << "<in_file>:  Raw input file in seaMass Input format (smi)" << endl;
 		cout << "            guidelines: Use pwiz-seamass to convert from mzML or vendor format" << endl;

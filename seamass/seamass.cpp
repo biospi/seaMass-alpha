@@ -28,8 +28,8 @@
 #include "seamass.hpp"
 #include "BasisFunctions.hpp"
 #include "OptimiserASRL.hpp"
-#include "SMOFile.hpp"
-#include "VizFile.hpp"
+#include "SMOWriter.hpp"
+#include "SMVWriter.hpp"
 
 namespace seamass
 {
@@ -64,17 +64,20 @@ void process(const std::string& id,
     cout << "Input id=" << id << " config_id=" << config_id << " instrument_type=" << instrument_type << endl;
     cout << endl;
 
+	// create SMO if debug >= 1
 	ostringstream oss; oss << id << ".smo";
-	SMOFile* h5out = 0;
-	if (debug) h5out = new SMOFile(oss.str()); 
+	SMOWriter* h5out = 0;
+	if (debug) h5out = new SMOWriter(oss.str()); 
 
-	VizFile* vizout = new VizFile(id);
+	// create SMV directory
+	ostringstream oss2; oss2 << id << ".smv";
+	SMVWriter* vizout = new SMVWriter(oss2.str());
 
     ////////////////////////////////////////////////////////////////////////////////////
     // INIT RAW DATA AND MZ BASIS
     
     // difference between carbon12 and carbon13
-    double rc_mz = pow(2.0, (double) -rc0_mz) * 60 / 1.0033548378;
+    double rc_mz = pow(2.0, (double) rc0_mz) * 60 / 1.0033548378;
 
     // Ensure the raw data is in binned format
     bin_mzs_intensities(mzs, intensities, instrument_type);
@@ -105,7 +108,7 @@ void process(const std::string& id,
     for (ii rcr = rc0_rt; rcr <= rc1_rt; rcr++)
     {
 		double start = omp_get_wtime();
-        double rc_rt = pow(2.0, (double) -rcr);
+        double rc_rt = pow(2.0, (double) rcr);
         cout << endl << "Chromatography rc_rt=" << rcr << ":" << rc_rt << endl;
         
         ////////////////////////////////////////////////////////////////////////////////////
@@ -229,7 +232,9 @@ void process(const std::string& id,
 
             // output viz r-tree
 			start = omp_get_wtime();
-			vizout->write_cs(bases, n_core_bases, optimiser->get_cs());
+			ostringstream oss;
+			oss << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol;
+			vizout->write_cs(oss.str(), bases, n_core_bases, optimiser->get_cs());
  			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
 
             //ostringstream oss2; oss2 << id << "_" << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol << ".error.csv";

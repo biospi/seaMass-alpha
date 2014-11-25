@@ -8,21 +8,22 @@ if(NOT HDF5_FOUND)
 endif()
 
 find_package(MKL REQUIRED)
-find_package(SpatialIndex REQUIRED)
-find_package(Boost 1.54 REQUIRED COMPONENTS system filesystem)
-
+find_package(SpatialIndex 1.8.5 REQUIRED)
+find_package(Boost 1.54 REQUIRED COMPONENTS
+	system filesystem log program_options
+)
 
 add_library(seamass
   seamass.hpp
   OptimiserASRL.hpp
-  SMOFile.hpp
-  VizFile.hpp   
+  SMOWriter.hpp
+  SMVWriter.hpp   
   BasisFunctions.hpp
   core.hpp
   seamass.cpp
   OptimiserASRL.cpp
-  SMOFile.cpp   
-  VizFile.cpp
+  SMOWriter.cpp   
+  SMVWriter.cpp
   BasisFunctions.cpp
   core.cpp
 )

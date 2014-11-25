@@ -23,22 +23,22 @@
 //
 
 
-#ifndef _SEAMASSRESTORATION_SMOFILE_HPP_
-#define _SEAMASSRESTORATION_SMOFILE_HPP_
+#ifndef _SEAMASSRESTORATION_SMOWRITER_HPP_
+#define _SEAMASSRESTORATION_SMOWRITER_HPP_
 
 
 #include "core.hpp"
 
 
-class SMOFile
+class SMOWriter
 {
 protected:
     string filename;
     int file;
     
 public:
-	SMOFile(const string& filename);
-	~SMOFile();
+	SMOWriter(const string& filename);
+	~SMOWriter();
     
     void write_cs(const string& objectname,
                   const CoeffsMetadata& cm,
@@ -51,5 +51,5 @@ public:
 };
 
 
-#endif // _SEAMASSRESTORATION_SMOFILE_HPP_
+#endif // _SEAMASSRESTORATION_SMOWRITER_HPP_
 

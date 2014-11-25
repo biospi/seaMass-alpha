@@ -22,7 +22,11 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "VizFile.hpp"
+#include "SMVWriter.hpp"
+
+#include <boost/filesystem.hpp>
+#include <SpatialIndex.h>
+
 
 using namespace SpatialIndex;
 
@@ -67,13 +71,13 @@ public:
 					if (i > 0.0)
 					{
 						double low[3] = {
-							pow(2.0, bases[j]->get_cm().l[0]) * (bases[j]->get_cm().o[0]+x-3),
-							pow(2.0, bases[j]->get_cm().l[1]) * (bases[j]->get_cm().o[1]+y-3),
+							pow(2.0, -bases[j]->get_cm().l[0]) * (bases[j]->get_cm().o[0]+x-3),
+							pow(2.0, -bases[j]->get_cm().l[1]) * (bases[j]->get_cm().o[1]+y-3),
 							-i
 						};
 						double high[3] = {
-							pow(2.0, bases[j]->get_cm().l[0]) * (bases[j]->get_cm().o[0]+x+1),
-							pow(2.0, bases[j]->get_cm().l[1]) * (bases[j]->get_cm().o[1]+y+1),
+							pow(2.0, -bases[j]->get_cm().l[0]) * (bases[j]->get_cm().o[0]+x+1),
+							pow(2.0, -bases[j]->get_cm().l[1]) * (bases[j]->get_cm().o[1]+y+1),
 							-i
 						};				
 						Region r(low, high, 3);
@@ -112,33 +116,48 @@ public:
 };
 
 
-VizFile::
-VizFile(const string& _basename) :
-	basename(_basename)
+SMVWriter::
+SMVWriter(const string& _directory) :
+	directory(_directory)
 {
-	// Create a new storage manager with the provided base name and a 4K page size.
-	diskfile = StorageManager::createNewDiskStorageManager(basename, 4096);
-
-	file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
-	// applies a main memory random buffer on top of the persistent storage manager
-	// (LRU buffer, etc can be created the same way).
+	boost::filesystem::path viz_path(directory);
+	if (boost::filesystem::exists(viz_path))
+	{
+		for (boost::filesystem::directory_iterator end_dir_it, it(viz_path); it!=end_dir_it; ++it)
+		{
+			boost::filesystem::remove_all(it->path());
+		}
+	}
+	else
+	{
+		boost::filesystem::create_directories(viz_path);
+	}
 }
 
 
-VizFile::
-~VizFile()
+SMVWriter::
+~SMVWriter()
 {
-	delete file;
-	delete diskfile;
 }
 
 
 // only supports cm with dimension 2 at present
 void
-VizFile::
-write_cs(vector<Basis*>& bases, ii n_core_bases, vector< vector<fp> >& cs) const
+SMVWriter::
+write_cs(const string& basename, vector<Basis*>& bases, ii n_core_bases, vector< vector<fp> >& cs) const
 {
-    cout << "Writing " << basename << ".[idx/dat]" << endl;
+    cout << "Writing " << directory << "/" << basename << ".idx" << endl;
+    cout << "Writing " << directory << "/" << basename << ".dat" << endl;
+
+	// Create a new storage manager with the provided base name and a 4K page size.
+	boost::filesystem::path viz_dir(directory);
+	viz_dir /= basename;
+	string viz_path = viz_dir.string();
+	SpatialIndex::IStorageManager* diskfile = StorageManager::createNewDiskStorageManager(viz_path, 4096);
+
+	SpatialIndex::StorageManager::IBuffer* file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
+	// applies a main memory random buffer on top of the persistent storage manager
+	// (LRU buffer, etc can be created the same way).
  
 	MyDataStream stream(bases, n_core_bases, cs);
 
@@ -156,4 +175,6 @@ write_cs(vector<Basis*>& bases, ii n_core_bases, vector< vector<fp> >& cs) const
 	else cout << "The stucture seems O.K." << std::endl;
 
 	delete tree;
+	delete file;
+	delete diskfile;
 }

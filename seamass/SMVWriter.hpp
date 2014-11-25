@@ -23,28 +23,26 @@
 //
 
 
-#ifndef _SEAMASSRESTORATION_VizFile_HPP_
-#define _SEAMASSRESTORATION_VizFile_HPP_
+#ifndef _SEAMASSRESTORATION_SMVWRITER_HPP_
+#define _SEAMASSRESTORATION_SMVWRITER_HPP_
 
 #include "BasisFunctions.hpp"
-#include <SpatialIndex.h>
 
-class VizFile
+class SMVWriter
 {
 protected:
-    string basename;
-	SpatialIndex::IStorageManager* diskfile;
-	SpatialIndex::StorageManager::IBuffer* file;
+    string directory;
     
 public:
-	VizFile(const string& filename);
-	~VizFile();
+	SMVWriter(const string& directory);
+	~SMVWriter();
     
-    void write_cs(vector<Basis*>& _bases,
+    void write_cs(const string& basename,
+		          vector<Basis*>& _bases,
 		          ii _n_core_bases,
 				  vector< vector<fp> >& _cs) const;
 };
 
 
-#endif // _SEAMASSRESTORATION_VizFile_HPP_
+#endif // _SEAMASSRESTORATION_SMVWRITER_HPP_
 

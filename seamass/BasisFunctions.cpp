@@ -97,7 +97,7 @@ BasisResampleMZ(vector<Basis*>& bases,
     Basis(bases, 2, 0, transient),
     is(_is)
 {
-	double rc = pow(2.0, (double) -rci) * 60 / 1.0033548378;
+	double rc = pow(2.0, (double) rci) * 60 / 1.0033548378;
 
     ///////////////////////////////////////////////////////////////////////
     // create A as a temporary COO matrix
@@ -284,7 +284,7 @@ BasisResampleRT(vector<Basis*>& bases,
                 bool transient) :
     Basis(bases, parent->get_cm().d, parent, transient)
 {
-	double rc = pow(2.0, (double) -rci);
+	double rc = pow(2.0, (double) rci);
     double sp = 1.0 / rc;
     
     // create A as a temporary COO matrix
@@ -416,7 +416,7 @@ BasisDyadicScale(vector<Basis*>& bases,
     dim(_dim)
 {
     cm = parent->get_cm();
-    cm.l[dim] = parent->get_cm().l[dim] + 1;
+    cm.l[dim] = parent->get_cm().l[dim] - 1;
     cm.o[dim] = parent->get_cm().o[dim]/2;
     cm.n[dim] = (parent->get_cm().o[dim] + parent->get_cm().n[dim] - 1 - order)/2 + order + 1 - cm.o[dim];
     m = parent->get_cm().n[dim];
