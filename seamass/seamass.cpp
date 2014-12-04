@@ -97,6 +97,8 @@ void process(const std::string& id,
     // Construct BasisResampleMZ root node
     cout << endl << "Spectrometry rc_mz=" << rc0_mz << ":" << rc_mz << endl;
     BasisResampleMZ* bResampleMZ = new BasisResampleMZ(bases, mzs, gs, is, js, rc0_mz, order);
+	double mz_min = bResampleMZ->get_min();
+	double mz_max = bResampleMZ->get_max();
     for (ii j = 0; j < (ii) mzs.size(); j++) vector<double>().swap(mzs[j]);
     while (bases.back()->get_cm().n[0] > order + 1)
     {
@@ -120,6 +122,8 @@ void process(const std::string& id,
         // BasisResampleRT
         vector<ii> scale_bases(1, n_core_bases);
         BasisResampleRT* bResampleRT = new BasisResampleRT(bases, bResampleMZ, rts, js, rcr, order);
+		double rt_min = bResampleRT->get_min();
+		double rt_max = bResampleRT->get_max();
         while (bases.back()->get_cm().n[0] > order + 1)
         {
             new BasisDyadicScale(bases, bases.back(), 0, order);
@@ -223,6 +227,8 @@ void process(const std::string& id,
 
             //////////////////////////////////////////////////////////////////////////////////
             // OUTPUT
+			
+			// write smo
 			if (debug)
 			{
 				ostringstream oss;
@@ -230,11 +236,11 @@ void process(const std::string& id,
 				optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
 			}
 
-            // output viz r-tree
+            // write smv viz r-tree
 			start = omp_get_wtime();
 			ostringstream oss;
 			oss << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol;
-			vizout->write_cs(oss.str(), bases, n_core_bases, optimiser->get_cs());
+			vizout->write_cs(oss.str(), bases, n_core_bases, optimiser->get_cs(), mz_min, mz_max, rt_min, rt_max, optimiser->compute_norm_max_counts(n_core_bases));
  			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
 
             //ostringstream oss2; oss2 << id << "_" << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol << ".error.csv";

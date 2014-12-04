@@ -58,6 +58,8 @@ public:
     double step(ii iteration, double strength);
     void threshold(double threshold);
     vector< vector<fp> >& get_cs() { return cs; }
+
+	fp compute_norm_max_counts(ii n_core_bases = 0);
     
     void write_h5(const SMOWriter& file, const string& datafilename,
                   const vector<ii>& scale_bases, const vector<li>& is, const vector<ii>& js);

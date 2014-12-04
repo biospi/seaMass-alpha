@@ -29,6 +29,7 @@
 
 
 using namespace SpatialIndex;
+using namespace boost;
 
 class MyDataStream : public IDataStream
 {
@@ -120,17 +121,17 @@ SMVWriter::
 SMVWriter(const string& _directory) :
 	directory(_directory)
 {
-	boost::filesystem::path viz_path(directory);
-	if (boost::filesystem::exists(viz_path))
+	filesystem::path viz_path(directory);
+	if (filesystem::exists(viz_path))
 	{
-		for (boost::filesystem::directory_iterator end_dir_it, it(viz_path); it!=end_dir_it; ++it)
+		for (filesystem::directory_iterator end_dir_it, it(viz_path); it!=end_dir_it; ++it)
 		{
-			boost::filesystem::remove_all(it->path());
+			filesystem::remove_all(it->path());
 		}
 	}
 	else
 	{
-		boost::filesystem::create_directories(viz_path);
+		filesystem::create_directories(viz_path);
 	}
 }
 
@@ -144,16 +145,25 @@ SMVWriter::
 // only supports cm with dimension 2 at present
 void
 SMVWriter::
-write_cs(const string& basename, vector<Basis*>& bases, ii n_core_bases, vector< vector<fp> >& cs) const
+write_cs(const string& basename, vector<Basis*>& bases, ii n_core_bases, vector< vector<fp> >& cs,
+         double mz_min, double mz_max, double rt_min, double rt_max, double max_intensity) const
 {
+    cout << "Writing " << directory << "/" << basename << ".txt" << endl;
+
+	boost::filesystem::path txt_path(directory);
+	ostringstream oss; oss << basename << ".txt";
+	txt_path /= oss.str();
+	ofstream ofs(txt_path.string().c_str());
+	ofs << mz_min << " " << mz_max << " " << rt_min << " " << rt_max << " " << max_intensity;
+
     cout << "Writing " << directory << "/" << basename << ".idx" << endl;
     cout << "Writing " << directory << "/" << basename << ".dat" << endl;
 
 	// Create a new storage manager with the provided base name and a 4K page size.
-	boost::filesystem::path viz_dir(directory);
-	viz_dir /= basename;
-	string viz_path = viz_dir.string();
-	SpatialIndex::IStorageManager* diskfile = StorageManager::createNewDiskStorageManager(viz_path, 4096);
+	boost::filesystem::path viz_path(directory);
+	viz_path /= basename;
+	string vp = viz_path.string();
+	SpatialIndex::IStorageManager* diskfile = StorageManager::createNewDiskStorageManager(vp, 4096);
 
 	SpatialIndex::StorageManager::IBuffer* file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
 	// applies a main memory random buffer on top of the persistent storage manager
@@ -166,13 +176,14 @@ write_cs(const string& basename, vector<Basis*>& bases, ii n_core_bases, vector<
 	id_type indexIdentifier;
 	ISpatialIndex* tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, stream, *file, 0.7, 100, 100, 3, SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
 
+	cout << "Max Intensity: " << max_intensity << endl;
 	cout << *tree;
-	cout << "Buffer hits: " << file->getHits() << std::endl;
-	cout << "Index ID: " << indexIdentifier << std::endl;
+	cout << "Buffer hits: " << file->getHits() << endl;
+	cout << "Index ID: " << indexIdentifier << endl;
 
 	bool ret = tree->isIndexValid();
-	if (ret == false) cout << "ERROR: Structure is invalid!" << std::endl;
-	else cout << "The stucture seems O.K." << std::endl;
+	if (ret == false) cout << "ERROR: Structure is invalid!" << endl;
+	else cout << "The stucture seems O.K." << endl;
 
 	delete tree;
 	delete file;

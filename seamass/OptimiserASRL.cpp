@@ -434,6 +434,52 @@ step(ii iteration, double shrinkage)
 }
 
 
+fp
+OptimiserASRL::
+compute_norm_max_counts(ii n_core_bases)
+{
+    // synthesis except root
+	fp max_counts = 0.0;
+    vector< vector<fp> > ts(bases.size());
+    for (ii j = (ii) bases.size() - 1; j >= n_core_bases; j--)
+    {
+        ii pj = bases[j]->get_parent()->get_index();
+        if (ts[pj].size() == 0)
+        if (bases[pj]->is_transient())
+        {
+            ts[pj].resize(bases[pj]->get_cm().size(), 0.0);
+        }
+        else
+        {
+            ts[pj].resize(bases[pj]->get_cm().size());
+            for (ii i = 0; i < (ii) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i];
+        }
+
+        if (ts[j].size() == 0)
+        {
+            bases[j]->synthesis(ts[pj], cs[j]);
+        }
+        else
+        {
+            bases[j]->synthesis(ts[pj], ts[j]);
+            
+        }
+        vector<fp>().swap(ts[j]);
+
+		if (j == n_core_bases)
+		{
+			for (ii i = 0; i < ts[pj].size(); ++i)
+			{
+				max_counts = max_counts > ts[pj][i] ? max_counts : ts[pj][i];
+			}
+			max_counts *=  pow(2.0, bases[j]->get_cm().l[0]) * pow(2.0, bases[j]->get_cm().l[1]);
+			break;
+		}
+    }
+	return max_counts;
+}
+
+
 void
 OptimiserASRL::
 write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& scale_bases,

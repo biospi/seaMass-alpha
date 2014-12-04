@@ -40,7 +40,10 @@ public:
     void write_cs(const string& basename,
 		          vector<Basis*>& _bases,
 		          ii _n_core_bases,
-				  vector< vector<fp> >& _cs) const;
+				  vector< vector<fp> >& _cs,
+				  double mz_min, double mz_max,
+				  double rt_min, double rt_max,
+				  double max_intensity) const;
 };
 
 

@@ -118,8 +118,8 @@ BasisResampleMZ(vector<Basis*>& bases,
     nnz.resize(cm.n[1], 0);
 
     // find min and max m/z across spectra
-    double mz_min = DBL_MAX;
-    double mz_max = 0.0;
+    mz_min = DBL_MAX;
+    mz_max = 0.0;
     for (ii j = 0; j < cm.n[1]; j++)
     {
         m[j] = (ii) (is[j+1] - is[j]);
@@ -286,6 +286,9 @@ BasisResampleRT(vector<Basis*>& bases,
 {
 	double rc = pow(2.0, (double) rci);
     double sp = 1.0 / rc;
+
+	rt_min = rts.front();
+	rt_max = rts.back();
     
     // create A as a temporary COO matrix
     m = js.size();

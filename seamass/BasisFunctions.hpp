@@ -86,6 +86,8 @@ protected:
     vector< vector<ii> > ia, ja;
     //vector< vector<fp> > at;
     //vector< vector<ii> > iat, jat;
+
+	double mz_min, mz_max;
     
 public:
 	BasisResampleMZ(vector<Basis*>& bases,
@@ -102,6 +104,9 @@ public:
     void synthesis(vector<fp>& fs, const vector<fp>& cs, bool accum = true);
     void analysis(vector<fp>& es, const vector<fp>& fs);
     void l2norm(vector<fp>& es, const vector<fp>& fs);
+
+	double get_min() const { return mz_min; }
+	double get_max() const { return mz_max; }
 };
 
 
@@ -113,6 +118,8 @@ class BasisResampleRT : public Basis
 protected:
     ii nnz; ii m; vector<fp> a; vector<ii> ia, ja; // CSR sparse A basis matrix
     vector<fp> at; vector<ii> iat, jat;
+
+	double rt_min, rt_max;
     
 public:
 	BasisResampleRT(vector<Basis*>& bases,
@@ -128,6 +135,9 @@ public:
     void synthesis(vector<fp>& fs, const vector<fp>& cs, bool accum = true);
     void analysis(vector<fp>& es, const vector<fp>& fs);
     void l2norm(vector<fp>& es, const vector<fp>& fs);
+
+	double get_min() const { return rt_min; }
+	double get_max() const { return rt_max; }
 };
 
 
