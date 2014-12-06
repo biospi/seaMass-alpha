@@ -472,6 +472,7 @@ compute_norm_max_counts(ii n_core_bases)
 			{
 				max_counts = max_counts > ts[pj][i] ? max_counts : ts[pj][i];
 			}
+			// normalise
 			max_counts *=  pow(2.0, bases[j]->get_cm().l[0]) * pow(2.0, bases[j]->get_cm().l[1]);
 			break;
 		}
