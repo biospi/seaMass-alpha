@@ -603,7 +603,7 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
         }
         else
         {
-            // write residual 1D B-spline coefficients
+            /*// write residual 1D B-spline coefficients
             ostringstream oss;
             oss << datafilename << "rcs";
             file.write_cs(oss.str(), bases[0]->get_cm(), *p);
@@ -627,7 +627,7 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
                 rtic[j] += rs[i];
             }
             //for (ii j = 0; j < js.size(); j++)
-            //    cout << tic[j] << ":" << rtic[j] << endl;
+            //    cout << tic[j] << ":" << rtic[j] << endl;*/
 
        }
         

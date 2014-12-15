@@ -96,14 +96,14 @@ void process(const std::string& id,
     
     // Construct BasisResampleMZ root node
     cout << endl << "Spectrometry rc_mz=" << rc0_mz << ":" << rc_mz << endl;
-    BasisResampleMZ* bResampleMZ = new BasisResampleMZ(bases, mzs, gs, is, js, rc0_mz, order);
+    BasisResampleMZ* bResampleMZ = new BasisResampleMZ(bases, mzs, gs, is, js, rc0_mz, order, true);
 	double mz_min = bResampleMZ->get_min();
 	double mz_max = bResampleMZ->get_max();
     for (ii j = 0; j < (ii) mzs.size(); j++) vector<double>().swap(mzs[j]);
-    while (bases.back()->get_cm().n[0] > order + 1)
-    {
-        new BasisDyadicScale(bases, bases.back(), 0, order);
-    }
+    //while (bases.back()->get_cm().n[0] > order + 1)
+    //{
+    //    new BasisDyadicScale(bases, bases.back(), 0, order, true);
+    //}
     ii n_core_bases = bases.size();
 
     double duration = 0.0;
