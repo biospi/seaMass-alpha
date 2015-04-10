@@ -126,7 +126,7 @@ SMVWriter(const string& _directory) :
 	{
 		for (filesystem::directory_iterator end_dir_it, it(viz_path); it!=end_dir_it; ++it)
 		{
-			filesystem::remove_all(it->path());
+			//filesystem::remove_all(it->path());
 		}
 	}
 	else

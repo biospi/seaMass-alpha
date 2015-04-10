@@ -201,10 +201,11 @@ BasisResampleMZ(vector<Basis*>& bases,
         // display progress update
         #pragma omp critical
         {
+            done++;
 			if (done % 100 == 0)
 			{
 				for (int i = 0; i < 256; ++i) cout << '\b';
-				cout << index << " BasisResampleMZ " << setw(1+(int)(log10((float)cm.n[1]))) << ++done << "/" << cm.n[1] << " " << flush;
+				cout << index << " BasisResampleMZ " << setw(1+(int)(log10((float)cm.n[1]))) << done << "/" << cm.n[1] << " " << flush;
 			}
         }
     }
