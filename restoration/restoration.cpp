@@ -124,12 +124,10 @@ int main(int argc, char *argv[])
     preset_config_ds.getSpace().getSimpleExtentDims(&ns);
     vector<unsigned long> config_indices(ns);
     preset_config_ds.read(config_indices.data(), H5::DataType(H5::PredType::NATIVE_ULONG));
-
     H5::DataSet precursor_mz_ds = file.openDataSet("PrecursorMZ");
     precursor_mz_ds.getSpace().getSimpleExtentDims(&ns);
     vector<double> precursor_mzs(ns);
     precursor_mz_ds.read(precursor_mzs.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
-
     vector<spectrum> spectra(ns);
     for (size_t i = 0; i < ns; i++)
     {
@@ -138,14 +136,12 @@ int main(int argc, char *argv[])
         spectra[i].precursor_mz = precursor_mzs[i];
         spectra[i].scan_start_time = start_times[i];
     }
-
 	// determine start_scan_time order of spectra
 	sort(spectra.begin(), spectra.end(), scan_start_time_order);
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
 		spectra[i].scan_start_time_index = i;
 	}
-
 	// save scan_start_times and sort into seamass processing order:
 	// preset_config -> ms_level -> scan_start_time
 	vector<double> scan_start_times(ns);
@@ -154,22 +150,18 @@ int main(int argc, char *argv[])
 		scan_start_times[i] = spectra[i].scan_start_time;
 	}
 	sort(spectra.begin(), spectra.end(), seamass_order);
-    
 	// load spectra and process
     H5::DataSet mzs_ds = file.openDataSet("SpectrumMZ");
     H5::DataSet intensities_ds = file.openDataSet("SpectrumIntensity");
-    
     // read instrument type
     unsigned long instrument_type = 1;
     H5::Attribute att = intensities_ds.openAttribute("instrumentType");
     att.read(H5::IntType(H5::PredType::NATIVE_USHORT), &instrument_type);
-    
     hsize_t ns1;
     H5::DataSet index_ds = file.openDataSet("SpectrumIndex");
     index_ds.getSpace().getSimpleExtentDims(&ns1);
     vector<double> indices(ns1);
     index_ds.read(indices.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
-	
 	vector< std::vector<double> > mzs(ns);
 	vector< std::vector<double> > intensities(ns);
 	int loaded = 0;
@@ -178,8 +170,6 @@ int main(int argc, char *argv[])
 	{
         if (loaded > 1 && spectra[i].precursor_mz != spectra[i-1].precursor_mz)
             precursor_mz_is_constant = false;
-        
-        //cout << i << ":" << spectra[i].scan_start_time << "," << (int) spectra[i].precursor_mz << "," << spectra[i].preset_config << endl;
         
 		// load spectra into mzs and intensities vectors if precursor_mz
         hsize_t offset = indices[spectra[i].index];
@@ -196,12 +186,11 @@ int main(int argc, char *argv[])
         intensities_dsp.selectHyperslab(H5S_SELECT_SET, &count, &offset);
         intensities[spectra[i].scan_start_time_index].resize(count);
         intensities_ds.read(intensities[spectra[i].scan_start_time_index].data(), H5::DataType(H5::PredType::NATIVE_DOUBLE), memspace, intensities_dsp);
-        
+       
         loaded++;
-        //cout << spectra[i].index << "," << spectra[i].preset_config << "," << spectra[i].precursor_mz << "," << spectra[i].scan_start_time << "," << spectra[i].scan_start_time_index << ":" << n << endl;
-			
-		if (loaded && (i == spectra.size()-1 ||
-			spectra[i].preset_config != spectra[i+1].preset_config))
+		if ((i == spectra.size()-1 ||
+			spectra[i].preset_config != spectra[i+1].preset_config ||
+            (spectra[i].precursor_mz != spectra[i+1].precursor_mz && spectra[i].precursor_mz == 0.0)))
 		{
             if (loaded > 1 && precursor_mz_is_constant)
 			{
