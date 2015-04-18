@@ -10,7 +10,7 @@ endif()
 find_package(MKL REQUIRED)
 find_package(SpatialIndex 1.8.5 REQUIRED)
 find_package(Boost 1.54 REQUIRED COMPONENTS
-	system filesystem log program_options
+	system filesystem
 )
 
 add_library(seamass
