@@ -74,12 +74,12 @@ public:
 						double low[3] = {
 							pow(2.0, -bases[j]->get_cm().l[0]) * (bases[j]->get_cm().o[0]+x-3),
 							pow(2.0, -bases[j]->get_cm().l[1]) * (bases[j]->get_cm().o[1]+y-3),
-							-i
+							-i * pow(2.0, -bases[j]->get_cm().l[0]) * pow(2.0, -bases[j]->get_cm().l[1]) 
 						};
 						double high[3] = {
 							pow(2.0, -bases[j]->get_cm().l[0]) * (bases[j]->get_cm().o[0]+x+1),
 							pow(2.0, -bases[j]->get_cm().l[1]) * (bases[j]->get_cm().o[1]+y+1),
-							-i
+							-i * pow(2.0, -bases[j]->get_cm().l[0]) * pow(2.0, -bases[j]->get_cm().l[1])
 						};				
 						Region r(low, high, 3);
 
@@ -126,7 +126,7 @@ SMVWriter(const string& _directory) :
 	{
 		for (filesystem::directory_iterator end_dir_it, it(viz_path); it!=end_dir_it; ++it)
 		{
-			filesystem::remove_all(it->path());
+			//filesystem::remove_all(it->path());
 		}
 	}
 	else
@@ -184,6 +184,7 @@ write_cs(const string& basename, vector<Basis*>& bases, ii n_core_bases, vector<
 	bool ret = tree->isIndexValid();
 	if (ret == false) cout << "ERROR: Structure is invalid!" << endl;
 	else cout << "The stucture seems O.K." << endl;
+    cout << endl;
 
 	delete tree;
 	delete file;

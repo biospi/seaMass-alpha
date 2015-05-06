@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <vector>
 #include <algorithm>
+#include <iomanip>
 #include <H5Cpp.h>
 
 #include "seamass.hpp"
@@ -37,8 +38,8 @@ using namespace std;
 struct spectrum
 {
 	size_t index;
-	string preset_scan_configuration;
-	int ms_level;
+	unsigned short preset_config;
+	double precursor_mz;
 	double scan_start_time;
 	size_t scan_start_time_index;
 };
@@ -52,20 +53,20 @@ bool scan_start_time_order(const spectrum& lhs, const spectrum& rhs)
 
 bool seamass_order(const spectrum& lhs, const spectrum& rhs)
 {
-	if (lhs.preset_scan_configuration == rhs.preset_scan_configuration)
+	if (lhs.preset_config == rhs.preset_config)
 	{
-		if (lhs.ms_level == rhs.ms_level)
+		if (lhs.precursor_mz == rhs.precursor_mz)
 		{
 			return lhs.scan_start_time <= rhs.scan_start_time;
 		}
 		else
 		{
-			return lhs.ms_level < rhs.ms_level;
+			return lhs.precursor_mz < rhs.precursor_mz;
 		}
 	}
 	else
 	{
-		return lhs.preset_scan_configuration < rhs.preset_scan_configuration;
+		return lhs.preset_config < rhs.preset_config;
 	}
 }
 
@@ -110,134 +111,94 @@ int main(int argc, char *argv[])
 	// open H5 file
 	H5::H5File file(in_file, H5F_ACC_RDONLY);
 
-	// find instrument type - VERY ROUGH ATM
-	int instrument_type = 0;
-	try
-	{
-		H5::Group as = file.openGroup("/instrumentConfigurationList/instrumentConfiguration/0/componentList/analyzer");
-		hsize_t na = as.getNumObjs();
-		for (size_t i = 0; i < na; i++)
-		{
-			try
-			{
-				ostringstream oss; oss << as.getObjnameByIdx(i) << "/cvParam/MS:1000484";
-				H5::Group a = as.openGroup(oss.str());
-				instrument_type = 1;
-				break;
-			}
-			catch  (const H5::GroupIException& e) {}
-		}		
-	}
-	catch (const H5::FileIException& e) {}
-
-	// open spectrumList
-	H5::Group ss = file.openGroup("/mzML/run/spectrumList/spectrum");
-	hsize_t ns = ss.getNumObjs();
-
 	// query necessary metadata
-	cout << "Querying metadata..." << endl;
-	vector<spectrum> spectra(ns);
-	for (size_t i = 0; i < ns; i++)
-	{
-		spectra[i].index = i;
-		H5::Group s = ss.openGroup(ss.getObjnameByIdx(i));
+    hsize_t ns;
 
-		try
-		{
-			H5::Group cv = s.openGroup("scanList/scan/0/cvParam/MS:1000616");
-			H5::Attribute sst_a = cv.openAttribute("value");
-			sst_a.read(H5::StrType(0, H5T_VARIABLE), spectra[i].preset_scan_configuration);
-		}
-		catch (const H5::GroupIException& e)
-		{
-			spectra[i].preset_scan_configuration = "0";
-		}
+    H5::DataSet start_time_ds = file.openDataSet("StartTime");
+    start_time_ds.getSpace().getSimpleExtentDims(&ns);
+    cout << "Querying metadata from " << ns << " spectra..." << endl;
+    vector<double> start_times(ns);
+    start_time_ds.read(start_times.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
 
-		try
-		{
-			H5::Group cv = s.openGroup("cvParam/MS:1000579");
-			spectra[i].ms_level = 1;
-		}
-		catch (const H5::GroupIException& e)
-		{
-			spectra[i].ms_level = 2;
-		}
-
-		try
-		{
-			H5::Group cv = s.openGroup("scanList/scan/0/cvParam/MS:1000016");
-			H5::Attribute sst_a = cv.openAttribute("value");
-			H5std_string sst_s("");
-			sst_a.read(H5::StrType(0, H5T_VARIABLE), sst_s);
-			spectra[i].scan_start_time = atof(sst_s.c_str());	
-			
-			H5::Attribute ua_a = cv.openAttribute("unitAccession");
-			H5std_string units("");
-			ua_a.read(H5::StrType(0, H5T_VARIABLE), units);
-			if (units == "UO:0000010") spectra[i].scan_start_time /= 60.0; // seconds
-		}
-		catch (const H5::GroupIException& e)
-		{
-			spectra[i].scan_start_time = -1.0;
-		}
-	}
-
+    H5::DataSet preset_config_ds = file.openDataSet("PresetConfig");
+    preset_config_ds.getSpace().getSimpleExtentDims(&ns);
+    vector<unsigned long> config_indices(ns);
+    preset_config_ds.read(config_indices.data(), H5::DataType(H5::PredType::NATIVE_ULONG));
+    H5::DataSet precursor_mz_ds = file.openDataSet("PrecursorMZ");
+    precursor_mz_ds.getSpace().getSimpleExtentDims(&ns);
+    vector<double> precursor_mzs(ns);
+    precursor_mz_ds.read(precursor_mzs.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
+    vector<spectrum> spectra(ns);
+    for (size_t i = 0; i < ns; i++)
+    {
+        spectra[i].index = i;
+        spectra[i].preset_config = config_indices[i];
+        spectra[i].precursor_mz = precursor_mzs[i];
+        spectra[i].scan_start_time = start_times[i];
+    }
 	// determine start_scan_time order of spectra
 	sort(spectra.begin(), spectra.end(), scan_start_time_order);
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
 		spectra[i].scan_start_time_index = i;
 	}
-
 	// save scan_start_times and sort into seamass processing order:
-	// preset_scan_configuration -> ms_level -> scan_start_time
+	// preset_config -> ms_level -> scan_start_time
 	vector<double> scan_start_times(ns);
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
 		scan_start_times[i] = spectra[i].scan_start_time;
 	}
 	sort(spectra.begin(), spectra.end(), seamass_order);
-
 	// load spectra and process
-	cout << "Loading spectra..." << endl;
+    H5::DataSet mzs_ds = file.openDataSet("SpectrumMZ");
+    H5::DataSet intensities_ds = file.openDataSet("SpectrumIntensity");
+    // read instrument type
+    unsigned long instrument_type = 1;
+    H5::Attribute att = intensities_ds.openAttribute("instrumentType");
+    att.read(H5::IntType(H5::PredType::NATIVE_USHORT), &instrument_type);
+    hsize_t ns1;
+    H5::DataSet index_ds = file.openDataSet("SpectrumIndex");
+    index_ds.getSpace().getSimpleExtentDims(&ns1);
+    vector<double> indices(ns1);
+    index_ds.read(indices.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
 	vector< std::vector<double> > mzs(ns);
 	vector< std::vector<double> > intensities(ns);
 	int loaded = 0;
+    bool precursor_mz_is_constant = true;
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
-		H5::Group s = ss.openGroup(ss.getObjnameByIdx(spectra[i].index));	
+        if (loaded > 1 && spectra[i].precursor_mz != spectra[i-1].precursor_mz)
+            precursor_mz_is_constant = false;
+        
+		// load spectra into mzs and intensities vectors if precursor_mz
+        hsize_t offset = indices[spectra[i].index];
+        hsize_t count = indices[spectra[i].index+1] - offset;
+        
+        H5::DataSpace memspace(1, &count);
 
-		// load spectra into mzs and intensities vectors if profile & ms1
-		try
+        H5::DataSpace mzs_dsp = mzs_ds.getSpace();
+        mzs_dsp.selectHyperslab(H5S_SELECT_SET, &count, &offset);
+        mzs[spectra[i].scan_start_time_index].resize(count);
+        mzs_ds.read(mzs[spectra[i].scan_start_time_index].data(), H5::DataType(H5::PredType::NATIVE_DOUBLE), memspace, mzs_dsp);
+
+        H5::DataSpace intensities_dsp = intensities_ds.getSpace();
+        intensities_dsp.selectHyperslab(H5S_SELECT_SET, &count, &offset);
+        intensities[spectra[i].scan_start_time_index].resize(count);
+        intensities_ds.read(intensities[spectra[i].scan_start_time_index].data(), H5::DataType(H5::PredType::NATIVE_DOUBLE), memspace, intensities_dsp);
+       
+        loaded++;
+		if ((i == spectra.size()-1 ||
+			spectra[i].preset_config != spectra[i+1].preset_config ||
+            (spectra[i].precursor_mz != spectra[i+1].precursor_mz && spectra[i].precursor_mz == 0.0)))
 		{
-			s.openGroup("cvParam/MS:1000128"); // profile mode
-					
-			hsize_t n;
-
-			H5::DataSet mzs_ds = s.openDataSet("binaryDataArrayList/binaryDataArray/MS:1000514/binary");
-			mzs_ds.getSpace().getSimpleExtentDims(&n);
-			mzs[spectra[i].scan_start_time_index].resize(n);			
-			mzs_ds.read(mzs[spectra[i].scan_start_time_index].data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
-
-			H5::DataSet intensities_ds = s.openDataSet("binaryDataArrayList/binaryDataArray/MS:1000515/binary");
-			intensities_ds.getSpace().getSimpleExtentDims(&n);
-			intensities[spectra[i].scan_start_time_index].resize(n);			
-			intensities_ds.read(intensities[spectra[i].scan_start_time_index].data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
-			
-			loaded++;
-			//cout << spectra[i].index << "," << spectra[i].preset_scan_configuration << "," << spectra[i].ms_level << "," << spectra[i].scan_start_time << "," << spectra[i].scan_start_time_index << ":" << n << endl;
-		}
-		catch (const H5::GroupIException& e) {}			
-			
-		if (loaded && (i == spectra.size()-1 ||
-			spectra[i].preset_scan_configuration != spectra[i+1].preset_scan_configuration ||
-			spectra[i].ms_level != spectra[i+1].ms_level))
-		{				
-			if (spectra[i].ms_level == 1)
+            if (loaded > 1 && precursor_mz_is_constant)
 			{
+                ostringstream oss; oss << spectra[i].preset_config << "_" << spectra[i].precursor_mz;
+                
 				// run seamass 2D
 				seamass::process(id,
-					spectra[i].preset_scan_configuration,
+					oss.str().c_str(),
 					instrument_type,
 					scan_start_times, mzs, intensities,
 					mz_res, mz_res,
@@ -250,8 +211,9 @@ int main(int argc, char *argv[])
 			{
 				// run seamass 1D (todo)
 			}
-		}
-
+            loaded = 0;
+            precursor_mz_is_constant = true;
+        }
 	}
 
 	return 0;

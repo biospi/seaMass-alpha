@@ -3,5 +3,6 @@ CMakeFiles
 Makefile
 cmake_install.cmake
 install_manifest.txt
-release
-debug
+build
+.*
+!/.gitignore

@@ -30,10 +30,14 @@
 SMOWriter::
 SMOWriter(const string& filename)
 {
-    file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+    file = H5Fcreate(filename.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
     if (file < 0)
     {
-        // throw exception
+        file = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+        if (file < 0)
+        {
+            // throw exception
+        }
     }
 }
 
