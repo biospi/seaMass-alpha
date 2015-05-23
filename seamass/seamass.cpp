@@ -185,7 +185,7 @@ void process(const std::string& id,
                 if (debug >= 2)
                 {
                     ostringstream oss;
-                    oss << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L1/" << setfill('0') << setw(8) << i;
+                    oss << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << config_id << "/" << "/_debug/L1/" << setfill('0') << setw(8) << i;
                     optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
                 }
             }
@@ -219,7 +219,7 @@ void process(const std::string& id,
                 if (debug >= 2)
                 {
                     ostringstream oss;
-                    oss << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L0/" << setfill('0') << setw(8) << i;
+                    oss << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << config_id << "/" << "/_debug/L0/" << setfill('0') << setw(8) << i;
                     optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
                 }
             }
@@ -232,7 +232,7 @@ void process(const std::string& id,
 			if (debug)
 			{
 				ostringstream oss;
-				oss << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/";
+				oss  << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/" << config_id << "/";
 				optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
 			}
 
