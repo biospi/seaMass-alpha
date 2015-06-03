@@ -190,7 +190,7 @@ void process(const std::string& id,
                 {
                     ostringstream oss;
                     oss << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L1/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5_orig(*h5out, oss.str(), scale_bases, is, js);
+                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
                 }
             }
             
@@ -224,7 +224,7 @@ void process(const std::string& id,
                 {
                     ostringstream oss;
                     oss << "/"  << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L0/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5_orig(*h5out, oss.str(), scale_bases, is, js);
+                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
                 }
             }
 			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;

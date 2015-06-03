@@ -24,8 +24,6 @@
 
 #include "SMOWriter.hpp"
 
-#include <hdf5.h>
-
 
 SMOWriter::
 SMOWriter(const string& filename)
@@ -146,34 +144,7 @@ write_cdata(const string& objectname,
 {
     cout << "Writing " << filename << "/" << objectname << "/" << setname << endl;
 
-    ii n = cdata.size();
-
-    hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
-    H5Pset_create_intermediate_group(lcpl_id, 1);
-
-    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-    float fillval = -3.0/8.0;
-    H5Pset_fill_value(dcpl_id, H5T_NATIVE_FLOAT, &fillval);
-
-    hsize_t cdims[1] ={n < 16384 ? n : 16384};
-    H5Pset_chunk(dcpl_id, 1, cdims);
-    H5Pset_shuffle(dcpl_id);
-    H5Pset_deflate(dcpl_id, 1);
-
-    hsize_t dims[1] = {n};
-    hid_t fspace = H5Screate_simple(1, dims, dims);
-    ostringstream oss; oss << objectname << "/" << setname;
-    hid_t dataset = H5Dcreate(file, oss.str().c_str(), H5T_NATIVE_FLOAT, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
-
-    // write
-    hsize_t mdims[1] = {n};
-    hid_t mspace = H5Screate_simple(1, mdims, mdims);
-    H5Dwrite(dataset, H5T_NATIVE_FLOAT, mspace, fspace, H5P_DEFAULT, &cdata[0]);
-
-    H5Sclose(fspace);
-    H5Sclose(mspace);
-
-    H5Dclose(dataset);
+    write_h5(objectname, cdata, setname, H5T_NATIVE_FLOAT);
 }
 
 
@@ -185,34 +156,7 @@ write_cdata(const string& objectname,
 {
     cout << "Writing " << filename << "/" << objectname << "/" << setname << endl;
 
-    ii n = cdata.size();
-
-    hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
-    H5Pset_create_intermediate_group(lcpl_id, 1);
-
-    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-    float fillval = -3.0/8.0;
-    H5Pset_fill_value(dcpl_id, H5T_NATIVE_LLONG, &fillval);
-
-    hsize_t cdims[1] ={n < 16384 ? n : 16384};
-    H5Pset_chunk(dcpl_id, 1, cdims);
-    H5Pset_shuffle(dcpl_id);
-    H5Pset_deflate(dcpl_id, 1);
-
-    hsize_t dims[1] = {n};
-    hid_t fspace = H5Screate_simple(1, dims, dims);
-    ostringstream oss; oss << objectname << "/" << setname;
-    hid_t dataset = H5Dcreate(file, oss.str().c_str(), H5T_NATIVE_LLONG, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
-
-        // write
-    hsize_t mdims[1] = {n};
-    hid_t mspace = H5Screate_simple(1, mdims, mdims);
-    H5Dwrite(dataset, H5T_NATIVE_LLONG, mspace, fspace, H5P_DEFAULT, &cdata[0]);
-
-    H5Sclose(fspace);
-    H5Sclose(mspace);
-
-    H5Dclose(dataset);
+    write_h5(objectname, cdata, setname, H5T_NATIVE_LLONG);
 }
 
 
@@ -244,32 +188,5 @@ write_cdata(const string& objectname,
 		}
     }
 
-    ii n = cdata.size();
-
-    hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
-    H5Pset_create_intermediate_group(lcpl_id, 1);
-
-    hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-    float fillval = -3.0/8.0;
-    H5Pset_fill_value(dcpl_id, H5T_NATIVE_FLOAT, &fillval);
-
-    hsize_t cdims[1] ={n < 16384 ? n : 16384};
-    H5Pset_chunk(dcpl_id, 1, cdims);
-    H5Pset_shuffle(dcpl_id);
-    H5Pset_deflate(dcpl_id, 1);
-
-    hsize_t dims[1] = {n};
-    hid_t fspace = H5Screate_simple(1, dims, dims);
-    ostringstream oss; oss << objectname << "/" << setname;
-    hid_t dataset = H5Dcreate(file, oss.str().c_str(), H5T_NATIVE_FLOAT, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
-
-    // write
-    hsize_t mdims[1] = {n};
-    hid_t mspace = H5Screate_simple(1, mdims, mdims);
-    H5Dwrite(dataset, H5T_NATIVE_FLOAT, mspace, fspace, H5P_DEFAULT, &cdata[0]);
-
-    H5Sclose(fspace);
-    H5Sclose(mspace);
-
-    H5Dclose(dataset);
+    write_h5(objectname, cdata, setname, H5T_NATIVE_FLOAT);
 }
