@@ -110,7 +110,8 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
     if (mzs.size() > 1) mzs.resize(mzs.size() - 1);
     if (intensities.size() > 1) intensities.resize(intensities.size() - 1);
     
-    if (instrument_type == 0) // ToF
+    // Looks like calculation for centrioded Orbitrap as it is creating MZ on the edges of the bins.
+    if (instrument_type == 2)
     {
         #pragma omp parallel for
         for (ii j = 0; j < mzs.size(); j++)
@@ -156,7 +157,7 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
             intensities[j].resize(0);
         }
     }*/
-    else // FT
+    else // This looks like the Calculation for Time of Flight (ToF) as it is integrating the Intensities
     {
         #pragma omp parallel for
         for (ii j = 0; j < mzs.size(); j++)

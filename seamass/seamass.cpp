@@ -99,6 +99,10 @@ void process(const std::string& id,
     BasisResampleMZ* bResampleMZ = new BasisResampleMZ(bases, mzs, gs, is, js, rc0_mz, order, true);
 	double mz_min = bResampleMZ->get_min();
 	double mz_max = bResampleMZ->get_max();
+
+	string mzh5 = "/"+config_id+"/";
+	h5out->write_cdata(mzh5, mzs,"SpectrumMZ");
+
     for (ii j = 0; j < (ii) mzs.size(); j++) vector<double>().swap(mzs[j]);
     //while (bases.back()->get_cm().n[0] > order + 1)
     //{
@@ -185,8 +189,8 @@ void process(const std::string& id,
                 if (debug >= 2)
                 {
                     ostringstream oss;
-                    oss << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << config_id << "/" << "/_debug/L1/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
+                    oss << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L1/" << setfill('0') << setw(8) << i;
+                    optimiser->write_h5_orig(*h5out, oss.str(), scale_bases, is, js);
                 }
             }
             
@@ -219,8 +223,8 @@ void process(const std::string& id,
                 if (debug >= 2)
                 {
                     ostringstream oss;
-                    oss << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << config_id << "/" << "/_debug/L0/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
+                    oss << "/"  << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L0/" << setfill('0') << setw(8) << i;
+                    optimiser->write_h5_orig(*h5out, oss.str(), scale_bases, is, js);
                 }
             }
 			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
@@ -232,7 +236,7 @@ void process(const std::string& id,
 			if (debug)
 			{
 				ostringstream oss;
-				oss  << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/" << config_id << "/";
+				oss  << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/";
 				optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js);
 			}
 

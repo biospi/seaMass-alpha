@@ -48,7 +48,16 @@ public:
                   const vector<fp>& fs,
                   const vector<li>& is,
                   const vector<ii>& js) const;
-};
+    void write_cdata(const string& objectname,
+				  const vector<fp>& cdata,
+				  const string& setname) const;
+    void write_cdata(const string& objectname,
+				  const vector<li>& cdata,
+				  const string& setname) const;
+    void write_cdata(const string& objectname,
+				  const vector<vector<double> >& mzs,
+				  const string& setname) const;
+ };
 
 
 #endif // _SEAMASSRESTORATION_SMOWRITER_HPP_

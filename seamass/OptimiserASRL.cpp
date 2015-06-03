@@ -483,7 +483,7 @@ compute_norm_max_counts(ii n_core_bases)
 
 void
 OptimiserASRL::
-write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& scale_bases,
+write_h5_orig(const SMOWriter& file, const string& datafilename, const vector<ii>& scale_bases,
          const vector<li>& is, const vector<ii>& js)
 {
     vector<double> tic(js.size(),0);
@@ -631,6 +631,171 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
 
        }
         
+        vector<fp>().swap(ts[j]);
+    }
+}
+
+
+void
+OptimiserASRL::
+write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& scale_bases,
+         const vector<li>& is, const vector<ii>& js)
+{
+    vector<double> tic(js.size(),0);
+    vector<double> rtic(js.size(),0);
+
+    //ii k = scale_bases.size() - 1;
+    ii k = 0;
+    vector< vector<fp> > ts(bases.size());
+    for (ii j = (ii) bases.size() - 1; j >= 0; j--)
+    {
+        ii pj = 0;
+        if (j > 0)
+        {
+            pj = bases[j]->get_parent()->get_index();
+            if (ts[pj].size() == 0)
+            if (bases[pj]->is_transient())
+            {
+                ts[pj].resize(bases[pj]->get_cm().size(), 0.0);
+            }
+            else
+            {
+                ts[pj].resize(bases[pj]->get_cm().size());
+                for (ii i = 0; i < (ii) bases[pj]->get_cm().size(); i++)
+                    ts[pj][i] = cs[pj][i];
+            }
+        }
+
+        vector<fp>* p = (ts[j].size() == 0) ? &cs[j] : &ts[j];
+
+        if (j == scale_bases[k])
+        {
+            // write 2D B-spline coefficients
+            ostringstream oss;
+            oss << datafilename << "/cs";
+            file.write_cs(oss.str(), bases[j]->get_cm(), *p);
+            if (k > 0) k--;
+        }
+
+        if (j > 0)
+        {
+            bases[j]->synthesis(ts[pj], *p);
+        }
+        else
+        {
+            // write residual 1D B-spline coefficients
+            ostringstream oss;
+            oss << datafilename << "fcs";
+            file.write_cs(oss.str(), bases[0]->get_cm(), *p);
+
+            // write fs
+            vector<fp> fs(gs.size(),0);
+            if (ts.front().size() == 0)
+            {
+                bases.front()->synthesis(fs, cs.front());
+            }
+            else
+            {
+                bases.front()->synthesis(fs, ts.front());
+            }
+            // write fs spectrum intensities
+            ostringstream oss2;
+            oss2 << datafilename;
+            file.write_cdata(oss2.str(), fs,"fsSpectrumIntensity");
+
+            // write gs spectrum intensities
+            ostringstream oss3;
+            oss3 << datafilename.substr(0,datafilename.find("/",1)+1);
+            file.write_cdata(oss3.str(), gs,"gsSpectrumIntensity");
+
+            // write mz scan index for spectrum intensities
+            file.write_cdata(oss3.str(), is,"SpectrumIndex");
+
+            for (ii j = 0; j < js.size(); j++)
+            for (ii i = is[j]; i < is[j+1]; i++)
+            {
+                tic[j] += fs[i];
+            }
+            //for (ii j = 0; j < js.size(); j++)
+            //    cout << tic[j] << endl;
+
+            // detect and write centroids (todo)
+            /*ostringstream oss; oss << id << "_d.h5";
+
+            CoeffsMetadata dcm = bases[j]->get_cm();
+            dcm.n[0]--;
+            vector<fp> ds(dcm.size());
+
+            cout << bases[j]->get_cm().n[0] << "," << bases[j]->get_cm().n[1] << endl;
+            cout << dcm.n[0] << "," << dcm.n[1] << endl;
+
+            for (ii y = 0; y < dcm.n[1]; y++)
+            for (ii x = 0; x < dcm.n[0]; x++)
+            {
+                ds[x+y*dcm.n[0]] = (*p)[x+1+y*bases[j]->get_cm().n[0]] - (*p)[x+y*bases[j]->get_cm().n[0]];
+            }
+            write_h5(oss.str(), "Image", dcm, ds);*/
+        }
+
+        vector<fp>().swap(ts[j]);
+    }
+
+    // residuals
+    for (ii j = scale_bases.front() - 1; j >= 0; j--)
+    {
+        ii pj = 0;
+        if (j > 0)
+        {
+            pj = bases[j]->get_parent()->get_index();
+            if (ts[pj].size() == 0)
+            if (bases[pj]->is_transient() || pj > scale_bases.front())
+            {
+                ts[pj].resize(bases[pj]->get_cm().size(), 0.0);
+            }
+            else
+            {
+                ts[pj].resize(bases[pj]->get_cm().size());
+                for (ii i = 0; i < bases[pj]->get_cm().size(); i++)
+                    ts[pj][i] = cs[pj][i];
+            }
+        }
+
+        vector<fp>* p = (ts[j].size() == 0) ? &cs[j] : &ts[j];
+
+        if (j > 0)
+        {
+            bases[j]->synthesis(ts[pj], *p);
+        }
+        else
+        {
+            /*// write residual 1D B-spline coefficients
+            ostringstream oss;
+            oss << datafilename << "rcs";
+            file.write_cs(oss.str(), bases[0]->get_cm(), *p);
+
+            vector<fp> rs(gs.size(),0);
+            if (ts.front().size() == 0)
+            {
+                bases.front()->synthesis(rs, cs.front());
+            }
+            else
+            {
+                bases.front()->synthesis(rs, ts.front());
+            }
+            ostringstream oss2;
+            oss2 << datafilename << "rs";
+            file.write_fs(oss2.str(), rs, is, js);
+
+            for (ii j = 0; j < js.size(); j++)
+            for (ii i = is[j]; i < is[j+1]; i++)
+            {
+                rtic[j] += rs[i];
+            }
+            //for (ii j = 0; j < js.size(); j++)
+            //    cout << tic[j] << ":" << rtic[j] << endl;*/
+
+       }
+
         vector<fp>().swap(ts[j]);
     }
 }
