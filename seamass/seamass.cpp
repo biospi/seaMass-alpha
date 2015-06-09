@@ -100,8 +100,9 @@ void process(const std::string& id,
 	double mz_min = bResampleMZ->get_min();
 	double mz_max = bResampleMZ->get_max();
 
-	string mzh5 = "/"+config_id+"/";
-	h5out->write_cdata(mzh5, mzs,"SpectrumMZ");
+	ostringstream mzh5;
+	mzh5 << "/" << config_id << "/" << rc0_mz << "/";
+	h5out->write_cdata(mzh5.str(), mzs,"SpectrumMZ");
 
     for (ii j = 0; j < (ii) mzs.size(); j++) vector<double>().swap(mzs[j]);
     //while (bases.back()->get_cm().n[0] > order + 1)

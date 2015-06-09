@@ -550,7 +550,7 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
 
             // write gs spectrum intensities
             ostringstream oss3;
-            oss3 << datafilename.substr(0,datafilename.find("/",1)+1);
+            oss3 << datafilename.substr(0, datafilename.find("/",datafilename.find("/",1)+1)+1);
             file.write_cdata(oss3.str(), gs,"gsSpectrumIntensity");
 
             // write mz scan index for spectrum intensities
