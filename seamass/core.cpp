@@ -163,11 +163,19 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
         for (ii j = 0; j < mzs.size(); j++)
         if (mzs[j].size() >= 2)
         {
+            // dividing by minimum to get back to ion counts for SWATH data which appears to be scaled to correct for dynamic range restrictions (hack!)
+            double minimum = std::numeric_limits<double>::max();
             for (ii i = 1; i < mzs[j].size(); i++)
             {
+                if (intensities[j][i-1] > 0) minimum = minimum < intensities[j][i-1] ? minimum : intensities[j][i-1];
                 intensities[j][i-1] = (mzs[j][i] - mzs[j][i-1]) * 0.5 * (intensities[j][i] + intensities[j][i-1]);
             }
             intensities[j].resize(intensities[j].size() - 1);
+            for (ii i = 0; i < intensities[j].size(); i++)
+            {
+                intensities[j][i] /= minimum;
+            }
+            cout << minimum << endl;
         }
         else
         {
