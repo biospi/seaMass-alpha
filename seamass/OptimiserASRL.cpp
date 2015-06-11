@@ -484,7 +484,7 @@ compute_norm_max_counts(ii n_core_bases)
 void
 OptimiserASRL::
 write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& scale_bases,
-         const vector<li>& is, const vector<ii>& js)
+         const vector<li>& is, const vector<ii>& js, const vector<fp>& gains)
 {
     vector<double> tic(js.size(),0);
     vector<double> rtic(js.size(),0);
@@ -546,15 +546,18 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
             // write fs spectrum intensities
             ostringstream oss2;
             oss2 << datafilename;
-            file.write_cdata(oss2.str(), fs,"fsSpectrumIntensity");
+            file.write_cdata(oss2.str(), fs,"fSpectrumCount");
 
             // write gs spectrum intensities
             ostringstream oss3;
             oss3 << datafilename.substr(0, datafilename.find("/",datafilename.find("/",1)+1)+1);
-            file.write_cdata(oss3.str(), gs,"gsSpectrumIntensity");
+            file.write_cdata(oss3.str(), gs,"gSpectrumCount");
 
             // write mz scan index for spectrum intensities
             file.write_cdata(oss3.str(), is,"SpectrumIndex");
+
+			// write mz scan index for spectrum intensities
+			file.write_cdata(oss3.str(), gains, "SpectrumGain");
 
             for (ii j = 0; j < js.size(); j++)
             for (ii i = is[j]; i < is[j+1]; i++)

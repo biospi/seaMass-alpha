@@ -64,11 +64,12 @@ struct CoeffsMetadata
 
 void bin_mzs_intensities(vector< vector<double> >& mzs,
                          vector< vector<double> >& intensities,
-                         ii instrument_type);
+                         ii instrument_type,
+						 vector<fp>& gains);
 
 void merge_bins(vector< vector<double> >& mzs,
                 vector< vector<double> >& intensities,
-                double width);
+				double width);
 
 void create_gs(vector<fp>& gs,
                vector<li>& is,

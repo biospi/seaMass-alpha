@@ -94,7 +94,8 @@ print(ostream& out) const
 
 void bin_mzs_intensities(vector< vector<double> >& mzs,
                          vector< vector<double> >& intensities,
-                         ii instrument_type)
+						 ii instrument_type,
+						 vector<fp>& gains)
 {
     // This modifies the raw data for some limitations of the mzML spec and makes
     // sure the intensities are treated as binned between m/z datapoints.
@@ -106,26 +107,38 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
     //
     // This is all a bit rough at the moment, should be fitting splines to the data
 
+	// initialise gains to default of 1 (no gain)
+	gains.assign(intensities.size(), 1);
+
     // if more than one spectrum, ignore last as we do not know its scan end time
     if (mzs.size() > 1) mzs.resize(mzs.size() - 1);
     if (intensities.size() > 1) intensities.resize(intensities.size() - 1);
     
-    // Looks like calculation for centrioded Orbitrap as it is creating MZ on the edges of the bins.
-    if (instrument_type == 2)
+    if (instrument_type == 1) // ToF
     {
         #pragma omp parallel for
         for (ii j = 0; j < mzs.size(); j++)
         if (mzs[j].size() >= 2)
         {
-            // we drop the first and last m/z datapoint as we don't know both their bin edges
+			// dividing by minimum to get back to ion counts for SWATH data which appears to be scaled to correct for dynamic range restrictions (hack!)
+			double minimum = std::numeric_limits<double>::max();
+
+			// we drop the first and last m/z datapoint as we don't know both their bin edges
             for (ii i = 1; i < mzs[j].size(); i++)
             {
-                // linear interpolation of mz extent (probably should be cubic)
+				if (intensities[j][i] > 0) minimum = minimum < intensities[j][i] ? minimum : intensities[j][i];
+
+				// linear interpolation of mz extent (probably should be cubic)
                 mzs[j][i-1] = 0.5 * (mzs[j][i-1] + mzs[j][i]);
                 intensities[j][i-1] = intensities[j][i];
-            }
+			}
             mzs[j].resize(mzs[j].size() - 1);
             intensities[j].resize(intensities[j].size() - 2);
+			for (ii i = 0; i < intensities[j].size(); i++)
+			{
+				intensities[j][i] /= minimum;
+			}
+			gains[j] = minimum;
         }
         else
         {
@@ -133,7 +146,7 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
             intensities[j].resize(0);
         }
     }
-    /*else if (instrument_type == 1) // Orbitrap - but disabled for now as doesn't play nicely with merge_bins function
+    /*else if (instrument_type == 2) // Orbitrap - but disabled for now as doesn't play nicely with merge_bins function
     {
         #pragma omp parallel for
         for (ii j = 0; j < mzs.size(); j++)
@@ -157,25 +170,17 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
             intensities[j].resize(0);
         }
     }*/
-    else // This looks like the Calculation for Time of Flight (ToF) as it is integrating the Intensities
+    else // FT-ICR (Orbitrap is a type of FT-ICR)
     {
         #pragma omp parallel for
         for (ii j = 0; j < mzs.size(); j++)
         if (mzs[j].size() >= 2)
         {
-            // dividing by minimum to get back to ion counts for SWATH data which appears to be scaled to correct for dynamic range restrictions (hack!)
-            double minimum = std::numeric_limits<double>::max();
             for (ii i = 1; i < mzs[j].size(); i++)
             {
-                if (intensities[j][i-1] > 0) minimum = minimum < intensities[j][i-1] ? minimum : intensities[j][i-1];
-                intensities[j][i-1] = (mzs[j][i] - mzs[j][i-1]) * 0.5 * (intensities[j][i] + intensities[j][i-1]);
+                 intensities[j][i-1] = (mzs[j][i] - mzs[j][i-1]) * 0.5 * (intensities[j][i] + intensities[j][i-1]);
             }
             intensities[j].resize(intensities[j].size() - 1);
-            for (ii i = 0; i < intensities[j].size(); i++)
-            {
-                intensities[j][i] /= minimum;
-            }
-            cout << minimum << endl;
         }
         else
         {
