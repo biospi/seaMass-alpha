@@ -28,14 +28,12 @@
 SMOWriter::
 SMOWriter(const string& filename)
 {
-    file = H5Fcreate(filename.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+    file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
     if (file < 0)
     {
-        file = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-        if (file < 0)
-        {
             // throw exception
-        }
+            cerr << "problem opening smo" << endl;
+            throw "problem opening smo";
     }
 }
 
@@ -43,9 +41,11 @@ SMOWriter(const string& filename)
 SMOWriter::
 ~SMOWriter()
 {
+    cout << "closing smo" << endl;
 	if (H5Fclose(file) < 0)
     {
         // throw exception
+        cerr << "problem closing smo" << endl;
     }
 }
 
@@ -89,7 +89,7 @@ write_cs(const string& objectname, const CoeffsMetadata& cm, const vector<fp>& c
     H5Sclose(offset_fspace);
     H5Aclose(offset_attr);
     
-    H5Dclose(dataset);
+    if(H5Dclose(dataset)<0) cout << "ARGH" << endl;
 }
 
 
@@ -102,9 +102,9 @@ write_fs(const string& objectname,
 {
     cout << "Writing " << filename << "/" << objectname << "/" << 0 << ":" << js.size()-1 << endl;
     
-    for (ii j = 0; j < js.size(); j++)
+    for (hsize_t j = 0; j < js.size(); j++)
     {
-        ii n = is[j+1] - is[j];
+        hsize_t n = is[j+1] - is[j];
         
         hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
         H5Pset_create_intermediate_group(lcpl_id, 1);
@@ -131,7 +131,7 @@ write_fs(const string& objectname,
         H5Sclose(fspace);
         H5Sclose(mspace);
         
-        H5Dclose(dataset);
+        if(H5Dclose(dataset)<0) cout << "ARGH" << endl;
     }
 }
 
@@ -169,19 +169,19 @@ write_cdata(const string& objectname,
     cout << "Writing " << filename << "/" << objectname << "/" << setname << endl;
 
     vector<fp> cdata;
-    unsigned int N=0;
+    hsize_t N=0;
 
-    for(unsigned int i=0; i < mzs.size(); ++i)
+    for(hsize_t i=0; i < mzs.size(); ++i)
     {
 			N += mzs[i].size();
     }
 
     cdata.resize(N);
-    unsigned int index = 0;
+    hsize_t index = 0;
     cout<<"Total Size cData: "<<cdata.size()<<endl;
-    for(unsigned int i = 0; i < mzs.size(); ++i)
+    for(hsize_t i = 0; i < mzs.size(); ++i)
     {
-		for(unsigned int j = 0; j < mzs[i].size(); ++j)
+		for(hsize_t j = 0; j < mzs[i].size(); ++j)
 		{
 			cdata[index]=mzs[i][j];
 			index++;

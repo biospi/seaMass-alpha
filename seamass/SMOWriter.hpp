@@ -73,7 +73,7 @@ write_h5(const string& _objectname,
 		const string& _setname,
 		hid_t& _data_type_id) const
 {
-    ii n = _cdata.size();
+    hsize_t n = _cdata.size();
 
     hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
     H5Pset_create_intermediate_group(lcpl_id, 1);
@@ -100,7 +100,7 @@ write_h5(const string& _objectname,
     H5Sclose(fspace);
     H5Sclose(mspace);
 
-    H5Dclose(dataset);
+   if(H5Dclose(dataset)<0) cout << "ARGH" << endl;
 }
 
 
