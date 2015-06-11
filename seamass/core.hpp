@@ -65,7 +65,7 @@ struct CoeffsMetadata
 void bin_mzs_intensities(vector< vector<double> >& mzs,
                          vector< vector<double> >& intensities,
                          ii instrument_type,
-						 vector<fp>& gains);
+						 vector<fp>& exposures);
 
 void merge_bins(vector< vector<double> >& mzs,
                 vector< vector<double> >& intensities,

@@ -79,9 +79,9 @@ void process(const std::string& id,
     // difference between carbon12 and carbon13
     double rc_mz = pow(2.0, (double) rc0_mz) * 60 / 1.0033548378;
 
-    // Ensure the raw data is in binned format and compute gains
-	vector<fp> gains;
-    bin_mzs_intensities(mzs, intensities, instrument_type, gains);
+    // Ensure the raw data is in binned format and compute exposures
+	vector<fp> exposures;
+    bin_mzs_intensities(mzs, intensities, instrument_type, exposures);
     
     // for speed only, merge bins if rc_mz is set higher than twice bin width
     merge_bins(mzs, intensities, 0.5 / rc_mz);
@@ -192,7 +192,7 @@ void process(const std::string& id,
                 {
                     ostringstream oss;
                     oss << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L1/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, gains);
+                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
                 }
             }
             
@@ -226,7 +226,7 @@ void process(const std::string& id,
                 {
                     ostringstream oss;
                     oss << "/"  << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L0/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, gains);
+                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
                 }
             }
 			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
@@ -239,7 +239,7 @@ void process(const std::string& id,
 			{
 				ostringstream oss;
 				oss  << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/";
-				optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, gains);
+				optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
 			}
 
             // write smv viz r-tree

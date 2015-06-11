@@ -95,7 +95,7 @@ print(ostream& out) const
 void bin_mzs_intensities(vector< vector<double> >& mzs,
                          vector< vector<double> >& intensities,
 						 ii instrument_type,
-						 vector<fp>& gains)
+						 vector<fp>& exposures)
 {
     // This modifies the raw data for some limitations of the mzML spec and makes
     // sure the intensities are treated as binned between m/z datapoints.
@@ -107,8 +107,8 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
     //
     // This is all a bit rough at the moment, should be fitting splines to the data
 
-	// initialise gains to default of 1 (no gain)
-	gains.assign(intensities.size(), 1);
+	// initialise exposures to default of 1 (unit exposure)
+	exposures.assign(intensities.size(), 1);
 
     // if more than one spectrum, ignore last as we do not know its scan end time
     if (mzs.size() > 1) mzs.resize(mzs.size() - 1);
@@ -134,11 +134,11 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
 			}
             mzs[j].resize(mzs[j].size() - 1);
             intensities[j].resize(intensities[j].size() - 2);
+			exposures[j] = 1.0 / minimum;
 			for (ii i = 0; i < intensities[j].size(); i++)
 			{
-				intensities[j][i] /= minimum;
+				intensities[j][i] *= exposures[j];
 			}
-			gains[j] = minimum;
         }
         else
         {

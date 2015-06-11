@@ -557,7 +557,7 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
             file.write_cdata(oss3.str(), is,"SpectrumCountIndex");
 
 			// write mz scan index for spectrum intensities
-			file.write_cdata(oss3.str(), gains, "SpectrumCountGain");
+			file.write_cdata(oss3.str(), gains, "SpectrumExposure");
 
             for (ii j = 0; j < js.size(); j++)
             for (ii i = is[j]; i < is[j+1]; i++)
