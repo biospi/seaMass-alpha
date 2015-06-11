@@ -546,18 +546,18 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
             // write fs spectrum intensities
             ostringstream oss2;
             oss2 << datafilename;
-            file.write_cdata(oss2.str(), fs,"fSpectrumCount");
+            file.write_cdata(oss2.str(), fs,"fs");
 
             // write gs spectrum intensities
             ostringstream oss3;
             oss3 << datafilename.substr(0, datafilename.find("/",datafilename.find("/",1)+1)+1);
-            file.write_cdata(oss3.str(), gs,"gSpectrumCount");
+            file.write_cdata(oss3.str(), gs,"SpectrumCount");
 
             // write mz scan index for spectrum intensities
-            file.write_cdata(oss3.str(), is,"SpectrumIndex");
+            file.write_cdata(oss3.str(), is,"SpectrumCountIndex");
 
 			// write mz scan index for spectrum intensities
-			file.write_cdata(oss3.str(), gains, "SpectrumGain");
+			file.write_cdata(oss3.str(), gains, "SpectrumCountGain");
 
             for (ii j = 0; j < js.size(); j++)
             for (ii i = is[j]; i < is[j+1]; i++)
