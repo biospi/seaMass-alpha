@@ -51,14 +51,14 @@ error(vector<fp>& fs, const vector<fp>& gs)
     double sum_g = 0.0;
     double sum_f = 0.0;
     maxerr = 0;
-    for (ii i = 0; i < gs.size(); i++)
+    for (li i = 0; i < gs.size(); i++)
     {
         double v = fabs(gs[i]-fs[i]);
         maxerr = maxerr > v ? maxerr : v;
     }
     // bug in this openmp section at present for err and discrep
     //#pragma omp parallel for simd reduction(+:dis,err,size_d,sum_g,sum_f)
-    for (ii i = 0; i < gs.size(); i++)
+    for (li i = 0; i < gs.size(); i++)
     {
         sum_g += gs[i];
         sum_f += fs[i];
@@ -213,7 +213,7 @@ BasisResampleMZ(vector<Basis*>& bases,
     
     cout << index << " BasisResampleMZ ";
     cm.print(cout);
-    ii size = is.back();
+    li size = is.back();
     for (ii j = 0; j < a.size(); j++) size += 2*nnz[j]+1;
     cout << " mem=" << setprecision(2) << fixed << (sizeof(this)+size*sizeof(fp))/(1024.0*1024.0) << "Mb";
     if (transient) cout << " (t)";
@@ -233,8 +233,9 @@ synthesis(vector<fp>& fs, const vector<fp>& cs, bool accum)
     static fp alpha = 1.0;
     fp beta = accum ? 1.0 : 0.0;
     # pragma omp parallel for
-    for (ii j = 0; j < cm.n[1]; j++)
+    for (li j = 0; j < cm.n[1]; j++)
     {
+        //cout << "synthesis " << j << "," << cm.n[0] << "," << cm.n[1] << "," << m[j] << endl;
         fp* c = const_cast<fp*>(&(cs.data()[j*cm.n[0]]));
         mkl_scsrmv("N", &(m[j]), &(cm.n[0]), &alpha, "G**C", a[j].data(), ja[j].data(), ia[j].data(), &(ia[j].data()[1]), c, &beta, &(fs.data()[is[j]]));
     }
@@ -247,8 +248,9 @@ analysis(vector<fp>& es, const vector<fp>& fs)
 {
     static fp alpha = 1.0, beta = 0.0;
     //# pragma omp parallel for
-    for (ii j = 0; j < cm.n[1]; j++)
+    for (li j = 0; j < cm.n[1]; j++)
     {
+        //cout << "analysis " << j << "," << cm.n[0] << "," << cm.n[1] << "," << m[j] << ":" << j*cm.n[0] << ":" << j*cm.n[0] << endl;
         fp* f = const_cast<fp*>(&(fs.data()[is[j]]));
         //mkl_scsrmv("N", &(cm.n[0]), &(m[j]), &alpha, "G**C", at[j].data(), jat[j].data(), iat[j].data(), &(iat[j].data()[1]), f, &beta, &(es.data()[j*cm.n[0]]));
         mkl_scsrmv("T", &(m[j]), &(cm.n[0]), &alpha, "G**C", a[j].data(), ja[j].data(), ia[j].data(), &(ia[j].data()[1]), f, &beta, &(es.data()[j*cm.n[0]]));
@@ -262,8 +264,9 @@ l2norm(vector<fp>& es, const vector<fp>& fs)
 {
     static fp alpha = 1.0, beta = 0.0;
     //# pragma omp parallel for
-    for (ii j = 0; j < cm.n[1]; j++)
+    for (li j = 0; j < cm.n[1]; j++)
     {
+        //cout << "l2norm " << j << "," << cm.n[0] << "," << cm.n[1] << "," << m[j] << "," << nnz[j] << endl;
         vector<fp> a2(nnz[j]);
         vsSqr(nnz[j], a[j].data(), a2.data());
         fp* f = const_cast<fp*>(&(fs.data()[is[j]]));

@@ -51,7 +51,7 @@ struct CoeffsMetadata
     CoeffsMetadata(ii d);
     ~CoeffsMetadata();
     
-    ii size() const;
+    li size() const;
     void print(ostream& out) const;
     void operator=(const CoeffsMetadata& cm);
     

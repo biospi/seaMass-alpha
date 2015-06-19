@@ -53,11 +53,11 @@ CoeffsMetadata::
 }
 
 
-ii
+li
 CoeffsMetadata::
 size() const
 {
-    ii size = 1;
+    li size = 1;
     for (ii i = 0; i < d; i++) size *= n[i];
     return size;
 }

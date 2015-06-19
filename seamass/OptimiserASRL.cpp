@@ -37,10 +37,12 @@ OptimiserASRL(const vector<Basis*>& _bases,
     accell(_accell),
     iteration(0)
 {
+    //cout << "Entering Optimizer init" << endl;
     // pre-compute weights
     wcs.resize(bases.size());
     for (ii j = 0; j < (ii) bases.size(); j++)
     {
+        //cout << j << endl;
         wcs[j].resize(bases[j]->get_cm().size());
         if (j == 0)
         {
@@ -56,6 +58,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
     {
         if (bases[j]->is_transient()) vector<fp>().swap(wcs[j]);
     }
+    //cout << "b1" << endl;
     
     // pre-compute l2norm
     l2.resize(bases.size());
@@ -80,9 +83,11 @@ OptimiserASRL(const vector<Basis*>& _bases,
         }
         else
         {   // sqrt
-            vsSqrt(bases[j]->get_cm().size(), &(l2[j][0]), &(l2[j][0]));
+            // not 64 bit compliant atm // vsSqrt(bases[j]->get_cm().size(), &(l2[j][0]), &(l2[j][0]));
+            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++) l2[j][i] = sqrt(l2[j][i]);
         }
     }
+    //cout << "b2" << endl;
     
     // starting cs from ng
     cs.resize(bases.size());
@@ -106,7 +111,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
     for (ii j = 0; j < (ii) bases.size(); j++)
     {
         if (!bases[j]->is_transient())
-        for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+        for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
     }
     
@@ -133,7 +138,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
     }
     
     // how much memory are we using?
-    ii size = 0;
+    li size = 0;
     for (ii j = 0; j < cs.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
     for (ii j = 0; j < wcs.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
     for (ii j = 0; j < l2.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
@@ -157,7 +162,7 @@ threshold(double thresh)
     for (ii j = 0; j < (ii) bases.size(); j++)
     if (!bases[j]->is_transient())
     #pragma omp parallel for
-    for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+    for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
     {
         if (cs[j][i] < thresh) cs[j][i] = 0.0;
     }
@@ -167,7 +172,7 @@ threshold(double thresh)
     for (ii j = 0; j < (ii) bases.size(); j++)
     if (!bases[j]->is_transient())
     #pragma omp parallel for
-    for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+    for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
     {
         cs[j][i] /= volume;
     }
@@ -192,7 +197,7 @@ step(ii iteration, double shrinkage)
         else
         {
             ts[pj].resize(bases[pj]->get_cm().size());
-            for (ii i = 0; i < (ii) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i];
+            for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i];
         }
 
         if (ts[j].size() == 0)
@@ -259,7 +264,7 @@ step(ii iteration, double shrinkage)
         else
         {
             #pragma omp parallel for
-            for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
             if (es[j][i] >= FLT_MIN && cs[j][i] >= FLT_MIN)
             {
                 es[j][i] *= cs[j][i] / (shrinkage * l2[j][i] + wcs[j][i]);
@@ -284,7 +289,7 @@ step(ii iteration, double shrinkage)
         for (ii j = 0; j < (ii) bases.size(); j++)
         if (!bases[j]->is_transient())
         #pragma omp parallel for reduction(+:sum,sumd)
-        for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+        for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         {
             sum += cs[j][i] * cs[j][i];
             sumd += (es[j][i] - cs[j][i])*(es[j][i] - cs[j][i]);
@@ -300,7 +305,7 @@ step(ii iteration, double shrinkage)
             for (ii j = 0; j < (ii) bases.size(); j++)
             if (!bases[j]->is_transient())
             #pragma omp parallel for
-            for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
             if (cs[j][i] > 0.0)
             {
                 u0s[j][i] = es[j][i]/cs[j][i];
@@ -314,7 +319,7 @@ step(ii iteration, double shrinkage)
             for (ii j = 0; j < (ii) bases.size(); j++)
             if (!bases[j]->is_transient())
             #pragma omp parallel for reduction(+:sum_u0u,sum_u0u0)
-            for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
             if (cs[j][i] > 0.0)
             {
                 double old_u0 = u0s[j][i];
@@ -335,7 +340,7 @@ step(ii iteration, double shrinkage)
             if (!bases[j]->is_transient())
             {
                 #pragma omp parallel for reduction(+:sum,sumd)
-                for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+                for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
                 if (cs[j][i] > 0.0)
                 {
                     sum += cs[j][i] * cs[j][i];
@@ -355,7 +360,7 @@ step(ii iteration, double shrinkage)
             if (!bases[j]->is_transient())
             {
                 #pragma omp parallel for reduction(+:sum,sumd)
-                for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+                for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
                 if (cs[j][i] > 0.0)
                 {
                     fp c1 = es[j][i] * powf(es[j][i]/c0s[j][i], a);
@@ -378,7 +383,7 @@ step(ii iteration, double shrinkage)
             if (!bases[j]->is_transient())
             {
                 #pragma omp parallel for reduction(+:sum,sumd)
-                for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+                for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
                 if (cs[j][i] > 0.0)
                 {
                     fp q = es[j][i]/c0s[j][i];
@@ -403,7 +408,7 @@ step(ii iteration, double shrinkage)
             if (!bases[j]->is_transient())
             {
                 #pragma omp parallel for reduction(+:sum,sumd)
-                for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+                for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
                 if (cs[j][i] > 0.0)
                 {
                     fp q = es[j][i]/c0s[j][i];
@@ -452,7 +457,7 @@ compute_norm_max_counts(ii n_core_bases)
         else
         {
             ts[pj].resize(bases[pj]->get_cm().size());
-            for (ii i = 0; i < (ii) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i];
+            for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i];
         }
 
         if (ts[j].size() == 0)
@@ -506,7 +511,7 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
             else
             {
                 ts[pj].resize(bases[pj]->get_cm().size());
-                for (ii i = 0; i < (ii) bases[pj]->get_cm().size(); i++)
+                for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++)
                     ts[pj][i] = cs[pj][i];
             }
         }
@@ -672,7 +677,7 @@ calc_error(const std::string& id)
         for (ii j = 0; j < (ii) bases.size(); j++)
         if (!bases[j]->is_transient())
         //#pragma omp parallel for reduction(+:sum_u0u,sum_u0u0)
-        for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
+        for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         if (cs[j][i] < thresh)
         {
             cs[j][i] = 0.0;
@@ -697,7 +702,7 @@ calc_error(const std::string& id)
                 else
                 {
                     ts[pj].resize(bases[pj]->get_cm().size());
-                    for (ii i = 0; i < bases[pj]->get_cm().size(); i++)
+                    for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++)
                         ts[pj][i] = cs[pj][i];
                 }
             }

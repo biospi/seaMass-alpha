@@ -178,7 +178,7 @@ write_cdata(const string& objectname,
 
     cdata.resize(N);
     hsize_t index = 0;
-    cout<<"Total Size cData: "<<cdata.size()<<endl;
+    //cout<<"Total Size cData: "<<cdata.size()<<endl;
     for(hsize_t i = 0; i < mzs.size(); ++i)
     {
 		for(hsize_t j = 0; j < mzs[i].size(); ++j)

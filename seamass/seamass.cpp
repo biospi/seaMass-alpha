@@ -39,7 +39,7 @@ using namespace std;
 void notice()
 {
     cout << endl;
-    cout << "seaMass - Copyright (C) 2013 - CADET Bioinformatics Laboratory, University of Manchester, UK" << endl;
+    cout << "seaMass - Copyright (C) 2015 - biospi Laboratory, EEE, University of Liverpool, UK" << endl;
     cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
     cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
     cout << endl;
@@ -83,8 +83,9 @@ void process(const std::string& id,
 	vector<fp> exposures;
     bin_mzs_intensities(mzs, intensities, instrument_type, exposures);
     
-    // for speed only, merge bins if rc_mz is set higher than twice bin width
-    merge_bins(mzs, intensities, 0.5 / rc_mz);
+    // for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
+    // this is conservative, 4 times might be ok, but 2 times isn't enough
+    merge_bins(mzs, intensities, 0.125 / rc_mz);
 
     // Convert intensities into format used in algorithm for gs
     vector<fp> gs; vector<li> is; vector<ii> js;
@@ -154,24 +155,28 @@ void process(const std::string& id,
         for (ii shr = shrinkage0; shr <= shrinkage1; shr++)
         for (ii tol = tolerance1; tol >= tolerance0; tol--)
         {
+            //cout << "a1" << endl;
             OptimiserASRL* optimiser = new OptimiserASRL(bases, gs, 2);
-            
+            //cout << "a2" << endl;
+
             double shrinkage = pow(2.0, (double) shr);
             double tolerance = pow(2.0, (double) tol);
             double grad = DBL_MAX;
      
             // l1
-            ii nc = 0;
+            li nc = 0;
             for (ii j = 0; j < (ii) bases.size(); j++)
             if (!bases[j]->is_transient())
                 nc += bases[j]->get_cm().size();
             cout << " L1 nc=" << nc << " shrinkage=" << shr << ":" << fixed << setprecision(2) << shrinkage << " tolerance=" << tol << ":" << setprecision(6) << tolerance << endl;
 
+            //cout << "a3" << endl;
+
             for (ii i = 0; grad > tolerance; i++)
             {
                 grad = optimiser->step(i, shrinkage);
                 
-                ii nnz = 0;
+                li nnz = 0;
                 for (ii j = 0; j < (ii) bases.size(); j++)
                 if (!bases[j]->is_transient())
                 for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
@@ -205,7 +210,7 @@ void process(const std::string& id,
             {
                 grad = optimiser->step(i, 0.0);
                 
-                ii nnz = 0;
+                li nnz = 0;
                 for (ii j = 0; j < (ii) bases.size(); j++)
                 if (!bases[j]->is_transient())
                 for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
