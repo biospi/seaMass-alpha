@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
 		cout << "<in_file>:  Raw input file in seaMass Input format (smi)" << endl;
 		cout << "            guidelines: Use pwiz-seamass to convert from mzML or vendor format" << endl;
 		cout << "<mz_res>:   MS resolution given as: \"b-splines per Th = 2^mz_res * 60 / 1.0033548378\"" << endl;
-		cout << "            guidelines: between 0 to 1 for ToF, 3 for Orbitrap" << endl;
+		cout << "            guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap" << endl;
 		cout << "<rt_res>:   LC resolution given as: \"b-splines per minute = 2^rt_res\"" << endl;
 		cout << "            guidelines: around 4" << endl;
 		cout << "<shrink>:   Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\"" << endl;
