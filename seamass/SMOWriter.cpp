@@ -173,7 +173,7 @@ write_cdata(const string& objectname,
 {
     cout << "Writing " << filename << "/" << objectname << "/" << setname << endl;
 
-    vector<fp> cdata;
+    vector<double> cdata;
     hsize_t N=0;
 
     for(hsize_t i=0; i < mzs.size(); ++i)
@@ -193,5 +193,5 @@ write_cdata(const string& objectname,
 		}
     }
 
-    write_h5(objectname, cdata, setname, H5T_NATIVE_FLOAT);
+    write_h5(objectname, cdata, setname, H5T_NATIVE_DOUBLE);
 }
