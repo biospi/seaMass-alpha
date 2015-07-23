@@ -7,36 +7,6 @@
 #include"peakcore.hpp"
 #include"SMPFile.hpp"
 
-void scanGroup(const H5::H5File& file,
-				const string group, const string dataSet,
-				vector<string> &setMatch)
-{
-	H5::Group dataGroup = file.openGroup(group);
-	hsize_t nodj = dataGroup.getNumObjs();
-	for (hsize_t i = 0; i < nodj; ++i) {
-		string obj = dataGroup.getObjnameByIdx(i);
-		int otype = dataGroup.getObjTypeByIdx(i);
-		cout << "Object Name: " << obj << endl;
-		cout << "Object Type: " << otype << endl;
-
-		string newObj;
-		newObj=group+obj+"/";
-		switch(otype)
-		{
-			case H5G_GROUP:
-				cout<<"Group NAME: "<<newObj<<endl;
-				scanGroup(file, newObj, dataSet, setMatch);
-				break;
-			case H5G_DATASET:
-				cout<<"Group NAME: "<<newObj<<endl;
-				cout<<"DataSet NAME: "<<obj<<endl;
-				int n = newObj.find(dataSet);
-				if(n > 0)
-					setMatch.push_back(newObj+obj);
-				break;
-		}
-	}
-}
 
 int main(int argc, char **argv)
 {
@@ -48,52 +18,47 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
+	cout<<"Peak Detection"<<endl;
 	int i=1;
 	string filename=argv[i];
+	ReadSMFile dataFile(filename);
+	vector<double> vecData;
 
-	cout<<"Peak Detection"<<endl;
-	try
+	cout << "List all groups within file: " << filename << endl;
+	vector<string> groupList;
+
+	dataFile.searchGroup("/","/cs");
+	dataFile.searchGroup("/","/fs");
+	dataFile.searchGroup("/","/fcs");
+	dataFile.searchGroup("/","/SpectrumMZ");
+	groupList = dataFile.getDataSetName();
+
+	for(int i=0; i < groupList.size(); ++i)
 	{
-		H5::Exception::dontPrint();
-
-		// Open an existing file and Group.
-		H5::H5File file(filename.c_str(), H5F_ACC_RDONLY);
-
-		cout << "List all groups within file: " << filename << endl;
-
-		vector<string> dataSetMatch;
-		scanGroup(file,"/","fs",dataSetMatch);
-
-		cout<<"Matching Dataset Found: "<<dataSetMatch[0]<<endl;
-		file.close();
-
-	}  // end of try block
-
-	// catch failure caused by the H5File operations
-	catch(H5::FileIException& error)
-	{
-		cout<<"ERROR HDF5 FILE"<<endl;
-		error.printError();
+		cout<<"DataSets found ["<< i<<"]: "<<groupList[i]<<endl;
 	}
 
-	// catch failure caused by the DataSet operations
-	catch(H5::DataSetIException& error)
-	{
-		cout<<"ERROR HDF5 DATA"<<endl;
-		error.printError();
+	vector<float> vecMat;
+	lli row,col;
+	dataFile.read_VecH5(groupList[3], vecData, H5::PredType::NATIVE_DOUBLE);
+	dataFile.read_MatH5(groupList[0], vecMat, row, col, H5::PredType::NATIVE_FLOAT);
+
+	cout<<"Size of Vector: "<<vecMat.size()<<endl;
+
+	vector<float*> idx;
+	idx.reserve(row);
+	for(lli i=0; i < row; ++i)
+		idx.push_back(&vecMat[i*col]);
+
+	float **matData = &idx[0];
+
+	for(lli i=0; i<row; ++i){
+		for(lli j=0; j<col; ++j)
+			cout<<matData[i][j]<<"  ";
+		cout<<endl;
 	}
 
-	// catch failure caused by the DataSpace operations
-	catch(H5::DataSpaceIException& error)
-	{
-		error.printError();
-	}
-
-	// catch failure caused by the Attribute operations
-	catch(H5::AttributeIException& error)
-	{
-		error.printError();
-	}
+	//cout<<"Size of Matrix: ["<<matData.size()<<","<<matData[0].size()<<"]"<<endl;
 
 	return 0;
 }

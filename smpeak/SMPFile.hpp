@@ -11,11 +11,31 @@
 #include<vector>
 #include<H5Cpp.h>
 
+typedef long long int lli;
+
 using namespace std;
 
-template<typename T>
-bool read_VecH5(string filename, string datagroup, vector<T>& vec_data,
+class ReadSMFile
+{
+private:
+	string filename;
+	H5::H5File *h5file;
+	vector<string> dataSet;
+public:
+	ReadSMFile(string _filename);
+	~ReadSMFile();
+	void searchGroup(const string group, const string dataSet);
+	vector<string> getDataSetName(void);
+	void open(string _file);
+	void close(void);
+
+	template<typename T>
+	void read_VecH5(const string dataGroup, vector<T> &vec_data,
 				const H5::DataType &data_type_id);
+	template<typename T>
+	void read_MatH5(const string dataGroup, vector<T> &mat_data,
+				lli &row, lli &col, const H5::DataType &data_type_id);
+};
 
 class SMPFile
 {
@@ -39,20 +59,15 @@ public:
 
 
 template<typename T>
-bool read_VecH5(string filename, string datagroup, vector<T>& vec_data,
+void ReadSMFile::read_VecH5(const string dataGroup, vector<T> &vec_data,
 				const H5::DataType &data_type_id)
 {
-	cout<<"Loading DATA: "<< datagroup <<" from file: "<<filename <<endl;
+	cout<<"Loading DATA: "<< dataGroup <<" from file: "<<filename <<endl;
 	// Try block to detect exceptions raised by any of the calls inside it
 	try
 	{
-		// Turn off the auto-printing when failure occurs so that we can
-		// handle the errors appropriately
-		H5::Exception::dontPrint();
-
-		// Open an existing file and dataset.
-		H5::H5File file(filename, H5F_ACC_RDONLY);
-		H5::DataSet dataset = file.openDataSet(datagroup);
+		// Open an existing dataset.
+		H5::DataSet dataset = h5file->openDataSet(dataGroup);
 
 		// Get dataspace of the dataset.
 		H5::DataSpace dataspace = dataset.getSpace();
@@ -64,48 +79,102 @@ bool read_VecH5(string filename, string datagroup, vector<T>& vec_data,
 		// display them.
 		hsize_t dims_out[rank];
 		int ndims = dataspace.getSimpleExtentDims( dims_out, NULL);
-		cout << "rank " << rank << ", dimensions " << (unsigned long)(dims_out[0]) << endl;
+		cout << "Rank " << rank << ", Dimensions: " << (unsigned long)(dims_out[0]) << endl;
 
 		vec_data.resize(dims_out[0],0);
 		// Read the data to the dataset using default memory space, file
 		// space, and transfer properties.
 		dataset.read(&vec_data[0], data_type_id);
-
-		file.close();
-
-	}  // end of try block
-
+	}
 	// catch failure caused by the H5File operations
 	catch(H5::FileIException& error)
 	{
 		cout<<"ERROR HDF5 FILE"<<endl;
 		error.printError();
-		return false;
 	}
-
 	// catch failure caused by the DataSet operations
 	catch(H5::DataSetIException& error)
 	{
 		cout<<"ERROR HDF5 DATA"<<endl;
 		error.printError();
-		return false;
 	}
-
 	// catch failure caused by the DataSpace operations
 	catch(H5::DataSpaceIException& error)
 	{
 		error.printError();
-		return false;
 	}
-
 	// catch failure caused by the Attribute operations
 	catch(H5::AttributeIException& error)
 	{
 		error.printError();
-		return false;
 	}
-	return true;
 }
+
+
+template<typename T>
+void ReadSMFile::read_MatH5(const string dataGroup, vector<T> &mat_data,
+				lli &row, lli &col, const H5::DataType &data_type_id)
+//void ReadSMFile::read_MatH5(const string dataGroup, vector<vector<T> > &mat_data,
+//				const H5::DataType &data_type_id)
+{
+	cout<<"Loading DATA: "<< dataGroup <<" from file: "<<filename <<endl;
+	// Try block to detect exceptions raised by any of the calls inside it
+	try
+	{
+		// Open an existing dataset.
+		H5::DataSet dataset = h5file->openDataSet(dataGroup);
+
+		// Get dataspace of the dataset.
+		H5::DataSpace dataspace = dataset.getSpace();
+
+		// Get the number of dimensions in the dataspace.
+		int rank = dataspace.getSimpleExtentNdims();
+
+		// Get the dimension size of each dimension in the dataspace and
+		// display them.
+		hsize_t dims_out[rank];
+		//vector<hsize_t> dims_out(rank);
+		int ndims = dataspace.getSimpleExtentDims(dims_out, NULL);
+		cout << "Rank " << rank << ", Dimensions Row: " << (dims_out[0]) << endl;
+		cout << "Rank " << rank << ", Dimensions Col: " << (dims_out[1]) << endl;
+
+		//H5::DataSpace memspace(rank,dims_out, NULL);
+
+		row=dims_out[0];
+		col=dims_out[1];
+		mat_data.resize(row*col);
+
+		cout<<"Matrix Row: "<<row<<endl;
+		cout<<"Matrix Col: "<<col<<endl;
+
+		// Read the data to the dataset using default memory space, file
+		// space, and transfer properties.
+		dataset.read(&mat_data[0], data_type_id);
+	}
+	// catch failure caused by the H5File operations
+	catch(H5::FileIException& error)
+	{
+		cout<<"ERROR HDF5 FILE"<<endl;
+		error.printError();
+	}
+	// catch failure caused by the DataSet operations
+	catch(H5::DataSetIException& error)
+	{
+		cout<<"ERROR HDF5 DATA"<<endl;
+		error.printError();
+	}
+	// catch failure caused by the DataSpace operations
+	catch(H5::DataSpaceIException& error)
+	{
+		error.printError();
+	}
+	// catch failure caused by the Attribute operations
+	catch(H5::AttributeIException& error)
+	{
+		error.printError();
+	}
+}
+
 
 template<typename T>
 void SMPFile::write_VecMatH5(string group, vector<T> const &data_set,
