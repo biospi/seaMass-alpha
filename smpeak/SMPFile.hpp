@@ -20,7 +20,7 @@ class ReadSMFile
 private:
 	string filename;
 	H5::H5File *h5file;
-	vector<string> dataSet;
+	vector<string> dataSetList;
 public:
 	ReadSMFile(string _filename);
 	~ReadSMFile();
@@ -30,10 +30,10 @@ public:
 	void close(void);
 
 	template<typename T>
-	void read_VecH5(const string dataGroup, vector<T> &vec_data,
+	void read_VecH5(const string dataSetName, vector<T> &vec_data,
 				const H5::DataType &data_type_id);
 	template<typename T>
-	void read_MatH5(const string dataGroup, vector<T> &mat_data,
+	void read_MatH5(const string dataSetName, vector<T> &mat_data,
 				lli &row, lli &col, const H5::DataType &data_type_id);
 };
 
@@ -59,15 +59,15 @@ public:
 
 
 template<typename T>
-void ReadSMFile::read_VecH5(const string dataGroup, vector<T> &vec_data,
+void ReadSMFile::read_VecH5(const string dataSetName, vector<T> &vec_data,
 				const H5::DataType &data_type_id)
 {
-	cout<<"Loading DATA: "<< dataGroup <<" from file: "<<filename <<endl;
+	cout<<"Loading DATA: "<< dataSetName <<" from file: "<<filename <<endl;
 	// Try block to detect exceptions raised by any of the calls inside it
 	try
 	{
 		// Open an existing dataset.
-		H5::DataSet dataset = h5file->openDataSet(dataGroup);
+		H5::DataSet dataset = h5file->openDataSet(dataSetName);
 
 		// Get dataspace of the dataset.
 		H5::DataSpace dataspace = dataset.getSpace();
@@ -112,17 +112,17 @@ void ReadSMFile::read_VecH5(const string dataGroup, vector<T> &vec_data,
 
 
 template<typename T>
-void ReadSMFile::read_MatH5(const string dataGroup, vector<T> &mat_data,
+void ReadSMFile::read_MatH5(const string dataSetName, vector<T> &mat_data,
 				lli &row, lli &col, const H5::DataType &data_type_id)
 //void ReadSMFile::read_MatH5(const string dataGroup, vector<vector<T> > &mat_data,
 //				const H5::DataType &data_type_id)
 {
-	cout<<"Loading DATA: "<< dataGroup <<" from file: "<<filename <<endl;
+	cout<<"Loading DATA: "<< dataSetName <<" from file: "<<filename <<endl;
 	// Try block to detect exceptions raised by any of the calls inside it
 	try
 	{
 		// Open an existing dataset.
-		H5::DataSet dataset = h5file->openDataSet(dataGroup);
+		H5::DataSet dataset = h5file->openDataSet(dataSetName);
 
 		// Get dataspace of the dataset.
 		H5::DataSpace dataspace = dataset.getSpace();

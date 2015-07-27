@@ -25,23 +25,23 @@ int main(int argc, char **argv)
 	vector<double> vecData;
 
 	cout << "List all groups within file: " << filename << endl;
-	vector<string> groupList;
+	vector<string> dataSetList;
 
 	dataFile.searchGroup("/","/cs");
 	dataFile.searchGroup("/","/fs");
 	dataFile.searchGroup("/","/fcs");
 	dataFile.searchGroup("/","/SpectrumMZ");
-	groupList = dataFile.getDataSetName();
+	dataSetList = dataFile.getDataSetName();
 
-	for(int i=0; i < groupList.size(); ++i)
+	for(int i=0; i < dataSetList.size(); ++i)
 	{
-		cout<<"DataSets found ["<< i<<"]: "<<groupList[i]<<endl;
+		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i]<<endl;
 	}
 
 	vector<float> vecMat;
 	lli row,col;
-	dataFile.read_VecH5(groupList[3], vecData, H5::PredType::NATIVE_DOUBLE);
-	dataFile.read_MatH5(groupList[0], vecMat, row, col, H5::PredType::NATIVE_FLOAT);
+	dataFile.read_VecH5(dataSetList[3], vecData, H5::PredType::NATIVE_DOUBLE);
+	dataFile.read_MatH5(dataSetList[0], vecMat, row, col, H5::PredType::NATIVE_FLOAT);
 
 	cout<<"Size of Vector: "<<vecMat.size()<<endl;
 

@@ -35,7 +35,7 @@ ReadSMFile::~ReadSMFile()
 
 vector<string> ReadSMFile::getDataSetName(void)
 {
-	return dataSet;
+	return dataSetList;
 }
 
 void ReadSMFile::close(void)
@@ -65,7 +65,7 @@ void ReadSMFile::searchGroup(const string group, const string setName)
 				//cout<<"DataSet NAME: "<<obj<<endl;
 				int n = newObj.find(setName);
 				if(n > 0)
-					dataSet.push_back(group+obj);
+					dataSetList.push_back(group+obj);
 				break;
 		}
 	}
