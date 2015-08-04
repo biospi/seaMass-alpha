@@ -254,7 +254,7 @@ void merge_bins(vector< vector<double> >& mzs,
             if (i < intensities[j].size()) v += intensities[j][i-1];
         }
         
-        mzs[j].resize(k);
+        if(k != 1) mzs[j].resize(k);
         intensities[j].resize(k-1);
     }
 }
