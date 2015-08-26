@@ -4,8 +4,7 @@
 #include<iostream>
 #include<vector>
 #include<H5Cpp.h>
-
-typedef long long int lli;
+#include"peakcore.hpp"
 
 using namespace std;
 
@@ -29,6 +28,9 @@ public:
 	template<typename T>
 	void read_MatH5(const string dataSetName, vector<T> &mat_data,
 				lli &row, lli &col, const H5::DataType &data_type_id);
+	template<typename T>
+	void read_AttH5(const string dataSetName, const string dataAttName, T& attribute,
+					const H5::DataType &data_type_id);
 };
 
 class SMPFile
@@ -162,6 +164,49 @@ void ReadSMFile::read_MatH5(const string dataSetName, vector<T> &mat_data,
 	{
 		error.printError();
 	}
+	// catch failure caused by the Attribute operations
+	catch(H5::AttributeIException& error)
+	{
+		error.printError();
+	}
+}
+
+
+template<typename T>
+void ReadSMFile::read_AttH5(const string dataSetName, const string dataAttName, T &attribute,
+				const H5::DataType &data_type_id)
+{
+	cout<<"Loading Attribute from DataSet: "<< dataSetName <<" from file: "<<filename <<endl;
+	// Try block to detect exceptions raised by any of the calls inside it
+	try
+	{
+		H5::DataSet dataset = h5file->openDataSet(dataSetName);
+
+	    H5::Attribute att = dataset.openAttribute(dataAttName);
+	    att.read(data_type_id, &attribute);
+
+	}  // end of try block
+
+	// catch failure caused by the H5File operations
+	catch(H5::FileIException& error)
+	{
+		cout<<"ERROR HDF5 FILE"<<endl;
+		error.printError();
+	}
+
+	// catch failure caused by the DataSet operations
+	catch(H5::DataSetIException& error)
+	{
+		cout<<"ERROR HDF5 DATA"<<endl;
+		error.printError();
+	}
+
+	// catch failure caused by the DataSpace operations
+	catch(H5::DataSpaceIException& error)
+	{
+		error.printError();
+	}
+
 	// catch failure caused by the Attribute operations
 	catch(H5::AttributeIException& error)
 	{
