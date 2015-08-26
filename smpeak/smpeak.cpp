@@ -1,8 +1,3 @@
-/*
- * smpeak.cpp
- *
- *      Author: Ranjeet Bhamber
- */
 #include<iostream>
 #include"peakcore.hpp"
 #include"SMPFile.hpp"
@@ -57,8 +52,6 @@ int main(int argc, char **argv)
 			cout<<matData[i][j]<<"  ";
 		cout<<endl;
 	}
-
-	//cout<<"Size of Matrix: ["<<matData.size()<<","<<matData[0].size()<<"]"<<endl;
 
 	return 0;
 }

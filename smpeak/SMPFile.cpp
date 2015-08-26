@@ -1,9 +1,3 @@
-/*
- * SMPFile.cpp
- *
- *      Author: Ranjeet Bhamber
- */
-
 #include "SMPFile.hpp"
 
 ReadSMFile::ReadSMFile(string _filename):filename(_filename)
