@@ -45,8 +45,8 @@ int main(int argc, char **argv)
 	calMZalpha(mza, offset[0]);
 
 	// Calculate the RTs of control points.
-	vector<double> rt(row,0.0);
-	calRTalpha(rt, offset[1]);
+	vector<double> rta(row,0.0);
+	calRTalpha(rta, offset[1]);
 
 	cout<<"Size of Vector: "<<csVecMat.size()<<endl;
 	vector<float*> csIdx;
@@ -77,13 +77,62 @@ int main(int argc, char **argv)
 		cout<<endl;
 	}
 
-
 	// Write data to SMP file.
 	SMPFile smpDataFile(outFileName);
 
 	smpDataFile.write_VecMatH5("csOrig",csVecMat,dim,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("dcs",dcs,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("d2cs",d2cs,H5::PredType::NATIVE_FLOAT);
+
+
+	PeakData centriodPeak;
+
+	// Find Peaks and exact MZ values.
+	cout<<"Find Peaks along MZ axis"<<endl;
+	for(lli i = 0; i < row; ++i)
+	{
+		for(lli j = 2; j < col-2; ++j)
+		{
+			if((dcs[i][j] > 0) && (dcs[i][j+1] < 0) )
+			{
+				double pa1=0.0;
+				double pmz1=0.0;
+				calMidPoint(i,j,dcs,mza,pmz1,pa1);
+				if(pa1 < 0){
+					double pa0=0.0;
+					double pmz0=0.0;
+					calMidPoint(i,j-1,dcs,mza,pmz0,pa0);
+					double t0 = calT(pa0,double(dcs[i][j]),pa1);
+					double mzPeak=calX(t0,pmz0,mza[j],pmz1);
+					centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],i,j);
+				}
+				else
+				{
+					double pa2=0.0;
+					double pmz2=0.0;
+					calMidPoint(i,j+1,dcs,mza,pmz2,pa2);
+					double t0 = calT(pa1,double(dcs[i][j+1]),pa2);
+					double mzPeak=calX(t0,pmz1,mza[j+1],pmz2);
+					centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],i,j);
+				}
+			}
+		}
+	}
+
+	cout<<"Found N: "<<centriodPeak.mz.size()<<" Peaks!"<<endl;
+	vector<hsize_t> vecN;
+	vecN.push_back(0.0);
+
+	vecN[0]=centriodPeak.mz.size();
+	smpDataFile.write_VecMatH5("Peak_mz",centriodPeak.mz,vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodPeak.rt.size();
+	smpDataFile.write_VecMatH5("Peak_rt",centriodPeak.rt,vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodPeak.pVal.size();
+	smpDataFile.write_VecMatH5("Peak_Count",centriodPeak.pVal,vecN,H5::PredType::NATIVE_FLOAT);
+	vecN[0]=centriodPeak.mz_idx.size();
+	smpDataFile.write_VecMatH5("Peak_mz_idx",centriodPeak.mz_idx,vecN,H5::PredType::NATIVE_LLONG);
+	vecN[0]=centriodPeak.rt_idx.size();
+	smpDataFile.write_VecMatH5("Peak_rt_idx",centriodPeak.rt_idx,vecN,H5::PredType::NATIVE_LLONG);
 
 	return 0;
 }
