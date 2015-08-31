@@ -27,7 +27,7 @@ public:
 				const H5::DataType &data_type_id);
 	template<typename T>
 	void read_MatH5(const string dataSetName, vector<T> &mat_data,
-				lli &row, lli &col, const H5::DataType &data_type_id);
+				hsize_t &row, hsize_t &col, const H5::DataType &data_type_id);
 	template<typename T>
 	void read_AttH5(const string dataSetName, const string dataAttName, T& attribute,
 					const H5::DataType &data_type_id);
@@ -45,11 +45,10 @@ public:
 
 	template<typename T>
 	void write_VecMatH5(string group, vector<T> const &data_set,
-					const vector<hsize_t> dims,
+					vector<hsize_t> const dims,
 					const H5::DataType &data_type_id);
-
 	template<typename T>
-	void write_VecMatH5(string group, vector<vector<T> > const &data_set,
+	void write_MatH5(string group, vector<vector<T> > const &data_set,
 					const H5::DataType &data_type_id);
 };
 
@@ -109,7 +108,7 @@ void ReadSMFile::read_VecH5(const string dataSetName, vector<T> &vec_data,
 
 template<typename T>
 void ReadSMFile::read_MatH5(const string dataSetName, vector<T> &mat_data,
-				lli &row, lli &col, const H5::DataType &data_type_id)
+				hsize_t &row, hsize_t &col, const H5::DataType &data_type_id)
 //void ReadSMFile::read_MatH5(const string dataGroup, vector<vector<T> > &mat_data,
 //				const H5::DataType &data_type_id)
 {
@@ -217,13 +216,20 @@ void ReadSMFile::read_AttH5(const string dataSetName, const string dataAttName, 
 
 template<typename T>
 void SMPFile::write_VecMatH5(string group, vector<T> const &data_set,
-					const vector<hsize_t> dims,
+					vector<hsize_t> const dims,
 					const H5::DataType &data_type_id)
 {
 	// Write out both Vector or Matrix data in HDF5 file, with an packed vector
 	// data input.
 
 	int rank=dims.size();
+
+	cout<<"Dimensions of output Multi Rank DataSet"<<endl;
+
+	for(int i = 0 ; i < dims.size(); ++i)
+	{
+		cout<<"Rank "<<i <<" Size: " <<dims[i]<<endl;
+	}
 
 	try{
 		H5::Group h5group;
@@ -265,46 +271,46 @@ void SMPFile::write_VecMatH5(string group, vector<T> const &data_set,
 }
 
 template<typename T>
-void SMPFile::write_VecMatH5(string group, vector<vector<T> > const &data_set,
+void SMPFile::write_MatH5(string group, vector<vector<T> > const &data_set,
 					const H5::DataType &data_type_id)
 {
 	const int rank=2;
-	hsize_t nrow = data_set.size();
-	//hsize_t min_ncol=data_set[0].size();
-	hsize_t max_ncol=0;
-	hsize_t dim[2];
-	// Seamass HDF5 file containing data for Image
-	typename vector<vector<T> >::const_iterator itrow;
+	vector<hsize_t> dims;
 
-	for(itrow = data_set.begin(); itrow != data_set.end(); ++itrow )
-	{
-		hsize_t vec_size = itrow->size();
-		if(vec_size > max_ncol) max_ncol=vec_size;
-		//if(vec_size < min_ncol) min_ncol=vec_size;
-	}
-	//cout<<"Length of row vector [Min, Max]       : ["<<min_ncol<<","<<max_ncol<<"]"<<endl;
-	cout<<"Dimensions of output Matrix [row,col]: ["<<nrow<<","<<max_ncol<<"]"<<endl;
+	dims.push_back(data_set.size());
+	dims.push_back(data_set[0].size());
+	cout<<"Dimensions of Rank 2 Matrix [row,col]: ["<<dims[0]<<","<<dims[1]<<"]"<<endl;
 
-	dim[0]=nrow;
-	dim[1]=max_ncol;
-
-	vector<T> matvec(nrow*max_ncol, -1.0);
+	vector<T> matVec(dims[0]*dims[1], -1.0);
 	for(hsize_t i=0; i < data_set.size(); ++i)
 		for(hsize_t j=0; j < data_set[i].size(); ++j)
-			matvec[max_ncol*i+j]=data_set[i][j];
+			matVec[dims[1]*i+j]=data_set[i][j];
 
 	try{
 		H5::Group h5group;
 		H5::DataSet h5dataset;
-		string data_group = "/RootGroup/"+group;
 
-		h5file->createGroup("/RootGroup");
+		vector<hsize_t> cdims;
 
-		H5::DataSpace dataspace(rank, dim);
-		H5::DataSet dataset = h5file->createDataSet(data_group.c_str(),data_type_id,dataspace);
-		dataset.write(&matvec[0], data_type_id);
+		for (int i=0; i < rank; ++i)
+		{
+			cdims.push_back({dims[i] < 16384 ? dims[i] : 16384});
+		}
 
-		dataset.close();
+		H5::DSetCreatPropList dataplist;
+	    dataplist.setChunk(rank, &cdims[0]);
+	    dataplist.setDeflate(7);
+
+		//string data_group = "/RootGroup/"+group;
+		//h5file->createGroup("/RootGroup");
+
+		H5::DataSpace dataspace(rank, &dims[0]);
+		H5::DataSet *dataset = new H5::DataSet(
+				h5file->createDataSet(group.c_str(),data_type_id,dataspace,dataplist));
+		dataset->write(&matVec[0], data_type_id);
+
+		dataset->close();
+		delete dataset;
 	}
 	catch(const H5::FileIException & error){
 		error.printError();
@@ -318,5 +324,6 @@ void SMPFile::write_VecMatH5(string group, vector<vector<T> > const &data_set,
 		error.printError();
 	}
 }
+
 
 #endif /* SMPEAK_SMPFILE_HPP_ */
