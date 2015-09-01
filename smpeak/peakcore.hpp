@@ -24,9 +24,9 @@ vector<vector<float> > nabla(float **alpha, lli row, lli col);
 
 vector<vector<float> > nabla2(float **alpha, lli row, lli col);
 
-void calMZalpha(vector<double>& _mza, int offset);
+void calMZalpha(vector<double>& _mza, int _offset, double mz_rez);
 
-void calRTalpha(vector<double>& _rt, int offset);
+void calRTalpha(vector<double>& _rt, int _offset, double rt_rez);
 
 void calMidPoint(lli rtIdx, lli mzIdx, vector<vector<float> > &alpha,
 		vector<double> &mza, double &mz1, double &a1);

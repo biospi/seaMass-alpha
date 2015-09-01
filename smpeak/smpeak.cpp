@@ -42,11 +42,11 @@ int main(int argc, char **argv)
 
 	// Calculate the MZs of control points.
 	vector<double> mza(col,0.0);
-	calMZalpha(mza, offset[0]);
+	calMZalpha(mza, offset[0],1.0);
 
 	// Calculate the RTs of control points.
 	vector<double> rta(row,0.0);
-	calRTalpha(rta, offset[1]);
+	calRTalpha(rta, offset[1],4.0);
 
 	cout<<"Size of Vector: "<<csVecMat.size()<<endl;
 	vector<float*> csIdx;

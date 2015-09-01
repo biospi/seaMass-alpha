@@ -43,19 +43,21 @@ vector<vector<float> > nabla2(float **alpha, lli row, lli col)
 }
 
 
-void calMZalpha(vector<double>& _mza, int offset) {
+void calMZalpha(vector<double>& _mza, int _offset, double mz_rez)
+{
+	double offset = double(_offset) - 1.5; // Factor due to Derivative along MZ
+	double ppbmz = 1.0033548378 / (pow(2.0, mz_rez) * 60.0);
 	for (lli i = 0; i < _mza.size(); ++i) {
-		double mz_rez = 1.0;
-		double ppbmz = 1.0033548378 / (pow(2.0, mz_rez) * 60.0);
-		_mza[i] = double((offset - 1 + i)) * ppbmz;
+		_mza[i] = (offset + i) * ppbmz;
 	}
 }
 
-void calRTalpha(vector<double>& _rt, int offset) {
+void calRTalpha(vector<double>& _rt, int _offset, double rt_rez)
+{
+	double offset = double(_offset) - 1; // Factor due to non-Derivative
+	double ppbrt = 1.0 / (pow(2.0, rt_rez));
 	for (lli i = 0; i < _rt.size(); ++i) {
-		double rt_rez = 4.0;
-		double ppbrt = 1.0 / (pow(2.0, rt_rez));
-		_rt[i] = double(offset + i) * ppbrt;
+		_rt[i] = (offset + i) * ppbrt;
 	}
 }
 
