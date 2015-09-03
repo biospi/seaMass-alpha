@@ -87,6 +87,7 @@ int main(int argc, char **argv)
 
 	PeakData centriodPeak;
 
+	int falsePeak=0;
 	// Find Peaks and exact MZ values.
 	cout<<"Find Peaks along MZ axis"<<endl;
 	for(lli i = 0; i < row; ++i)
@@ -112,17 +113,27 @@ int main(int argc, char **argv)
 					double pmz2=0.0;
 					calMidPoint(i,j+1,dcs,mza,pmz2,pa2);
 					double t0 = calT(pa1,double(dcs[i][j+1]),pa2);
-					double mzPeak=calX(t0,pmz1,mza[j+1],pmz2);
-					centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],i,j);
+					if (t0>=0)
+					{
+						double mzPeak=calX(t0,pmz1,mza[j+1],pmz2);
+						centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],i,j);
+					}
+					else
+					{
+						++falsePeak;
+					}
 				}
 			}
 		}
 	}
 
-	cout<<"Found N: "<<centriodPeak.mz.size()<<" Peaks!"<<endl;
+	cout<<"Found ["<<centriodPeak.mz.size()<<"] Peaks."<<endl;
+	if(falsePeak > 0)
+		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peak Detected - Peaks Ignored"<<endl;
 	vector<hsize_t> vecN;
 	vecN.push_back(0.0);
 
+	cout<<"\nSaving Data to File:"<<endl;
 	vecN[0]=centriodPeak.mz.size();
 	smpDataFile.write_VecMatH5("Peak_mz",centriodPeak.mz,vecN,H5::PredType::NATIVE_DOUBLE);
 	vecN[0]=centriodPeak.rt.size();

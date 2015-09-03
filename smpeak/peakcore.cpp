@@ -81,7 +81,7 @@ double calT(const double y0, const double y1, const double y2)
 	else if(tn >= 0 && tn <= 1)	return tn;
 	else
 	{
-		cout<<"ERROR calculating T is out of range !!!"<<endl;
+		//cout<<"Insignificant False Peak Detected - Peak Ignored"<<endl;
 		return -1.0;
 	}
 }
