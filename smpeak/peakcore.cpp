@@ -1,10 +1,11 @@
 #include"peakcore.hpp"
 
-void PeakData::add_peak(double _mz, double _rt, float _pVal, lli mzidx, lli rtidx)
+void PeakData::add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx)
 {
 	mz.push_back(_mz);
 	rt.push_back(_rt);
-	pVal.push_back(_pVal);
+	count.push_back(_pVal);
+	t.push_back(_t);
 	mz_idx.push_back(mzidx);
 	rt_idx.push_back(rtidx);
 }
@@ -90,4 +91,38 @@ double calX(double t, double x0, double x1, double x2)
 {
 	double c=(1.0-t);
 	return c*c*x0+2.0*c*t*x1+t*t*x2;
+}
+
+vector<float> cal3rdMidPoint(lli row, lli col, float **P)
+{
+	vector<float> ry(4,0.0);
+	float p0=P[row][col-1];
+	float p1=P[row][col];
+	float p2=P[row][col+1];
+	float p3=P[row][col+2];
+	float u=1.0/3.0;
+	float v=2.0/3.0;
+	float w=1.0/2.0;
+	float up=(1-u);
+	float vp=(1-v);
+	float wp=(1-w);
+
+	ry[0]=wp*(vp*p0+v*p1)+w*(up*p1+u*p2);
+	ry[1]=up*p1+u*p2;
+	ry[2]=vp*p1+v*p2;
+	ry[3]=wp*(vp*p1+v*p2)+w*(up*p2+u*p3);
+
+	return ry;
+}
+
+
+float calPeakCount(vector<float> &ry, double t)
+{
+	double tp=1-t;
+	float p0=tp*ry[0]+t*ry[1];
+	float p1=tp*ry[1]+t*ry[2];
+	float p2=tp*ry[2]+t*ry[3];
+	float q0=tp*p0+t*p1;
+	float q1=tp*p1+t*p2;
+	return tp*q0+t*q1;
 }

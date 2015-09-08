@@ -11,11 +11,12 @@ typedef long long int lli;
 
 struct PeakData
 {
-	void add_peak(double _mz, double _rt, float _pVal, lli mzidx, lli rtidx);
+	void add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx);
 
 	vector<double> mz; // MZ value of Peak
 	vector<double> rt; // RT value of Peak
-	vector<float> pVal; // Peak Value
+	vector<double> t;  // Value of t at second derivative
+	vector<float> count; // Peak count value
 	vector<lli> mz_idx; // MZ index value
 	vector<lli> rt_idx; // RT index value, also scan number
 };
@@ -34,5 +35,9 @@ void calMidPoint(lli rtIdx, lli mzIdx, vector<vector<float> > &alpha,
 double calT(const double y0, const double y1, const double y2);
 
 double calX(double t, double x0, double x1, double x2);
+
+vector<float> cal3rdMidPoint(lli rtIdx, lli mzIdx, float **P);
+
+float calPeakCount(vector<float> &ry, double t);
 
 #endif /* SMPEAK_PEAKCORE_HPP_ */

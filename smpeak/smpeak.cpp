@@ -102,21 +102,34 @@ int main(int argc, char **argv)
 				if(pa1 < 0){
 					double pa0=0.0;
 					double pmz0=0.0;
+					vector<float> ry;
 					calMidPoint(i,j-1,dcs,mza,pmz0,pa0);
 					double t0 = calT(pa0,double(dcs[i][j]),pa1);
-					double mzPeak=calX(t0,pmz0,mza[j],pmz1);
-					centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],i,j);
+					if(t0>=0)
+					{
+						double mzPeak=calX(t0,pmz0,mza[j],pmz1);
+						ry = cal3rdMidPoint(i,j,csMat);
+						float countMax = calPeakCount(ry,t0);
+						//centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],t0,i,j);
+						if(countMax > 100)
+							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j);
+					}
 				}
 				else
 				{
 					double pa2=0.0;
 					double pmz2=0.0;
+					vector<float> ry;
 					calMidPoint(i,j+1,dcs,mza,pmz2,pa2);
 					double t0 = calT(pa1,double(dcs[i][j+1]),pa2);
 					if (t0>=0)
 					{
 						double mzPeak=calX(t0,pmz1,mza[j+1],pmz2);
-						centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],i,j);
+						ry = cal3rdMidPoint(i,j,csMat);
+						float countMax = calPeakCount(ry,t0);
+						//centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],t0,i,j);
+						if(countMax > 100)
+							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j);
 					}
 					else
 					{
@@ -138,8 +151,8 @@ int main(int argc, char **argv)
 	smpDataFile.write_VecMatH5("Peak_mz",centriodPeak.mz,vecN,H5::PredType::NATIVE_DOUBLE);
 	vecN[0]=centriodPeak.rt.size();
 	smpDataFile.write_VecMatH5("Peak_rt",centriodPeak.rt,vecN,H5::PredType::NATIVE_DOUBLE);
-	vecN[0]=centriodPeak.pVal.size();
-	smpDataFile.write_VecMatH5("Peak_Count",centriodPeak.pVal,vecN,H5::PredType::NATIVE_FLOAT);
+	vecN[0]=centriodPeak.count.size();
+	smpDataFile.write_VecMatH5("Peak_Count",centriodPeak.count,vecN,H5::PredType::NATIVE_FLOAT);
 	vecN[0]=centriodPeak.mz_idx.size();
 	smpDataFile.write_VecMatH5("Peak_mz_idx",centriodPeak.mz_idx,vecN,H5::PredType::NATIVE_LLONG);
 	vecN[0]=centriodPeak.rt_idx.size();
