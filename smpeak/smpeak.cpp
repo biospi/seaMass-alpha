@@ -1,21 +1,72 @@
 #include<iostream>
+#include<iterator>
+#include <boost/program_options.hpp>
 #include"peakcore.hpp"
 #include"SMPFile.hpp"
 
+namespace po = boost::program_options;
 
 int main(int argc, char **argv)
 {
+	string fileName;
+	bool centroid;
 
-	if(argc != 2)
+	po::options_description desc("Usage: smpeak [OPTION...] [SMO FILE]");
+
+	desc.add_options()
+		("help,h", "Produce help message")
+		("file,f", po::value<string>(&fileName), "Filename of input smo data file")
+		("centroid,c", "Centroid mode Peak transformation along M/Z");
+
+	try
 	{
-		cout<<"Usage:"<<endl;
-		cout<<"   smpeak <smo File>"<<endl;
-		return -1;
+		po::positional_options_description pod;
+		pod.add("file", -1);
+
+		po::variables_map vm;
+		po::store(po::command_line_parser(argc, argv).options(desc).positional(pod).run(), vm);
+		po::notify(vm);
+
+		if(vm.count("help"))
+		{
+			cout<<desc<<endl;
+			return 0;
+		}
+		if(vm.count("centroid"))
+		{
+			cout<<"Transforming data to peak detection Centroid mode."<<endl;
+			centroid=true;
+		}
+		else
+		{
+			centroid=false;
+		}
+		if(vm.count("file"))
+		{
+			cout<<"Opening SMO file: "<<vm["file"].as<string>()<<endl;
+		}
+		else
+		{
+			cout<<desc<<endl;
+			throw "SMO file was not give...";
+		}
+	}
+	catch(exception& e)
+	{
+		cerr<<"error: " << e.what() <<endl;
+		return 1;
+	}
+	catch(const char* msg)
+	{
+		cerr<<"error: "<<msg<<endl;
+		return 1;
+	}
+	catch(...)
+		{
+		cerr<<"Exception of unknown type!\n";
 	}
 
 	cout<<"Peak Detection"<<endl;
-	int i=1;
-	string fileName=argv[i];
 	ReadSMFile dataFile(fileName);
 	string outFileName=fileName.substr(0,fileName.size()-4);
 

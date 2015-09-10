@@ -5,6 +5,10 @@ if(NOT HDF5_FOUND)
  find_package(HDF5 "1.8.5" COMPONENTS C CXX REQUIRED)
 endif()
 
+find_package(Boost 1.54 REQUIRED COMPONENTS
+	program_options
+)
+
 add_executable(smpeak
 	smpeak.cpp
 	peakcore.cpp
@@ -12,7 +16,9 @@ add_executable(smpeak
 )
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
+	${Boost_INCLUDE_DIRS}
 )
 target_link_libraries(smpeak
 	${HDF5_LIBRARIES}
+	${Boost_LIBRARIES}
 )
