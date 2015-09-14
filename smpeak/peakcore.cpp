@@ -1,6 +1,7 @@
 #include"peakcore.hpp"
 
-void PeakData::add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx)
+void PeakData::add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx,
+		double mzlhs, double mzrhs)
 {
 	mz.push_back(_mz);
 	rt.push_back(_rt);
@@ -8,6 +9,10 @@ void PeakData::add_peak(double _mz, double _rt, float _pVal, double _t, lli mzid
 	t.push_back(_t);
 	mz_idx.push_back(mzidx);
 	rt_idx.push_back(rtidx);
+	mzW.push_back(mzlhs);
+	mzW.push_back(mzrhs);
+	rtW.push_back(_rt);
+	rtW.push_back(_rt);
 }
 
 
@@ -44,9 +49,18 @@ vector<vector<float> > nabla2(float **alpha, lli row, lli col)
 }
 
 
-void calMZalpha(vector<double>& _mza, int _offset, double mz_rez)
+void calDMZalpha(vector<double>& _mza, int _offset, double mz_rez)
 {
 	double offset = double(_offset) - 1.5; // Factor due to Derivative along MZ
+	double ppbmz = 1.0033548378 / (pow(2.0, mz_rez) * 60.0);
+	for (lli i = 0; i < _mza.size(); ++i) {
+		_mza[i] = (offset + i) * ppbmz;
+	}
+}
+
+void calD2MZalpha(vector<double>& _mza, int _offset, double mz_rez)
+{
+	double offset = double(_offset) - 2; // Factor due to double Derivative along MZ
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_rez) * 60.0);
 	for (lli i = 0; i < _mza.size(); ++i) {
 		_mza[i] = (offset + i) * ppbmz;
@@ -125,4 +139,30 @@ float calPeakCount(vector<float> &ry, double t)
 	float q0=tp*p0+t*p1;
 	float q1=tp*p1+t*p2;
 	return tp*q0+t*q1;
+}
+
+void calPeakWidth(lli rtIdx,lli mzIdx, vector<vector<float> > &alpha, vector<double> d2mz,
+		double &mzlhs, double &mzrhs)
+{
+	lli lhsIdx=mzIdx;
+	lli rhsIdx=mzIdx;
+
+	do{--lhsIdx;} while( alpha[rtIdx][lhsIdx] < 0);
+	do{++rhsIdx;} while( alpha[rtIdx][rhsIdx] < 0);
+
+	double x1,x2,y1,y2,m;
+
+	x1=d2mz[lhsIdx];
+	y1=alpha[rtIdx][lhsIdx];
+	x2=d2mz[lhsIdx+1];
+	y2=alpha[rtIdx][lhsIdx+1];
+	m=(y2-y1)/(x2-x1);
+	mzlhs=(-y1/m)+x1;
+
+	x1=d2mz[rhsIdx];
+	y1=alpha[rtIdx][rhsIdx];
+	x2=d2mz[rhsIdx-1];
+	y2=alpha[rtIdx][rhsIdx-1];
+	m=(y2-y1)/(x2-x1);
+	mzrhs=(-y1/m)+x1;
 }

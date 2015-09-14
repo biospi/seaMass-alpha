@@ -11,10 +11,13 @@ typedef long long int lli;
 
 struct PeakData
 {
-	void add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx);
+	void add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx,
+			double mzlhs, double mzrhs);
 
 	vector<double> mz; // MZ value of Peak
+	vector<double> mzW; // MZ value of Peak Width
 	vector<double> rt; // RT value of Peak
+	vector<double> rtW; // RT value of Peak Width
 	vector<double> t;  // Value of t at second derivative
 	vector<float> count; // Peak count value
 	vector<lli> mz_idx; // MZ index value
@@ -25,7 +28,8 @@ vector<vector<float> > nabla(float **alpha, lli row, lli col);
 
 vector<vector<float> > nabla2(float **alpha, lli row, lli col);
 
-void calMZalpha(vector<double>& _mza, int _offset, double mz_rez);
+void calDMZalpha(vector<double>& _mza, int _offset, double mz_rez);
+void calD2MZalpha(vector<double>& _mza, int _offset, double mz_rez);
 
 void calRTalpha(vector<double>& _rt, int _offset, double rt_rez);
 
@@ -39,5 +43,8 @@ double calX(double t, double x0, double x1, double x2);
 vector<float> cal3rdMidPoint(lli rtIdx, lli mzIdx, float **P);
 
 float calPeakCount(vector<float> &ry, double t);
+
+void calPeakWidth(lli rtIdx,lli mzIdx, vector<vector<float> > &alpha, vector<double> d2mz,
+		double &mzlhs, double &mzrhs);
 
 #endif /* SMPEAK_PEAKCORE_HPP_ */

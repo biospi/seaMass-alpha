@@ -41,8 +41,10 @@ int main(int argc, char **argv)
 	dim.push_back(col);
 
 	// Calculate the MZs of control points.
-	vector<double> mza(col,0.0);
-	calMZalpha(mza, offset[0],1.0);
+	vector<double> dmza(col,0.0);
+	vector<double> d2mza(col,0.0);
+	calDMZalpha(dmza, offset[0],1.0);
+	calD2MZalpha(d2mza, offset[0],1.0);
 
 	// Calculate the RTs of control points.
 	vector<double> rta(row,0.0);
@@ -98,21 +100,24 @@ int main(int argc, char **argv)
 			{
 				double pa1=0.0;
 				double pmz1=0.0;
-				calMidPoint(i,j,dcs,mza,pmz1,pa1);
+				calMidPoint(i,j,dcs,dmza,pmz1,pa1);
 				if(pa1 < 0){
 					double pa0=0.0;
 					double pmz0=0.0;
 					vector<float> ry;
-					calMidPoint(i,j-1,dcs,mza,pmz0,pa0);
+					calMidPoint(i,j-1,dcs,dmza,pmz0,pa0);
 					double t0 = calT(pa0,double(dcs[i][j]),pa1);
 					if(t0>=0)
 					{
-						double mzPeak=calX(t0,pmz0,mza[j],pmz1);
+						double mzPeak=calX(t0,pmz0,dmza[j],pmz1);
+						double mzlhs=0.0;
+						double mzrhs=9.0;
 						ry = cal3rdMidPoint(i,j,csMat);
 						float countMax = calPeakCount(ry,t0);
+						calPeakWidth(i,j,d2cs,d2mza,mzlhs,mzrhs);
 						//centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],t0,i,j);
-						if(countMax > 100)
-							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j);
+						//if(countMax > 100)
+							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
 					}
 				}
 				else
@@ -120,16 +125,19 @@ int main(int argc, char **argv)
 					double pa2=0.0;
 					double pmz2=0.0;
 					vector<float> ry;
-					calMidPoint(i,j+1,dcs,mza,pmz2,pa2);
+					calMidPoint(i,j+1,dcs,dmza,pmz2,pa2);
 					double t0 = calT(pa1,double(dcs[i][j+1]),pa2);
 					if (t0>=0)
 					{
-						double mzPeak=calX(t0,pmz1,mza[j+1],pmz2);
+						double mzPeak=calX(t0,pmz1,dmza[j+1],pmz2);
+						double mzlhs=0.0;
+						double mzrhs=9.0;
 						ry = cal3rdMidPoint(i,j,csMat);
 						float countMax = calPeakCount(ry,t0);
+						calPeakWidth(i,j,d2cs,d2mza,mzlhs,mzrhs);
 						//centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],t0,i,j);
-						if(countMax > 100)
-							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j);
+						//if(countMax > 100)
+							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
 					}
 					else
 					{
@@ -149,8 +157,12 @@ int main(int argc, char **argv)
 	cout<<"\nSaving Data to File:"<<endl;
 	vecN[0]=centriodPeak.mz.size();
 	smpDataFile.write_VecMatH5("Peak_mz",centriodPeak.mz,vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodPeak.mzW.size();
+	smpDataFile.write_VecMatH5("Peak_mz_width",centriodPeak.mzW,vecN,H5::PredType::NATIVE_DOUBLE);
 	vecN[0]=centriodPeak.rt.size();
 	smpDataFile.write_VecMatH5("Peak_rt",centriodPeak.rt,vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodPeak.rtW.size();
+	smpDataFile.write_VecMatH5("Peak_rt_width",centriodPeak.rtW,vecN,H5::PredType::NATIVE_DOUBLE);
 	vecN[0]=centriodPeak.count.size();
 	smpDataFile.write_VecMatH5("Peak_Count",centriodPeak.count,vecN,H5::PredType::NATIVE_FLOAT);
 	vecN[0]=centriodPeak.mz_idx.size();
