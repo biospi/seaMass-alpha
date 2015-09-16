@@ -89,7 +89,8 @@ int main(int argc, char **argv)
 
 	PeakData centriodPeak;
 
-	int falsePeak=0;
+	lli falsePeak=0;
+	lli falseWidth=0;
 	// Find Peaks and exact MZ values.
 	cout<<"Find Peaks along MZ axis"<<endl;
 	for(lli i = 0; i < row; ++i)
@@ -117,7 +118,18 @@ int main(int argc, char **argv)
 						calPeakWidth(i,j,d2cs,d2mza,mzlhs,mzrhs);
 						//centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],t0,i,j);
 						//if(countMax > 100)
+						if(mzlhs >= 0 && mzrhs >= 0)
+						{
 							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
+						}
+						else
+						{
+							++falseWidth;
+						}
+					}
+					else
+					{
+						++falsePeak;
 					}
 				}
 				else
@@ -137,7 +149,14 @@ int main(int argc, char **argv)
 						calPeakWidth(i,j,d2cs,d2mza,mzlhs,mzrhs);
 						//centriodPeak.add_peak(mzPeak,rta[i],csMat[i][j],t0,i,j);
 						//if(countMax > 100)
+						if(mzlhs >= 0 && mzrhs >= 0)
+						{
 							centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
+						}
+						else
+						{
+							++falseWidth;
+						}
 					}
 					else
 					{
@@ -150,7 +169,9 @@ int main(int argc, char **argv)
 
 	cout<<"Found ["<<centriodPeak.mz.size()<<"] Peaks."<<endl;
 	if(falsePeak > 0)
-		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peak Detected - Peaks Ignored"<<endl;
+		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
+	if(falseWidth > 0)
+		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
 	vector<hsize_t> vecN;
 	vecN.push_back(0.0);
 

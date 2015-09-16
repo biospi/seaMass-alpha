@@ -144,25 +144,41 @@ float calPeakCount(vector<float> &ry, double t)
 void calPeakWidth(lli rtIdx,lli mzIdx, vector<vector<float> > &alpha, vector<double> d2mz,
 		double &mzlhs, double &mzrhs)
 {
+	lli n=d2mz.size();
 	lli lhsIdx=mzIdx;
 	lli rhsIdx=mzIdx;
 
-	do{--lhsIdx;} while( alpha[rtIdx][lhsIdx] < 0);
-	do{++rhsIdx;} while( alpha[rtIdx][rhsIdx] < 0);
+	do
+	{
+		--lhsIdx;
+		if(lhsIdx < 0) break;
+	} while( alpha[rtIdx][lhsIdx] < 0);
+	do
+	{
+		++rhsIdx;
+		if(rhsIdx > n) break;
+	} while( alpha[rtIdx][rhsIdx] < 0);
 
-	double x1,x2,y1,y2,m;
+	if(lhsIdx > 0 && rhsIdx < n ){
+		double x1,x2,y1,y2,m;
 
-	x1=d2mz[lhsIdx];
-	y1=alpha[rtIdx][lhsIdx];
-	x2=d2mz[lhsIdx+1];
-	y2=alpha[rtIdx][lhsIdx+1];
-	m=(y2-y1)/(x2-x1);
-	mzlhs=(-y1/m)+x1;
+		x1=d2mz[lhsIdx];
+		y1=alpha[rtIdx][lhsIdx];
+		x2=d2mz[lhsIdx+1];
+		y2=alpha[rtIdx][lhsIdx+1];
+		m=(y2-y1)/(x2-x1);
+		mzlhs=(-y1/m)+x1;
 
-	x1=d2mz[rhsIdx];
-	y1=alpha[rtIdx][rhsIdx];
-	x2=d2mz[rhsIdx-1];
-	y2=alpha[rtIdx][rhsIdx-1];
-	m=(y2-y1)/(x2-x1);
-	mzrhs=(-y1/m)+x1;
+		x1=d2mz[rhsIdx];
+		y1=alpha[rtIdx][rhsIdx];
+		x2=d2mz[rhsIdx-1];
+		y2=alpha[rtIdx][rhsIdx-1];
+		m=(y2-y1)/(x2-x1);
+		mzrhs=(-y1/m)+x1;
+	}
+	else
+	{
+		mzlhs=-1;
+		mzrhs=-1;
+	}
 }
