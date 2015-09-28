@@ -74,10 +74,13 @@ int main(int argc, char **argv)
 	vector<string> dataSetList;
 
 	dataFile.searchGroup("/","/cs");
-	dataFile.searchGroup("/","/fs");
-	dataFile.searchGroup("/","/fcs");
-	dataFile.searchGroup("/","/SpectrumMZ");
 	dataSetList = dataFile.getDataSetName();
+
+	cout << "NEW TEST !!!"<<endl;
+	double MZ_REZ=dataFile.searchGroup("/",1);
+	cout <<"MZ_REZ: "<<MZ_REZ<<endl;
+	double RT_REZ=dataFile.searchGroup("/",2);
+	cout <<"RT_REZ: "<<RT_REZ<<endl;
 
 	for(int i=0; i < dataSetList.size(); ++i)
 		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i]<<endl;
@@ -94,12 +97,12 @@ int main(int argc, char **argv)
 	// Calculate the MZs of control points.
 	vector<double> dmza(col,0.0);
 	vector<double> d2mza(col,0.0);
-	calDMZalpha(dmza, offset[0],1.0);
-	calD2MZalpha(d2mza, offset[0],1.0);
+	calDMZalpha(dmza, offset[0],MZ_REZ);
+	calD2MZalpha(d2mza, offset[0],MZ_REZ);
 
 	// Calculate the RTs of control points.
 	vector<double> rta(row,0.0);
-	calRTalpha(rta, offset[1],4.0);
+	calRTalpha(rta, offset[1],RT_REZ);
 
 	cout<<"Size of Vector: "<<csVecMat.size()<<endl;
 	vector<float*> csIdx;

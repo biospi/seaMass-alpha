@@ -2,6 +2,7 @@
 #define SMPEAK_SMPFILE_HPP_
 
 #include<iostream>
+#include<sstream>
 #include<vector>
 #include<H5Cpp.h>
 #include"peakcore.hpp"
@@ -18,6 +19,7 @@ public:
 	ReadSMFile(string _filename);
 	~ReadSMFile();
 	void searchGroup(const string group, const string dataSet);
+	double searchGroup(const string group, int level);
 	vector<string> getDataSetName(void);
 	void open(string _file);
 	void close(void);
