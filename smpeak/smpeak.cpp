@@ -76,15 +76,17 @@ int main(int argc, char **argv)
 	dataFile.searchGroup("/","/cs");
 	dataSetList = dataFile.getDataSetName();
 
-	cout << "NEW TEST !!!"<<endl;
+	for(int i=0; i < dataSetList.size(); ++i)
+		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i]<<endl;
+
+	cout << "List Parameters from SMO:"<<endl;
 	double MZ_REZ=dataFile.searchGroup("/",1);
 	cout <<"MZ_REZ: "<<MZ_REZ<<endl;
 	double RT_REZ=dataFile.searchGroup("/",2);
 	cout <<"RT_REZ: "<<RT_REZ<<endl;
 
-	for(int i=0; i < dataSetList.size(); ++i)
-		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i]<<endl;
 
+//////////////////////////////////////////////////////////////////////////
 	vector<float> csVecMat;
 	int offset[2];
 	hsize_t row,col;
@@ -139,7 +141,6 @@ int main(int argc, char **argv)
 	smpDataFile.write_VecMatH5("csOrig",csVecMat,dim,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("dcs",dcs,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("d2cs",d2cs,H5::PredType::NATIVE_FLOAT);
-
 
 	PeakData centriodPeak;
 

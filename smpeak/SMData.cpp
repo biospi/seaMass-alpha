@@ -1,4 +1,4 @@
-#include "peakdata.hpp"
+#include "SMData.hpp"
 
 SMData::SMData(vector<double> &_rt,	vector<double> &_mz,
 		vector<float> &vec) : rt(_rt),mz(_mz)

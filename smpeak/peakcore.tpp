@@ -1,5 +1,5 @@
-#ifndef SMPEAK_PEAKDATA_TPP_
-#define SMPEAK_PEAKDATA_TPP_
+#ifndef SMPEAK_PEAKCORE_TPP_
+#define SMPEAK_PEAKCORE_TPP_
 
 template<typename T>
 VecMat<T>::VecMat(void):row(0),col(0),m(NULL){}
@@ -32,4 +32,4 @@ void VecMat<T>::set(hsize_t _r, hsize_t _c, vector<T> &_vec)
 	m=&matIdx[0];
 }
 
-#endif /* SMPEAK_PEAKDATA_TPP_ */
+#endif /* SMPEAK_PEAKCORE_TPP_ */

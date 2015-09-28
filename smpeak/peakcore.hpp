@@ -4,11 +4,30 @@
 #include<iostream>
 #include<vector>
 #include<cmath>
+#include<H5Cpp.h>
 
 using namespace std;
 
 typedef long long int lli;
 
+template<typename T = float>
+struct VecMat
+{
+	VecMat(void);
+	VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec);
+	vector<T> v; // Vector of Matrix data.
+	T** m; // Data Matrix
+	void getDims(hsize_t &dims);
+	void set(hsize_t _r, hsize_t _c, vector<T> &_vec);
+private:
+	vector<T*> matIdx;
+	hsize_t row;
+	hsize_t col;
+};
+
+#include"peakcore.tpp"
+
+//////////////////////////////////////////////////////////////////////////
 struct PeakData
 {
 	void add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx,
@@ -46,5 +65,6 @@ float calPeakCount(vector<float> &ry, double t);
 
 void calPeakWidth(lli rtIdx,lli mzIdx, vector<vector<float> > &alpha, vector<double> d2mz,
 		double &mzlhs, double &mzrhs);
+//////////////////////////////////////////////////////////////////////////
 
 #endif /* SMPEAK_PEAKCORE_HPP_ */

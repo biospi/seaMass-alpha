@@ -1,25 +1,7 @@
-#ifndef SMPEAK_PEAKDATA_HPP_
-#define SMPEAK_PEAKDATA_HPP_
+#ifndef SMPEAK_SMDATA_HPP_
+#define SMPEAK_SMDATA_HPP_
 
 #include"peakcore.hpp"
-#include<H5Cpp.h>
-
-template<typename T = float>
-struct VecMat
-{
-	VecMat(void);
-	VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec);
-	vector<T> v; // Vector of Matrix data.
-	T** m; // Data Matrix
-	void getDims(hsize_t &dims);
-	void set(hsize_t _r, hsize_t _c, vector<T> &_vec);
-private:
-	vector<T*> matIdx;
-	hsize_t row;
-	hsize_t col;
-};
-
-#include"peakdata.tpp"
 
 struct SMData
 {
@@ -41,4 +23,4 @@ struct Peak
 	lli rt_idx; // RT index value, also scan number
 };
 
-#endif /* SMPEAK_PEAKDATA_HPP_ */
+#endif /* SMPEAK_SMDATA_HPP_ */
