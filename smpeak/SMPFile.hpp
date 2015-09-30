@@ -50,6 +50,9 @@ public:
 					vector<hsize_t> const dims,
 					const H5::DataType &data_type_id);
 	template<typename T>
+	void write_VecMatH5(string group, vector<T> const &data_set,
+					hsize_t const dims[], const H5::DataType &data_type_id);
+	template<typename T>
 	void write_MatH5(string group, vector<vector<T> > const &data_set,
 					const H5::DataType &data_type_id);
 };
@@ -252,6 +255,61 @@ void SMPFile::write_VecMatH5(string group, vector<T> const &data_set,
 		//h5file->createGroup("/RootGroup");
 
 		H5::DataSpace dataspace(rank, &dims[0]);
+		H5::DataSet *dataset = new H5::DataSet(
+				h5file->createDataSet(group.c_str(),data_type_id,dataspace,dataplist));
+		dataset->write(&data_set[0], data_type_id);
+
+		dataset->close();
+		delete dataset;
+	}
+	catch(const H5::FileIException & error){
+		error.printError();
+	}
+	catch(const H5::GroupIException & error)
+	{
+		error.printError();
+	}
+	catch(const H5::DataSetIException & error)
+	{
+		error.printError();
+	}
+}
+
+template<typename T>
+void SMPFile::write_VecMatH5(string group, vector<T> const &data_set,
+					hsize_t const dims[], const H5::DataType &data_type_id)
+{
+	// Write out both Vector or Matrix data in HDF5 file, with an packed vector
+	// data input. Dims must be a 2 element array.
+
+	int rank=2;
+
+	cout<<"Dimensions of output Multi Rank DataSet"<<endl;
+
+	for(int i = 0 ; i < rank; ++i)
+	{
+		cout<<"Rank "<<i <<" Size: " <<dims[i]<<endl;
+	}
+
+	try{
+		H5::Group h5group;
+		H5::DataSet h5dataset;
+
+		vector<hsize_t> cdims;
+
+		for (int i=0; i < rank; ++i)
+		{
+			cdims.push_back({dims[i] < 16384 ? dims[i] : 16384});
+		}
+
+		H5::DSetCreatPropList dataplist;
+	    dataplist.setChunk(rank, &cdims[0]);
+	    dataplist.setDeflate(7);
+
+		//string data_group = "/RootGroup/"+group;
+		//h5file->createGroup("/RootGroup");
+
+		H5::DataSpace dataspace(rank, dims);
 		H5::DataSet *dataset = new H5::DataSet(
 				h5file->createDataSet(group.c_str(),data_type_id,dataspace,dataplist));
 		dataset->write(&data_set[0], data_type_id);

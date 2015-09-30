@@ -3,6 +3,8 @@
 #include <boost/program_options.hpp>
 #include"peakcore.hpp"
 #include"SMPFile.hpp"
+#include"SMData.hpp"
+#include"MathOperator.hpp"
 
 namespace po = boost::program_options;
 
@@ -90,11 +92,11 @@ int main(int argc, char **argv)
 	vector<float> csVecMat;
 	int offset[2];
 	hsize_t row,col;
-	vector<hsize_t> dim;
+	vector<hsize_t> vecDim;
 	dataFile.read_MatH5(dataSetList[0], csVecMat, row, col, H5::PredType::NATIVE_FLOAT);
 	dataFile.read_AttH5(dataSetList[0],"Offset", offset, H5::PredType::NATIVE_INT);
-	dim.push_back(row);
-	dim.push_back(col);
+	vecDim.push_back(row);
+	vecDim.push_back(col);
 
 	// Calculate the MZs of control points.
 	vector<double> dmza(col,0.0);
@@ -137,8 +139,56 @@ int main(int argc, char **argv)
 
 	// Write data to SMP file.
 	SMPFile smpDataFile(outFileName);
+//////////////////////////////////////////////////////////////////////////
 
-	smpDataFile.write_VecMatH5("csOrig",csVecMat,dim,H5::PredType::NATIVE_FLOAT);
+	hsize_t dims[2];
+	dims[0]=vecDim[0];
+	dims[1]=vecDim[1];
+
+
+	SMData<OpUnit> A(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
+	SMData<OpNablaH> dhA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
+	SMData<OpNabla2H> d2hA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
+	SMData<OpNablaV> dvA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
+	SMData<OpNabla2V> d2vA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
+
+	smpDataFile.write_VecMatH5("A",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("dhA",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("d2hA",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("dvA",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("d2vA",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+
+	vector<hsize_t> N;
+	N.push_back(0.0);
+
+	N[0]=A.mz.size();
+	smpDataFile.write_VecMatH5("Amz",A.mz,N,H5::PredType::NATIVE_DOUBLE);
+	N[0]=A.rt.size();
+	smpDataFile.write_VecMatH5("Art",A.rt,N,H5::PredType::NATIVE_DOUBLE);
+
+	N[0]=dhA.mz.size();
+	smpDataFile.write_VecMatH5("dhAmz",dhA.mz,N,H5::PredType::NATIVE_DOUBLE);
+	N[0]=dhA.rt.size();
+	smpDataFile.write_VecMatH5("dhArt",dhA.rt,N,H5::PredType::NATIVE_DOUBLE);
+
+	N[0]=d2hA.mz.size();
+	smpDataFile.write_VecMatH5("d2hAmz",d2hA.mz,N,H5::PredType::NATIVE_DOUBLE);
+	N[0]=d2hA.rt.size();
+	smpDataFile.write_VecMatH5("d2hArt",d2hA.rt,N,H5::PredType::NATIVE_DOUBLE);
+
+	N[0]=dvA.mz.size();
+	smpDataFile.write_VecMatH5("dvAmz",dvA.mz,N,H5::PredType::NATIVE_DOUBLE);
+	N[0]=dvA.rt.size();
+	smpDataFile.write_VecMatH5("dvArt",dvA.rt,N,H5::PredType::NATIVE_DOUBLE);
+
+	N[0]=d2vA.mz.size();
+	smpDataFile.write_VecMatH5("d2vAmz",d2vA.mz,N,H5::PredType::NATIVE_DOUBLE);
+	N[0]=d2vA.rt.size();
+	smpDataFile.write_VecMatH5("d2vArt",d2vA.rt,N,H5::PredType::NATIVE_DOUBLE);
+
+//////////////////////////////////////////////////////////////////////////
+
+	smpDataFile.write_VecMatH5("csOrig",csVecMat,vecDim,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("dcs",dcs,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("d2cs",d2cs,H5::PredType::NATIVE_FLOAT);
 

@@ -14,6 +14,7 @@ add_executable(smpeak
 	peakcore.cpp
 	SMPFile.cpp
 	SMData.cpp
+	MathOperator.cpp
 )
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
