@@ -89,6 +89,7 @@ int main(int argc, char **argv)
 
 
 //////////////////////////////////////////////////////////////////////////
+//-----------------------------------------------------------------------
 	vector<float> csVecMat;
 	int offset[2];
 	hsize_t row,col;
@@ -115,31 +116,14 @@ int main(int argc, char **argv)
 		csIdx.push_back(&csVecMat[i*col]);
 	float **csMat = &csIdx[0];
 
-	for(lli i=0; i<6; ++i){
-		for(lli j=0; j<8; ++j)
-			cout<<csMat[i][j]<<"  ";
-		cout<<endl;
-	}
-
 	vector<vector<float> > dcs=nabla(csMat, row, col);
-	cout<<"\nFirst Derivative of Coeffs"<<endl;
-	for(lli i=0; i<6; ++i){
-		for(lli j=0; j<8; ++j)
-			cout<<dcs[i][j]<<"  ";
-		cout<<endl;
-	}
 
 	vector<vector<float> > d2cs=nabla2(csMat, row, col);
-	cout<<"\nSecond Derivative of Coeffs"<<endl;
-	for(lli i=0; i<6; ++i){
-		for(lli j=0; j<8; ++j)
-			cout<<d2cs[i][j]<<"  ";
-		cout<<endl;
-	}
+//-----------------------------------------------------------------------
+//////////////////////////////////////////////////////////////////////////
 
 	// Write data to SMP file.
 	SMPFile smpDataFile(outFileName);
-//////////////////////////////////////////////////////////////////////////
 
 	hsize_t dims[2];
 	dims[0]=vecDim[0];

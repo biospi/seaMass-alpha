@@ -6,41 +6,37 @@
 template<class T>
 class OpUnit
 {
-public:
+protected:
 	void apply(lli row, lli col, T** alpha){};
 	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
 	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
-protected:
 	~OpUnit(){};
 };
 
 template<class T>
 class OpNablaH : public OpUnit<T>
 {
-public:
+protected:
 	void apply(lli row, lli col, T** alpha);
 	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
-protected:
 	~OpNablaH(){};
 };
 
 template<class T>
 class OpNabla2H : public OpUnit<T>
 {
-public:
+protected:
 	void apply(lli row, lli col, T** alpha);
 	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
-protected:
 	~OpNabla2H(){};
 };
 
 template<class T>
 class OpNablaV : public OpUnit<T>
 {
-public:
+protected:
 	void apply(lli row, lli col, T** alpha);
 	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
-protected:
 	~OpNablaV(){};
 };
 
@@ -48,10 +44,9 @@ protected:
 template<class T>
 class OpNabla2V : public OpUnit<T>
 {
-public:
+protected:
 	void apply(lli row, lli col, T** alpha);
 	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
-protected:
 	~OpNabla2V(){};
 };
 
@@ -60,7 +55,7 @@ template<class T>
 void OpUnit<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
-	double offset = double(_offset) - 1; // Factor due to non-Derivative
+	double offset = double(_offset) - 1;
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
 	#pragma omp parallel for
 	for (lli i = 0; i < _rt.size(); ++i) {
