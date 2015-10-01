@@ -1,10 +1,12 @@
 #include<iostream>
 #include<iterator>
-#include <boost/program_options.hpp>
+#include<boost/program_options.hpp>
 #include"peakcore.hpp"
 #include"SMPFile.hpp"
 #include"SMData.hpp"
 #include"MathOperator.hpp"
+#include"BsplineData.hpp"
+
 
 namespace po = boost::program_options;
 
@@ -135,6 +137,25 @@ int main(int argc, char **argv)
 	SMData<OpNabla2H> d2hA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
 	SMData<OpNablaV> dvA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
 	SMData<OpNabla2V> d2vA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
+
+	SMData<OpUnit> *p;
+	vector<SMData<OpUnit>*> vecP;
+
+	vecP.push_back(&A);
+
+	vector<DataAxis<>* > vecB;
+
+	vecB.push_back(&A);
+	vecB.push_back(&dhA);
+	vecB.push_back(&d2hA);
+	vecB.push_back(&dvA);
+	vecB.push_back(&d2vA);
+
+	cout<<"Vector pointer of different class: "<<vecB[0]->alpha->m[2][3]<<endl;
+	cout<<"Vector pointer of different class: "<<vecB[1]->alpha->m[2][3]<<endl;
+	cout<<"Vector pointer of different class: "<<vecB[2]->alpha->m[2][3]<<endl;
+	cout<<"Vector pointer of different class: "<<vecB[3]->alpha->m[2][3]<<endl;
+	cout<<"Vector pointer of different class: "<<vecB[4]->alpha->m[2][3]<<endl;
 
 	smpDataFile.write_VecMatH5("A",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("dhA",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);

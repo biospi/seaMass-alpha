@@ -15,6 +15,7 @@ add_executable(smpeak
 	SMPFile.cpp
 	SMData.cpp
 	MathOperator.cpp
+	BsplineData.cpp
 )
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
