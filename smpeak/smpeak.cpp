@@ -6,6 +6,9 @@
 #include"SMData.hpp"
 #include"MathOperator.hpp"
 #include"BsplineData.hpp"
+#include"PeakOperator.hpp"
+#include"PeakData.hpp"
+#include"PeakCmd.hpp"
 
 
 namespace po = boost::program_options;
@@ -131,31 +134,16 @@ int main(int argc, char **argv)
 	dims[0]=vecDim[0];
 	dims[1]=vecDim[1];
 
+	SMData<OpUnit> A(dims,offset,MZ_REZ,RT_REZ,csVecMat);
+	SMData<OpNablaH> dhA(dims,offset,MZ_REZ,RT_REZ,csVecMat);
+	SMData<OpNabla2H> d2hA(dims,offset,MZ_REZ,RT_REZ,csVecMat);
+	SMData<OpNablaV> dvA(dims,offset,MZ_REZ,RT_REZ,csVecMat);
+	SMData<OpNabla2V> d2vA(dims,offset,MZ_REZ,RT_REZ,csVecMat);
 
-	SMData<OpUnit> A(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
-	SMData<OpNablaH> dhA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
-	SMData<OpNabla2H> d2hA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
-	SMData<OpNablaV> dvA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
-	SMData<OpNabla2V> d2vA(dims,offset,MZ_REZ,MZ_REZ,csVecMat);
+	BsplineData<> bsData(A,dhA,d2hA);
 
-	SMData<OpUnit> *p;
-	vector<SMData<OpUnit>*> vecP;
-
-	vecP.push_back(&A);
-
-	vector<DataAxis<>* > vecB;
-
-	vecB.push_back(&A);
-	vecB.push_back(&dhA);
-	vecB.push_back(&d2hA);
-	vecB.push_back(&dvA);
-	vecB.push_back(&d2vA);
-
-	cout<<"Vector pointer of different class: "<<vecB[0]->alpha->m[2][3]<<endl;
-	cout<<"Vector pointer of different class: "<<vecB[1]->alpha->m[2][3]<<endl;
-	cout<<"Vector pointer of different class: "<<vecB[2]->alpha->m[2][3]<<endl;
-	cout<<"Vector pointer of different class: "<<vecB[3]->alpha->m[2][3]<<endl;
-	cout<<"Vector pointer of different class: "<<vecB[4]->alpha->m[2][3]<<endl;
+	PeakCmd<PeakData,BsplineData,Centroid> centriodDataSet(bsData);
+	centriodDataSet.execute();
 
 	smpDataFile.write_VecMatH5("A",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("dhA",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
@@ -197,7 +185,7 @@ int main(int argc, char **argv)
 	smpDataFile.write_MatH5("dcs",dcs,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("d2cs",d2cs,H5::PredType::NATIVE_FLOAT);
 
-	PeakData centriodPeak;
+	PeakDataOld centriodPeak;
 
 	lli falsePeak=0;
 	lli falseWidth=0;

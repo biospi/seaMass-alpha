@@ -17,7 +17,7 @@ struct VecMat
 	VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec);
 	vector<T> v; // Vector of Matrix data.
 	T** m; // Data Matrix
-	void getDims(hsize_t &dims);
+	void getDims(hsize_t dims[]);
 	void set(hsize_t _r, hsize_t _c, vector<T> &_vec);
 private:
 	vector<T*> matIdx;
@@ -28,7 +28,7 @@ private:
 #include"peakcore.tpp"
 
 //////////////////////////////////////////////////////////////////////////
-struct PeakData
+struct PeakDataOld
 {
 	void add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx,
 			double mzlhs, double mzrhs);

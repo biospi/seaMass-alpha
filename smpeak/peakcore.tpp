@@ -14,7 +14,7 @@ VecMat<T>::VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec):row(_r), col(_c),v(_v
 }
 
 template<typename T>
-void VecMat<T>::getDims(hsize_t &dims)
+void VecMat<T>::getDims(hsize_t dims[])
 {
 	dims[0]=row;
 	dims[1]=col;

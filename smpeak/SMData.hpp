@@ -13,7 +13,11 @@ protected:
 	~DataAxis(){};
 };
 
-template<template<class Operator> class MathOp, typename T=float>
+template
+<
+	template<class Operator> class MathOp,
+	typename T=float
+>
 struct SMData : public DataAxis<T>, public MathOp<T>
 {
 	SMData(vector<double> &_rt, vector<double> &_mz, vector<T> &vec);

@@ -1,6 +1,6 @@
 #include"peakcore.hpp"
 
-void PeakData::add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx,
+void PeakDataOld::add_peak(double _mz, double _rt, float _pVal, double _t, lli mzidx, lli rtidx,
 		double mzlhs, double mzrhs)
 {
 	mz.push_back(_mz);

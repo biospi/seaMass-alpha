@@ -1,5 +1,6 @@
 #include "BsplineData.hpp"
 
+/*
 BsplineData::BsplineData(DataAxis<> &bs, DataAxis<> &dbs, DataAxis<> &d2bs)
 {
 	bspObjP.push_back(&bs);
@@ -22,3 +23,4 @@ vector<DataAxis<>* > BsplineData::get(void)
  {
 	 return bspObjP;
  }
+*/
