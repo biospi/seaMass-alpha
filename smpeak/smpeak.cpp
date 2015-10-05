@@ -147,8 +147,6 @@ int main(int argc, char **argv)
 
 	cout<<endl;
 
-
-
 	cout<<"\nSaving Data to File:"<<endl;
 
 	vector<hsize_t> vecN;
@@ -168,13 +166,13 @@ int main(int argc, char **argv)
 	vecN[0]=centriodDataSet.peak->getRTIdx().size();
 	smpDataFile.write_VecMatH5("Peak_rt_idx",centriodDataSet.peak->getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
 
-	/*
-	smpDataFile.write_VecMatH5("A",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("dhA",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("d2hA",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("dvA",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("d2vA",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("csOrig",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("dcs",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("d2cs",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("dvcs",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+	smpDataFile.write_VecMatH5("d2vcs",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 
+	/*
 	vector<hsize_t> N;
 	N.push_back(0.0);
 
@@ -205,6 +203,7 @@ int main(int argc, char **argv)
 */
 //////////////////////////////////////////////////////////////////////////
 
+	/*
 	smpDataFile.write_VecMatH5("csOrig",csVecMat,vecDim,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("dcs",dcs,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_MatH5("d2cs",d2cs,H5::PredType::NATIVE_FLOAT);
@@ -294,7 +293,7 @@ int main(int argc, char **argv)
 		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
 	if(falseWidth > 0)
 		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
-
+	*/
 
 	/*
 	vector<hsize_t> vecN;

@@ -47,6 +47,8 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 	// Find Peaks and exact MZ values.
 	cout<<"Preform Centroid of Mass Spec DATA along MZ!"<<endl;
 	cout<<"Find Peaks along MZ axis"<<endl;
+
+	#pragma omp parallel for
 	for(lli i = 0; i < row; ++i)
 	{
 		for(lli j = 2; j < col-2; ++j)
@@ -72,9 +74,11 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 						calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
 						if(mzlhs >= 0 && mzrhs >= 0)
 						{
-							//centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
-							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
+							#pragma omp critical(peak)
+							{
+								peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
 									make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
+							}
 						}
 						else
 						{
@@ -103,9 +107,11 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 						calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
 						if(mzlhs >= 0 && mzrhs >= 0)
 						{
-							//centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
-							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
+							#pragma omp critical(peak)
+							{
+								peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
 									make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
+							}
 						}
 						else
 						{
@@ -203,8 +209,8 @@ void Centroid<pPeak,pData,T>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, vecto
 		double &mzlhs, double &mzrhs)
 {
 	lli n=d2mz.size();
-	lli lhsIdx=mzIdx;
-	lli rhsIdx=mzIdx;
+	lli lhsIdx=mzIdx+1;
+	lli rhsIdx=mzIdx+1;
 
 	do
 	{
@@ -233,12 +239,24 @@ void Centroid<pPeak,pData,T>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, vecto
 		y2=alpha[rtIdx][rhsIdx-1];
 		m=(y2-y1)/(x2-x1);
 		mzrhs=(-y1/m)+x1;
+
+		/*
+		if (mzlhs < d2mz[0])
+		{
+			cout<<"WTF LHS is out of range!!"<<endl;
+		}
+		if (mzrhs > d2mz[n-1])
+		{
+			cout<<"WTF RHS is out of range!!"<<endl;
+		}
+		*/
 	}
 	else
 	{
 		mzlhs=-1;
 		mzrhs=-1;
 	}
+
 }
 
 #endif /* SMPEAK_PEAKOPERATOR_HPP_ */
