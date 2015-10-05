@@ -1,11 +1,11 @@
 #ifndef SMPEAK_SMPFILE_HPP_
 #define SMPEAK_SMPFILE_HPP_
 
-#include<iostream>
-#include<sstream>
-#include<vector>
-#include<H5Cpp.h>
-#include"peakcore.hpp"
+#include <iostream>
+#include <sstream>
+#include <vector>
+#include <H5Cpp.h>
+#include "peakcore.hpp"
 
 using namespace std;
 

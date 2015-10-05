@@ -1,8 +1,8 @@
 #ifndef SMPEAK_BSPLINEDATA_HPP_
 #define SMPEAK_BSPLINEDATA_HPP_
 
-#include"peakcore.hpp"
-#include"SMData.hpp"
+#include "peakcore.hpp"
+#include "SMData.hpp"
 
 /*
 class BsplineData

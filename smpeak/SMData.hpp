@@ -1,7 +1,7 @@
 #ifndef SMPEAK_SMDATA_HPP_
 #define SMPEAK_SMDATA_HPP_
 
-#include"peakcore.hpp"
+#include "peakcore.hpp"
 
 template<typename T=float>
 struct DataAxis

@@ -1,7 +1,7 @@
 #ifndef SMPEAK_PEAKOPERATOR_HPP_
 #define SMPEAK_PEAKOPERATOR_HPP_
 
-#include"peakcore.hpp"
+#include "peakcore.hpp"
 
 
 template
