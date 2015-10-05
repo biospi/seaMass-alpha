@@ -74,7 +74,7 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 						{
 							//centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
 							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
-									make_pair(0.0,0.0),t0,i,j);
+									make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
 						}
 						else
 						{
@@ -105,7 +105,7 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 						{
 							//centriodPeak.add_peak(mzPeak,rta[i],countMax,t0,i,j,mzlhs,mzrhs);
 							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
-									make_pair(0.0,0.0),t0,i,j);
+									make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
 						}
 						else
 						{

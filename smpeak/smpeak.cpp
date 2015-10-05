@@ -145,6 +145,30 @@ int main(int argc, char **argv)
 	PeakCmd<PeakData,BsplineData,Centroid> centriodDataSet(bsData);
 	centriodDataSet.execute();
 
+	cout<<endl;
+
+
+
+	cout<<"\nSaving Data to File:"<<endl;
+
+	vector<hsize_t> vecN;
+	vecN.push_back(0.0);
+	vecN[0]=centriodDataSet.peak->getMZ().size();
+	smpDataFile.write_VecMatH5("Peak_mz",centriodDataSet.peak->getMZ(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodDataSet.peak->getMZwidth().size();
+	smpDataFile.write_VecMatH5("Peak_mz_width",centriodDataSet.peak->getMZwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodDataSet.peak->getRT().size();
+	smpDataFile.write_VecMatH5("Peak_rt",centriodDataSet.peak->getRT(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodDataSet.peak->getRTwidth().size();
+	smpDataFile.write_VecMatH5("Peak_rt_width",centriodDataSet.peak->getRTwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=centriodDataSet.peak->getPKcount().size();
+	smpDataFile.write_VecMatH5("Peak_Count",centriodDataSet.peak->getPKcount(),vecN,H5::PredType::NATIVE_FLOAT);
+	vecN[0]=centriodDataSet.peak->getMZIdx().size();
+	smpDataFile.write_VecMatH5("Peak_mz_idx",centriodDataSet.peak->getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
+	vecN[0]=centriodDataSet.peak->getRTIdx().size();
+	smpDataFile.write_VecMatH5("Peak_rt_idx",centriodDataSet.peak->getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
+
+	/*
 	smpDataFile.write_VecMatH5("A",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("dhA",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("d2hA",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
@@ -178,7 +202,7 @@ int main(int argc, char **argv)
 	smpDataFile.write_VecMatH5("d2vAmz",d2vA.mz,N,H5::PredType::NATIVE_DOUBLE);
 	N[0]=d2vA.rt.size();
 	smpDataFile.write_VecMatH5("d2vArt",d2vA.rt,N,H5::PredType::NATIVE_DOUBLE);
-
+*/
 //////////////////////////////////////////////////////////////////////////
 
 	smpDataFile.write_VecMatH5("csOrig",csVecMat,vecDim,H5::PredType::NATIVE_FLOAT);
@@ -270,6 +294,9 @@ int main(int argc, char **argv)
 		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
 	if(falseWidth > 0)
 		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
+
+
+	/*
 	vector<hsize_t> vecN;
 	vecN.push_back(0.0);
 
@@ -288,6 +315,7 @@ int main(int argc, char **argv)
 	smpDataFile.write_VecMatH5("Peak_mz_idx",centriodPeak.mz_idx,vecN,H5::PredType::NATIVE_LLONG);
 	vecN[0]=centriodPeak.rt_idx.size();
 	smpDataFile.write_VecMatH5("Peak_rt_idx",centriodPeak.rt_idx,vecN,H5::PredType::NATIVE_LLONG);
+	*/
 
 	return 0;
 }
