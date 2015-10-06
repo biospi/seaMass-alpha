@@ -116,6 +116,9 @@ int main(int argc, char **argv)
 	PeakManager<PeakData,BsplineData,Centroid> centriodPeak(bsData);
 	centriodPeak.execute();
 
+	PeakManager<PeakData,BsplineData,ExtractPeak> extractPeak(bsData);
+	extractPeak.execute();
+
 	cout<<"\nSaving Data to File:"<<endl;
 
 	vector<hsize_t> vecN;
