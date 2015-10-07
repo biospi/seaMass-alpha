@@ -1,122 +1,16 @@
 #ifndef SMPEAK_PEAKOPERATOR_TPP_
 #define SMPEAK_PEAKOPERATOR_TPP_
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
-{
-	vector<DataAxis<T>* > bsData =  data->get();
-
-	DataAxis<T>* bs=bsData[0];
-	DataAxis<T>* dbs=bsData[1];
-	DataAxis<T>* d2bs=bsData[2];
-
-	hsize_t dims[2];
-	bs->alpha->getDims(dims);
-	lli row = dims[0];
-	lli col = dims[1];
-
-	lli falsePeak=0;
-	lli falseWidth=0;
-	// Find Peaks and exact MZ values.
-	cout<<"Preform Centroid of Mass Spec DATA along MZ!"<<endl;
-	cout<<"Find Peaks along MZ axis"<<endl;
-
-	#pragma omp parallel for reduction(+:falsePeak,falseWidth)
-	for(lli i = 0; i < row; ++i)
-	{
-		for(lli j = 2; j < col-2; ++j)
-		{
-			if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
-			{
-				double pa1=0.0;
-				double pmz1=0.0;
-				calMidPoint(i,j,dbs->alpha->m,dbs->mz,pmz1,pa1);
-				if(pa1 < 0){
-					double pa0=0.0;
-					double pmz0=0.0;
-					vector<T> ry;
-					calMidPoint(i,j-1,dbs->alpha->m,dbs->mz,pmz0,pa0);
-					double t0 = calT(pa0,double(dbs->alpha->m[i][j]),pa1);
-					if(t0>=0)
-					{
-						double mzPeak=calX(t0,pmz0,dbs->mz[j],pmz1);
-						double mzlhs=0.0;
-						double mzrhs=0.0;
-						ry = cal3rdMidPoint(i,j,bs->alpha->m);
-						T countMax = calPeakCount(ry,t0);
-						calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
-						if(mzlhs >= 0 && mzrhs >= 0)
-						{
-							#pragma omp critical(peak)
-							{
-								peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
-									make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
-							}
-						}
-						else
-						{
-							++falseWidth;
-						}
-					}
-					else
-					{
-						++falsePeak;
-					}
-				}
-				else
-				{
-					double pa2=0.0;
-					double pmz2=0.0;
-					vector<T> ry;
-					calMidPoint(i,j+1,dbs->alpha->m,dbs->mz,pmz2,pa2);
-					double t0 = calT(pa1,double(dbs->alpha->m[i][j+1]),pa2);
-					if (t0>=0)
-					{
-						double mzPeak=calX(t0,pmz1,dbs->mz[j+1],pmz2);
-						double mzlhs=0.0;
-						double mzrhs=0.0;
-						ry = cal3rdMidPoint(i,j,bs->alpha->m);
-						T countMax = calPeakCount(ry,t0);
-						calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
-						if(mzlhs >= 0 && mzrhs >= 0)
-						{
-							#pragma omp critical(peak)
-							{
-								peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
-									make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
-							}
-						}
-						else
-						{
-							++falseWidth;
-						}
-					}
-					else
-					{
-						++falsePeak;
-					}
-				}
-			}
-		}
-	}
-
-	cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
-	if(falsePeak > 0)
-		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
-	if(falseWidth > 0)
-		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
-}
-
-template<template<class> class pPeak, template<class> class pData, typename T>
-void Centroid<pPeak,pData,T>::calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
-		vector<double> &mza, double &mz1, double &a1)
+template<typename T>
+void MathOp<T>::calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
+		const vector<double> &mza, double &mz1, double &a1)
 {
 	mz1=0.5*(mza[mzIdx]+mza[mzIdx+1]);
 	a1=double(0.5*(alpha[rtIdx][mzIdx]+alpha[rtIdx][mzIdx+1]));
 }
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-double Centroid<pPeak,pData,T>::calT(const double y0, const double y1, const double y2)
+template<typename T>
+double MathOp<T>::calT(const double y0, const double y1, const double y2)
 {
 	double a=y1-y0;
 	double b=y0-2.0*y1+y2;
@@ -134,15 +28,15 @@ double Centroid<pPeak,pData,T>::calT(const double y0, const double y1, const dou
 	}
 }
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-double Centroid<pPeak,pData,T>::calX(double t, double x0, double x1, double x2)
+template<typename T>
+double MathOp<T>::calX(double t, double x0, double x1, double x2)
 {
 	double c=(1.0-t);
 	return c*c*x0+2.0*c*t*x1+t*t*x2;
 }
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-vector<T> Centroid<pPeak,pData,T>::cal3rdMidPoint(lli row, lli col, T **P)
+template<typename T>
+vector<T> MathOp<T>::cal3rdMidPoint(lli row, lli col, T **P)
 {
 	vector<T> ry(4,0.0);
 	T p0=P[row][col-1];
@@ -164,9 +58,8 @@ vector<T> Centroid<pPeak,pData,T>::cal3rdMidPoint(lli row, lli col, T **P)
 	return ry;
 }
 
-
-template<template<class> class pPeak, template<class> class pData, typename T>
-T Centroid<pPeak,pData,T>::calPeakCount(vector<T> &ry, double t)
+template<typename T>
+T MathOp<T>::calPeakCount(vector<T> &ry, double t)
 {
 	double tp=1-t;
 	T p0=tp*ry[0]+t*ry[1];
@@ -177,8 +70,8 @@ T Centroid<pPeak,pData,T>::calPeakCount(vector<T> &ry, double t)
 	return tp*q0+t*q1;
 }
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-void Centroid<pPeak,pData,T>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, vector<double> d2mz,
+template<typename T>
+void MathOp<T>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2mz,
 		double &mzlhs, double &mzrhs)
 {
 	lli n=d2mz.size();
@@ -230,6 +123,240 @@ void Centroid<pPeak,pData,T>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, vecto
 		mzrhs=-1;
 	}
 
+}
+
+template<typename T>
+void MathOp<T>::calPeakMZ(
+		DataAxis<T> const *bs,DataAxis<T> const *dbs,DataAxis<T> const *d2bs,
+		lli i, lli j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,
+		double &t0, lli &falsePeak)
+{
+	if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
+	{
+		double pa1=0.0;
+		double pmz1=0.0;
+		calMidPoint(i,j,dbs->alpha->m,dbs->mz,pmz1,pa1);
+		if(pa1 < 0){
+			double pa0=0.0;
+			double pmz0=0.0;
+			vector<T> ry;
+			calMidPoint(i,j-1,dbs->alpha->m,dbs->mz,pmz0,pa0);
+			t0= calT(pa0,double(dbs->alpha->m[i][j]),pa1);
+			if(t0>=0)
+			{
+				mzPeak=calX(t0,pmz0,dbs->mz[j],pmz1);
+				mzlhs=0.0;
+				mzrhs=0.0;
+				ry = cal3rdMidPoint(i,j,bs->alpha->m);
+				countMax = calPeakCount(ry,t0);
+				calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
+			}
+			else
+			{
+				++falsePeak;
+			}
+		}
+		else
+		{
+			double pa2=0.0;
+			double pmz2=0.0;
+			vector<T> ry;
+			calMidPoint(i,j+1,dbs->alpha->m,dbs->mz,pmz2,pa2);
+			t0 = calT(pa1,double(dbs->alpha->m[i][j+1]),pa2);
+			if (t0>=0)
+			{
+				mzPeak= calX(t0,pmz1,dbs->mz[j+1],pmz2);
+				mzlhs=0.0;
+				mzrhs=0.0;
+				ry = cal3rdMidPoint(i,j,bs->alpha->m);
+				countMax = calPeakCount(ry,t0);
+				calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
+			}
+			else
+			{
+				++falsePeak;
+			}
+		}
+	}
+}
+
+
+template<template<class> class pPeak, template<class> class pData, typename T>
+void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
+{
+	vector<DataAxis<T>* > bsData =  data->get();
+
+	DataAxis<T> const *bs=bsData[0];
+	DataAxis<T> const *dbs=bsData[1];
+	DataAxis<T> const *d2bs=bsData[2];
+
+	hsize_t dims[2];
+	bs->alpha->getDims(dims);
+	lli row = dims[0];
+	lli col = dims[1];
+
+	lli falsePeak=0;
+	lli falseWidth=0;
+	// Find Peaks and exact MZ values.
+	cout<<"Extract Peaks from Mass Spec Data"<<endl;
+
+	#pragma omp parallel for reduction(+:falsePeak,falseWidth)
+	for(lli i = 0; i < row; ++i)
+	{
+		for(lli j = 2; j < col-2; ++j)
+		{
+			if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
+			{
+				double mzPeak=-1.0;
+				T countMax=-1.0;
+				double mzlhs=-1.0;
+				double mzrhs=-1.0;
+				double t0=-1.0;
+				this->calPeakMZ(bs,dbs,d2bs,i,j,mzPeak,countMax,mzlhs,mzrhs,t0,falsePeak);
+
+				if (t0 >=0)
+				{
+					if(mzlhs >= 0 && mzrhs >= 0)
+					{
+						#pragma omp critical(peak)
+						{
+							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
+								make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
+						}
+					}
+					else
+					{
+						++falseWidth;
+					}
+				}
+			}
+		}
+	}
+	cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
+	if(falsePeak > 0)
+		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
+	if(falseWidth > 0)
+		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
+}
+
+
+
+template<template<class> class pPeak, template<class> class pData, typename T>
+void ExtractPeak<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
+{
+	vector<DataAxis<T>* > bsData =  data->get();
+
+	DataAxis<T> const *bs=bsData[0];
+	DataAxis<T> const *dhbs=bsData[1];
+	DataAxis<T> const *dh2bs=bsData[2];
+	DataAxis<T> const *dvbs=bsData[2];
+	DataAxis<T> const *dv2bs=bsData[2];
+
+	hsize_t dims[2];
+	bs->alpha->getDims(dims);
+	lli row = dims[0];
+	lli col = dims[1];
+
+	lli falsePeak=0;
+	lli falseWidth=0;
+	// Find Peaks and exact MZ values.
+	cout<<"Extract Peaks from Mass Spec Data"<<endl;
+
+	//#pragma omp parallel for reduction(+:falsePeak,falseWidth)
+	for(lli i = 2; i < row-1; ++i)
+	{
+		for(lli j = 2; j < col-2; ++j)
+		{
+			if( (dhbs->alpha->m[i][j] > 0) && (dhbs->alpha->m[i][j+1] < 0) &&
+				(dvbs->alpha->m[i][j] > 0) && (dvbs->alpha->m[i+1][j] < 0) )
+			{
+				double mzPeak[4];//={-1.0,-1.0,-1.0,-1.0};
+				T countMax[4];//   ={-1.0,-1.0,-1.0,-1.0};
+				double mzlhs[4];// ={-1.0,-1.0,-1.0,-1.0};
+				double mzrhs[4];// ={-1.0,-1.0,-1.0,-1.0};
+				double t0[4];//    ={-1.0,-1.0,-1.0,-1.0};
+				bool rtPeak=true;
+				lli buff=0;
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i-2,j,mzPeak[0],countMax[0],mzlhs[0],mzrhs[0],t0[0],buff,rtPeak);
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i-1,j,mzPeak[1],countMax[1],mzlhs[1],mzrhs[1],t0[1],buff,rtPeak);
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i,  j,mzPeak[2],countMax[2],mzlhs[2],mzrhs[2],t0[2],falsePeak,rtPeak);
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i+1,j,mzPeak[3],countMax[3],mzlhs[3],mzrhs[3],t0[3],buff,rtPeak);
+				if (t0[2] >=0)
+				{
+					if(mzlhs[2] >= 0 && mzrhs[2] >= 0)
+					{
+		//				#pragma omp critical(peak)
+						{
+							peak->addPeak(mzPeak[2],bs->rt[i],countMax[2],make_pair(mzlhs[2],mzrhs[2]),
+								make_pair(bs->rt[i],bs->rt[i]),t0[2],i,j);
+						}
+					}
+					else
+					{
+						++falseWidth;
+					}
+				}
+			}
+		}
+	}
+	cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
+	if(falsePeak > 0)
+		cout<<"Warning !!! Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
+	if(falseWidth > 0)
+		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
+}
+
+template<template<class> class pPeak, template<class> class pData, typename T>
+void ExtractPeak<pPeak,pData,T>::calPeakMZ(
+		DataAxis<T> const *bs,DataAxis<T> const *dbs,DataAxis<T> const *d2bs,
+		lli i, lli j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,
+		double &t0, lli &falsePeak, bool &peakRT)
+{
+	double pa1=0.0;
+	double pmz1=0.0;
+	MathOp<T>::calMidPoint(i,j,dbs->alpha->m,dbs->mz,pmz1,pa1);
+	if(pa1 < 0){
+		double pa0=0.0;
+		double pmz0=0.0;
+		vector<T> ry;
+		MathOp<T>::calMidPoint(i,j-1,dbs->alpha->m,dbs->mz,pmz0,pa0);
+		t0 = MathOp<T>::calT(pa0,double(dbs->alpha->m[i][j]),pa1);
+		if(t0>=0)
+		{
+			mzPeak=MathOp<T>::calX(t0,pmz0,dbs->mz[j],pmz1);
+			mzlhs=0.0;
+			mzrhs=0.0;
+			ry = MathOp<T>::cal3rdMidPoint(i,j,bs->alpha->m);
+			countMax = MathOp<T>::calPeakCount(ry,t0);
+			MathOp<T>::calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
+		}
+		else
+		{
+			++falsePeak;
+		}
+	}
+	else
+	{
+		double pa2=0.0;
+		double pmz2=0.0;
+		vector<T> ry;
+		MathOp<T>::calMidPoint(i,j+1,dbs->alpha->m,dbs->mz,pmz2,pa2);
+		t0 = MathOp<T>::calT(pa1,double(dbs->alpha->m[i][j+1]),pa2);
+		if (t0>=0)
+		{
+			mzPeak=MathOp<T>::calX(t0,pmz1,dbs->mz[j+1],pmz2);
+			mzlhs=0.0;
+			mzrhs=0.0;
+			ry = MathOp<T>::cal3rdMidPoint(i,j,bs->alpha->m);
+			countMax = MathOp<T>::calPeakCount(ry,t0);
+			MathOp<T>::calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
+		}
+		else
+		{
+			++falsePeak;
+		}
+	}
+	if(t0<0) peakRT=false;
 }
 
 #endif /* SMPEAK_PEAKOPERATOR_TPP_ */
