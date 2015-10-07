@@ -112,11 +112,12 @@ int main(int argc, char **argv)
 	SMData<OpNabla2V> d2vA(dims,offset,mzRes,rtRes,rawCoeff);
 
 	BsplineData<> bsData(A,dhA,d2hA);
+	BsplineData<> bsPeakData(A,dhA,d2hA,dvA,d2vA);
 
 	PeakManager<PeakData,BsplineData,Centroid> centriodPeak(bsData);
 	centriodPeak.execute();
 
-	PeakManager<PeakData,BsplineData,ExtractPeak> extractPeak(bsData);
+	PeakManager<PeakData,BsplineData,ExtractPeak> extractPeak(bsPeakData);
 	extractPeak.execute();
 
 	cout<<"\nSaving Data to File:"<<endl;

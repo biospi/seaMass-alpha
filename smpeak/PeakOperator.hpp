@@ -43,7 +43,7 @@ protected:
 private:
 	void calPeakMZ(DataAxis<T> const *bs,DataAxis<T> const *dbs,DataAxis<T> const *d2bs,
 					lli i, lli j, double &mzPeak, T &countMax,
-					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak);
+					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak, bool &peakRT);
 	void calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
 					const vector<double> &mza, double &mz1, double &a1);
 	double calT(const double y0, const double y1, const double y2);
@@ -64,8 +64,10 @@ void ExtractPeak<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 	vector<DataAxis<T>* > bsData =  data->get();
 
 	DataAxis<T> const *bs=bsData[0];
-	DataAxis<T> const *dbs=bsData[1];
-	DataAxis<T> const *d2bs=bsData[2];
+	DataAxis<T> const *dhbs=bsData[1];
+	DataAxis<T> const *dh2bs=bsData[2];
+	DataAxis<T> const *dvbs=bsData[2];
+	DataAxis<T> const *dv2bs=bsData[2];
 
 	hsize_t dims[2];
 	bs->alpha->getDims(dims);
@@ -77,28 +79,33 @@ void ExtractPeak<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 	// Find Peaks and exact MZ values.
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
 
-	#pragma omp parallel for reduction(+:falsePeak,falseWidth)
-	for(lli i = 0; i < row; ++i)
+	//#pragma omp parallel for reduction(+:falsePeak,falseWidth)
+	for(lli i = 2; i < row-1; ++i)
 	{
 		for(lli j = 2; j < col-2; ++j)
 		{
-			if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
+			if( (dhbs->alpha->m[i][j] > 0) && (dhbs->alpha->m[i][j+1] < 0) &&
+				(dvbs->alpha->m[i][j] > 0) && (dvbs->alpha->m[i+1][j] < 0) )
 			{
-				double mzPeak=-1.0;
-				T countMax=-1.0;
-				double mzlhs=-1.0;
-				double mzrhs=-1.0;
-				double t0=-1.0;
-				calPeakMZ(bs,dbs,d2bs,i,j,mzPeak,countMax,mzlhs,mzrhs,t0,falsePeak);
-
-				if (t0 >=0)
+				double mzPeak[4];//={-1.0,-1.0,-1.0,-1.0};
+				T countMax[4];//   ={-1.0,-1.0,-1.0,-1.0};
+				double mzlhs[4];// ={-1.0,-1.0,-1.0,-1.0};
+				double mzrhs[4];// ={-1.0,-1.0,-1.0,-1.0};
+				double t0[4];//    ={-1.0,-1.0,-1.0,-1.0};
+				bool rtPeak=true;
+				lli buff=0;
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i-2,j,mzPeak[0],countMax[0],mzlhs[0],mzrhs[0],t0[0],buff,rtPeak);
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i-1,j,mzPeak[1],countMax[1],mzlhs[1],mzrhs[1],t0[1],buff,rtPeak);
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i,  j,mzPeak[2],countMax[2],mzlhs[2],mzrhs[2],t0[2],falsePeak,rtPeak);
+				if(rtPeak) calPeakMZ(bs,dhbs,dh2bs,i+1,j,mzPeak[3],countMax[3],mzlhs[3],mzrhs[3],t0[3],buff,rtPeak);
+				if (t0[2] >=0)
 				{
-					if(mzlhs >= 0 && mzrhs >= 0)
+					if(mzlhs[2] >= 0 && mzrhs[2] >= 0)
 					{
-						#pragma omp critical(peak)
+		//				#pragma omp critical(peak)
 						{
-							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
-								make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
+							peak->addPeak(mzPeak[2],bs->rt[i],countMax[2],make_pair(mzlhs[2],mzrhs[2]),
+								make_pair(bs->rt[i],bs->rt[i]),t0[2],i,j);
 						}
 					}
 					else
@@ -120,55 +127,53 @@ template<template<class> class pPeak, template<class> class pData, typename T>
 void ExtractPeak<pPeak,pData,T>::calPeakMZ(
 		DataAxis<T> const *bs,DataAxis<T> const *dbs,DataAxis<T> const *d2bs,
 		lli i, lli j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,
-		double &t0, lli &falsePeak)
+		double &t0, lli &falsePeak, bool &peakRT)
 {
-	if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
-	{
-		double pa1=0.0;
-		double pmz1=0.0;
-		calMidPoint(i,j,dbs->alpha->m,dbs->mz,pmz1,pa1);
-		if(pa1 < 0){
-			double pa0=0.0;
-			double pmz0=0.0;
-			vector<T> ry;
-			calMidPoint(i,j-1,dbs->alpha->m,dbs->mz,pmz0,pa0);
-			t0 = calT(pa0,double(dbs->alpha->m[i][j]),pa1);
-			if(t0>=0)
-			{
-				mzPeak=calX(t0,pmz0,dbs->mz[j],pmz1);
-				mzlhs=0.0;
-				mzrhs=0.0;
-				ry = cal3rdMidPoint(i,j,bs->alpha->m);
-				countMax = calPeakCount(ry,t0);
-				calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
-			}
-			else
-			{
-				++falsePeak;
-			}
+	double pa1=0.0;
+	double pmz1=0.0;
+	calMidPoint(i,j,dbs->alpha->m,dbs->mz,pmz1,pa1);
+	if(pa1 < 0){
+		double pa0=0.0;
+		double pmz0=0.0;
+		vector<T> ry;
+		calMidPoint(i,j-1,dbs->alpha->m,dbs->mz,pmz0,pa0);
+		t0 = calT(pa0,double(dbs->alpha->m[i][j]),pa1);
+		if(t0>=0)
+		{
+			mzPeak=calX(t0,pmz0,dbs->mz[j],pmz1);
+			mzlhs=0.0;
+			mzrhs=0.0;
+			ry = cal3rdMidPoint(i,j,bs->alpha->m);
+			countMax = calPeakCount(ry,t0);
+			calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
 		}
 		else
 		{
-			double pa2=0.0;
-			double pmz2=0.0;
-			vector<T> ry;
-			calMidPoint(i,j+1,dbs->alpha->m,dbs->mz,pmz2,pa2);
-			t0 = calT(pa1,double(dbs->alpha->m[i][j+1]),pa2);
-			if (t0>=0)
-			{
-				mzPeak=calX(t0,pmz1,dbs->mz[j+1],pmz2);
-				mzlhs=0.0;
-				mzrhs=0.0;
-				ry = cal3rdMidPoint(i,j,bs->alpha->m);
-				countMax = calPeakCount(ry,t0);
-				calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
-			}
-			else
-			{
-				++falsePeak;
-			}
+			++falsePeak;
 		}
 	}
+	else
+	{
+		double pa2=0.0;
+		double pmz2=0.0;
+		vector<T> ry;
+		calMidPoint(i,j+1,dbs->alpha->m,dbs->mz,pmz2,pa2);
+		t0 = calT(pa1,double(dbs->alpha->m[i][j+1]),pa2);
+		if (t0>=0)
+		{
+			mzPeak=calX(t0,pmz1,dbs->mz[j+1],pmz2);
+			mzlhs=0.0;
+			mzrhs=0.0;
+			ry = cal3rdMidPoint(i,j,bs->alpha->m);
+			countMax = calPeakCount(ry,t0);
+			calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
+		}
+		else
+		{
+			++falsePeak;
+		}
+	}
+	if(t0<0) peakRT=false;
 }
 
 template<template<class> class pPeak, template<class> class pData, typename T>
