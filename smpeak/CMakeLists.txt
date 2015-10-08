@@ -11,11 +11,7 @@ find_package(Boost 1.54 REQUIRED COMPONENTS
 
 add_executable(smpeak
 	smpeak.cpp
-	peakcore.cpp
 	SMPFile.cpp
-	SMData.cpp
-	MathOperator.cpp
-	BsplineData.cpp
 )
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
