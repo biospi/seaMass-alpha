@@ -9,6 +9,7 @@
 #include "PeakOperator.hpp"
 #include "PeakData.hpp"
 #include "PeakManager.hpp"
+#include "NetCDFile.hpp"
 
 
 namespace po = boost::program_options;
@@ -16,6 +17,7 @@ namespace po = boost::program_options;
 int main(int argc, char **argv)
 {
 	string fileName;
+	string mzMLFileName;
 	bool centroid;
 
 	po::options_description desc("Usage: smpeak [OPTION...] [SMO FILE]");
@@ -73,6 +75,94 @@ int main(int argc, char **argv)
 		cerr<<"Exception of unknown type!\n";
 	}
 
+	/*
+	// This will be the netCDF ID for the file and data variable.
+	int ncid, varid1,varid2;
+	int retval;
+	//int ndims_in, nvars_in, ngatts_in, unlimdimid_in;
+	int dim1,dim2;
+	int dim[10];
+	nc_type typId;
+	size_t len[2];
+
+	//int rh_ndims;
+	int  rh_dimids[NC_MAX_VAR_DIMS];
+	//int rh_natts;
+
+
+	//if ((retval = ))
+	//	ERR(retval);
+	// Open the file. NC_NOWRITE tells netCDF we want read-only access
+	// to the file.
+
+	vector<double> rawData;
+
+	if ((retval = nc_open(fileName.c_str(), NC_NOWRITE, &ncid)))
+		ERR(retval);
+
+	if ((retval =
+			nc_inq_varid (ncid, "mzML", &varid1)
+	))
+		ERR(retval);
+
+	if ((retval = nc_inq_varndims(ncid,varid1,&dim1) ))
+		ERR(retval);
+
+	if ((retval =
+			nc_inq_varid (ncid, "spectrum_MS_1000514", &varid2)
+	))
+		ERR(retval);
+
+	if ((retval =
+		nc_inq_vartype(ncid, varid2, &typId)
+	))
+		ERR(retval);
+
+	if ((retval = nc_inq_varndims(ncid,varid2,&dim2) ))
+		ERR(retval);
+
+	//p=dim[0];
+
+	if ((retval = nc_inq_vardimid(ncid, varid2, &dim[0]) ))
+		ERR(retval);
+
+	if ((retval = nc_inq_dimlen(ncid, dim[0], &len[0]) ))
+		ERR(retval);
+
+	if ((retval = nc_inq_dimlen(ncid, dim[1], &len[1]) ))
+		ERR(retval);
+
+
+	rawData.resize(len[0]*len[1]);
+
+	if (( retval =
+		nc_get_var(ncid, varid2, &rawData[0])
+	)) ERR(retval)
+
+	//if ((retval = nc_inq_var(ncid, varid, "mzML_spectrumIndex",
+	//		&typId,&rh_ndims, rh_dimids,&rh_natts) ))
+	//	ERR(retval);
+
+	//if ((retval = nc_inq(ncid, &ndims_in, &nvars_in, &ngatts_in,&unlimdimid_in)))
+	//	ERR(retval);
+
+	cout<<"END!!!"<<endl;
+*/
+
+
+	NetCDFile mzMLFile;
+
+	mzMLFile.open(fileName);
+
+	VecMat<double> mzData;
+	VecMat<double> mzDataT;
+	vector<char> mzMLbuff;
+
+	mzMLFile.read_MatNC("spectrum_MS_1000514",mzData);
+	mzMLFile.read_MatNCT("spectrum_MS_1000514",mzDataT);
+	mzMLFile.read_VecNC("mzML",mzMLbuff);
+
+	/*
 	cout<<"Centroid Peak Data Set..."<<endl;
 	ReadSMFile dataFile(fileName);
 	string outFileName=fileName.substr(0,fileName.size()-4);
@@ -144,6 +234,8 @@ int main(int argc, char **argv)
 	smpDataFile.write_VecMatH5("d2cs",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("dvcs",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("d2vcs",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+
+*/
 
 	return 0;
 }

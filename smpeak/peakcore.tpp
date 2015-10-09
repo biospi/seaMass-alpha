@@ -14,10 +14,13 @@ VecMat<T>::VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec):row(_r), col(_c),v(_v
 }
 
 template<typename T>
-void VecMat<T>::getDims(hsize_t dims[])
+VecMat<T>::VecMat(hsize_t _r, hsize_t _c) : row(_r), col(_c)
 {
-	dims[0]=row;
-	dims[1]=col;
+	v.resize(row*col);
+	matIdx.resize(row,0);
+	for(hsize_t i=0; i < row; ++i)
+		matIdx[i]=&v[i*col];
+	m=&matIdx[0];
 }
 
 template<typename T>
@@ -30,6 +33,25 @@ void VecMat<T>::set(hsize_t _r, hsize_t _c, vector<T> &_vec)
 	for(hsize_t i=0; i < row; ++i)
 		matIdx[i]=&v[i*col];
 	m=&matIdx[0];
+}
+
+template<typename T>
+void VecMat<T>::set(hsize_t _r, hsize_t _c)
+{
+	row=_r;
+	col=_c;
+	v.resize(row*col);
+	matIdx.resize(row,0);
+	for(hsize_t i=0; i < row; ++i)
+		matIdx[i]=&v[i*col];
+	m=&matIdx[0];
+}
+
+template<typename T>
+void VecMat<T>::getDims(hsize_t dims[])
+{
+	dims[0]=row;
+	dims[1]=col;
 }
 
 #endif /* SMPEAK_PEAKCORE_TPP_ */

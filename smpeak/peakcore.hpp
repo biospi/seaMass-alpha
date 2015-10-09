@@ -15,10 +15,12 @@ struct VecMat
 {
 	VecMat(void);
 	VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec);
+	VecMat(hsize_t _r, hsize_t _c);
 	vector<T> v; // Vector of Matrix data.
 	T** m; // Data Matrix
-	void getDims(hsize_t dims[]);
 	void set(hsize_t _r, hsize_t _c, vector<T> &_vec);
+	void set(hsize_t _r, hsize_t _c);
+	void getDims(hsize_t dims[]);
 private:
 	vector<T*> matIdx;
 	hsize_t row;
