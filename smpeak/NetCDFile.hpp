@@ -27,6 +27,8 @@ public:
 	template<typename T>
 	void read_VecNC(const string dataSet, vector<T> &vecData);
 	template<typename T>
+	void read_VecNC(const string dataSet, T *vecData);
+	template<typename T>
 	void read_MatNC(const string dataSet, VecMat<T> &vm);
 	template<typename T>
 	void read_MatNCT(const string dataSet, VecMat<T> &vm);
@@ -75,6 +77,48 @@ void NetCDFile::read_VecNC(const string dataSet, vector<T> &vecData)
 		N*=dimSize[i];
 
 	vecData.resize(N);
+
+	if (( retval = nc_get_var(ncid, varid, &vecData[0]) ))
+		ERR(retval)
+}
+
+
+template<typename T>
+void NetCDFile::read_VecNC(const string dataSet, T *vecData)
+{
+
+	int varid;
+	int ndim;
+	vector<int> dimid;
+	vector<size_t> dimSize;
+	size_t N=1;
+	nc_type typId;
+
+	if((retval = nc_inq_varid (ncid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if((retval = nc_inq_vartype(ncid, varid, &typId) ))
+		ERR(retval);
+
+	if((retval = nc_inq_varndims(ncid,varid,&ndim) ))
+		ERR(retval);
+
+	dimid.resize(ndim);
+	dimSize.resize(ndim);
+
+	if((retval = nc_inq_vardimid(ncid, varid, &dimid[0]) ))
+		ERR(retval);
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if ((retval = nc_inq_dimlen(ncid, dimid[i], &dimSize[i]) ))
+			ERR(retval);
+	}
+
+	for(int i = 0; i < ndim; ++i)
+		N*=dimSize[i];
+
+	vecData = new T[N];
 
 	if (( retval = nc_get_var(ncid, varid, &vecData[0]) ))
 		ERR(retval)
