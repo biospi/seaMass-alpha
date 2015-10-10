@@ -2,11 +2,23 @@
 
 NetCDFile::NetCDFile(const string _fileName, int omode) : fileName(_fileName)
 {
-	if (omode == NC_NOWRITE)
+	switch(omode)
 	{
+	case NC_NOWRITE:
 		if ((retval = nc_open(fileName.c_str(), omode, &ncid)))
-			ERR(retval);
+			err(retval);
 		fileStatus = true;
+		break;
+	case NC_WRITE:
+		if ((retval = nc_open(fileName.c_str(), omode, &ncid)))
+			err(retval);
+		fileStatus = true;
+		break;
+	case NC_NETCDF4:
+	   if ((retval = nc_create(fileName.c_str(), omode|NC_CLOBBER, &ncid)))
+	      err(retval);
+	   fileStatus = true;
+	   break;
 	}
 }
 
@@ -15,11 +27,23 @@ void NetCDFile::open(const string _fileName, int omode)
 	if (fileStatus == false)
 	{
 		fileName=_fileName;
-		if (omode == NC_NOWRITE)
+		switch(omode)
 		{
+		case NC_NOWRITE:
 			if ((retval = nc_open(fileName.c_str(), omode, &ncid)))
-				ERR(retval);
+				err(retval);
 			fileStatus = true;
+			break;
+		case NC_WRITE:
+			if ((retval = nc_open(fileName.c_str(), omode, &ncid)))
+				err(retval);
+			fileStatus = true;
+			break;
+		case NC_NETCDF4:
+			if ((retval = nc_create(fileName.c_str(), omode|NC_CLOBBER, &ncid)))
+				err(retval);
+			fileStatus = true;
+			break;
 		}
 	}
 	else
@@ -34,7 +58,7 @@ void NetCDFile::close(void)
 	if (fileStatus == true)
 	{
 		if ((retval = nc_close(ncid)))
-			ERR(retval);
+			err(retval);
 		fileStatus = false;
 	}
 	else
@@ -49,7 +73,7 @@ NetCDFile::~NetCDFile()
 	if (fileStatus == true)
 	{
 		if ((retval = nc_close(ncid)))
-			ERR(retval);
+			err(retval);
 	}
 }
 

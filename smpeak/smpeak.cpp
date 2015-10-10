@@ -18,6 +18,7 @@ int main(int argc, char **argv)
 {
 	string fileName;
 	string mzMLFileName;
+	string outMZFileName;
 	bool centroid;
 
 	po::options_description desc("Usage: smpeak [OPTION...] [SMO FILE] [mzMLb3 FILE]");
@@ -26,6 +27,7 @@ int main(int argc, char **argv)
 		("help,h", "Produce help message")
 		("smo,s", po::value<string>(&fileName), "Filename of input smo data file")
 		("mzMLb3,z", po::value<string>(&mzMLFileName), "Filename of input mzMLb3 data file")
+		("output,o", po::value<string>(&outMZFileName), "Filename of output peak data file")
 		("centroid,c", "Centroid mode Peak transformation along M/Z");
 
 	try
@@ -70,6 +72,14 @@ int main(int argc, char **argv)
 			cout<<desc<<endl;
 			throw "mzMLb3 file was not give...";
 		}
+		if(vm.count("output"))
+		{
+			cout<<"Output Peak file: "<<vm["output"].as<string>()<<endl;
+		}
+		else
+		{
+			outMZFileName=fileName.substr(0,fileName.size()-4)+"_Peak.mzMLb3";
+		}
 	}
 	catch(exception& e)
 	{
@@ -86,6 +96,7 @@ int main(int argc, char **argv)
 		cerr<<"Exception of unknown type!\n";
 	}
 
+	// Test Read data
 	NetCDFile mzMLFile;
 
 	mzMLFile.open(mzMLFileName);
@@ -97,6 +108,12 @@ int main(int argc, char **argv)
 	mzMLFile.read_MatNC("spectrum_MS_1000514",mzData);
 	mzMLFile.read_MatNCT("spectrum_MS_1000514",mzDataT);
 	mzMLFile.read_VecNC("mzML",mzMLbuff);
+
+	// Test Write data
+	NetCDFile hammerNCDF4(outMZFileName,NC_NETCDF4);
+
+	hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_CHAR);
+	hammerNCDF4.write_MatNC("spectrum_MS_1000514",mzData,NC_DOUBLE);
 
 	cout<<"Centroid Peak Data Set..."<<endl;
 	ReadSMFile dataFile(fileName);

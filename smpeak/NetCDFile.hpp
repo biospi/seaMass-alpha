@@ -32,6 +32,17 @@ public:
 	void read_MatNC(const string dataSet, VecMat<T> &vm);
 	template<typename T>
 	void read_MatNCT(const string dataSet, VecMat<T> &vm);
+	template<typename T>
+	void read_AttNC(const string dataSet, VecMat<T> &vm);
+
+	template<typename T>
+	void write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
+			size_t chunks = 4096, int deflate_level = 5, int shuffle = NC_SHUFFLE);
+	template<typename T>
+	void write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
+			size_t chunk = 64, int deflate_level = 5, int shuffle = NC_SHUFFLE);
+	//template<typename T>
+	//void write_AttNC();
 private:
 	string fileName;
 	int ncid;
@@ -216,5 +227,92 @@ void NetCDFile::read_MatNCT(const string dataSet, VecMat<T> &vm)
 		}
 	}
 }
+
+template<typename T>
+void NetCDFile::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
+			size_t chunks, int deflate_level, int shuffle)
+{
+	int varid;
+	int dimid;
+	int ndim = 1;
+	int deflate = 0;
+	size_t N = vec.size();
+	string dimName = "dim_" + dataSet;
+
+	/* Set chunking, shuffle, and deflate. */
+	shuffle = NC_SHUFFLE;
+	if(deflate_level > 0 && deflate_level < 10)
+		deflate = 1;
+
+	/* Define the dimensions. */
+	if ((retval = nc_def_dim(ncid, dimName.c_str(), N, &dimid)))
+	   ERR(retval);
+
+	/* Define the variable. */
+	if ((retval = nc_def_var(ncid, dataSet.c_str(), xtype, ndim,
+	                         &dimid, &varid)))
+	   ERR(retval);
+	if ((retval = nc_def_var_chunking(ncid, varid, NC_CHUNKED, &chunks)))
+	   ERR(retval);
+	if ((retval = nc_def_var_deflate(ncid, varid, shuffle, deflate,
+	                                 deflate_level)))
+	   ERR(retval);
+	/* No need to explicitly end define mode for netCDF-4 files. Write
+	 * the pretend data to the file. */
+	if ((retval = nc_put_var(ncid, varid, &vec[0])))
+	   ERR(retval);
+}
+
+template<typename T>
+void NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
+			size_t chunk, int deflate_level, int shuffle)
+{
+	int varid;
+	int dimid[2];
+	size_t chunks[2];
+	int ndim = 2;
+	int deflate = 0;
+	size_t N[2];
+	hsize_t buffN[2];
+	string dimName1 = "row_" + dataSet;
+	string dimName2 = "col_" + dataSet;
+
+	/* Set chunking, shuffle, and deflate. */
+	shuffle = NC_SHUFFLE;
+	if(deflate_level > 0 && deflate_level < 10)
+		deflate = 1;
+
+	vm.getDims(buffN);
+
+	N[0]=size_t(buffN[0]);
+	N[1]=size_t(buffN[1]);
+
+	/* Define the dimensions. */
+	if ((retval = nc_def_dim(ncid,dimName1.c_str(),N[0],&dimid[0])))
+	   ERR(retval);
+	if ((retval = nc_def_dim(ncid,dimName2.c_str(),N[1],&dimid[1])))
+	   ERR(retval);
+
+	chunks[0] = chunk;
+	chunks[1] = chunk;
+
+	/* Define the variable. */
+	if ((retval = nc_def_var(ncid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
+	   ERR(retval);
+
+	if ((retval = nc_def_var_chunking(ncid,varid,NC_CHUNKED,&chunks[0])))
+	   ERR(retval);
+
+	if ((retval = nc_def_var_deflate(ncid,varid,shuffle,deflate,deflate_level)))
+	   ERR(retval);
+
+	/* No need to explicitly end define mode for netCDF-4 files. Write
+	 * the pretend data to the file. */
+	if ((retval = nc_put_var(ncid, varid, &vm.v[0])))
+	   ERR(retval);
+}
+
+
+
 
 #endif /* SMPEAK_NETCDFILE_HPP_ */
