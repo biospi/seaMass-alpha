@@ -10,9 +10,11 @@
 #include "PeakData.hpp"
 #include "PeakManager.hpp"
 #include "NetCDFile.hpp"
-
+#include <pugixml.hpp>
+#include <sstream>
 
 namespace po = boost::program_options;
+namespace pg = pugi;
 
 int main(int argc, char **argv)
 {
@@ -109,31 +111,71 @@ int main(int argc, char **argv)
 	mzMLFile.read_MatNCT("spectrum_MS_1000514",mzDataT);
 	mzMLFile.read_VecNC("mzML",mzMLbuff);
 
+
+	pg::xml_document doc;
+	size_t xmlSize=sizeof(char)*mzMLbuff.size();
+
+	pg::xml_parse_result result = doc.load_buffer_inplace(&mzMLbuff[0],xmlSize);
+
+	cout<<"Loaded XML: "<<
+	result.description() << ", SpectrumIndex: "<<
+	doc.child("mzML").child("run").child("spectrumList").attribute("count").value()<<endl;
+
+	pg::xml_node sptr = doc.child("mzML").child("run").child("spectrumList");
+
+	for(pg::xml_node_iterator itr = sptr.begin(); itr != sptr.end(); ++itr)
+	{
+		cout<< "NAME: "<<itr->name()<<
+		", index: "<< itr->attribute("index").value()<<
+		", Array Size: "<<itr->attribute("defaultArrayLength").value()<<endl;
+		pg::xml_attribute attr = itr->attribute("defaultArrayLength");
+		attr.set_value("1233456");
+	}
+
+	cout<<"Changed Attribute !!!"<<endl;
+	for(pg::xml_node_iterator itr = sptr.begin(); itr != sptr.end(); ++itr)
+	{
+		cout<< "NAME: "<<itr->name()<<
+		", index: "<< itr->attribute("index").value()<<
+		", Array Size: "<<itr->attribute("defaultArrayLength").value()<<endl;
+	}
+
+	stringstream proceXML;
+
+	doc.save(proceXML);
+
+	//cout<<proceXML.str();
+
+	char b;
+	proceXML >> b;
+	cout<<b<<endl;
+	proceXML >> b;
+	cout<<b<<endl;
+	proceXML >> b;
+	cout<<b<<endl;
+	proceXML >> b;
+	cout<<b<<endl;
+	proceXML >> b;
+	cout<<b<<endl;
+
+	string output = proceXML.str();
+	vector<char> vs(output.begin(),output.end());
+
+	cout<<"It works!"<<endl;
+
+	/*
+
 	// Test Write data
 	NetCDFile hammerNCDF4(outMZFileName,NC_NETCDF4);
 
 	hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_CHAR);
 	hammerNCDF4.write_MatNC("spectrum_MS_1000514",mzData,NC_DOUBLE);
 
-	string buff(&mzMLbuff[0]);
-	size_t loc=0;
-	loc = buff.find("<spectrum index");
-	loc = buff.find("<spectrum index", 586900);
-	loc = buff.find("<spectrum index", 590943);
-
-	cout<<"Spectrum Index: "<<loc<<endl;
-
 	vector<unsigned int> specIdx;
-
 	findVecString(mzMLbuff, specIdx);
 
-	//cout<<endl<<buff<<endl;
-	/*
-	for(int i = 0; i < mzMLbuff.size(); ++i)
-	{
-		cout<<mzMLbuff[i];
-	}
-	*/
+	//string scrapBuff(&mzMLbuff[0]);
+	//cout<<endl<<scrapBuff<<endl;
 
 	cout<<"Centroid Peak Data Set..."<<endl;
 	ReadSMFile dataFile(fileName);
@@ -206,6 +248,8 @@ int main(int argc, char **argv)
 	smpDataFile.write_VecMatH5("d2cs",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("dvcs",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 	smpDataFile.write_VecMatH5("d2vcs",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+
+	*/
 
 	return 0;
 }
