@@ -27,6 +27,11 @@ private:
 	hsize_t col;
 };
 
+template<typename T>
+void findVecString(vector<char> &vecStr,vector<T> &vec,
+		const string subStr = "<spectrum index",
+		const string endSubStr = "</spectrum>");
+
 #include"peakcore.tpp"
 
 #endif /* SMPEAK_PEAKCORE_HPP_ */

@@ -13,6 +13,8 @@ find_package(Boost 1.54 REQUIRED COMPONENTS
 
 find_package (NetCDF REQUIRED)
 
+find_package (PugiXML REQUIRED)
+
 
 add_executable(smpeak
 	smpeak.cpp
@@ -23,9 +25,11 @@ target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
 	${NETCDF_INCLUDE_DIRS}
+	${PUGIXML_INCLUDE_DIR}
 )
 target_link_libraries(smpeak
 	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
 	${NETCDF_LIBRARIES}
+	${PUGIXML_LIBRARIES}
 )

@@ -115,6 +115,26 @@ int main(int argc, char **argv)
 	hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_CHAR);
 	hammerNCDF4.write_MatNC("spectrum_MS_1000514",mzData,NC_DOUBLE);
 
+	string buff(&mzMLbuff[0]);
+	size_t loc=0;
+	loc = buff.find("<spectrum index");
+	loc = buff.find("<spectrum index", 586900);
+	loc = buff.find("<spectrum index", 590943);
+
+	cout<<"Spectrum Index: "<<loc<<endl;
+
+	vector<unsigned int> specIdx;
+
+	findVecString(mzMLbuff, specIdx);
+
+	//cout<<endl<<buff<<endl;
+	/*
+	for(int i = 0; i < mzMLbuff.size(); ++i)
+	{
+		cout<<mzMLbuff[i];
+	}
+	*/
+
 	cout<<"Centroid Peak Data Set..."<<endl;
 	ReadSMFile dataFile(fileName);
 	string outFileName=fileName.substr(0,fileName.size()-4);
