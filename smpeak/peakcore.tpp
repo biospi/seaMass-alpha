@@ -40,7 +40,7 @@ void VecMat<T>::set(hsize_t _r, hsize_t _c)
 {
 	row=_r;
 	col=_c;
-	v.resize(row*col);
+	v.resize(row*col,0);
 	matIdx.resize(row,0);
 	for(hsize_t i=0; i < row; ++i)
 		matIdx[i]=&v[i*col];

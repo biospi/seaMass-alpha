@@ -14,23 +14,24 @@
 #include <sstream>
 
 namespace po = boost::program_options;
-namespace pg = pugi;
+namespace xml = pugi;
 
 int main(int argc, char **argv)
 {
 	string fileName;
 	string mzMLFileName;
 	string outMZFileName;
-	bool centroid;
+	bool centroid, debug;
 
 	po::options_description desc("Usage: smpeak [OPTION...] [SMO FILE] [mzMLb3 FILE]");
 
 	desc.add_options()
 		("help,h", "Produce help message")
+		("centroid,c", "Centroid mode Peak transformation along M/Z")
+		("debug,g", "Output debugging Peak data")
 		("smo,s", po::value<string>(&fileName), "Filename of input smo data file")
 		("mzMLb3,z", po::value<string>(&mzMLFileName), "Filename of input mzMLb3 data file")
-		("output,o", po::value<string>(&outMZFileName), "Filename of output peak data file")
-		("centroid,c", "Centroid mode Peak transformation along M/Z");
+		("output,o", po::value<string>(&outMZFileName), "Filename of output peak data file");
 
 	try
 	{
@@ -82,6 +83,14 @@ int main(int argc, char **argv)
 		{
 			outMZFileName=fileName.substr(0,fileName.size()-4)+"_Peak.mzMLb3";
 		}
+		if(vm.count("debug"))
+		{
+			debug = true;
+		}
+		else
+		{
+			debug = false;
+		}
 	}
 	catch(exception& e)
 	{
@@ -98,6 +107,8 @@ int main(int argc, char **argv)
 		cerr<<"Exception of unknown type!\n";
 	}
 
+
+	//---------------------------------------------------------------------
 	// Test Read data
 	NetCDFile mzMLFile;
 
@@ -112,59 +123,6 @@ int main(int argc, char **argv)
 	mzMLFile.read_VecNC("mzML",mzMLbuff);
 
 
-	pg::xml_document doc;
-	size_t xmlSize=sizeof(char)*mzMLbuff.size();
-
-	pg::xml_parse_result result = doc.load_buffer_inplace(&mzMLbuff[0],xmlSize);
-
-	cout<<"Loaded XML: "<<
-	result.description() << ", SpectrumIndex: "<<
-	doc.child("mzML").child("run").child("spectrumList").attribute("count").value()<<endl;
-
-	pg::xml_node sptr = doc.child("mzML").child("run").child("spectrumList");
-
-	for(pg::xml_node_iterator itr = sptr.begin(); itr != sptr.end(); ++itr)
-	{
-		cout<< "NAME: "<<itr->name()<<
-		", index: "<< itr->attribute("index").value()<<
-		", Array Size: "<<itr->attribute("defaultArrayLength").value()<<endl;
-		pg::xml_attribute attr = itr->attribute("defaultArrayLength");
-		attr.set_value("1233456");
-	}
-
-	cout<<"Changed Attribute !!!"<<endl;
-	for(pg::xml_node_iterator itr = sptr.begin(); itr != sptr.end(); ++itr)
-	{
-		cout<< "NAME: "<<itr->name()<<
-		", index: "<< itr->attribute("index").value()<<
-		", Array Size: "<<itr->attribute("defaultArrayLength").value()<<endl;
-	}
-
-	stringstream proceXML;
-
-	doc.save(proceXML);
-
-	//cout<<proceXML.str();
-
-	char b;
-	proceXML >> b;
-	cout<<b<<endl;
-	proceXML >> b;
-	cout<<b<<endl;
-	proceXML >> b;
-	cout<<b<<endl;
-	proceXML >> b;
-	cout<<b<<endl;
-	proceXML >> b;
-	cout<<b<<endl;
-
-	string output = proceXML.str();
-	vector<char> vs(output.begin(),output.end());
-
-	cout<<"It works!"<<endl;
-
-	/*
-
 	// Test Write data
 	NetCDFile hammerNCDF4(outMZFileName,NC_NETCDF4);
 
@@ -176,6 +134,8 @@ int main(int argc, char **argv)
 
 	//string scrapBuff(&mzMLbuff[0]);
 	//cout<<endl<<scrapBuff<<endl;
+	//---------------------------------------------------------------------
+
 
 	cout<<"Centroid Peak Data Set..."<<endl;
 	ReadSMFile dataFile(fileName);
@@ -202,9 +162,6 @@ int main(int argc, char **argv)
 	dataFile.read_MatH5(dataSetList[0], rawCoeff, row, col, H5::PredType::NATIVE_FLOAT);
 	dataFile.read_AttH5(dataSetList[0],"Offset", offset, H5::PredType::NATIVE_INT);
 
-	// Write data to SMP file.
-	SMPFile smpDataFile(outFileName);
-
 	hsize_t dims[2];
 	dims[0]=row;
 	dims[1]=col;
@@ -224,32 +181,100 @@ int main(int argc, char **argv)
 	PeakManager<PeakData,BsplineData,ExtractPeak> extractPeak(bsPeakData);
 	extractPeak.execute();
 
-	cout<<"\nSaving Data to File:"<<endl;
+	//---------------------------------------------------------------------
+	//---------------------------------------------------------------------
+	VecMat<double> mzPeak;
+	VecMat<float> pkPeak;
+	vector<size_t> vecSize;
 
-	vector<hsize_t> vecN;
-	vecN.push_back(0.0);
-	vecN[0]=centriodPeak.peak->getMZ().size();
-	smpDataFile.write_VecMatH5("Peak_mz",centriodPeak.peak->getMZ(),vecN,H5::PredType::NATIVE_DOUBLE);
-	vecN[0]=centriodPeak.peak->getMZwidth().size();
-	smpDataFile.write_VecMatH5("Peak_mz_width",centriodPeak.peak->getMZwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
-	vecN[0]=centriodPeak.peak->getRT().size();
-	smpDataFile.write_VecMatH5("Peak_rt",centriodPeak.peak->getRT(),vecN,H5::PredType::NATIVE_DOUBLE);
-	vecN[0]=centriodPeak.peak->getRTwidth().size();
-	smpDataFile.write_VecMatH5("Peak_rt_width",centriodPeak.peak->getRTwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
-	vecN[0]=centriodPeak.peak->getPKcount().size();
-	smpDataFile.write_VecMatH5("Peak_Count",centriodPeak.peak->getPKcount(),vecN,H5::PredType::NATIVE_FLOAT);
-	vecN[0]=centriodPeak.peak->getMZIdx().size();
-	smpDataFile.write_VecMatH5("Peak_mz_idx",centriodPeak.peak->getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
-	vecN[0]=centriodPeak.peak->getRTIdx().size();
-	smpDataFile.write_VecMatH5("Peak_rt_idx",centriodPeak.peak->getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
+	centriodPeak.peak->getPeakMat(mzPeak, pkPeak, A.rt.size(), vecSize);
 
-	smpDataFile.write_VecMatH5("csOrig",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("dcs",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("d2cs",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("dvcs",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-	smpDataFile.write_VecMatH5("d2vcs",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 
+	xml::xml_document doc;
+	size_t xmlSize=sizeof(char)*mzMLbuff.size();
+
+	xml::xml_parse_result result = doc.load_buffer_inplace(&mzMLbuff[0],xmlSize);
+
+	cout<<"Loaded XML: "<<
+	result.description() << ", SpectrumIndex: "<<
+	doc.child("mzML").child("run").child("spectrumList").attribute("count").value()<<endl;
+
+	xml::xml_node sptr = doc.child("mzML").child("run").child("spectrumList");
+
+	vecSize.resize(160);
+	int idx=0;
+	for(xml::xml_node_iterator itr = sptr.begin(); itr != sptr.end(); ++itr)
+	{
+	//	cout<< "NAME: "<<itr->name()<<
+	//	", index: "<< itr->attribute("index").value()<<
+	//	", Array Size: "<<itr->attribute("defaultArrayLength").value()<<endl;
+		xml::xml_attribute attr = itr->attribute("defaultArrayLength");
+		stringstream bb;
+		bb<<vecSize[idx];
+		string nn(bb.str());
+		attr.set_value(nn.c_str());
+		++idx;
+	}
+
+	/*
+	cout<<"Changed Attribute !!!"<<endl;
+	for(xml::xml_node_iterator itr = sptr.begin(); itr != sptr.end(); ++itr)
+	{
+		cout<< "NAME: "<<itr->name()<<
+		", index: "<< itr->attribute("index").value()<<
+	/	", Array Size: "<<itr->attribute("defaultArrayLength").value()<<endl;
+	}
 	*/
+
+	stringstream newmzML;
+
+	doc.save(newmzML);
+	string output = newmzML.str();
+	cout<<endl<<output<<endl;
+	vector<char> vs(output.begin(),output.end());
+
+	// free up memory
+	newmzML.clear();
+	newmzML.str(std::string());
+
+	cout<<"It works!"<<endl;
+	//---------------------------------------------------------------------
+	//---------------------------------------------------------------------
+
+	if(debug)
+	{
+		// Write data to SMP file.
+		SMPFile smpDataFile(outFileName);
+
+		cout<<"\nSaving Peak Debugging Data to File:"<<endl;
+
+		vector<hsize_t> vecN;
+		vecN.push_back(0.0);
+		vecN[0]=centriodPeak.peak->getMZ().size();
+		smpDataFile.write_VecMatH5("Peak_mz",centriodPeak.peak->getMZ(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeak.peak->getMZwidth().size();
+		smpDataFile.write_VecMatH5("Peak_mz_width",centriodPeak.peak->getMZwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeak.peak->getRT().size();
+		smpDataFile.write_VecMatH5("Peak_rt",centriodPeak.peak->getRT(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeak.peak->getRTwidth().size();
+		smpDataFile.write_VecMatH5("Peak_rt_width",centriodPeak.peak->getRTwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeak.peak->getPKcount().size();
+		smpDataFile.write_VecMatH5("Peak_Count",centriodPeak.peak->getPKcount(),vecN,H5::PredType::NATIVE_FLOAT);
+		vecN[0]=centriodPeak.peak->getMZIdx().size();
+		smpDataFile.write_VecMatH5("Peak_mz_idx",centriodPeak.peak->getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
+		vecN[0]=centriodPeak.peak->getRTIdx().size();
+		smpDataFile.write_VecMatH5("Peak_rt_idx",centriodPeak.peak->getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
+
+		smpDataFile.write_VecMatH5("csOrig",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+		smpDataFile.write_VecMatH5("dcs",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+		smpDataFile.write_VecMatH5("d2cs",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+		smpDataFile.write_VecMatH5("dvcs",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+		smpDataFile.write_VecMatH5("d2vcs",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+
+		mzPeak.getDims(dims);
+		smpDataFile.write_VecMatH5("mat_Peak_MZ",mzPeak.v,dims,H5::PredType::NATIVE_DOUBLE);
+		smpDataFile.write_VecMatH5("mat_Peak_PK",pkPeak.v,dims,H5::PredType::NATIVE_FLOAT);
+	}
 
 	return 0;
 }

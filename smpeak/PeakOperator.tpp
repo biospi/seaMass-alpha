@@ -221,7 +221,7 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 						#pragma omp critical(peak)
 						{
 							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
-								make_pair(bs->rt[i],bs->rt[i]),t0,i,j);
+								make_pair(bs->rt[i],bs->rt[i]),t0,j,i);
 						}
 					}
 					else
@@ -288,7 +288,7 @@ void ExtractPeak<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 		//				#pragma omp critical(peak)
 						{
 							peak->addPeak(mzPeak[2],bs->rt[i],countMax[2],make_pair(mzlhs[2],mzrhs[2]),
-								make_pair(bs->rt[i],bs->rt[i]),t0[2],i,j);
+								make_pair(bs->rt[i],bs->rt[i]),t0[2],j,i);
 						}
 					}
 					else
