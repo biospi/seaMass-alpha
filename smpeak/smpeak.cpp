@@ -117,10 +117,33 @@ int main(int argc, char **argv)
 	VecMat<double> mzData;
 	VecMat<double> mzDataT;
 	vector<char> mzMLbuff;
+	vector<vector<double> > mzTest;
+	vector<vector<double> > mzTestT;
 
 	mzMLFile.read_MatNC("spectrum_MS_1000514",mzData);
 	mzMLFile.read_MatNCT("spectrum_MS_1000514",mzDataT);
 	mzMLFile.read_VecNC("mzML",mzMLbuff);
+	mzMLFile.read_MatNC("spectrum_MS_1000514",mzTest);
+	mzMLFile.read_MatNCT("spectrum_MS_1000514",mzTestT);
+
+	NetCDFile smoData(fileName);
+
+	VecMat<float> fcsMat;
+	vector<float> SpecExpose;
+	double mz_smo, rt_smo;
+
+	smoData.search_Group("fcs");
+	smoData.search_Group("SpectrumExposure");
+
+	vector<InfoGrpVar> datasets = smoData.get_Info();
+
+	smoData.read_MatNC(datasets[0].varName,fcsMat,datasets[0].grpid);
+	smoData.read_VecNC(datasets[1].varName,SpecExpose,datasets[1].grpid);
+
+	mz_smo=smoData.search_Group<double>(2);
+	rt_smo=smoData.search_Group<double>(3);
+
+	smoData.close();
 
 
 	// Test Write data
@@ -144,7 +167,7 @@ int main(int argc, char **argv)
 	cout << "List all groups within file: " << fileName << endl;
 	vector<string> dataSetList;
 
-	dataFile.searchGroup("/","/cs");
+	dataFile.searchGroup("/","/fcs");
 	dataSetList = dataFile.getDataSetName();
 
 	for(int i=0; i < dataSetList.size(); ++i)
@@ -228,10 +251,11 @@ int main(int argc, char **argv)
 
 	stringstream newmzML;
 
+
 	doc.save(newmzML);
 	string output = newmzML.str();
-	cout<<endl<<output<<endl;
 	vector<char> vs(output.begin(),output.end());
+
 
 	// free up memory
 	newmzML.clear();
@@ -245,6 +269,8 @@ int main(int argc, char **argv)
 	{
 		// Write data to SMP file.
 		SMPFile smpDataFile(outFileName);
+
+		mzMLdump(string(outFileName+"_mzML.txt"),output);
 
 		cout<<"\nSaving Peak Debugging Data to File:"<<endl;
 

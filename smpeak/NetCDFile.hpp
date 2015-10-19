@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <netcdf.h>
+#include <fstream>
 
 #include "peakcore.hpp"
 
@@ -14,6 +15,17 @@
 #define ERR(e) {cout<<"Error: "<<nc_strerror(e)<<endl; exit(ERRCODE);}
 
 using namespace std;
+
+
+struct InfoGrpVar
+{
+	InfoGrpVar(int _g, int _v, string _strg, string _strv):
+		grpid(_g), varid(_v), grpName(_strg), varName(_strv){};
+	int grpid;
+	int varid;
+	string grpName;
+	string varName;
+};
 
 class NetCDFile
 {
@@ -25,15 +37,25 @@ public:
 	~NetCDFile();
 
 	template<typename T>
-	void read_VecNC(const string dataSet, vector<T> &vecData);
+	void read_VecNC(const string dataSet, vector<T> &vecData, int grpid = 0);
 	template<typename T>
-	void read_VecNC(const string dataSet, T *vecData);
+	void read_VecNC(const string dataSet, T *vecData, int grpid = 0);
+
 	template<typename T>
-	void read_MatNC(const string dataSet, VecMat<T> &vm);
+	void read_MatNC(const string dataSet, VecMat<T> &vm, int grpid = 0);
 	template<typename T>
-	void read_MatNCT(const string dataSet, VecMat<T> &vm);
+	void read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid = 0);
 	template<typename T>
-	void read_AttNC(const string dataSet, VecMat<T> &vm);
+	void read_MatNC(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
+	template<typename T>
+	void read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
+
+	int search_Group(const string dataSet, int grpid = 0);
+	template<typename T>
+	T search_Group(size_t level, int grpid = 0);
+
+	//template<typename T>
+	//void read_AttNC(const string dataSet, VecMat<T> &vm);
 
 	template<typename T>
 	void write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
@@ -41,6 +63,8 @@ public:
 	template<typename T>
 	void write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 			size_t chunk = 64, int deflate_level = 5, int shuffle = NC_SHUFFLE);
+
+	vector<InfoGrpVar> get_Info(void) {return dataSetList;};
 	//template<typename T>
 	//void write_AttNC();
 private:
@@ -48,13 +72,16 @@ private:
 	int ncid;
 	int retval;
 	bool fileStatus;
+	vector<InfoGrpVar> dataSetList;
 	void err(int e);
 };
 
+void mzMLdump(const string fileName, string data);
 
 template<typename T>
-void NetCDFile::read_VecNC(const string dataSet, vector<T> &vecData)
+void NetCDFile::read_VecNC(const string dataSet, vector<T> &vecData, int grpid)
 {
+	if(grpid == 0) grpid = ncid;
 
 	int varid;
 	int ndim;
@@ -63,24 +90,24 @@ void NetCDFile::read_VecNC(const string dataSet, vector<T> &vecData)
 	size_t N=1;
 	nc_type typId;
 
-	if((retval = nc_inq_varid (ncid, dataSet.c_str(), &varid) ))
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
 		ERR(retval);
 
-	if((retval = nc_inq_vartype(ncid, varid, &typId) ))
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
 		ERR(retval);
 
-	if((retval = nc_inq_varndims(ncid,varid,&ndim) ))
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
 		ERR(retval);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(ncid, varid, &dimid[0]) ))
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
 		ERR(retval);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(ncid, dimid[i], &dimSize[i]) ))
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
 			ERR(retval);
 	}
 
@@ -89,14 +116,15 @@ void NetCDFile::read_VecNC(const string dataSet, vector<T> &vecData)
 
 	vecData.resize(N);
 
-	if (( retval = nc_get_var(ncid, varid, &vecData[0]) ))
+	if (( retval = nc_get_var(grpid, varid, &vecData[0]) ))
 		ERR(retval)
 }
 
 
 template<typename T>
-void NetCDFile::read_VecNC(const string dataSet, T *vecData)
+void NetCDFile::read_VecNC(const string dataSet, T *vecData, int grpid)
 {
+	if(grpid == 0) grpid = ncid;
 
 	int varid;
 	int ndim;
@@ -105,24 +133,24 @@ void NetCDFile::read_VecNC(const string dataSet, T *vecData)
 	size_t N=1;
 	nc_type typId;
 
-	if((retval = nc_inq_varid (ncid, dataSet.c_str(), &varid) ))
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
 		ERR(retval);
 
-	if((retval = nc_inq_vartype(ncid, varid, &typId) ))
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
 		ERR(retval);
 
-	if((retval = nc_inq_varndims(ncid,varid,&ndim) ))
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
 		ERR(retval);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(ncid, varid, &dimid[0]) ))
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
 		ERR(retval);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(ncid, dimid[i], &dimSize[i]) ))
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
 			ERR(retval);
 	}
 
@@ -131,55 +159,55 @@ void NetCDFile::read_VecNC(const string dataSet, T *vecData)
 
 	vecData = new T[N];
 
-	if (( retval = nc_get_var(ncid, varid, &vecData[0]) ))
+	if (( retval = nc_get_var(grpid, varid, &vecData[0]) ))
 		ERR(retval)
 }
 
 
 template<typename T>
-void NetCDFile::read_MatNC(const string dataSet, VecMat<T> &vm)
+void NetCDFile::read_MatNC(const string dataSet, VecMat<T> &vm, int grpid)
 {
+	if(grpid == 0) grpid = ncid;
+
 	int varid;
 	int ndim;
 	vector<int> dimid;
 	vector<size_t> dimSize;
-	size_t N=1;
 	nc_type typId;
 
-	if((retval = nc_inq_varid (ncid, dataSet.c_str(), &varid) ))
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
 		ERR(retval);
 
-	if((retval = nc_inq_vartype(ncid, varid, &typId) ))
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
 		ERR(retval);
 
-	if((retval = nc_inq_varndims(ncid,varid,&ndim) ))
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
 		ERR(retval);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(ncid, varid, &dimid[0]) ))
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
 		ERR(retval);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(ncid, dimid[i], &dimSize[i]) ))
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
 			ERR(retval);
 	}
 
-	for(int i = 0; i < ndim; ++i)
-		N*=dimSize[i];
-
 	vm.set(dimSize[0],dimSize[1]);
 
-	if (( retval = nc_get_var(ncid, varid, &vm.v[0]) ))
+	if (( retval = nc_get_var(grpid, varid, &vm.v[0]) ))
 		ERR(retval)
 }
 
 
 template<typename T>
-void NetCDFile::read_MatNCT(const string dataSet, VecMat<T> &vm)
+void NetCDFile::read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid)
 {
+	if(grpid == 0) grpid = ncid;
+
 	int varid;
 	int ndim;
 	vector<int> dimid;
@@ -188,24 +216,24 @@ void NetCDFile::read_MatNCT(const string dataSet, VecMat<T> &vm)
 	nc_type typId;
 	vector<T> vecbuff;
 
-	if((retval = nc_inq_varid (ncid, dataSet.c_str(), &varid) ))
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
 		ERR(retval);
 
-	if((retval = nc_inq_vartype(ncid, varid, &typId) ))
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
 		ERR(retval);
 
-	if((retval = nc_inq_varndims(ncid,varid,&ndim) ))
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
 		ERR(retval);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(ncid, varid, &dimid[0]) ))
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
 		ERR(retval);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(ncid, dimid[i], &dimSize[i]) ))
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
 			ERR(retval);
 	}
 
@@ -216,7 +244,7 @@ void NetCDFile::read_MatNCT(const string dataSet, VecMat<T> &vm)
 
 	vm.set(dimSize[1],dimSize[0]);
 
-	if (( retval = nc_get_var(ncid, varid, &vecbuff[0]) ))
+	if (( retval = nc_get_var(grpid, varid, &vecbuff[0]) ))
 		ERR(retval)
 
 	for(int i=0; i < dimSize[0]; ++i)
@@ -227,6 +255,163 @@ void NetCDFile::read_MatNCT(const string dataSet, VecMat<T> &vm)
 		}
 	}
 }
+
+template<typename T>
+void NetCDFile::read_MatNC(const string dataSet, vector<vector<T> > &vm, int grpid)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int varid;
+	int ndim;
+	vector<int> dimid;
+	vector<size_t> dimSize;
+	size_t N=1;
+	nc_type typId;
+	vector<T> vecbuff;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
+		ERR(retval);
+
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
+		ERR(retval);
+
+	dimid.resize(ndim);
+	dimSize.resize(ndim);
+
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		ERR(retval);
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			ERR(retval);
+	}
+
+	for(int i = 0; i < ndim; ++i)
+		N*=dimSize[i];
+
+	vecbuff.resize(N);
+
+	vm.resize(dimSize[0]);
+	for(size_t i = 0; i < dimSize[0] ; ++i)
+		vm[i].resize(dimSize[1]);
+
+	if (( retval = nc_get_var(grpid, varid, &vecbuff[0]) ))
+		ERR(retval)
+
+	for(int i=0; i < dimSize[0]; ++i)
+	{
+		for(int j=0; j < dimSize[1]; ++j)
+		{
+			vm[i][j]=vecbuff[i*dimSize[1]+j];
+		}
+	}
+}
+
+template<typename T>
+void NetCDFile::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int varid;
+	int ndim;
+	vector<int> dimid;
+	vector<size_t> dimSize;
+	size_t N=1;
+	nc_type typId;
+	vector<T> vecbuff;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
+		ERR(retval);
+
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
+		ERR(retval);
+
+	dimid.resize(ndim);
+	dimSize.resize(ndim);
+
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		ERR(retval);
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			ERR(retval);
+	}
+
+	for(int i = 0; i < ndim; ++i)
+		N*=dimSize[i];
+
+	vecbuff.resize(N);
+
+	vm.resize(dimSize[1]);
+	for(size_t i = 0; i < dimSize[1] ; ++i)
+		vm[i].resize(dimSize[0]);
+
+	if (( retval = nc_get_var(grpid, varid, &vecbuff[0]) ))
+		ERR(retval)
+
+	for(int i=0; i < dimSize[0]; ++i)
+	{
+		for(int j=0; j < dimSize[1]; ++j)
+		{
+			vm[j][i]=vecbuff[i*dimSize[1]+j];
+		}
+	}
+}
+
+
+template<typename T>
+T NetCDFile::search_Group(size_t level, int grpid)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int nGrps;
+	vector<int> ngrpids;
+	string strGrp;
+	size_t strGrpL=0;
+
+	int nVars;
+	int varid;
+
+	T val;
+	size_t ds=0;
+
+	for(hsize_t i = 0; i <= level; ++i)
+	{
+		size_t cidx=strGrpL;
+		// How many Groups
+		if(( retval = nc_inq_grps(grpid, &nGrps, NULL) ))
+			err(retval);
+
+		if(nGrps > 0 )
+		{
+			ngrpids.resize(nGrps);
+			if(( retval = nc_inq_grps(grpid, NULL, &ngrpids[0]) ))
+				err(retval);
+		}
+
+		if(( retval = nc_inq_grpname_len(grpid, &strGrpL)))
+			err(retval);
+		strGrp.resize(strGrpL);
+		if(( retval = nc_inq_grpname_full(grpid,NULL,&strGrp[0])))
+			err(retval);
+
+		ds=strGrpL-cidx;
+
+		grpid = ngrpids[0];
+	}
+
+	istringstream(strGrp.substr(strGrpL-ds+1,ds-1))>>val;
+	return val;
+}
+
 
 template<typename T>
 void NetCDFile::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
