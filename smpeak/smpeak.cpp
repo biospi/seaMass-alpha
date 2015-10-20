@@ -109,7 +109,8 @@ int main(int argc, char **argv)
 
 
 	//---------------------------------------------------------------------
-	// Test Read data
+	// NetCDF4 Test Read data
+	//---------------------------------------------------------------------
 	NetCDFile mzMLFile;
 
 	mzMLFile.open(mzMLFileName);
@@ -117,14 +118,10 @@ int main(int argc, char **argv)
 	VecMat<double> mzData;
 	VecMat<double> mzDataT;
 	vector<char> mzMLbuff;
-	vector<vector<double> > mzTest;
-	vector<vector<double> > mzTestT;
 
 	mzMLFile.read_MatNC("spectrum_MS_1000514",mzData);
 	mzMLFile.read_MatNCT("spectrum_MS_1000514",mzDataT);
 	mzMLFile.read_VecNC("mzML",mzMLbuff);
-	mzMLFile.read_MatNC("spectrum_MS_1000514",mzTest);
-	mzMLFile.read_MatNCT("spectrum_MS_1000514",mzTestT);
 
 	NetCDFile smoData(fileName);
 
@@ -140,26 +137,38 @@ int main(int argc, char **argv)
 	smoData.read_MatNC(datasets[0].varName,fcsMat,datasets[0].grpid);
 	smoData.read_VecNC(datasets[1].varName,SpecExpose,datasets[1].grpid);
 
+	vector<int> ncOffset;
+	smoData.read_AttNC("Offset",datasets[0].varid,ncOffset,datasets[0].grpid);
+
 	mz_smo=smoData.search_Group<double>(2);
 	rt_smo=smoData.search_Group<double>(3);
 
 	smoData.close();
 
-
-	// Test Write data
+	//---------------------------------------------------------------------
+	// NetCDF4 Test Write data
+	//---------------------------------------------------------------------
 	NetCDFile hammerNCDF4(outMZFileName,NC_NETCDF4);
 
-	hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_CHAR);
+	//hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_BYTE);
+	hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_BYTE,4096,0);
 	hammerNCDF4.write_MatNC("spectrum_MS_1000514",mzData,NC_DOUBLE);
+
+	vector<double> attVal;
+
+	attVal.push_back(123.422);
+	attVal.push_back(576.452);
+	attVal.push_back(34.4542);
+	attVal.push_back(983.232);
+
+	hammerNCDF4.write_AttNC("mzML","MyTest",attVal, NC_DOUBLE);
 
 	vector<unsigned int> specIdx;
 	findVecString(mzMLbuff, specIdx);
 
-	//string scrapBuff(&mzMLbuff[0]);
-	//cout<<endl<<scrapBuff<<endl;
 	//---------------------------------------------------------------------
-
-
+	// HDF5 Load Peak Data Set...
+	//---------------------------------------------------------------------
 	cout<<"Centroid Peak Data Set..."<<endl;
 	ReadSMFile dataFile(fileName);
 	string outFileName=fileName.substr(0,fileName.size()-4);
@@ -189,6 +198,9 @@ int main(int argc, char **argv)
 	dims[0]=row;
 	dims[1]=col;
 
+	//---------------------------------------------------------------------
+	// Centroid Peak Data Set...
+	//---------------------------------------------------------------------
 	SMData<OpUnit> A(dims,offset,mzRes,rtRes,rawCoeff);
 	SMData<OpNablaH> dhA(dims,offset,mzRes,rtRes,rawCoeff);
 	SMData<OpNabla2H> d2hA(dims,offset,mzRes,rtRes,rawCoeff);
@@ -205,6 +217,7 @@ int main(int argc, char **argv)
 	extractPeak.execute();
 
 	//---------------------------------------------------------------------
+	// XML Modify
 	//---------------------------------------------------------------------
 	VecMat<double> mzPeak;
 	VecMat<float> pkPeak;

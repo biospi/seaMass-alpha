@@ -77,11 +77,6 @@ NetCDFile::~NetCDFile()
 	}
 }
 
-	/*
-	if((retval = ))
-		err(retval);
-	*/
-
 int NetCDFile::search_Group(const string dataSet, int grpid)
 {
 	if(grpid == 0) grpid = ncid;
@@ -129,27 +124,6 @@ int NetCDFile::search_Group(const string dataSet, int grpid)
 	}
 	return 0;
 }
-
-		/*
-		if(( retval = nc_inq_grpname_len(ngrpids[i], &strGrpL)))
-			err(retval);
-		strGrp.resize(strGrpL);
-		if(( retval = nc_inq_grpname_full(ngrpids[i],NULL,&strGrp[0])))
-			err(retval);
-
-		// Scan Variables
-		if(( retval = nc_inq_varids(grpid, &nVars, NULL) ))
-			err(retval);
-		if(nVars > 0)
-		{
-			retval = nc_inq_varid(grpid, dataSet.c_str(), &varid);
-			if(retval == NC_NOERR)
-			{
-				this->dataSetList.push_back(InfoGrpVar(grpid,varid,strGrp));
-				return 1;
-			}
-		}
-		*/
 
 void NetCDFile::err(int e)
 {
