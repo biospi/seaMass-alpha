@@ -121,4 +121,80 @@ vector<lli> PeakData<T>::getRTIdx(void)
 	return val;
 }
 
+template<typename T>
+void PeakData<T>::getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize)
+{
+	size_t N = this->peakData.size();
+	vector<vector<double> > mzbuff;
+	vector<vector<T> > pkbuff;
+	//size_t maxRT=0;
+	size_t maxMZ=0;
+
+	//for(size_t i = 0; i < N; ++i)
+		//if(peakData[i].rt_idx > maxRT) maxRT = this->peakData[i].rt_idx;
+
+	mzbuff.resize(maxRT);
+	pkbuff.resize(maxRT);
+
+	for(size_t i = 0; i < N; ++i)
+	{
+		mzbuff[peakData[i].rt_idx].push_back(peakData[i].mz);
+		pkbuff[peakData[i].rt_idx].push_back(peakData[i].pkcnt);
+	}
+
+	for(size_t i = 0;i < maxRT ; ++i)
+		if(mzbuff[i].size() > maxMZ) maxMZ = mzbuff[i].size();
+
+	mz.set(hsize_t(maxRT),hsize_t(maxMZ));
+	pk.set(hsize_t(maxRT),hsize_t(maxMZ));
+
+	for(size_t i = 0; i < maxRT; ++i)
+	{
+		vecSize.push_back(mzbuff[i].size());
+		for(size_t j = 0; j < mzbuff[i].size(); ++j)
+		{
+			mz.m[i][j]=mzbuff[i][j];
+			pk.m[i][j]=pkbuff[i][j];
+		}
+	}
+}
+
+template<typename T>
+void PeakData<T>::getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize)
+{
+	size_t N = peakData.size();
+	vector<vector<double> > mzbuff;
+	vector<vector<T> > pkbuff;
+	//size_t maxRT=0;
+	size_t maxMZ=0;
+
+	//for(size_t i = 0; i < N; ++i)
+		//if(peakData[i].rt_idx > maxRT) maxRT = peakData[i].rt_idx;
+
+	mzbuff.resize(maxRT);
+	pkbuff.resize(maxRT);
+
+	for(size_t i = 0; i < N; ++i)
+	{
+		mzbuff[peakData[i].rt_idx].push_back(peakData[i].mz);
+		pkbuff[peakData[i].rt_idx].push_back(peakData[i].pkcnt);
+	}
+
+	for(size_t i = 0; i < maxRT; ++i)
+		if(mzbuff[i].size() > maxMZ) maxMZ = mzbuff[i].size();
+
+	mz.set(hsize_t(maxMZ),hsize_t(maxRT));
+	pk.set(hsize_t(maxMZ),hsize_t(maxRT));
+
+	for(size_t i = 0; i < maxRT; ++i)
+	{
+		vecSize.push_back(mzbuff[i].size());
+		for(size_t j = 0; j < mzbuff[i].size(); ++j)
+		{
+			mz.m[j][i]=mzbuff[i][j];
+			pk.m[j][i]=pkbuff[i][j];
+		}
+	}
+}
+
 #endif /* SMPEAK_PEAKDATA_TPP_ */

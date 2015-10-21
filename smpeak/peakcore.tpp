@@ -54,6 +54,14 @@ void VecMat<T>::getDims(hsize_t dims[])
 	dims[1]=col;
 }
 
+template<typename T>
+void VecMat<T>::clear(void)
+{
+	row=0;
+	col=0;
+	vector<T>().swap(this->v);
+	vector<T*>().swap(this->matIdx);
+}
 
 template<typename T>
 void findVecString(vector<char> &vecStr, vector<T> &vec,
@@ -78,6 +86,7 @@ void findVecString(vector<char> &vecStr, vector<T> &vec,
 		}
 	}
 }
+
 
 
 #endif /* SMPEAK_PEAKCORE_TPP_ */
