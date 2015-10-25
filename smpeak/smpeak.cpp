@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 	//----------------------------
 	// Load SMO Data that we need.
 	//----------------------------
-	NetCDFile dataFile(smoFileName);
+	NetCDFile smoDF(smoFileName);
 
 	VecMat<float> rawCoeff;
 	vector<int> offset;
@@ -126,51 +126,73 @@ int main(int argc, char **argv)
 
 	cout << "List all groups within file: " << smoFileName << endl;
 
-	dataFile.search_Group("fcs");
-	dataSetList = dataFile.get_Info();
+	smoDF.search_Group("fcs");
+	dataSetList = smoDF.get_Info();
 
 	for(int i=0; i < dataSetList.size(); ++i)
 		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i].grpName<<"/"
 		<<dataSetList[0].varName<<endl;
 
 	cout<<"List Parameters from SMO:"<<endl;
-	double mzRes=dataFile.search_Group<double>(2);
+	double mzRes=smoDF.search_Group<double>(2);
 	cout<<"MZ_resolution: "<<mzRes<<endl;
-	double rtRes=dataFile.search_Group<double>(3);
+	double rtRes=smoDF.search_Group<double>(3);
 	cout<<"RT resolution: "<<rtRes<<endl;
 
-	dataFile.read_MatNC(dataSetList[0].varName,rawCoeff,dataSetList[0].grpid);
-	dataFile.read_AttNC("Offset",dataSetList[0].varid,offset,dataSetList[0].grpid);
+	smoDF.read_MatNC(dataSetList[0].varName,rawCoeff,dataSetList[0].grpid);
+	smoDF.read_AttNC("Offset",dataSetList[0].varid,offset,dataSetList[0].grpid);
 	rawCoeff.getDims(dims);
 
-	dataFile.close();
+	VecMat<float> hypTest;
+	size_t rc[2]={7,4};
+	size_t lenA[2]={6,1};
+
+	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	lenA[0]=1;
+	lenA[1]=0;
+	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	lenA[0]=0;
+	lenA[1]=1;
+	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	lenA[0]=5;
+	lenA[1]=3;
+	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	rc[0]=3;
+	rc[1]=1192;
+	lenA[0]=3;
+	lenA[1]=0;
+	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	smoDF.close();
 
 	//-------------------------------
 	// Load mzMLb3 Data that we need.
 	//-------------------------------
-
+	// mzML text metadata.
 	vector<char> mzMLbuff;
-	VecMat<double> rawMZ;
-	VecMat<float> rawPK;
-
-	dataFile.open(mzMLFileName);
-
-	dataFile.read_VecNC("mzML",mzMLbuff);
-	dataFile.read_MatNC("spectrum_MS_1000514",rawMZ);
-	dataFile.read_MatNC("spectrum_MS_1000515",rawPK);
-
-	vector<size_t> rawSize = findSizeT(rawMZ);
+	NetCDFile mzMLb3DF(mzMLFileName);
+	mzMLb3DF.read_VecNC("mzML",mzMLbuff);
 
 	//-------------------------------------------
 	// XML scan and read Start Time and ms-level.
 	//-------------------------------------------
 	vector<int> msLevel;
 	vector<pair<int,double> > rtRaw;
+	vector<size_t> rawSize;
+	size_t maxSize=0;
 
 	xml::xml_document docmzML;
 	size_t xmlSize=sizeof(char)*mzMLbuff.size();
 	xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLbuff[0],xmlSize);
-
 
 	xml::xpath_node_set tools =
 		docmzML.select_nodes("mzML/run/spectrumList/spectrum/cvParam[@name='ms level']");
@@ -181,6 +203,8 @@ int main(int argc, char **argv)
 	{
 		int ms;
 		double rt;
+		size_t len;
+
 		//xml::xpath_node n = *i;
 		//cout<<"Spectrum: "<<
 			//n.node().parent().attribute("index").value()<<"  "<<
@@ -193,6 +217,11 @@ int main(int argc, char **argv)
 
 		istringstream(itr->node().attribute("value").value()) >> ms;
 		msLevel.push_back(ms);
+
+		istringstream(itr->node().parent().attribute("defaultArrayLength").value()) >> len;
+		rawSize.push_back(len);
+		if(rawSize.back() > maxSize) maxSize = rawSize.back();
+
 		if(ms == 1)
 		{
 			istringstream(itr->node().parent().child("scanList").child("scan").child("cvParam").attribute("value").value()) >> rt;
@@ -200,13 +229,18 @@ int main(int argc, char **argv)
 		}
 	}
 
+	// Raw MZ and Peak Data
+	VecMat<double> rawMZ;
+	VecMat<float> rawPK;
+	mzMLb3DF.read_MatNC("spectrum_MS_1000514",rawMZ);
+	mzMLb3DF.read_MatNC("spectrum_MS_1000515",rawPK);
 
 	//---------------------------------------------------------------------
 	// Centroid Peak Data Set...
 	//---------------------------------------------------------------------
-	SMData<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	SMData<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	SMData<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+	SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+	SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+	SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 	//SMData<OpNablaV> dvA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 	//SMData<OpNabla2V> d2vA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 	rawCoeff.clear();
@@ -280,8 +314,8 @@ int main(int argc, char **argv)
 	vector<float> chromatInten;
 
 	// Load rest of data from mzMLb3 file...
-	dataFile.read_VecNC("chromatogram_MS_1000595",chromatTime);
-	dataFile.read_VecNC("chromatogram_MS_1000515",chromatInten);
+	mzMLb3DF.read_VecNC("chromatogram_MS_1000595",chromatTime);
+	mzMLb3DF.read_VecNC("chromatogram_MS_1000515",chromatInten);
 
 	NetCDFile mzMLb3NCDF4(outMZFileName,NC_NETCDF4);
 
@@ -342,38 +376,3 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
-
-	//---------------------------------------------------------------------
-	// HDF5 Load Peak Data Set...
-	//---------------------------------------------------------------------
-	/*cout<<"Centroid Peak Data Set..."<<endl;
-	ReadSMFile dataFile(fileName);
-	string outFileName=fileName.substr(0,fileName.size()-4);
-
-	cout << "List all groups within file: " << fileName << endl;
-	vector<string> dataSetList;
-
-	dataFile.searchGroup("/","/fcs");
-	dataSetList = dataFile.getDataSetName();
-
-	for(int i=0; i < dataSetList.size(); ++i)
-		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i]<<endl;
-
-	cout<<"List Parameters from SMO:"<<endl;
-	double mzRes=dataFile.searchGroup("/",1);
-	cout<<"MZ_resolution: "<<mzRes<<endl;
-	double rtRes=dataFile.searchGroup("/",2);
-	cout<<"RT resolution: "<<rtRes<<endl;
-
-	vector<float> rawCoeff;
-	int offset[2];
-	hsize_t row,col;
-	dataFile.read_MatH5(dataSetList[0], rawCoeff, row, col, H5::PredType::NATIVE_FLOAT);
-	dataFile.read_AttH5(dataSetList[0],"Offset", offset, H5::PredType::NATIVE_INT);
-
-	hsize_t dims[2];
-	dims[0]=row;
-	dims[1]=col;
-	*/
-

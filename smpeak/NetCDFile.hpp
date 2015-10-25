@@ -52,6 +52,12 @@ public:
 	template<typename T>
 	void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = 0);
 
+	template<typename T>
+	void read_HypVecNC(const string dataSet, vector<T> &vm,
+			size_t *rcIdx, size_t *len, int grpid);
+	template<typename T>
+	void read_HypMatNC(const string dataSet, VecMat<T> &vm,
+			size_t *rcIdx, size_t *len, int grpid);
 
 	int search_Group(const string dataSet, int grpid = 0);
 

@@ -313,6 +313,100 @@ void NetCDFile::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int gr
 	}
 }
 
+
+template<typename T>
+void NetCDFile::read_HypVecNC(const string dataSet, vector<T> &vm,
+		size_t *rcIdx, size_t *len, int grpid)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int varid;
+	int ndim;
+	vector<int> dimid;
+	vector<size_t> dimSize;
+	size_t N=1;
+	nc_type typId;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
+		ERR(retval);
+
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
+		ERR(retval);
+
+	dimid.resize(ndim);
+	dimSize.resize(ndim);
+
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		ERR(retval);
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			ERR(retval);
+	}
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if(len[i] == 0) len[i]=dimSize[i]-rcIdx[i];
+		N *=len[i];
+	}
+
+	vm.resize(N);
+
+	if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm[0]) ))
+		ERR(retval)
+}
+
+template<typename T>
+void NetCDFile::read_HypMatNC(const string dataSet, VecMat<T> &vm,
+		size_t *rcIdx, size_t *len, int grpid)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int varid;
+	int ndim;
+	vector<int> dimid;
+	vector<size_t> dimSize;
+	size_t N=1;
+	nc_type typId;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
+		ERR(retval);
+
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
+		ERR(retval);
+
+	dimid.resize(ndim);
+	dimSize.resize(ndim);
+
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		ERR(retval);
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			ERR(retval);
+	}
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if(len[i] == 0) len[i]=dimSize[i]-rcIdx[i];
+		N *=len[i];
+	}
+
+	vm.set(hsize_t(len[0]), hsize_t(len[1]));
+
+	if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
+		ERR(retval)
+}
+
+
 template<typename T>
 T NetCDFile::search_Group(size_t level, int grpid)
 {
