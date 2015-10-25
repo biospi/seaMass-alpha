@@ -333,6 +333,58 @@ int main(int argc, char **argv)
 	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000515",rawPK,NC_FLOAT);
 
 	//---------------------------------------------------------------------
+	// Test UnLimited wite of Matrix.
+
+	VecMat<double> testUMat1;
+	VecMat<float> testUMat2;
+	size_t udims[2];
+
+	hsize_t rdims[2];
+	rawMZ.getDims(rdims);
+
+	testUMat1.set(1,30);
+	testUMat2.set(1,30);
+	for(int i=0; i < 30; ++i)
+	{
+		testUMat1.m[0][i]=rawMZ.m[i][0];
+		testUMat2.m[0][i]=rawPK.m[i][0];
+	}
+
+	udims[0]=NC_UNLIMITED;
+	udims[1]=size_t(rdims[1]);
+	mzMLb3NCDF4.write_DefUMatNC("UMZTest",udims,NC_DOUBLE);
+	mzMLb3NCDF4.write_DefUMatNC("UPKTest",udims,NC_FLOAT);
+
+	size_t wrcIdx[2];
+	size_t wlen[2];
+
+	wrcIdx[0]=0;
+	wrcIdx[1]=0;
+	wlen[0]=30;
+	wlen[1]=1;
+
+	mzMLb3NCDF4.write_PutUMatNC("UMZTest",testUMat1,wrcIdx,wlen);
+	mzMLb3NCDF4.write_PutUMatNC("UPKTest",testUMat2,wrcIdx,wlen);
+
+	testUMat1.clear();
+	testUMat1.set(1,33);
+	testUMat2.clear();
+	testUMat2.set(1,33);
+	for(int i=0; i < 33; ++i)
+	{
+		testUMat1.m[0][i]=rawMZ.m[i][1];
+		testUMat2.m[0][i]=rawPK.m[i][1];
+	}
+	wrcIdx[0]=3;
+	wrcIdx[1]=2;
+	wlen[0]=33;
+	wlen[1]=1;
+
+	mzMLb3NCDF4.write_PutUMatNC("UMZTest",testUMat1,wrcIdx,wlen);
+	mzMLb3NCDF4.write_PutUMatNC("UPKTest",testUMat2,wrcIdx,wlen);
+
+	//---------------------------------------------------------------------
+
 	if(debug)
 	{
 		// Write data to SMP file.

@@ -554,6 +554,7 @@ void NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	   ERR(retval);
 }
 
+
 template<typename T>
 void NetCDFile::write_AttNC(const string dataSet, const string attName,
 			vector<T> &attVal, nc_type xtype, int grpid)
@@ -572,5 +573,25 @@ void NetCDFile::write_AttNC(const string dataSet, const string attName,
 	if((retval = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
 		ERR(retval);
 }
+
+
+template<typename T>
+void NetCDFile::write_PutUMatNC(const string dataSet, VecMat<T> &vm,
+		size_t rcIdx[2], size_t len[2], int grpid)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int varid;
+	int dimid[2];
+	size_t chunks[2];
+	int ndim = 2;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if ((retval = nc_put_vara(grpid, varid, rcIdx, len, &vm.v[0])))
+		ERR(retval);
+}
+
 
 #endif /* SMPEAK_NETCDFILE_TPP_ */

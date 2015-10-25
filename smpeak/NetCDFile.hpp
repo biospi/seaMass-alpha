@@ -74,6 +74,13 @@ public:
 	void write_AttNC(const string dataSet, const string attName,
 			vector<T> &attVal, nc_type xtype, int grpid = 0);
 
+
+	void write_DefUMatNC(const string dataSet, size_t dims[], nc_type xtype,
+			size_t chunk = 4096, int deflate_level = 8, int shuffle = NC_SHUFFLE, int grpid = 0);
+	template<typename T>
+	void write_PutUMatNC(const string dataSet, VecMat<T> &vm,
+		size_t rcIdx[2], size_t len[2], int grpid = 0);
+
 	vector<InfoGrpVar> get_Info(void) {return dataSetList;};
 private:
 	string fileName;
