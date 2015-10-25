@@ -266,41 +266,39 @@ int main(int argc, char **argv)
 	newmzML.clear();
 	newmzML.str(std::string());
 
-	//vector<char> vs(output.begin(),output.end());
-
 	cout<<"It works!"<<endl;
-	//---------------------------------------------------------------------
-	//---------------------------------------------------------------------
+
+	vector<unsigned int> mzpkSpecIdx;
+	vector<unsigned int> chromatSpecIdx;
+	findVecString(mzMLbuff, mzpkSpecIdx);
+	findVecString(mzMLbuff, chromatSpecIdx,"<chromatogram index","</chromatogram>");
 
 	//---------------------------------------------------------------------
-	// NetCDF4 Test Write data
+	// NetCDF4 Write data to Peak mzMLb3 File.
 	//---------------------------------------------------------------------
-	/*
-	NetCDFile hammerNCDF4(outMZFileName,NC_NETCDF4);
+	vector<double> chromatTime;
+	vector<float> chromatInten;
 
-	//hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_BYTE);
-	hammerNCDF4.write_VecNC("mzML",mzMLbuff,NC_BYTE,4096,0);
-	hammerNCDF4.write_MatNC("spectrum_MS_1000514",mzData,NC_DOUBLE);
+	// Load rest of data from mzMLb3 file...
+	dataFile.read_VecNC("chromatogram_MS_1000595",chromatTime);
+	dataFile.read_VecNC("chromatogram_MS_1000515",chromatInten);
 
-	vector<double> attVal;
+	NetCDFile mzMLb3NCDF4(outMZFileName,NC_NETCDF4);
 
-	attVal.push_back(123.422);
-	attVal.push_back(576.452);
-	attVal.push_back(34.4542);
-	attVal.push_back(983.232);
+	mzMLb3NCDF4.write_VecNC("mzML",mzMLbuff,NC_BYTE);
+	vector<unsigned int> mzMLver;
+	mzMLver.push_back(3);
+	mzMLb3NCDF4.write_AttNC("mzML","mzMLb_version",mzMLver, NC_UINT);
 
-	double *p;
-	p = &attVal[0];
+	mzMLb3NCDF4.write_VecNC("mzML_chromatogramIndex",chromatSpecIdx,NC_UINT);
+	mzMLb3NCDF4.write_VecNC("chromatogram_MS_1000595",chromatTime,NC_DOUBLE);
+	mzMLb3NCDF4.write_VecNC("chromatogram_MS_1000515",chromatInten,NC_FLOAT);
 
-	cout<<p[1]<<endl;
+	mzMLb3NCDF4.write_VecNC("mzML_spectrumIndex",mzpkSpecIdx,NC_UINT);
+	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000514",rawMZ,NC_DOUBLE);
+	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000515",rawPK,NC_FLOAT);
 
-	hammerNCDF4.write_AttNC("mzML","MyTest",attVal, NC_DOUBLE);
-
-	vector<unsigned int> specIdx;
-	findVecString(mzMLbuff, specIdx);
-	*/
-
-
+	//---------------------------------------------------------------------
 	if(debug)
 	{
 		// Write data to SMP file.
@@ -344,8 +342,6 @@ int main(int argc, char **argv)
 
 	return 0;
 }
-
-
 
 
 	//---------------------------------------------------------------------

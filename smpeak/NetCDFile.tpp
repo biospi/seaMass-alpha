@@ -241,6 +241,24 @@ void NetCDFile::read_MatNC(const string dataSet, vector<vector<T> > &vm, int grp
 }
 
 template<typename T>
+void NetCDFile::read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid)
+{
+	if(grpid == 0) grpid = ncid;
+
+	nc_type xtype;
+	size_t len;
+
+	if(( retval = nc_inq_att(grpid, varid, attName.c_str(), &xtype, &len) ))
+		err(retval);
+
+	attVal.resize(len);
+
+	if(( retval =  nc_get_att(grpid, varid, attName.c_str(), &attVal[0]) ))
+		err(retval);
+}
+
+
+template<typename T>
 void NetCDFile::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid)
 {
 	if(grpid == 0) grpid = ncid;
@@ -295,7 +313,6 @@ void NetCDFile::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int gr
 	}
 }
 
-
 template<typename T>
 T NetCDFile::search_Group(size_t level, int grpid)
 {
@@ -343,24 +360,6 @@ T NetCDFile::search_Group(size_t level, int grpid)
 
 
 template<typename T>
-void NetCDFile::read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid)
-{
-	if(grpid == 0) grpid = ncid;
-
-	nc_type xtype;
-	size_t len;
-
-	if(( retval = nc_inq_att(grpid, varid, attName.c_str(), &xtype, &len) ))
-		err(retval);
-
-	attVal.resize(len);
-
-	if(( retval =  nc_get_att(grpid, varid, attName.c_str(), &attVal[0]) ))
-		err(retval);
-}
-
-
-template<typename T>
 void NetCDFile::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 			size_t chunks, int deflate_level, int shuffle, int grpid)
 {
@@ -373,29 +372,37 @@ void NetCDFile::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 	size_t N = vec.size();
 	string dimName = "dim_" + dataSet;
 
-	/* Set chunking, shuffle, and deflate. */
+	// Set chunking, shuffle, and deflate.
 	shuffle = NC_SHUFFLE;
 	if(deflate_level > 0 && deflate_level < 10)
 		deflate = 1;
 
-	/* Define the dimensions. */
-	if ((retval = nc_def_dim(grpid, dimName.c_str(), N, &dimid)))
-	   ERR(retval);
+	// Define the dimensions.
+	if((retval = nc_def_dim(grpid, dimName.c_str(), N, &dimid)))
+		ERR(retval);
 
-	/* Define the variable. */
-	if ((retval = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+	// Define the variable.
+	if((retval = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
 	                         &dimid, &varid)))
-	   ERR(retval);
-	if ((retval = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
-	   ERR(retval);
-	if ((retval = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+		ERR(retval);
+
+	if(N < chunks) chunks = N;
+
+	if((retval = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+		ERR(retval);
+	if((retval = nc_def_var_deflate(grpid, varid, shuffle, deflate,
 	                                 deflate_level)))
-	   ERR(retval);
-	/* No need to explicitly end define mode for netCDF-4 files. Write
-	 * the pretend data to the file. */
+		ERR(retval);
+
+	if((retval = nc_enddef(grpid)))
+		ERR(retval);
+
+	// No need to explicitly end define mode for netCDF-4 files. Write
+	// the pretend data to the file.
 	if ((retval = nc_put_var(grpid, varid, &vec[0])))
-	   ERR(retval);
+		ERR(retval);
 }
+
 
 template<typename T>
 void NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
@@ -413,7 +420,7 @@ void NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	string dimName1 = "row_" + dataSet;
 	string dimName2 = "col_" + dataSet;
 
-	/* Set chunking, shuffle, and deflate. */
+	// Set chunking, shuffle, and deflate.
 	shuffle = NC_SHUFFLE;
 	if(deflate_level > 0 && deflate_level < 10)
 		deflate = 1;
@@ -423,28 +430,33 @@ void NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	N[0]=size_t(buffN[0]);
 	N[1]=size_t(buffN[1]);
 
-	/* Define the dimensions. */
-	if ((retval = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
+	// Define the dimensions.
+	if((retval = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
 	   ERR(retval);
-	if ((retval = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
+	if((retval = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
 	   ERR(retval);
 
-	chunks[0] = chunk;
+	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
+	if(N[1] < chunk) chunk = N[1];
+	chunks[0] = 1;
 	chunks[1] = chunk;
 
-	/* Define the variable. */
-	if ((retval = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
+	// Define the variable.
+	if((retval = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
 	   ERR(retval);
 
-	if ((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
 	   ERR(retval);
 
-	if ((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
 	   ERR(retval);
 
-	/* No need to explicitly end define mode for netCDF-4 files. Write
-	 * the pretend data to the file. */
-	if ((retval = nc_put_var(grpid, varid, &vm.v[0])))
+	if((retval = nc_enddef(grpid)))
+		ERR(retval);
+
+	// No need to explicitly end define mode for netCDF-4 files. Write
+	// the pretend data to the file.
+	if((retval = nc_put_var(grpid, varid, &vm.v[0])))
 	   ERR(retval);
 }
 
@@ -463,7 +475,7 @@ void NetCDFile::write_AttNC(const string dataSet, const string attName,
 
 	len = attVal.size();
 
-	if ((retval = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
+	if((retval = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
 		ERR(retval);
 }
 

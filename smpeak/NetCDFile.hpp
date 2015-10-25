@@ -49,6 +49,9 @@ public:
 	void read_MatNC(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
 	template<typename T>
 	void read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
+	template<typename T>
+	void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = 0);
+
 
 	int search_Group(const string dataSet, int grpid = 0);
 
@@ -56,14 +59,11 @@ public:
 	T search_Group(size_t level, int grpid = 0);
 
 	template<typename T>
-	void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = 0);
-
-	template<typename T>
 	void write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
-			size_t chunks = 4096, int deflate_level = 5, int shuffle = NC_SHUFFLE, int grpid = 0);
+			size_t chunks = 4096, int deflate_level = 8, int shuffle = NC_SHUFFLE, int grpid = 0);
 	template<typename T>
 	void write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
-			size_t chunk = 64, int deflate_level = 5, int shuffle = NC_SHUFFLE, int grpid = 0);
+			size_t chunk = 4096, int deflate_level = 8, int shuffle = NC_SHUFFLE, int grpid = 0);
 	template<typename T>
 	void write_AttNC(const string dataSet, const string attName,
 			vector<T> &attVal, nc_type xtype, int grpid = 0);
