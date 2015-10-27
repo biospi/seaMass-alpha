@@ -312,6 +312,12 @@ int main(int argc, char **argv)
 	//---------------------------------------------------------------------
 	vector<double> chromatTime;
 	vector<float> chromatInten;
+	hsize_t rdims[2];
+	rawMZ.getDims(rdims);
+	vector<double> specMZAxisRow(rdims[0],0.0);
+	vector<double> specMZAxisCol(rdims[1],0.0);
+	vector<float> specPKAxisRow(rdims[0],0.0);
+	vector<float> specPKAxisCol(rdims[1],0.0);
 
 	// Load rest of data from mzMLb3 file...
 	mzMLb3DF.read_VecNC("chromatogram_MS_1000595",chromatTime);
@@ -329,18 +335,30 @@ int main(int argc, char **argv)
 	mzMLb3NCDF4.write_VecNC("chromatogram_MS_1000515",chromatInten,NC_FLOAT);
 
 	mzMLb3NCDF4.write_VecNC("mzML_spectrumIndex",mzpkSpecIdx,NC_UINT);
-	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000514",rawMZ,NC_DOUBLE);
-	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000515",rawPK,NC_FLOAT);
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_row",specMZAxisRow,NC_DOUBLE);
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_col",specMZAxisCol,NC_DOUBLE);
+	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000514",rawMZ,NC_DOUBLE,NULL,"spectrum_MS_1000514_row","spectrum_MS_1000514_col");
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_row",specPKAxisRow,NC_FLOAT);
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_col",specPKAxisCol,NC_FLOAT);
+	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000515",rawPK,NC_FLOAT,NULL,"spectrum_MS_1000515_row","spectrum_MS_1000515_col");
 
 	//---------------------------------------------------------------------
-	// Test UnLimited wite of Matrix.
+	// Test Unlimited write of Vector.
+
+	vector<double> zdf(1,0.0);
+	vector<float> zffill(1,0.0);
+
+	vector<double> mzAxisMZ(1,0.0);
+	vector<double> mzAxisRT(rdims[1],0.0);
+	mzMLb3NCDF4.write_VecNC("mzAxisMZ",mzAxisMZ,NC_DOUBLE,NULL,true);
+	mzMLb3NCDF4.write_VecNC("mzAxisRT",mzAxisRT,NC_DOUBLE);
+
+	// Test UnLimited write of Matrix.
 
 	VecMat<double> testUMat1;
 	VecMat<float> testUMat2;
 	size_t udims[2];
 
-	hsize_t rdims[2];
-	rawMZ.getDims(rdims);
 
 	testUMat1.set(1,30);
 	testUMat2.set(1,30);
@@ -352,8 +370,10 @@ int main(int argc, char **argv)
 
 	udims[0]=NC_UNLIMITED;
 	udims[1]=size_t(rdims[1]);
-	mzMLb3NCDF4.write_DefUMatNC("UMZTest",udims,NC_DOUBLE);
+	mzMLb3NCDF4.write_DefUMatNC("UMZTest",udims,NC_DOUBLE,NULL,"mzAxisMZ","mzAxisRT");
 	mzMLb3NCDF4.write_DefUMatNC("UPKTest",udims,NC_FLOAT);
+	mzMLb3NCDF4.write_AttNC("UMZTest","_FillValue",zdf, NC_DOUBLE);
+	mzMLb3NCDF4.write_AttNC("UPKTest","_FillValue",zffill, NC_FLOAT);
 
 	size_t wrcIdx[2];
 	size_t wlen[2];

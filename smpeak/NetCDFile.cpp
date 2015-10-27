@@ -79,7 +79,7 @@ NetCDFile::~NetCDFile()
 
 int NetCDFile::search_Group(const string dataSet, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == NULL) grpid = ncid;
 
 	int nGrps;
 	vector<int> ngrpids;
@@ -127,17 +127,18 @@ int NetCDFile::search_Group(const string dataSet, int grpid)
 
 
 void NetCDFile::write_DefUMatNC(const string dataSet, size_t dims[], nc_type xtype,
-			size_t chunk, int deflate_level, int shuffle, int grpid)
+			int grpid, const string rowY, const string colX,
+			size_t chunk, int deflate_level, int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == NULL) grpid = ncid;
 
 	int varid;
 	int dimid[2];
 	size_t chunks[2];
 	int ndim = 2;
 	int deflate = 0;
-	string dimName1 = "row_" + dataSet;
-	string dimName2 = "col_" + dataSet;
+	string dimName1 = dataSet + "_row";
+	string dimName2 = dataSet + "_col";
 
 	// Set chunking, shuffle, and deflate.
 	shuffle = NC_SHUFFLE;
@@ -145,10 +146,40 @@ void NetCDFile::write_DefUMatNC(const string dataSet, size_t dims[], nc_type xty
 		deflate = 1;
 
 	// Define the dimensions.
-	if((retval = nc_def_dim(grpid,dimName1.c_str(),dims[0],&dimid[0])))
-	   ERR(retval);
-	if((retval = nc_def_dim(grpid,dimName2.c_str(),dims[1],&dimid[1])))
-	   ERR(retval);
+	if(rowY.size() != 0)
+	{
+		int tmpvar;
+		//int nrdim;
+		nc_inq_varid(grpid,rowY.c_str(),&tmpvar);
+		//nc_inq_varndims(grpid,rvar,&nrdim);
+		//int nrdims[nrdim];
+		int tmpdims[1];
+		nc_inq_vardimid(grpid,tmpvar,tmpdims);
+		dimid[0]=tmpdims[0];
+
+	}
+	else
+	{
+		if((retval = nc_def_dim(grpid,dimName1.c_str(),dims[0],&dimid[0])))
+			ERR(retval);
+	}
+
+	if(colX.size() != 0)
+	{
+		int tmpvar;
+		//int ncdim;
+		nc_inq_varid(grpid,colX.c_str(),&tmpvar);
+		//nc_inq_varndims(grpid,rvar,&nrdim);
+		//int nrdims[nrdim];
+		int tmpdims[1];
+		nc_inq_vardimid(grpid,tmpvar,tmpdims);
+		dimid[1]=tmpdims[0];
+
+	}
+	else{
+		if((retval = nc_def_dim(grpid,dimName2.c_str(),dims[1],&dimid[1])))
+			ERR(retval);
+	}
 
 	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
 	if(dims[1] < chunk)
