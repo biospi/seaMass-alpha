@@ -143,6 +143,8 @@ int main(int argc, char **argv)
 	smoDF.read_AttNC("Offset",dataSetList[0].varid,offset,dataSetList[0].grpid);
 	rawCoeff.getDims(dims);
 
+	//---------------------------------------------------------------------
+	// NetCDF4 Read data TEST Hyperslab
 	VecMat<float> hypTest;
 	size_t rc[2]={7,4};
 	size_t lenA[2]={6,1};
@@ -229,12 +231,6 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// Raw MZ and Peak Data
-	VecMat<double> rawMZ;
-	VecMat<float> rawPK;
-	mzMLb3DF.read_MatNC("spectrum_MS_1000514",rawMZ);
-	mzMLb3DF.read_MatNC("spectrum_MS_1000515",rawPK);
-
 	//---------------------------------------------------------------------
 	// Centroid Peak Data Set...
 	//---------------------------------------------------------------------
@@ -262,8 +258,13 @@ int main(int argc, char **argv)
 	//extractPeak.execute();
 
 	//---------------------------------------------------------------------
-	// XML Modify
+	// Raw MZ and Peak Data
 	//---------------------------------------------------------------------
+	VecMat<double> rawMZ;
+	VecMat<float> rawPK;
+	mzMLb3DF.read_MatNC("spectrum_MS_1000514",rawMZ);
+	mzMLb3DF.read_MatNC("spectrum_MS_1000515",rawPK);
+
 	VecMat<double> mzPeak;
 	VecMat<float> pkPeak;
 	vector<size_t> vecSize;
@@ -273,6 +274,9 @@ int main(int argc, char **argv)
 	repackPeakDataT(mzPeak, rawMZ, msLevel, vecSize, rawSize);
 	repackPeakDataT(pkPeak, rawPK, msLevel, vecSize, rawSize);
 
+	//---------------------------------------------------------------------
+	// XML Modify
+	//---------------------------------------------------------------------
 	tools =	docmzML.select_nodes("mzML/run/spectrumList/spectrum");
 
 	cout<<"XML: "<<tools.size()<<endl;;
@@ -337,18 +341,17 @@ int main(int argc, char **argv)
 	mzMLb3NCDF4.write_VecNC("mzML_spectrumIndex",mzpkSpecIdx,NC_UINT);
 	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_row",specMZAxisRow,NC_DOUBLE);
 	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_col",specMZAxisCol,NC_DOUBLE);
-	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000514",rawMZ,NC_DOUBLE,NULL,"spectrum_MS_1000514_row","spectrum_MS_1000514_col");
+	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000514",rawMZ,NC_DOUBLE,NULL,
+			"spectrum_MS_1000514_row","spectrum_MS_1000514_col");
 	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_row",specPKAxisRow,NC_FLOAT);
 	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_col",specPKAxisCol,NC_FLOAT);
-	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000515",rawPK,NC_FLOAT,NULL,"spectrum_MS_1000515_row","spectrum_MS_1000515_col");
+	mzMLb3NCDF4.write_MatNC("spectrum_MS_1000515",rawPK,NC_FLOAT,NULL,
+			"spectrum_MS_1000515_row","spectrum_MS_1000515_col");
 
 	//---------------------------------------------------------------------
 	// Test Unlimited write of Vector.
 
-	vector<double> zdf(1,0.0);
-	vector<float> zffill(1,0.0);
-
-	vector<double> mzAxisMZ(1,0.0);
+	vector<double> mzAxisMZ(0,0.0);
 	vector<double> mzAxisRT(rdims[1],0.0);
 	mzMLb3NCDF4.write_VecNC("mzAxisMZ",mzAxisMZ,NC_DOUBLE,NULL,true);
 	mzMLb3NCDF4.write_VecNC("mzAxisRT",mzAxisRT,NC_DOUBLE);
@@ -370,10 +373,8 @@ int main(int argc, char **argv)
 
 	udims[0]=NC_UNLIMITED;
 	udims[1]=size_t(rdims[1]);
-	mzMLb3NCDF4.write_DefUMatNC("UMZTest",udims,NC_DOUBLE,NULL,"mzAxisMZ","mzAxisRT");
-	mzMLb3NCDF4.write_DefUMatNC("UPKTest",udims,NC_FLOAT);
-	mzMLb3NCDF4.write_AttNC("UMZTest","_FillValue",zdf, NC_DOUBLE);
-	mzMLb3NCDF4.write_AttNC("UPKTest","_FillValue",zffill, NC_FLOAT);
+	mzMLb3NCDF4.write_DefUMatNC<double>("UMZTest","mzAxisMZ","mzAxisRT",NC_DOUBLE);
+	mzMLb3NCDF4.write_DefUMatNC<float>("UPKTest",udims,NC_FLOAT);
 
 	size_t wrcIdx[2];
 	size_t wlen[2];

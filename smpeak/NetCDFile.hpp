@@ -78,9 +78,12 @@ public:
 	void write_AttNC(const string dataSet, const string attName,
 			vector<T> &attVal, nc_type xtype, int grpid = NULL);
 
-
+	template<typename T>
 	void write_DefUMatNC(const string dataSet, size_t dims[], nc_type xtype,
-			int grpid = NULL, const string rowY="", const string colX="",
+			int grpid = NULL,
+			size_t chunk = 4096, int deflate_level = 4, int shuffle = NC_SHUFFLE);	template<typename T>
+	void write_DefUMatNC(const string dataSet, const string rowY, const string colX, nc_type xtype,
+			int grpid = NULL,
 			size_t chunk = 4096, int deflate_level = 4, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_PutUMatNC(const string dataSet, VecMat<T> &vm,

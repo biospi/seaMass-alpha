@@ -540,8 +540,6 @@ int NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	int deflate = 0;
 	size_t N[2];
 	hsize_t buffN[2];
-	string dimName1 = dataSet+"_row";
-	string dimName2 = dataSet+"_col";
 
 	// Set chunking, shuffle, and deflate.
 	shuffle = NC_SHUFFLE;
@@ -557,17 +555,17 @@ int NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	if(rowY.size() != 0)
 	{
 		int tmpvar;
-		//int nrdim;
-		nc_inq_varid(grpid,rowY.c_str(),&tmpvar);
-		//nc_inq_varndims(grpid,rvar,&nrdim);
-		//int nrdims[nrdim];
 		int tmpdims[1];
-		nc_inq_vardimid(grpid,tmpvar,tmpdims);
+		if((retval = nc_inq_varid(grpid,rowY.c_str(),&tmpvar) ))
+			ERR(retval);
+		if((retval = nc_inq_vardimid(grpid,tmpvar,tmpdims) ))
+			ERR(retval);
 		dimid[0]=tmpdims[0];
 
 	}
 	else
 	{
+		string dimName1 = dataSet+"_row";
 		if((retval = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
 			ERR(retval);
 	}
@@ -575,16 +573,16 @@ int NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	if(colX.size() != 0)
 	{
 		int tmpvar;
-		//int ncdim;
-		nc_inq_varid(grpid,colX.c_str(),&tmpvar);
-		//nc_inq_varndims(grpid,rvar,&nrdim);
-		//int nrdims[nrdim];
 		int tmpdims[1];
-		nc_inq_vardimid(grpid,tmpvar,tmpdims);
+		if((retval = nc_inq_varid(grpid,colX.c_str(),&tmpvar) ))
+			ERR(retval);
+		if((retval = nc_inq_vardimid(grpid,tmpvar,tmpdims) ))
+			ERR(retval);
 		dimid[1]=tmpdims[0];
 
 	}
 	else{
+		string dimName2 = dataSet+"_col";
 		if((retval = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
 			ERR(retval);
 	}
@@ -631,6 +629,127 @@ void NetCDFile::write_AttNC(const string dataSet, const string attName,
 	len = attVal.size();
 
 	if((retval = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
+		ERR(retval);
+}
+
+
+template<typename T>
+void NetCDFile::write_DefUMatNC(const string dataSet, size_t dims[], nc_type xtype,
+			int grpid,
+			size_t chunk, int deflate_level, int shuffle)
+{
+	if(grpid == NULL) grpid = ncid;
+
+	int varid;
+	int dimid[2];
+	size_t chunks[2];
+	int ndim = 2;
+	int deflate = 0;
+	string dimName1 = dataSet + "_row";
+	string dimName2 = dataSet + "_col";
+
+	// Set chunking, shuffle, and deflate.
+	shuffle = NC_SHUFFLE;
+	if(deflate_level > 0 && deflate_level < 10)
+		deflate = 1;
+
+	// Define the dimensions.
+	if((retval = nc_def_dim(grpid,dimName1.c_str(),dims[0],&dimid[0])))
+		ERR(retval);
+	if((retval = nc_def_dim(grpid,dimName2.c_str(),dims[1],&dimid[1])))
+		ERR(retval);
+
+	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
+	if(dims[1] < chunk)
+	{
+		if(dims[0] != NC_UNLIMITED) chunk = dims[0];
+		else if(dims[1] != NC_UNLIMITED) chunk = dims[1];
+	}
+	chunks[0] = 1;
+	chunks[1] = chunk;
+
+	// Define the variable.
+	if((retval = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
+	   ERR(retval);
+
+	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	   ERR(retval);
+
+	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	   ERR(retval);
+
+	T attVal[1] = {0};
+	if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+		ERR(retval);
+
+	if((retval = nc_enddef(grpid)))
+		ERR(retval);
+}
+
+template<typename T>
+void NetCDFile::write_DefUMatNC(const string dataSet, const string rowY, const string colX,
+		nc_type xtype, int grpid,
+		size_t chunk, int deflate_level, int shuffle)
+{
+	if(grpid == NULL) grpid = ncid;
+
+	int varid;
+	int dimid[2];
+	size_t chunks[2];
+	size_t dims[2];
+	int ndim = 2;
+	int deflate = 0;
+
+	// Set chunking, shuffle, and deflate.
+	shuffle = NC_SHUFFLE;
+	if(deflate_level > 0 && deflate_level < 10)
+		deflate = 1;
+
+	// Define the dimensions.
+	int cordvar;
+	int corddims[1];
+
+	if ((retval = nc_inq_varid(grpid,rowY.c_str(),&cordvar) ))
+		ERR(retval);
+	if ((retval = nc_inq_vardimid(grpid,cordvar,corddims) ))
+		ERR(retval);
+	dimid[0]=corddims[0];
+	if ((retval = nc_inq_dimlen(grpid, dimid[0], &dims[0]) ))
+		ERR(retval);
+
+	if ((retval = nc_inq_varid(grpid,colX.c_str(),&cordvar) ))
+		ERR(retval);
+	if ((retval = nc_inq_vardimid(grpid,cordvar,corddims) ))
+		ERR(retval);
+	dimid[1]=corddims[0];
+	if ((retval = nc_inq_dimlen(grpid, dimid[1], &dims[1]) ))
+		ERR(retval);
+
+	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
+	if(dims[1] < chunk)
+	{
+		if(dims[0] != NC_UNLIMITED) chunk = dims[0];
+		else if(dims[1] != NC_UNLIMITED) chunk = dims[1];
+	}
+	chunks[0] = 1;
+	chunks[1] = chunk;
+
+	// Define the variable.
+	if((retval = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
+	   ERR(retval);
+
+	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	   ERR(retval);
+
+	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	   ERR(retval);
+
+
+	T attVal[1] = {0};
+	if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+		ERR(retval);
+
+	if((retval = nc_enddef(grpid)))
 		ERR(retval);
 }
 

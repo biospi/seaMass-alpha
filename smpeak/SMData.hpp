@@ -20,6 +20,19 @@ template
 	template<class Operator> class MathOp,
 	typename T=float
 >
+struct SMData1D : public DataAxis<T>, public MathOp<T>
+{
+	SMData1D(hsize_t dims[], int offset[], double mz_res, double rt_res,
+			vector<T> &vec);
+	~SMData1D(){delete this->alpha;};
+};
+
+
+template
+<
+	template<class Operator> class MathOp,
+	typename T=float
+>
 struct SMData2D : public DataAxis<T>, public MathOp<T>
 {
 	SMData2D(vector<double> &_rt, vector<double> &_mz, vector<T> &vec);
@@ -29,17 +42,14 @@ struct SMData2D : public DataAxis<T>, public MathOp<T>
 };
 
 
-template
-<
-	template<class Operator> class MathOp,
-	typename T=float
->
-struct SMData1D : public DataAxis<T>, public MathOp<T>
+template<template<class Operator> class MathOp, typename T>
+SMData1D<MathOp,T>::SMData1D(hsize_t dims[], int offset[],
+		double mz_res, double rt_res, vector<T> &vec)
 {
-	SMData1D(hsize_t dims[], int offset[], double mz_res, double rt_res,
-			vector<T> &vec);
-	~SMData1D(){delete this->alpha;};
-};
+	DataAxis<T>::alpha = new VecMat<T>(dims[0],dims[1],vec);
+	apply(dims[0],dims[1],DataAxis<T>::alpha->m);
+	axisMZ(dims[1], offset[0], mz_res, DataAxis<T>::mz);
+}
 
 
 template<template<class Operator> class MathOp, typename T>
@@ -58,16 +68,6 @@ SMData2D<MathOp,T>::SMData2D(hsize_t dims[], int offset[],
 	DataAxis<T>::alpha = new VecMat<T>(dims[0],dims[1],vec);
 	apply(dims[0],dims[1],DataAxis<T>::alpha->m);
 	axisRT(dims[0], offset[1], rt_res, DataAxis<T>::rt);
-	axisMZ(dims[1], offset[0], mz_res, DataAxis<T>::mz);
-}
-
-
-template<template<class Operator> class MathOp, typename T>
-SMData1D<MathOp,T>::SMData1D(hsize_t dims[], int offset[],
-		double mz_res, double rt_res, vector<T> &vec)
-{
-	DataAxis<T>::alpha = new VecMat<T>(dims[0],dims[1],vec);
-	apply(dims[0],dims[1],DataAxis<T>::alpha->m);
 	axisMZ(dims[1], offset[0], mz_res, DataAxis<T>::mz);
 }
 
