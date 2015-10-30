@@ -21,18 +21,34 @@ protected:
 					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak);
 };
 
+
 template
 <
 	template <class Peak> class pPeak,
 	template <class Data> class pData,
 	typename T = float
 >
-class Centroid : public MathOp<T>
+class Centroid1D : public MathOp<T>
 {
 public:
 	void calculate(pPeak<T> *peak, pData<T> *data);
 protected:
-	~Centroid(){};
+	~Centroid1D(){};
+};
+
+
+template
+<
+	template <class Peak> class pPeak,
+	template <class Data> class pData,
+	typename T = float
+>
+class Centroid2D : public MathOp<T>
+{
+public:
+	void calculate(pPeak<T> *peak, pData<T> *data);
+protected:
+	~Centroid2D(){};
 };
 
 

@@ -22,7 +22,7 @@ template
 >
 struct SMData1D : public DataAxis<T>, public MathOp<T>
 {
-	SMData1D(hsize_t dims[], int offset[], double mz_res, double rt_res,
+	SMData1D(hsize_t dims[], int offset[], double mz_res, double rt,
 			vector<T> &vec);
 	~SMData1D(){delete this->alpha;};
 };
@@ -44,11 +44,12 @@ struct SMData2D : public DataAxis<T>, public MathOp<T>
 
 template<template<class Operator> class MathOp, typename T>
 SMData1D<MathOp,T>::SMData1D(hsize_t dims[], int offset[],
-		double mz_res, double rt_res, vector<T> &vec)
+		double mz_res, double rt, vector<T> &vec)
 {
 	DataAxis<T>::alpha = new VecMat<T>(dims[0],dims[1],vec);
 	apply(dims[0],dims[1],DataAxis<T>::alpha->m);
 	axisMZ(dims[1], offset[0], mz_res, DataAxis<T>::mz);
+	DataAxis<T>::rt.push_back(rt);
 }
 
 

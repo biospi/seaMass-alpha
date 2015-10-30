@@ -13,7 +13,7 @@ Peak<T>::Peak(double _mz, double _rt,T _pkcnt,
 template<typename T>
 vector<Peak<T> >* PeakData<T>::getPeakData(void)
 {
-	return *peakData;
+	return &peakData;
 }
 
 template<typename T>
@@ -25,6 +25,13 @@ void PeakData<T>::addPeak(double _mz, double _rt,
 		lli _mz_idx, lli _rt_idx)
 {
 	peakData.push_back(Peak<T>::Peak(_mz,_rt, _pkcnt, _mzW, _rtW, _t, _mz_idx, _rt_idx));
+}
+
+
+template<typename T>
+void PeakData<T>::addPeakArray(pdata* peakArray)
+{
+	peakData.insert(peakData.end(),peakArray->begin(),peakArray->end());
 }
 
 template<typename T>

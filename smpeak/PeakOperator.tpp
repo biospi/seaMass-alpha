@@ -182,7 +182,63 @@ void MathOp<T>::calPeakMZ(
 
 
 template<template<class> class pPeak, template<class> class pData, typename T>
-void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
+void Centroid1D<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
+{
+	vector<DataAxis<T>* > bsData =  data->get();
+
+	DataAxis<T> const *bs=bsData[0];
+	DataAxis<T> const *dbs=bsData[1];
+	DataAxis<T> const *d2bs=bsData[2];
+
+	hsize_t dims[2];
+	bs->alpha->getDims(dims);
+	lli row = dims[0];
+	lli col = dims[1];
+
+	lli falsePeak=0;
+	lli falseWidth=0;
+	// Find Peaks and exact MZ values.
+
+	for(lli i = 0; i < row; ++i)
+	{
+		for(lli j = 2; j < col-2; ++j)
+		{
+			if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
+			{
+				double mzPeak=-1.0;
+				T countMax=-1.0;
+				double mzlhs=-1.0;
+				double mzrhs=-1.0;
+				double t0=-1.0;
+				this->calPeakMZ(bs,dbs,d2bs,i,j,mzPeak,countMax,mzlhs,mzrhs,t0,falsePeak);
+
+				if (t0 >=0)
+				{
+					if(mzlhs >= 0 && mzrhs >= 0)
+					{
+						{
+							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
+								make_pair(bs->rt[i],bs->rt[i]),t0,j,i);
+						}
+					}
+					else
+					{
+						++falseWidth;
+					}
+				}
+			}
+		}
+	}
+	//cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
+	if(falsePeak > 0)
+		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0]<<" Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
+	if(falseWidth > 0)
+		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0]<<" Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
+}
+
+
+template<template<class> class pPeak, template<class> class pData, typename T>
+void Centroid2D<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 {
 	vector<DataAxis<T>* > bsData =  data->get();
 
@@ -231,6 +287,7 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 				}
 			}
 		}
+		//cout<<"Found 2D ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
 	}
 	cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
 	if(falsePeak > 0)
@@ -238,7 +295,6 @@ void Centroid<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 	if(falseWidth > 0)
 		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
 }
-
 
 
 template<template<class> class pPeak, template<class> class pData, typename T>

@@ -33,6 +33,7 @@ public:
 	void addPeak(double _mz, double _rt, T _pkcnt,
 		pair<double,double> _mzW, pair<double,double> _rtW,
 		double _t, lli _mz_idx, lli _rt_idx);
+	void addPeakArray(pdata* peakArray);
 	size_t numOfPeaks(void);
 	vector<double> getMZ(void);
 	vector<double> getRT(void);

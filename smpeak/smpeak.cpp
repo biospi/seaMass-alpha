@@ -113,73 +113,9 @@ int main(int argc, char **argv)
 	//---------------------------------------------------------------------
 	cout<<"Centroid Peak Data Set..."<<endl;
 
-	//----------------------------
-	// Load SMO Data that we need.
-	//----------------------------
-	NetCDFile smoDF(smoFileName);
-
-	VecMat<float> rawCoeff;
-	vector<int> offset;
-	hsize_t dims[2];
-	vector<InfoGrpVar> dataSetList;
-	string outFileName=smoFileName.substr(0,smoFileName.size()-4);
-
-	cout << "List all groups within file: " << smoFileName << endl;
-
-	smoDF.search_Group("fcs");
-	dataSetList = smoDF.get_Info();
-
-	for(int i=0; i < dataSetList.size(); ++i)
-		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i].grpName<<"/"
-		<<dataSetList[0].varName<<endl;
-
-	cout<<"List Parameters from SMO:"<<endl;
-	double mzRes=smoDF.search_Group<double>(2);
-	cout<<"MZ_resolution: "<<mzRes<<endl;
-	double rtRes=smoDF.search_Group<double>(3);
-	cout<<"RT resolution: "<<rtRes<<endl;
-
-	smoDF.read_MatNC(dataSetList[0].varName,rawCoeff,dataSetList[0].grpid);
-	smoDF.read_AttNC("Offset",dataSetList[0].varid,offset,dataSetList[0].grpid);
-	rawCoeff.getDims(dims);
-
-	//---------------------------------------------------------------------
-	// NetCDF4 Read data TEST Hyperslab
-	VecMat<float> hypTest;
-	size_t rc[2]={7,4};
-	size_t lenA[2]={6,1};
-
-	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	lenA[0]=1;
-	lenA[1]=0;
-	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	lenA[0]=0;
-	lenA[1]=1;
-	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	lenA[0]=5;
-	lenA[1]=3;
-	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	rc[0]=3;
-	rc[1]=1192;
-	lenA[0]=3;
-	lenA[1]=0;
-	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	smoDF.close();
-
 	//-------------------------------
 	// Load mzMLb3 Data that we need.
 	//-------------------------------
-	// mzML text metadata.
 	vector<char> mzMLbuff;
 	NetCDFile mzMLb3DF(mzMLFileName);
 	mzMLb3DF.read_VecNC("mzML",mzMLbuff);
@@ -231,29 +167,140 @@ int main(int argc, char **argv)
 		}
 	}
 
+	//----------------------------
+	// Load SMO Data that we need.
+	//----------------------------
+	NetCDFile smoDF(smoFileName);
+
+	VecMat<float> rawCoeffDEL;
+
+	vector<int> offset;
+	hsize_t dimsDel[2];
+	vector<hsize_t> dims(2,0);
+	vector<size_t> fcsLen;
+	vector<InfoGrpVar> dataSetList;
+	vector<float> rawCoeff;
+
+	cout << "List all groups within file: " << smoFileName << endl;
+
+	smoDF.search_Group("fcs");
+	dataSetList = smoDF.get_Info();
+
+	for(int i=0; i < dataSetList.size(); ++i)
+		cout<<"DataSets found ["<< i<<"]: "<<dataSetList[i].grpName<<"/"
+		<<dataSetList[0].varName<<endl;
+
+	cout<<"List Parameters from SMO:"<<endl;
+	double mzRes=smoDF.search_Group<double>(2);
+	cout<<"MZ_resolution: "<<mzRes<<endl;
+	double rtRes=smoDF.search_Group<double>(3);
+	cout<<"RT resolution: "<<rtRes<<endl;
+
+	smoDF.read_AttNC("Offset",dataSetList[0].varid,offset,dataSetList[0].grpid);
+	fcsLen = smoDF.read_DimNC(dataSetList[0].varName,dataSetList[0].grpid);
+
+
+
+
+	//=====================================================================
+	smoDF.read_MatNC(dataSetList[0].varName,rawCoeffDEL,dataSetList[0].grpid);
+	rawCoeffDEL.getDims(dimsDel);
+
+	//---------------------------------------------------------------------
+	// NetCDF4 Read data TEST Hyperslab
+	VecMat<float> hypTest;
+	size_t rc[2]={7,4};
+	size_t lenA[2]={6,1};
+
+	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	lenA[0]=1;
+	lenA[1]=0;
+	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	lenA[0]=0;
+	lenA[1]=1;
+	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	lenA[0]=5;
+	lenA[1]=3;
+	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+
+	rc[0]=3;
+	rc[1]=1192;
+	lenA[0]=3;
+	lenA[1]=0;
+	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
+	hypTest.clear();
+	//=====================================================================
+
 	//---------------------------------------------------------------------
 	// Centroid Peak Data Set...
+	// Process Scan by Scan
 	//---------------------------------------------------------------------
-	SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	//SMData<OpNablaV> dvA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	//SMData<OpNabla2V> d2vA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	rawCoeff.clear();
+	PeakData<> totalPeaks;
+	vector<size_t> hypIdx(2);
+	vector<size_t> rdLen(2);
 
-	for(size_t i = 0; i < A.rt.size(); ++i)
+	rdLen[0]=1;
+	rdLen[1]=fcsLen[1];
+	dims[0]=hsize_t(rdLen[0]);
+	dims[1]=hsize_t(rdLen[1]);
+	hypIdx[1]=0; // = Always read from first Colum;
+
+	cout<<"Extract Peaks from Mass Spec Data"<<endl;
+	//#pragma omp parallel for shared(totalPeaks)
+	for(size_t rt_idx = 0; rt_idx < fcsLen[0]; ++rt_idx)
 	{
-		A.rt[i] = rtRaw[i].second;
-		dhA.rt[i] = rtRaw[i].second;
-		d2hA.rt[i] = rtRaw[i].second;
+		hypIdx[0]=rt_idx;
+
+		smoDF.read_HypVecNC(dataSetList[0].varName,rawCoeff,&hypIdx[0],&rdLen[0],
+				dataSetList[0].grpid);
+
+		SMData1D<OpUnit> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
+		SMData1D<OpNablaH> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
+		SMData1D<OpNabla2H> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
+
+		BsplineData<> bsData(A,dhA,d2hA);
+
+		PeakManager<PeakData,BsplineData,Centroid1D> centriodPeak(bsData);
+		centriodPeak.execute();
+
+		//#pragma omp critical(totalPeaks)
+		{
+			totalPeaks.addPeakArray(centriodPeak.peak->getPeakData());
+		}
+		//cout<<"Found "<<"["<<rt_idx<<"] "<<"["<<totalPeaks.numOfPeaks()<<"] Peaks."<<endl;
 	}
 
-	BsplineData<> bsData(A,dhA,d2hA);
-	//BsplineData<> bsPeakData(A,dhA,d2hA,dvA,d2vA);
+	cout<<"Found ["<<totalPeaks.numOfPeaks()<<"] Peaks."<<endl;
 
-	PeakManager<PeakData,BsplineData,Centroid> centriodPeak(bsData);
-	centriodPeak.execute();
+	//=====================================================================
+	SMData2D<OpUnit> Adel(dimsDel,&offset[0],mzRes,rtRes,rawCoeffDEL.v);
+	SMData2D<OpNablaH> dhAdel(dimsDel,&offset[0],mzRes,rtRes,rawCoeffDEL.v);
+	SMData2D<OpNabla2H> d2hAdel(dimsDel,&offset[0],mzRes,rtRes,rawCoeffDEL.v);
+	//SMData<OpNablaV> dvA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+	//SMData<OpNabla2V> d2vA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+	rawCoeffDEL.clear();
 
+	for(size_t i = 0; i < Adel.rt.size(); ++i)
+	{
+		Adel.rt[i] = rtRaw[i].second;
+		dhAdel.rt[i] = rtRaw[i].second;
+		d2hAdel.rt[i] = rtRaw[i].second;
+	}
+
+	BsplineData<> bsDatadel(Adel,dhAdel,d2hAdel);
+
+	PeakManager<PeakData,BsplineData,Centroid2D> centriodPeakdel(bsDatadel);
+	centriodPeakdel.execute();
+	//=====================================================================
+
+	//BsplineData<> bsPeakData(A,dhAdel,d2hAdel,dvA,d2vA);
 	//PeakManager<PeakData,BsplineData,ExtractPeak> extractPeak(bsPeakData);
 	//extractPeak.execute();
 
@@ -269,7 +316,7 @@ int main(int argc, char **argv)
 	VecMat<float> pkPeak;
 	vector<size_t> vecSize;
 
-	centriodPeak.peak->getPeakMatT(mzPeak, pkPeak, A.rt.size(), vecSize);
+	centriodPeakdel.peak->getPeakMatT(mzPeak, pkPeak, Adel.rt.size(), vecSize);
 
 	repackPeakDataT(mzPeak, rawMZ, msLevel, vecSize, rawSize);
 	repackPeakDataT(pkPeak, rawPK, msLevel, vecSize, rawSize);
@@ -310,6 +357,10 @@ int main(int argc, char **argv)
 	vector<unsigned int> chromatSpecIdx;
 	findVecString(mzMLbuff, mzpkSpecIdx);
 	findVecString(mzMLbuff, chromatSpecIdx,"<chromatogram index","</chromatogram>");
+
+	//---------------------------------------------------------------------
+	// Close Files...
+	smoDF.close();
 
 	//---------------------------------------------------------------------
 	// NetCDF4 Write data to Peak mzMLb3 File.
@@ -408,6 +459,7 @@ int main(int argc, char **argv)
 
 	if(debug)
 	{
+		string outFileName=smoFileName.substr(0,smoFileName.size()-4);
 		// Write data to SMP file.
 		SMPFile smpDataFile(outFileName);
 
@@ -417,32 +469,32 @@ int main(int argc, char **argv)
 
 		vector<hsize_t> vecN;
 		vecN.push_back(0.0);
-		vecN[0]=centriodPeak.peak->getMZ().size();
-		smpDataFile.write_VecMatH5("Peak_mz",centriodPeak.peak->getMZ(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=centriodPeak.peak->getMZwidth().size();
-		smpDataFile.write_VecMatH5("Peak_mz_width",centriodPeak.peak->getMZwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=centriodPeak.peak->getRT().size();
-		smpDataFile.write_VecMatH5("Peak_rt",centriodPeak.peak->getRT(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=centriodPeak.peak->getRTwidth().size();
-		smpDataFile.write_VecMatH5("Peak_rt_width",centriodPeak.peak->getRTwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=centriodPeak.peak->getPKcount().size();
-		smpDataFile.write_VecMatH5("Peak_Count",centriodPeak.peak->getPKcount(),vecN,H5::PredType::NATIVE_FLOAT);
-		vecN[0]=centriodPeak.peak->getMZIdx().size();
-		smpDataFile.write_VecMatH5("Peak_mz_idx",centriodPeak.peak->getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
-		vecN[0]=centriodPeak.peak->getRTIdx().size();
-		smpDataFile.write_VecMatH5("Peak_rt_idx",centriodPeak.peak->getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
+		vecN[0]=centriodPeakdel.peak->getMZ().size();
+		smpDataFile.write_VecMatH5("Peak_mz",centriodPeakdel.peak->getMZ(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeakdel.peak->getMZwidth().size();
+		smpDataFile.write_VecMatH5("Peak_mz_width",centriodPeakdel.peak->getMZwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeakdel.peak->getRT().size();
+		smpDataFile.write_VecMatH5("Peak_rt",centriodPeakdel.peak->getRT(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeakdel.peak->getRTwidth().size();
+		smpDataFile.write_VecMatH5("Peak_rt_width",centriodPeakdel.peak->getRTwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+		vecN[0]=centriodPeakdel.peak->getPKcount().size();
+		smpDataFile.write_VecMatH5("Peak_Count",centriodPeakdel.peak->getPKcount(),vecN,H5::PredType::NATIVE_FLOAT);
+		vecN[0]=centriodPeakdel.peak->getMZIdx().size();
+		smpDataFile.write_VecMatH5("Peak_mz_idx",centriodPeakdel.peak->getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
+		vecN[0]=centriodPeakdel.peak->getRTIdx().size();
+		smpDataFile.write_VecMatH5("Peak_rt_idx",centriodPeakdel.peak->getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
 
-		smpDataFile.write_VecMatH5("csOrig",A.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-		smpDataFile.write_VecMatH5("dcs",dhA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-		smpDataFile.write_VecMatH5("d2cs",d2hA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
+		smpDataFile.write_VecMatH5("csOrig",Adel.alpha->v,dimsDel,H5::PredType::NATIVE_FLOAT);
+		smpDataFile.write_VecMatH5("dcs",dhAdel.alpha->v,dimsDel,H5::PredType::NATIVE_FLOAT);
+		smpDataFile.write_VecMatH5("d2cs",d2hAdel.alpha->v,dimsDel,H5::PredType::NATIVE_FLOAT);
 		//smpDataFile.write_VecMatH5("dvcs",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 		//smpDataFile.write_VecMatH5("d2vcs",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
 
-		mzPeak.getDims(dims);
+		mzPeak.getDims(dimsDel);
 		smpDataFile.write_VecMatH5("mat_Peak_MZ",mzPeak.v,dims,H5::PredType::NATIVE_DOUBLE);
 		smpDataFile.write_VecMatH5("mat_Peak_PK",pkPeak.v,dims,H5::PredType::NATIVE_FLOAT);
 
-		rawMZ.getDims(dims);
+		rawMZ.getDims(dimsDel);
 		smpDataFile.write_VecMatH5("mat_raw_Peak_MZ",rawMZ.v,dims,H5::PredType::NATIVE_DOUBLE);
 		smpDataFile.write_VecMatH5("mat_raw_Peak_PK",rawPK.v,dims,H5::PredType::NATIVE_FLOAT);
 	}

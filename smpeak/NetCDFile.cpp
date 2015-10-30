@@ -77,6 +77,36 @@ NetCDFile::~NetCDFile()
 	}
 }
 
+vector<size_t> NetCDFile::read_DimNC(const string dataSet, int grpid)
+{
+	if(grpid == NULL) grpid = ncid;
+
+	int varid;
+	int ndim;
+	vector<int> dimid;
+	vector<size_t> dimSize;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
+		ERR(retval);
+
+	dimid.resize(ndim);
+	dimSize.resize(ndim);
+
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		ERR(retval);
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			ERR(retval);
+	}
+
+	return dimSize;
+}
+
 int NetCDFile::search_Group(const string dataSet, int grpid)
 {
 	if(grpid == NULL) grpid = ncid;

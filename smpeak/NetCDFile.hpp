@@ -51,6 +51,7 @@ public:
 	void read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid = NULL);
 	template<typename T>
 	void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = NULL);
+	vector<size_t> read_DimNC(const string dataSet, int grpid = NULL);
 
 	template<typename T>
 	void read_HypVecNC(const string dataSet, vector<T> &vm,
