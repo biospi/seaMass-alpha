@@ -12,9 +12,10 @@ template
 		template<class SubOperator1> class Operator1,
 		template<class SubOperator2> class Operator2,
 		class Op> class PeakOp,
-	typename T = float
+	typename T = float,
+	typename R = double
 >
-class PeakManager : public PeakOp<PeakCon<T>, BsplineCon<T>, T>
+class PeakManager : public PeakOp<PeakCon<T>, BsplineCon<T>, T, R>
 {
 public:
 	PeakManager(BsplineCon<T> &_data)

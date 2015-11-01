@@ -1,16 +1,16 @@
 #ifndef SMPEAK_PEAKOPERATOR_TPP_
 #define SMPEAK_PEAKOPERATOR_TPP_
 
-template<typename T>
-void MathOp<T>::calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
+template<typename T, typename R>
+void MathOp<T,R>::calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
 		const vector<double> &mza, double &mz1, double &a1)
 {
 	mz1=0.5*(mza[mzIdx]+mza[mzIdx+1]);
 	a1=double(0.5*(alpha[rtIdx][mzIdx]+alpha[rtIdx][mzIdx+1]));
 }
 
-template<typename T>
-double MathOp<T>::calT(const double y0, const double y1, const double y2)
+template<typename T, typename R>
+double MathOp<T,R>::calT(const double y0, const double y1, const double y2)
 {
 	double a=y1-y0;
 	double b=y0-2.0*y1+y2;
@@ -28,15 +28,15 @@ double MathOp<T>::calT(const double y0, const double y1, const double y2)
 	}
 }
 
-template<typename T>
-double MathOp<T>::calX(double t, double x0, double x1, double x2)
+template<typename T, typename R>
+double MathOp<T,R>::calX(double t, double x0, double x1, double x2)
 {
 	double c=(1.0-t);
 	return c*c*x0+2.0*c*t*x1+t*t*x2;
 }
 
-template<typename T>
-vector<T> MathOp<T>::cal3rdMidPoint(lli row, lli col, T **P)
+template<typename T, typename R>
+vector<T> MathOp<T,R>::cal3rdMidPoint(lli row, lli col, T **P)
 {
 	vector<T> ry(4,0.0);
 	T p0=P[row][col-1];
@@ -58,8 +58,8 @@ vector<T> MathOp<T>::cal3rdMidPoint(lli row, lli col, T **P)
 	return ry;
 }
 
-template<typename T>
-T MathOp<T>::calPeakCount(vector<T> &ry, double t)
+template<typename T, typename R>
+T MathOp<T,R>::calPeakCount(vector<T> &ry, double t)
 {
 	double tp=1-t;
 	T p0=tp*ry[0]+t*ry[1];
@@ -70,8 +70,8 @@ T MathOp<T>::calPeakCount(vector<T> &ry, double t)
 	return tp*q0+t*q1;
 }
 
-template<typename T>
-void MathOp<T>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2mz,
+template<typename T, typename R>
+void MathOp<T,R>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2mz,
 		double &mzlhs, double &mzrhs)
 {
 	lli n=d2mz.size();
@@ -125,9 +125,9 @@ void MathOp<T>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, const vector<double
 
 }
 
-template<typename T>
-void MathOp<T>::calPeakMZ(
-		DataAxis<T> const *bs,DataAxis<T> const *dbs,DataAxis<T> const *d2bs,
+template<typename T, typename R>
+void MathOp<T,R>::calPeakMZ(
+		DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
 		lli i, lli j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,
 		double &t0, lli &falsePeak)
 {
@@ -181,14 +181,14 @@ void MathOp<T>::calPeakMZ(
 }
 
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-void Centroid1D<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
+template<template<class> class pPeak, template<class> class pData, typename T, typename R>
+void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
 {
-	vector<DataAxis<T>* > bsData =  data->get();
+	vector<DataAxis<T,R>* > bsData =  data->get();
 
-	DataAxis<T> const *bs=bsData[0];
-	DataAxis<T> const *dbs=bsData[1];
-	DataAxis<T> const *d2bs=bsData[2];
+	DataAxis<T,R> const *bs=bsData[0];
+	DataAxis<T,R> const *dbs=bsData[1];
+	DataAxis<T,R> const *d2bs=bsData[2];
 
 	hsize_t dims[2];
 	bs->alpha->getDims(dims);
@@ -237,14 +237,14 @@ void Centroid1D<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 }
 
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-void Centroid2D<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
+template<template<class> class pPeak, template<class> class pData, typename T, typename R>
+void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
 {
-	vector<DataAxis<T>* > bsData =  data->get();
+	vector<DataAxis<T,R>* > bsData =  data->get();
 
-	DataAxis<T> const *bs=bsData[0];
-	DataAxis<T> const *dbs=bsData[1];
-	DataAxis<T> const *d2bs=bsData[2];
+	DataAxis<T,R> const *bs=bsData[0];
+	DataAxis<T,R> const *dbs=bsData[1];
+	DataAxis<T,R> const *d2bs=bsData[2];
 
 	hsize_t dims[2];
 	bs->alpha->getDims(dims);
@@ -297,16 +297,16 @@ void Centroid2D<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 }
 
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-void ExtractPeak<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
+template<template<class> class pPeak, template<class> class pData, typename T, typename R>
+void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
 {
-	vector<DataAxis<T>* > bsData =  data->get();
+	vector<DataAxis<T,R>* > bsData =  data->get();
 
-	DataAxis<T> const *bs=bsData[0];
-	DataAxis<T> const *dhbs=bsData[1];
-	DataAxis<T> const *dh2bs=bsData[2];
-	DataAxis<T> const *dvbs=bsData[2];
-	DataAxis<T> const *dv2bs=bsData[2];
+	DataAxis<T,R> const *bs=bsData[0];
+	DataAxis<T,R> const *dhbs=bsData[1];
+	DataAxis<T,R> const *dh2bs=bsData[2];
+	DataAxis<T,R> const *dvbs=bsData[2];
+	DataAxis<T,R> const *dv2bs=bsData[2];
 
 	hsize_t dims[2];
 	bs->alpha->getDims(dims);
@@ -362,29 +362,29 @@ void ExtractPeak<pPeak,pData,T>::calculate(pPeak<T> *peak, pData<T> *data)
 		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
 }
 
-template<template<class> class pPeak, template<class> class pData, typename T>
-void ExtractPeak<pPeak,pData,T>::calPeakMZ(
-		DataAxis<T> const *bs,DataAxis<T> const *dbs,DataAxis<T> const *d2bs,
+template<template<class> class pPeak, template<class> class pData, typename T, typename R>
+void ExtractPeak<pPeak,pData,T,R>::calPeakMZ(
+		DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
 		lli i, lli j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,
 		double &t0, lli &falsePeak, bool &peakRT)
 {
 	double pa1=0.0;
 	double pmz1=0.0;
-	MathOp<T>::calMidPoint(i,j,dbs->alpha->m,dbs->mz,pmz1,pa1);
+	MathOp<T,R>::calMidPoint(i,j,dbs->alpha->m,dbs->mz,pmz1,pa1);
 	if(pa1 < 0){
 		double pa0=0.0;
 		double pmz0=0.0;
 		vector<T> ry;
-		MathOp<T>::calMidPoint(i,j-1,dbs->alpha->m,dbs->mz,pmz0,pa0);
-		t0 = MathOp<T>::calT(pa0,double(dbs->alpha->m[i][j]),pa1);
+		MathOp<T,R>::calMidPoint(i,j-1,dbs->alpha->m,dbs->mz,pmz0,pa0);
+		t0 = MathOp<T,R>::calT(pa0,double(dbs->alpha->m[i][j]),pa1);
 		if(t0>=0)
 		{
-			mzPeak=MathOp<T>::calX(t0,pmz0,dbs->mz[j],pmz1);
+			mzPeak=MathOp<T,R>::calX(t0,pmz0,dbs->mz[j],pmz1);
 			mzlhs=0.0;
 			mzrhs=0.0;
-			ry = MathOp<T>::cal3rdMidPoint(i,j,bs->alpha->m);
-			countMax = MathOp<T>::calPeakCount(ry,t0);
-			MathOp<T>::calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
+			ry = MathOp<T,R>::cal3rdMidPoint(i,j,bs->alpha->m);
+			countMax = MathOp<T,R>::calPeakCount(ry,t0);
+			MathOp<T,R>::calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
 		}
 		else
 		{
@@ -396,16 +396,16 @@ void ExtractPeak<pPeak,pData,T>::calPeakMZ(
 		double pa2=0.0;
 		double pmz2=0.0;
 		vector<T> ry;
-		MathOp<T>::calMidPoint(i,j+1,dbs->alpha->m,dbs->mz,pmz2,pa2);
-		t0 = MathOp<T>::calT(pa1,double(dbs->alpha->m[i][j+1]),pa2);
+		MathOp<T,R>::calMidPoint(i,j+1,dbs->alpha->m,dbs->mz,pmz2,pa2);
+		t0 = MathOp<T,R>::calT(pa1,double(dbs->alpha->m[i][j+1]),pa2);
 		if (t0>=0)
 		{
-			mzPeak=MathOp<T>::calX(t0,pmz1,dbs->mz[j+1],pmz2);
+			mzPeak=MathOp<T,R>::calX(t0,pmz1,dbs->mz[j+1],pmz2);
 			mzlhs=0.0;
 			mzrhs=0.0;
-			ry = MathOp<T>::cal3rdMidPoint(i,j,bs->alpha->m);
-			countMax = MathOp<T>::calPeakCount(ry,t0);
-			MathOp<T>::calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
+			ry = MathOp<T,R>::cal3rdMidPoint(i,j,bs->alpha->m);
+			countMax = MathOp<T,R>::calPeakCount(ry,t0);
+			MathOp<T,R>::calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
 		}
 		else
 		{
