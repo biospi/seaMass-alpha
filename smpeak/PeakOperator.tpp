@@ -181,8 +181,8 @@ void MathOp<T,R>::calPeakMZ(
 }
 
 
-template<template<class> class pPeak, template<class> class pData, typename T, typename R>
-void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
+template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
+void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
 {
 	vector<DataAxis<T,R>* > bsData =  data->get();
 
@@ -237,8 +237,8 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
 }
 
 
-template<template<class> class pPeak, template<class> class pData, typename T, typename R>
-void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
+template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
+void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
 {
 	vector<DataAxis<T,R>* > bsData =  data->get();
 
@@ -297,8 +297,8 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
 }
 
 
-template<template<class> class pPeak, template<class> class pData, typename T, typename R>
-void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
+template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
+void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
 {
 	vector<DataAxis<T,R>* > bsData =  data->get();
 
@@ -362,7 +362,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T> *data)
 		cout<<"Warning !!! Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
 }
 
-template<template<class> class pPeak, template<class> class pData, typename T, typename R>
+template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
 void ExtractPeak<pPeak,pData,T,R>::calPeakMZ(
 		DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
 		lli i, lli j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,

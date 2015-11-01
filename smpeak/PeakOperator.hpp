@@ -25,7 +25,7 @@ protected:
 template
 <
 	template <class Peak> class pPeak,
-	template <class Data> class pData,
+	template <class Data1, class Data2> class pData,
 	typename T = float,
 	typename R = double
 
@@ -33,7 +33,7 @@ template
 class Centroid1D : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<T> *data);
+	void calculate(pPeak<T> *peak, pData<T,R> *data);
 protected:
 	~Centroid1D(){};
 };
@@ -42,14 +42,14 @@ protected:
 template
 <
 	template <class Peak> class pPeak,
-	template <class Data> class pData,
+	template <class Data1, class Data2> class pData,
 	typename T = float,
 	typename R = double
 >
 class Centroid2D : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<T> *data);
+	void calculate(pPeak<T> *peak, pData<T,R> *data);
 protected:
 	~Centroid2D(){};
 };
@@ -58,14 +58,14 @@ protected:
 template
 <
 	template <class Peak> class pPeak,
-	template <class Data> class pData,
+	template <class Data1, class Data2> class pData,
 	typename T = float,
 	typename R = double
 >
 class ExtractPeak : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<T> *data);
+	void calculate(pPeak<T> *peak, pData<T,R> *data);
 protected:
 	~ExtractPeak(){};
 private:
