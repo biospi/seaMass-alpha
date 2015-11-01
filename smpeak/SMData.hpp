@@ -19,7 +19,7 @@ template
 <
 	template<class Operator> class MathOp,
 	typename T=float,
-	typename R=double
+	typename R=pair<int,double>
 >
 struct SMData1D : public DataAxis<T,R>, public MathOp<T>
 {

@@ -269,13 +269,13 @@ int main(int argc, char **argv)
 			smoDF.read_HypVecNC(dataSetList[0].varName,rawCoeff,&hypIdx[0],&rdLen[0],
 					dataSetList[0].grpid);
 
-			SMData1D<OpUnit> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
-			SMData1D<OpNablaH> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
-			SMData1D<OpNabla2H> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
+			SMData1D<OpUnit> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
+			SMData1D<OpNablaH> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
+			SMData1D<OpNabla2H> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
 
-			BsplineData<> bsData(A,dhA,d2hA);
+			BsplineData<float,pair<int,double> > bsData(A,dhA,d2hA);
 
-			PeakManager<PeakData,BsplineData,Centroid1D> centriodPeak(bsData);
+			PeakManager<PeakData,BsplineData,Centroid1D,float,pair<int,double> > centriodPeak(bsData);
 			centriodPeak.execute();
 
 			localPeaks.addPeakArray(centriodPeak.peak->getPeakData());

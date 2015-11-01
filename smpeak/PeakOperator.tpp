@@ -217,8 +217,10 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
 					if(mzlhs >= 0 && mzrhs >= 0)
 					{
 						{
-							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
-								make_pair(bs->rt[i],bs->rt[i]),t0,j,i);
+							peak->addPeak(mzPeak,bs->rt[i].second,countMax,
+									make_pair(mzlhs,mzrhs),
+									make_pair(bs->rt[i].second,bs->rt[i].second),t0,j,
+									bs->rt[i].first);
 						}
 					}
 					else
@@ -231,9 +233,9 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
 	}
 	//cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
 	if(falsePeak > 0)
-		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0]<<" Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
+		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
 	if(falseWidth > 0)
-		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0]<<" Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
+		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
 }
 
 
