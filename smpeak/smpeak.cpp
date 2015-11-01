@@ -12,6 +12,7 @@
 #include "NetCDFile.hpp"
 #include <pugixml.hpp>
 #include <sstream>
+#include <omp.h>
 
 namespace po = boost::program_options;
 namespace xml = pugi;
@@ -179,7 +180,6 @@ int main(int argc, char **argv)
 	vector<hsize_t> dims(2,0);
 	vector<size_t> fcsLen;
 	vector<InfoGrpVar> dataSetList;
-	vector<float> rawCoeff;
 
 	cout << "List all groups within file: " << smoFileName << endl;
 
@@ -198,9 +198,6 @@ int main(int argc, char **argv)
 
 	smoDF.read_AttNC("Offset",dataSetList[0].varid,offset,dataSetList[0].grpid);
 	fcsLen = smoDF.read_DimNC(dataSetList[0].varName,dataSetList[0].grpid);
-
-
-
 
 	//=====================================================================
 	smoDF.read_MatNC(dataSetList[0].varName,rawCoeffDEL,dataSetList[0].grpid);
@@ -242,7 +239,6 @@ int main(int argc, char **argv)
 	// Centroid Peak Data Set...
 	// Process Scan by Scan
 	//---------------------------------------------------------------------
-	PeakData<> totalPeaks;
 	vector<size_t> hypIdx(2);
 	vector<size_t> rdLen(2);
 
@@ -250,41 +246,56 @@ int main(int argc, char **argv)
 	rdLen[1]=fcsLen[1];
 	dims[0]=hsize_t(rdLen[0]);
 	dims[1]=hsize_t(rdLen[1]);
-	hypIdx[1]=0; // = Always read from first Colum;
+	hypIdx[1]=0; // = Always read from first Column;
+
+	PeakData<> totalPeaks;
+	vector<PeakData<> *> peakThreads(omp_get_max_threads());
 
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
-	//#pragma omp parallel for shared(totalPeaks)
-	for(size_t rt_idx = 0; rt_idx < fcsLen[0]; ++rt_idx)
+	// Manual reduction of STL container as STLs are not thread safe...
+	#pragma omp parallel
 	{
-		hypIdx[0]=rt_idx;
+		int nthrd = omp_get_num_threads();
+		PeakData<> localPeaks;
+		int thrdid=omp_get_thread_num();
+		peakThreads[thrdid] = &localPeaks;
 
-		smoDF.read_HypVecNC(dataSetList[0].varName,rawCoeff,&hypIdx[0],&rdLen[0],
-				dataSetList[0].grpid);
-
-		SMData1D<OpUnit> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
-		SMData1D<OpNablaH> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
-		SMData1D<OpNabla2H> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
-
-		BsplineData<> bsData(A,dhA,d2hA);
-
-		PeakManager<PeakData,BsplineData,Centroid1D> centriodPeak(bsData);
-		centriodPeak.execute();
-
-		//#pragma omp critical(totalPeaks)
+		#pragma omp for firstprivate(hypIdx,rdLen)
+		for(size_t rt_idx = 0; rt_idx < fcsLen[0]; ++rt_idx)
 		{
-			totalPeaks.addPeakArray(centriodPeak.peak->getPeakData());
-		}
-		//cout<<"Found "<<"["<<rt_idx<<"] "<<"["<<totalPeaks.numOfPeaks()<<"] Peaks."<<endl;
-	}
+			vector<float> rawCoeff;
+			hypIdx[0]=rt_idx;
 
-	cout<<"Found ["<<totalPeaks.numOfPeaks()<<"] Peaks."<<endl;
+			smoDF.read_HypVecNC(dataSetList[0].varName,rawCoeff,&hypIdx[0],&rdLen[0],
+					dataSetList[0].grpid);
+
+			SMData1D<OpUnit> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
+			SMData1D<OpNablaH> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
+			SMData1D<OpNabla2H> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx].second,rawCoeff);
+
+			BsplineData<> bsData(A,dhA,d2hA);
+
+			PeakManager<PeakData,BsplineData,Centroid1D> centriodPeak(bsData);
+			centriodPeak.execute();
+
+			localPeaks.addPeakArray(centriodPeak.peak->getPeakData());
+		}
+
+		#pragma omp single
+		{
+			for(int i = 0; i < nthrd; ++i)
+			{
+				cout<<"Thread ["<<i<<"] peaks found: "<<peakThreads[i]->numOfPeaks()<<endl;
+				totalPeaks.addPeakArray(peakThreads[i]->getPeakData());
+			}
+		}
+	}
+	cout<<"Total ["<<totalPeaks.numOfPeaks()<<"] peaks found."<<endl;
 
 	//=====================================================================
 	SMData2D<OpUnit> Adel(dimsDel,&offset[0],mzRes,rtRes,rawCoeffDEL.v);
 	SMData2D<OpNablaH> dhAdel(dimsDel,&offset[0],mzRes,rtRes,rawCoeffDEL.v);
 	SMData2D<OpNabla2H> d2hAdel(dimsDel,&offset[0],mzRes,rtRes,rawCoeffDEL.v);
-	//SMData<OpNablaV> dvA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-	//SMData<OpNabla2V> d2vA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 	rawCoeffDEL.clear();
 
 	for(size_t i = 0; i < Adel.rt.size(); ++i)
@@ -300,6 +311,8 @@ int main(int argc, char **argv)
 	centriodPeakdel.execute();
 	//=====================================================================
 
+	//SMData<OpNablaV> dvA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+	//SMData<OpNabla2V> d2vA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 	//BsplineData<> bsPeakData(A,dhAdel,d2hAdel,dvA,d2vA);
 	//PeakManager<PeakData,BsplineData,ExtractPeak> extractPeak(bsPeakData);
 	//extractPeak.execute();
