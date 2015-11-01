@@ -5,7 +5,7 @@
 #include "SMData.hpp"
 
 
-template<typename T = float, typename R = double>
+template<typename R = double, typename T = float>
 class BsplineData
 {
 public:
@@ -18,16 +18,16 @@ private:
 };
 
 
-template<typename T, typename R>
-BsplineData<T,R>::BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dbs, DataAxis<T,R> &d2bs)
+template<typename R,typename T>
+BsplineData<R,T>::BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dbs, DataAxis<T,R> &d2bs)
 {
 	bspObjP.push_back(&bs);
 	bspObjP.push_back(&dbs);
 	bspObjP.push_back(&d2bs);
 }
 
-template<typename T, typename R>
-BsplineData<T,R>::BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
+template<typename R,typename T>
+BsplineData<R,T>::BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
 		DataAxis<T,R> &dvbs, DataAxis<T,R> &d2vbs)
 {
 	bspObjP.push_back(&bs);
@@ -37,8 +37,8 @@ BsplineData<T,R>::BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dhbs, DataAxis<T
 	bspObjP.push_back(&d2vbs);
 }
 
-template<typename T, typename R>
-vector<DataAxis<T,R>* > BsplineData<T,R>::get(void)
+template<typename R,typename T>
+vector<DataAxis<T,R>* > BsplineData<R,T>::get(void)
 {
 	return bspObjP;
 }

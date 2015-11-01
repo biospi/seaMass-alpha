@@ -15,13 +15,13 @@ template
 		typename OpT,
 		typename OpR
 	> class PeakOp,
-	typename T = float,
-	typename R = double
+	typename R = double,
+	typename T = float
 >
-class PeakManager : public PeakOp<PeakCon<T>,BsplineCon<T,R>, T, R>
+class PeakManager : public PeakOp<PeakCon<T>,BsplineCon<R,T>, T, R>
 {
 public:
-	PeakManager(BsplineCon<T,R> &_data)
+	PeakManager(BsplineCon<R,T> &_data)
 	{
 		peak=new PeakCon<T>();
 		data=&_data;
@@ -33,7 +33,7 @@ public:
 	PeakCon<T> *peak;
 	~PeakManager() {delete this->peak;};
 	private:
-	BsplineCon<T,R> *data;
+	BsplineCon<R,T> *data;
 
 };
 

@@ -182,7 +182,7 @@ void MathOp<T,R>::calPeakMZ(
 
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
+void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data)
 {
 	vector<DataAxis<T,R>* > bsData =  data->get();
 
@@ -240,7 +240,7 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
 
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
+void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data)
 {
 	vector<DataAxis<T,R>* > bsData =  data->get();
 
@@ -300,7 +300,7 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
 
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<T,R> *data)
+void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data)
 {
 	vector<DataAxis<T,R>* > bsData =  data->get();
 

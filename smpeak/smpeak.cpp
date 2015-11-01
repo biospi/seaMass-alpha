@@ -23,6 +23,7 @@ int main(int argc, char **argv)
 	string mzMLFileName;
 	string outMZFileName;
 	bool centroid, debug;
+	typedef pair<int,double> rtIdxData;
 
 	po::options_description desc("Usage: smpeak [OPTION...] [SMO FILE] [mzMLb3 FILE]");
 
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
 	// XML scan and read Start Time and ms-level.
 	//-------------------------------------------
 	vector<int> msLevel;
-	vector<pair<int,double> > rtRaw;
+	vector<rtIdxData> rtRaw;
 	vector<size_t> rawSize;
 	size_t maxSize=0;
 
@@ -273,9 +274,9 @@ int main(int argc, char **argv)
 			SMData1D<OpNablaH> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
 			SMData1D<OpNabla2H> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
 
-			BsplineData<float,pair<int,double> > bsData(A,dhA,d2hA);
+			BsplineData<rtIdxData> bsData(A,dhA,d2hA);
 
-			PeakManager<PeakData,BsplineData,Centroid1D,float,pair<int,double> > centriodPeak(bsData);
+			PeakManager<PeakData,BsplineData,Centroid1D,rtIdxData> centriodPeak(bsData);
 			centriodPeak.execute();
 
 			localPeaks.addPeakArray(centriodPeak.peak->getPeakData());

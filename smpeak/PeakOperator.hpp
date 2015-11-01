@@ -33,7 +33,7 @@ template
 class Centroid1D : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<T,R> *data);
+	void calculate(pPeak<T> *peak, pData<R,T> *data);
 protected:
 	~Centroid1D(){};
 };
@@ -49,7 +49,7 @@ template
 class Centroid2D : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<T,R> *data);
+	void calculate(pPeak<T> *peak, pData<R,T> *data);
 protected:
 	~Centroid2D(){};
 };
@@ -65,7 +65,7 @@ template
 class ExtractPeak : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<T,R> *data);
+	void calculate(pPeak<T> *peak, pData<R,T> *data);
 protected:
 	~ExtractPeak(){};
 private:
