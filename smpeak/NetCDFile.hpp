@@ -50,18 +50,19 @@ public:
 	template<typename T>
 	void read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid = NULL);
 	template<typename T>
+	vector<size_t> read_DimNC(const string dataSet, int grpid = NULL);
+	template<typename T>
 	void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = NULL);
 	vector<size_t> read_DimNC(const string dataSet, int grpid = NULL);
 
 	template<typename T>
 	void read_HypVecNC(const string dataSet, vector<T> &vm,
-			size_t *rcIdx, size_t *len, int grpid);
+			size_t *rcIdx, size_t *len, int grpid = NULL);
 	template<typename T>
 	void read_HypMatNC(const string dataSet, VecMat<T> &vm,
-			size_t *rcIdx, size_t *len, int grpid);
+			size_t *rcIdx, size_t *len, int grpid = NULL);
 
 	int search_Group(const string dataSet, int grpid = NULL);
-
 	template<typename T>
 	T search_Group(size_t level, int grpid = NULL);
 
@@ -80,14 +81,18 @@ public:
 			vector<T> &attVal, nc_type xtype, int grpid = NULL);
 
 	template<typename T>
-	void write_DefUMatNC(const string dataSet, size_t dims[], nc_type xtype,
-			int grpid = NULL,
-			size_t chunk = 4096, int deflate_level = 4, int shuffle = NC_SHUFFLE);	template<typename T>
-	void write_DefUMatNC(const string dataSet, const string rowY, const string colX, nc_type xtype,
+	void write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,
 			int grpid = NULL,
 			size_t chunk = 4096, int deflate_level = 4, int shuffle = NC_SHUFFLE);
 	template<typename T>
-	void write_PutUMatNC(const string dataSet, VecMat<T> &vm,
+	void write_DefHypMatNC(const string dataSet, const string rowY, const string colX, nc_type xtype,
+			int grpid = NULL,
+			size_t chunk = 4096, int deflate_level = 4, int shuffle = NC_SHUFFLE);
+	template<typename T>
+	void write_PutHypMatNC(const string dataSet, VecMat<T> &vm,
+		size_t rcIdx[2], size_t len[2], int grpid = NULL);
+	template<typename T>
+	void write_PutHypMatNC(const string dataSet, T *vm,
 		size_t rcIdx[2], size_t len[2], int grpid = NULL);
 
 	vector<InfoGrpVar> get_Info(void) {return dataSetList;};

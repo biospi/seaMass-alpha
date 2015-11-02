@@ -241,24 +241,6 @@ void NetCDFile::read_MatNC(const string dataSet, vector<vector<T> > &vm, int grp
 }
 
 template<typename T>
-void NetCDFile::read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid)
-{
-	if(grpid == NULL) grpid = ncid;
-
-	nc_type xtype;
-	size_t len;
-
-	if(( retval = nc_inq_att(grpid, varid, attName.c_str(), &xtype, &len) ))
-		err(retval);
-
-	attVal.resize(len);
-
-	if(( retval =  nc_get_att(grpid, varid, attName.c_str(), &attVal[0]) ))
-		err(retval);
-}
-
-
-template<typename T>
 void NetCDFile::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid)
 {
 	if(grpid == NULL) grpid = ncid;
@@ -311,6 +293,59 @@ void NetCDFile::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int gr
 			vm[j][i]=vecbuff[i*dimSize[1]+j];
 		}
 	}
+}
+
+template<typename T>
+vector<size_t> NetCDFile::read_DimNC(const string dataSet, int grpid)
+{
+	if(grpid == NULL) grpid = ncid;
+
+	int varid;
+	int ndim;
+	vector<int> dimid;
+	vector<size_t> dimSize;
+	nc_type typId;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
+		ERR(retval);
+
+	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
+		ERR(retval);
+
+	dimid.resize(ndim);
+	dimSize.resize(ndim);
+
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		ERR(retval);
+
+	for(int i = 0; i < ndim; ++i)
+	{
+		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			ERR(retval);
+	}
+
+	return dimSize;
+}
+
+
+template<typename T>
+void NetCDFile::read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid)
+{
+	if(grpid == NULL) grpid = ncid;
+
+	nc_type xtype;
+	size_t len;
+
+	if(( retval = nc_inq_att(grpid, varid, attName.c_str(), &xtype, &len) ))
+		err(retval);
+
+	attVal.resize(len);
+
+	if(( retval =  nc_get_att(grpid, varid, attName.c_str(), &attVal[0]) ))
+		err(retval);
 }
 
 
@@ -634,7 +669,7 @@ void NetCDFile::write_AttNC(const string dataSet, const string attName,
 
 
 template<typename T>
-void NetCDFile::write_DefUMatNC(const string dataSet, size_t dims[], nc_type xtype,
+void NetCDFile::write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,
 			int grpid,
 			size_t chunk, int deflate_level, int shuffle)
 {
@@ -687,7 +722,7 @@ void NetCDFile::write_DefUMatNC(const string dataSet, size_t dims[], nc_type xty
 }
 
 template<typename T>
-void NetCDFile::write_DefUMatNC(const string dataSet, const string rowY, const string colX,
+void NetCDFile::write_DefHypMatNC(const string dataSet, const string rowY, const string colX,
 		nc_type xtype, int grpid,
 		size_t chunk, int deflate_level, int shuffle)
 {
@@ -755,7 +790,7 @@ void NetCDFile::write_DefUMatNC(const string dataSet, const string rowY, const s
 
 
 template<typename T>
-void NetCDFile::write_PutUMatNC(const string dataSet, VecMat<T> &vm,
+void NetCDFile::write_PutHypMatNC(const string dataSet, VecMat<T> &vm,
 		size_t rcIdx[2], size_t len[2], int grpid)
 {
 	if(grpid == NULL) grpid = ncid;
@@ -765,7 +800,22 @@ void NetCDFile::write_PutUMatNC(const string dataSet, VecMat<T> &vm,
 	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
 		ERR(retval);
 
-	if ((retval = nc_put_vara(grpid, varid, rcIdx, len, &vm.v[0])))
+	if ((retval = nc_put_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
+		ERR(retval);
+}
+
+template<typename T>
+void NetCDFile::write_PutHypMatNC(const string dataSet, T *vm,
+		size_t rcIdx[2], size_t len[2], int grpid)
+{
+	if(grpid == NULL) grpid = ncid;
+
+	int varid;
+
+	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		ERR(retval);
+
+	if ((retval = nc_put_vara(grpid, varid, rcIdx, len, vm) ))
 		ERR(retval);
 }
 

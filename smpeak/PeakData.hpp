@@ -45,6 +45,7 @@ public:
 	vector<lli> getRTIdx(void);
 	void getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
 	void getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
+	void dumpPeakData(string filename, const H5::DataType &data_type_id=H5::PredType::NATIVE_FLOAT);
 };
 
 #include"PeakData.tpp"

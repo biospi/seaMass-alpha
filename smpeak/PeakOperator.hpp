@@ -19,6 +19,7 @@ protected:
 	void calPeakMZ(DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
 					lli i, lli j, double &mzPeak, T &countMax,
 					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak);
+	~MathOp(){};
 };
 
 
