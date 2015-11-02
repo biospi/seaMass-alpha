@@ -1,18 +1,44 @@
+//
+// $Id$
+//
+//
+// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+//
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+//
+// This file is part of seaMass.
+//
+// seaMass is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// seaMass is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #include <iostream>
 #include <iterator>
 #include <boost/program_options.hpp>
+#include <pugixml.hpp>
+#include <sstream>
+#include <omp.h>
+
 #include "peakcore.hpp"
+#include "NetCDFile.hpp"
 #include "SMPFile.hpp"
+
 #include "SMData.hpp"
 #include "MathOperator.hpp"
 #include "BsplineData.hpp"
 #include "PeakOperator.hpp"
 #include "PeakData.hpp"
 #include "PeakManager.hpp"
-#include "NetCDFile.hpp"
-#include <pugixml.hpp>
-#include <sstream>
-#include <omp.h>
 
 namespace po = boost::program_options;
 namespace xml = pugi;
@@ -67,11 +93,12 @@ int main(int argc, char **argv)
 		}
 		if(vm.count("centroid"))
 		{
-			cout<<"Transforming data to peak detection Centroid mode."<<endl;
+			cout<<"Transforming data to peak detection Centroid, 1D scan mode."<<endl;
 			process=CENT1DIM;
 		}
 		else if(vm.count("centroid-2d"))
 		{
+			cout<<"Transforming data to peak detection Centroid, 2D scan mode."<<endl;
 			process=CENT2DIM;
 		}
 		else
@@ -146,7 +173,6 @@ int main(int argc, char **argv)
 	vector<int> msLevel;
 	vector<rtIdxData> rtRaw;
 	vector<size_t> rawSize;
-	size_t maxSize=0;
 
 	xml::xml_document docmzML;
 	size_t xmlSize=sizeof(char)*mzMLbuff.size();
@@ -156,7 +182,6 @@ int main(int argc, char **argv)
 		docmzML.select_nodes("mzML/run/spectrumList/spectrum/cvParam[@name='ms level']");
 
 	cout<<"XML: "<<tools.size()<<endl;;
-	//for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr, ++idx)
 	int idx=0;
 	for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
 	{
@@ -164,22 +189,11 @@ int main(int argc, char **argv)
 		double rt;
 		size_t len;
 
-		//xml::xpath_node n = *i;
-		//cout<<"Spectrum: "<<
-			//n.node().parent().attribute("index").value()<<"  "<<
-			//n.node().attribute("value").value()<<endl;
-		//cout<<"Spectrum: "<<
-			//i->node().parent().attribute("index").value()<<"  "<<
-			//i->node().attribute("value").value()<<"\t";
-		//cout<<"Start Time: "<<
-			//i->node().parent().child("scanList").child("scan").child("cvParam").attribute("value").value()<<endl;
-
 		istringstream(itr->node().attribute("value").value()) >> ms;
 		msLevel.push_back(ms);
 
 		istringstream(itr->node().parent().attribute("defaultArrayLength").value()) >> len;
 		rawSize.push_back(len);
-		if(rawSize.back() > maxSize) maxSize = rawSize.back();
 
 		if(ms == 1)
 		{
@@ -216,45 +230,10 @@ int main(int argc, char **argv)
 	smoDF.read_AttNC("Offset",dataSetList[0].varid,offset,dataSetList[0].grpid);
 	fcsLen = smoDF.read_DimNC(dataSetList[0].varName,dataSetList[0].grpid);
 
-	//=====================================================================
-
-	//---------------------------------------------------------------------
-	// NetCDF4 Read data TEST Hyperslab
-	VecMat<float> hypTest;
-	size_t rc[2]={7,4};
-	size_t lenA[2]={6,1};
-
-	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	lenA[0]=1;
-	lenA[1]=0;
-	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	lenA[0]=0;
-	lenA[1]=1;
-	smoDF.read_HypVecNC(dataSetList[0].varName,hypTest.v,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	lenA[0]=5;
-	lenA[1]=3;
-	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-
-	rc[0]=3;
-	rc[1]=1192;
-	lenA[0]=3;
-	lenA[1]=0;
-	smoDF.read_HypMatNC(dataSetList[0].varName,hypTest,rc,lenA,dataSetList[0].grpid);
-	hypTest.clear();
-	//=====================================================================
-
 	VecMat<double> mzPeak;
 	VecMat<float> pkPeak;
 	vector<size_t> mzpkVecSize;
-	VecMat<double> rawMZ;
-	VecMat<float> rawPK;
+
 	//---------------------------------------------------------------------
 	// Centroid Peak Data Set...
 	// Process Scan by Scan
@@ -308,14 +287,15 @@ int main(int argc, char **argv)
 			{
 				for(int i = 0; i < nthrd; ++i)
 				{
-					cout<<"Thread ["<<i<<"] peaks found: "<<peakThreads[i]->numOfPeaks()<<endl;
+					if(debug)
+						cout<<"Thread ["<<i<<"] peaks found: "<<peakThreads[i]->numOfPeaks()<<endl;
 					totalPeaks.addPeakArray(peakThreads[i]->getPeakData());
 				}
 			}
 		}
-		cout<<"Total ["<<totalPeaks.numOfPeaks()<<"] peaks found."<<endl;
 
 		totalPeaks.getPeakMat(mzPeak, pkPeak, fcsLen[0], mzpkVecSize);
+		cout<<"Total ["<<totalPeaks.numOfPeaks()<<"] peaks found."<<endl;
 
 		if(debug) totalPeaks.dumpPeakData(smoFileName);
 	}
@@ -329,7 +309,6 @@ int main(int argc, char **argv)
 		SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 		SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 		SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-		rawCoeff.clear();
 
 		for(size_t i = 0; i < A.rt.size(); ++i)
 		{
@@ -342,13 +321,7 @@ int main(int argc, char **argv)
 
 		PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData);
 		centriodPeak.execute();
-		centriodPeak.peak->getPeakMatT(mzPeak, pkPeak, fcsLen[0], mzpkVecSize);
-
-		mzMLb3DF.read_MatNC("spectrum_MS_1000514",rawMZ);
-		mzMLb3DF.read_MatNC("spectrum_MS_1000515",rawPK);
-
-		repackPeakDataT(mzPeak, rawMZ, msLevel, mzpkVecSize, rawSize);
-		repackPeakDataT(pkPeak, rawPK, msLevel, mzpkVecSize, rawSize);
+		centriodPeak.peak->getPeakMat(mzPeak, pkPeak, fcsLen[0], mzpkVecSize);
 
 		if(debug) centriodPeak.peak->dumpPeakData(smoFileName);
 	}
@@ -367,10 +340,6 @@ int main(int argc, char **argv)
 	//---------------------------------------------------------------------
 	// Close Files...
 	smoDF.close();
-
-	//---------------------------------------------------------------------
-	// Raw MZ and Peak Data
-	//---------------------------------------------------------------------
 
 	//---------------------------------------------------------------------
 	// XML Modify
@@ -398,15 +367,24 @@ int main(int argc, char **argv)
 	vector<char>().swap(mzMLbuff);
 	mzMLbuff.assign(output.begin(),output.end());
 
+	if(debug)
+	{
+		cout<<"\nSaving Peak Debugging Data to File:"<<endl;
+		string outFileName=smoFileName.substr(0,smoFileName.size()-4);
+		mzMLdump(string(outFileName+"_mzML.txt"),output);
+	}
+
 	// Free up memory
 	newmzML.clear();
 	newmzML.str(std::string());
-
-	cout<<"It works!"<<endl;
+	string(output).swap(output);
 
 	//---------------------------------------------------------------------
 	// NetCDF4 Write data to Peak mzMLb3 File.
 	//---------------------------------------------------------------------
+
+	cout<<"Writing Data to new mzMLb3 file:"<<endl;
+
 	vector<double> chromatTime;
 	vector<float> chromatInten;
 	vector<size_t> rdims = mzMLb3DF.read_DimNC("spectrum_MS_1000514");
@@ -493,91 +471,6 @@ int main(int argc, char **argv)
 			mzMLb3NCDF4.write_PutHypMatNC("spectrum_MS_1000514",&writeMZCoeff[0],wrcIdx,rawLen);
 			mzMLb3NCDF4.write_PutHypMatNC("spectrum_MS_1000515",&writePKCoeff[0],wrcIdx,rawLen);
 		}
-	}
-
-
-	//mzMLb3NCDF4.write_MatNC("spectrum_MS_1000514",rawMZ,NC_DOUBLE,NULL,
-	//		"spectrum_MS_1000514_row","spectrum_MS_1000514_col");
-	//mzMLb3NCDF4.write_MatNC("spectrum_MS_1000515",rawPK,NC_FLOAT,NULL,
-	//		"spectrum_MS_1000515_row","spectrum_MS_1000515_col");
-
-	//---------------------------------------------------------------------
-	// Test Unlimited write of Vector.
-	/*
-	vector<double> mzAxisMZ(0,0.0);
-	vector<double> mzAxisRT(rdims[1],0.0);
-	mzMLb3NCDF4.write_VecNC("mzAxisMZ",mzAxisMZ,NC_DOUBLE,NULL,true);
-	mzMLb3NCDF4.write_VecNC("mzAxisRT",mzAxisRT,NC_DOUBLE);
-
-	// Test UnLimited write of Matrix.
-
-	VecMat<double> testUMat1;
-	VecMat<float> testUMat2;
-	size_t udims[2];
-
-	size_t wrcIdx[2];
-	size_t wlen[2];
-
-	testUMat1.set(1,30);
-	testUMat2.set(1,30);
-	for(int i=0; i < 30; ++i)
-	{
-		testUMat1.m[0][i]=rawMZ.m[i][0];
-		testUMat2.m[0][i]=rawPK.m[i][0];
-	}
-
-	udims[0]=NC_UNLIMITED;
-	udims[1]=size_t(rdims[1]);
-	mzMLb3NCDF4.write_DefHypMatNC<double>("UMZTest","mzAxisMZ","mzAxisRT",NC_DOUBLE);
-	mzMLb3NCDF4.write_DefHypMatNC<float>("UPKTest",udims,NC_FLOAT);
-
-	wrcIdx[0]=0;
-	wrcIdx[1]=0;
-	wlen[0]=30;
-	wlen[1]=1;
-
-	mzMLb3NCDF4.write_PutHypMatNC("UMZTest",testUMat1,wrcIdx,wlen);
-	mzMLb3NCDF4.write_PutHypMatNC("UPKTest",testUMat2,wrcIdx,wlen);
-
-	testUMat1.clear();
-	testUMat1.set(1,33);
-	testUMat2.clear();
-	testUMat2.set(1,33);
-	for(int i=0; i < 33; ++i)
-	{
-		testUMat1.m[0][i]=rawMZ.m[i][1];
-		testUMat2.m[0][i]=rawPK.m[i][1];
-	}
-	wrcIdx[0]=3;
-	wrcIdx[1]=2;
-	wlen[0]=33;
-	wlen[1]=1;
-
-	mzMLb3NCDF4.write_PutHypMatNC("UMZTest",testUMat1,wrcIdx,wlen);
-	mzMLb3NCDF4.write_PutHypMatNC("UPKTest",testUMat2,wrcIdx,wlen);
-	*/
-
-	//--------------------------------------------------------------------
-
-	if(debug)
-	{
-		string outFileName=smoFileName.substr(0,smoFileName.size()-4);
-		cout<<"\nSaving Peak Debugging Data to File:"<<endl;
-		mzMLdump(string(outFileName+"_mzML.txt"),output);
-
-		//smpDataFile.write_VecMatH5("csOrig",Adel.alpha->v,dimsDel,H5::PredType::NATIVE_FLOAT);
-		//smpDataFile.write_VecMatH5("dcs",dhAdel.alpha->v,dimsDel,H5::PredType::NATIVE_FLOAT);
-		//smpDataFile.write_VecMatH5("d2cs",d2hAdel.alpha->v,dimsDel,H5::PredType::NATIVE_FLOAT);
-		//smpDataFile.write_VecMatH5("dvcs",dvA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-		//smpDataFile.write_VecMatH5("d2vcs",d2vA.alpha->v,dims,H5::PredType::NATIVE_FLOAT);
-
-		//mzPeak.getDims(dimsDel);
-		//smpDataFile.write_VecMatH5("mat_Peak_MZ",mzPeak.v,dims,H5::PredType::NATIVE_DOUBLE);
-		//smpDataFile.write_VecMatH5("mat_Peak_PK",pkPeak.v,dims,H5::PredType::NATIVE_FLOAT);
-
-		//rawMZ.getDims(dimsDel);
-		//smpDataFile.write_VecMatH5("mat_raw_Peak_MZ",rawMZ.v,dims,H5::PredType::NATIVE_DOUBLE);
-		//smpDataFile.write_VecMatH5("mat_raw_Peak_PK",rawPK.v,dims,H5::PredType::NATIVE_FLOAT);
 	}
 
 	return 0;
