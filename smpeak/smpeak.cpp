@@ -389,12 +389,10 @@ int main(int argc, char **argv)
 	vector<float> chromatInten;
 	vector<size_t> rdims = mzMLb3DF.read_DimNC("spectrum_MS_1000514");
 
-	//vector<double> specMZAxisRow(rdims[0],0.0);
-	//vector<float> specPKAxisRow(rdims[0],0.0);
-	vector<double> specMZAxisRow;
-	vector<float> specPKAxisRow;
-	vector<double> specMZAxisCol(rdims[1],0.0);
-	vector<float> specPKAxisCol(rdims[1],0.0);
+	vector<double> specMZAxisRow(rdims[0],0.0);
+	vector<float> specPKAxisRow(rdims[0],0.0);
+	vector<double> specMZAxisCol;
+	vector<float> specPKAxisCol;
 
 	vector<unsigned int> mzpkSpecIdx;
 	vector<unsigned int> chromatSpecIdx;
@@ -418,10 +416,10 @@ int main(int argc, char **argv)
 
 	mzMLb3NCDF4.write_VecNC("mzML_spectrumIndex",mzpkSpecIdx,NC_UINT);
 	// Unlimited dimensions
-	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_row",specMZAxisRow,NC_DOUBLE,NULL,true);
-	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_row",specPKAxisRow,NC_FLOAT,NULL,true);
-	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_col",specMZAxisCol,NC_DOUBLE);
-	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_col",specPKAxisCol,NC_FLOAT);
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_row",specMZAxisRow,NC_DOUBLE);
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_row",specPKAxisRow,NC_FLOAT);
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000514_col",specMZAxisCol,NC_DOUBLE,NULL,true);
+	mzMLb3NCDF4.write_VecNC("spectrum_MS_1000515_col",specPKAxisCol,NC_FLOAT,NULL,true);
 
 	// Define the unlimited ragged matrix dimensions
 	mzMLb3NCDF4.write_DefHypMatNC<double>("spectrum_MS_1000514",
@@ -432,10 +430,10 @@ int main(int argc, char **argv)
 	// Write ragged unlimited matrix scan by scan
 	hsize_t centrc[2];
 	mzPeak.getDims(centrc);
-	for(size_t rt_idx = 0, ms1 = 0; rt_idx < rdims[1]; ++rt_idx)
+	for(size_t rt_idx = 0, ms1 = 0; rt_idx < rdims[0]; ++rt_idx)
 	{
-		size_t wrcIdx[2]={0,rt_idx};
-		size_t wlen[2]={0,1};
+		size_t wrcIdx[2]={rt_idx,0};
+		size_t wlen[2]={1,0};
 		vector<double> writeMZCoeff;
 		vector<float> writePKCoeff;
 		double *scanMZ;
@@ -446,14 +444,14 @@ int main(int argc, char **argv)
 			scanMZ = &mzPeak.m[ms1][0];
 			scanPK = &pkPeak.m[ms1][0];
 
-			wlen[0]=mzpkVecSize[ms1];
+			wlen[1]=mzpkVecSize[ms1];
 			mzMLb3NCDF4.write_PutHypMatNC("spectrum_MS_1000514",scanMZ,wrcIdx,wlen);
 			mzMLb3NCDF4.write_PutHypMatNC("spectrum_MS_1000515",scanPK,wrcIdx,wlen);
 			++ms1;
 		}
 		else if(msLevel[rt_idx] == 2)
 		{
-			size_t rawLen[2]={rawSize[rt_idx],1};
+			size_t rawLen[2]={1,rawSize[rt_idx]};
 
 			mzMLb3DF.read_HypVecNC("spectrum_MS_1000514",writeMZCoeff,wrcIdx,rawLen);
 			mzMLb3DF.read_HypVecNC("spectrum_MS_1000515",writePKCoeff,wrcIdx,rawLen);
@@ -463,7 +461,7 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-			size_t rawLen[2]={rawSize[rt_idx],1};
+			size_t rawLen[2]={1,rawSize[rt_idx]};
 
 			mzMLb3DF.read_HypVecNC("spectrum_MS_1000514",writeMZCoeff,wrcIdx,rawLen);
 			mzMLb3DF.read_HypVecNC("spectrum_MS_1000515",writePKCoeff,wrcIdx,rawLen);
