@@ -70,9 +70,9 @@ vector<T> MathOp<T,R>::cal3rdMidPoint(lli row, lli col, T **P)
 	T u=1.0/3.0;
 	T v=2.0/3.0;
 	T w=1.0/2.0;
-	T up=(1-u);
-	T vp=(1-v);
-	T wp=(1-w);
+	T up=v; // (1-u);
+	T vp=u; // (1-v);
+	T wp=w; // (1-w);
 
 	ry[0]=wp*(vp*p0+v*p1)+w*(up*p1+u*p2);
 	ry[1]=up*p1+u*p2;
@@ -171,7 +171,7 @@ void MathOp<T,R>::calPeakMZ(
 				mzPeak=calX(t0,pmz0,dbs->mz[j],pmz1);
 				mzlhs=0.0;
 				mzrhs=0.0;
-				ry = cal3rdMidPoint(i,j,bs->alpha->m);
+				ry = cal3rdMidPoint(i,j-1,bs->alpha->m);
 				countMax = calPeakCount(ry,t0);
 				calPeakWidth(i,j,d2bs->alpha->m,d2bs->mz,mzlhs,mzrhs);
 			}
@@ -216,50 +216,42 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data)
 
 	hsize_t dims[2];
 	bs->alpha->getDims(dims);
-	lli row = dims[0];
+	lli i = 0;
 	lli col = dims[1];
 
 	lli falsePeak=0;
 	lli falseWidth=0;
+
 	// Find Peaks and exact MZ values.
-
-	for(lli i = 0; i < row; ++i)
+	for(lli j = 2; j < col-2; ++j)
 	{
-		for(lli j = 2; j < col-2; ++j)
+		if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
 		{
-			if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
-			{
-				double mzPeak=-1.0;
-				T countMax=-1.0;
-				double mzlhs=-1.0;
-				double mzrhs=-1.0;
-				double t0=-1.0;
-				this->calPeakMZ(bs,dbs,d2bs,i,j,mzPeak,countMax,mzlhs,mzrhs,t0,falsePeak);
+			double mzPeak=-1.0;
+			T countMax=-1.0;
+			double mzlhs=-1.0;
+			double mzrhs=-1.0;
+			double t0=-1.0;
+			this->calPeakMZ(bs,dbs,d2bs,i,j,mzPeak,countMax,mzlhs,mzrhs,t0,falsePeak);
 
-				if (t0 >=0)
+			if (t0 >=0)
+			{
+				if(mzlhs >= 0 && mzrhs >= 0)
 				{
-					if(mzlhs >= 0 && mzrhs >= 0)
 					{
-						{
-							peak->addPeak(mzPeak,bs->rt[i].second,countMax,
-									make_pair(mzlhs,mzrhs),
-									make_pair(bs->rt[i].second,bs->rt[i].second),t0,j,
-									bs->rt[i].first);
-						}
+						peak->addPeak(mzPeak,bs->rt[i].second,countMax,
+								make_pair(mzlhs,mzrhs),
+								make_pair(bs->rt[i].second,bs->rt[i].second),t0,j,
+								bs->rt[i].first);
 					}
-					else
-					{
-						++falseWidth;
-					}
+				}
+				else
+				{
+					++falseWidth;
 				}
 			}
 		}
 	}
-	//cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
-	//if(falsePeak > 0)
-	//	cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
-	//if(falseWidth > 0)
-	//	cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
 	peak->updateFalseData(falsePeak,falseWidth);
 }
 

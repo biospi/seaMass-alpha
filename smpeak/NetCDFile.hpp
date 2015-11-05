@@ -65,6 +65,8 @@ public:
 	template<typename T>
 	void read_VecNC(const string dataSet, T *vecData, int grpid = NULL);
 
+	int read_VarIDNC(const string dataSet, int grpid = NULL);
+
 	template<typename T>
 	void read_MatNC(const string dataSet, VecMat<T> &vm, int grpid = NULL);
 	template<typename T>

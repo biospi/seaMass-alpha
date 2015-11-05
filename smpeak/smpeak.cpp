@@ -427,14 +427,10 @@ int main(int argc, char **argv)
 	vector<float> specPKAxisCol;
 
 	vector<unsigned int> mzpkSpecIdx;
-	vector<unsigned int> chromatSpecIdx;
+	vector<unsigned int> chromatSpecIdx(1,0);
 	findVecString(mzMLbuff, mzpkSpecIdx);
-	findVecString(mzMLbuff, chromatSpecIdx,"<chromatogram index","</chromatogram>");
 
 	// Load rest of data from mzMLb3 file...
-	mzMLb3DF.read_VecNC("chromatogram_MS_1000595",chromatTime);
-	mzMLb3DF.read_VecNC("chromatogram_MS_1000515",chromatInten);
-
 	NetCDFile mzMLb3NCDF4(outMZFileName,NC_NETCDF4);
 
 	mzMLb3NCDF4.write_VecNC("mzML",mzMLbuff,NC_BYTE);
@@ -442,9 +438,15 @@ int main(int argc, char **argv)
 	mzMLver.push_back(3);
 	mzMLb3NCDF4.write_AttNC("mzML","mzMLb_version",mzMLver, NC_UINT);
 
+	if(mzMLb3DF.read_VarIDNC("chromatogram_MS_1000595") >= 0)
+	{
+		findVecString(mzMLbuff, chromatSpecIdx,"<chromatogram index","</chromatogram>");
+		mzMLb3DF.read_VecNC("chromatogram_MS_1000595",chromatTime);
+		mzMLb3DF.read_VecNC("chromatogram_MS_1000515",chromatInten);
+		mzMLb3NCDF4.write_VecNC("chromatogram_MS_1000595",chromatTime,NC_DOUBLE);
+		mzMLb3NCDF4.write_VecNC("chromatogram_MS_1000515",chromatInten,NC_FLOAT);
+	}
 	mzMLb3NCDF4.write_VecNC("mzML_chromatogramIndex",chromatSpecIdx,NC_UINT);
-	mzMLb3NCDF4.write_VecNC("chromatogram_MS_1000595",chromatTime,NC_DOUBLE);
-	mzMLb3NCDF4.write_VecNC("chromatogram_MS_1000515",chromatInten,NC_FLOAT);
 
 	mzMLb3NCDF4.write_VecNC("mzML_spectrumIndex",mzpkSpecIdx,NC_UINT);
 	// Unlimited dimensions

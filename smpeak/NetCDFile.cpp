@@ -101,6 +101,20 @@ NetCDFile::~NetCDFile()
 	}
 }
 
+int NetCDFile::read_VarIDNC(const string dataSet, int grpid)
+{
+	if(grpid == NULL) grpid = ncid;
+
+	int varid;
+
+	retval = nc_inq_varid(grpid, dataSet.c_str(), &varid);
+
+	if(retval != 0) varid = -1;
+
+	return varid;
+}
+
+
 vector<size_t> NetCDFile::read_DimNC(const string dataSet, int grpid)
 {
 	if(grpid == NULL) grpid = ncid;
