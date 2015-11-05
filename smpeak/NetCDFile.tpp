@@ -714,9 +714,9 @@ void NetCDFile::write_DefHypMatNC(const string dataSet, size_t dims[], nc_type x
 	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
 	if(dims[1] < chunk)
 	{
-		if(dims[0] != NC_UNLIMITED) chunk = dims[0];
-		else if(dims[1] != NC_UNLIMITED) chunk = dims[1];
+		if(dims[1] != NC_UNLIMITED) chunk = dims[1];
 	}
+
 	chunks[0] = 1;
 	chunks[1] = chunk;
 

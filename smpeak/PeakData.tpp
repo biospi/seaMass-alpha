@@ -59,6 +59,14 @@ void PeakData<T>::addPeakArray(pdata* peakArray)
 }
 
 template<typename T>
+void PeakData<T>::updateFalseData(lli fPeaks, lli fWidths)
+{
+	this->falsePeak+=fPeaks;
+	this->falseWidth+=fWidths;
+}
+
+
+template<typename T>
 size_t PeakData<T>::numOfPeaks(void)
 {
 	return peakData.size();
@@ -253,6 +261,25 @@ void PeakData<T>::dumpPeakData(string filename, const H5::DataType &data_type_id
 		smpDataFile.write_VecMatH5("Peak_mz_idx",getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
 		vecN[0]=getRTIdx().size();
 		smpDataFile.write_VecMatH5("Peak_rt_idx",getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
+}
+
+template<typename T>
+lli PeakData<T>::getFalsePeaks(void)
+{
+	return falsePeak;
+}
+
+template<typename T>
+lli PeakData<T>::getFalseWidths(void)
+{
+	return falseWidth;
+}
+
+template<typename T>
+void PeakData<T>::clear(void)
+{
+	peakData.clear();
+	vector<Peak<T> >(peakData).swap(peakData);
 }
 
 #endif /* SMPEAK_PEAKDATA_TPP_ */

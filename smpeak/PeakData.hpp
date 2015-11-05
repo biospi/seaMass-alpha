@@ -52,12 +52,16 @@ class PeakData
 protected:
 	typedef vector<Peak<T> > pdata;
 	pdata peakData;
+	lli falsePeak;
+	lli falseWidth;
 public:
+	PeakData():falsePeak(0),falseWidth(0){}
 	pdata* getPeakData(void);
 	void addPeak(double _mz, double _rt, T _pkcnt,
 		pair<double,double> _mzW, pair<double,double> _rtW,
 		double _t, lli _mz_idx, lli _rt_idx);
 	void addPeakArray(pdata* peakArray);
+	void updateFalseData(lli fPeak, lli fWidth);
 	size_t numOfPeaks(void);
 	vector<double> getMZ(void);
 	vector<double> getRT(void);
@@ -70,6 +74,9 @@ public:
 	void getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
 	void getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
 	void dumpPeakData(string filename, const H5::DataType &data_type_id=H5::PredType::NATIVE_FLOAT);
+	lli getFalsePeaks(void);
+	lli getFalseWidths(void);
+	void clear(void);
 };
 
 #include"PeakData.tpp"

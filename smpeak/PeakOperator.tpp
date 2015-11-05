@@ -256,10 +256,11 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data)
 		}
 	}
 	//cout<<"Found ["<<peak->numOfPeaks()<<"] Peaks."<<endl;
-	if(falsePeak > 0)
-		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
-	if(falseWidth > 0)
-		cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
+	//if(falsePeak > 0)
+	//	cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falsePeak<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
+	//if(falseWidth > 0)
+	//	cout<<"Warning!"<<" Scan RT: "<<bs->rt[0].second<<" Found ["<<falseWidth<<"] False Peaks Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
+	peak->updateFalseData(falsePeak,falseWidth);
 }
 
 

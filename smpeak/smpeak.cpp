@@ -173,15 +173,32 @@ int main(int argc, char **argv)
 	vector<int> msLevel;
 	vector<rtIdxData> rtRaw;
 	vector<size_t> rawSize;
+	bool constPrecursor=true;
 
 	xml::xml_document docmzML;
 	size_t xmlSize=sizeof(char)*mzMLbuff.size();
 	xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLbuff[0],xmlSize);
 
 	xml::xpath_node_set tools =
+		docmzML.select_nodes("mzML/run/spectrumList/spectrum/precursorList/precursor/selectedIonList/selectedIon/cvParam[@accession='MS:1000744']");
+
+
+	for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end()-1; ++itr)
+	{
+		double prc0;
+		double prc1;
+		istringstream(itr->node().attribute("value").value()) >> prc0;
+		istringstream((itr+1)->node().attribute("value").value()) >> prc1;
+		if(prc0 != prc1)
+		{
+			constPrecursor = false;
+			break;
+		}
+	}
+
+	tools =
 		docmzML.select_nodes("mzML/run/spectrumList/spectrum/cvParam[@name='ms level']");
 
-	cout<<"XML: "<<tools.size()<<endl;;
 	int idx=0;
 	for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
 	{
@@ -190,12 +207,15 @@ int main(int argc, char **argv)
 		size_t len;
 
 		istringstream(itr->node().attribute("value").value()) >> ms;
-		msLevel.push_back(ms);
+		if(constPrecursor)
+			msLevel.push_back(3);
+		else
+			msLevel.push_back(ms);
 
 		istringstream(itr->node().parent().attribute("defaultArrayLength").value()) >> len;
 		rawSize.push_back(len);
 
-		if(ms == 1)
+		if(msLevel.back() == 1 || msLevel.back() == 3 )
 		{
 			istringstream(itr->node().parent().child("scanList").child("scan").child("cvParam").attribute("value").value()) >> rt;
 			rtRaw.push_back(make_pair(idx,rt));
@@ -255,25 +275,30 @@ int main(int argc, char **argv)
 
 		cout<<"Extract Peaks from Mass Spec Data"<<endl;
 		// Manual reduction of STL container as STLs are not thread safe...
+		int run=0;
 		#pragma omp parallel
 		{
 			int nthrd=omp_get_num_threads();
 			PeakData<> localPeaks;
 			int thrdid=omp_get_thread_num();
 			peakThreads[thrdid] = &localPeaks;
+			int *p=&run;
 
-			#pragma omp for firstprivate(hypIdx,rdLen)
+			#pragma omp for firstprivate(hypIdx,rdLen) schedule(dynamic)
 			for(size_t rt_idx = 0; rt_idx < fcsLen[0]; ++rt_idx)
 			{
 				vector<float> rawCoeff;
 				hypIdx[0]=rt_idx;
 
+				if(thrdid == 0){
+					cout<<"\r"<<"Processing Scan: "<<fcsLen[0]<<"/"<<*p<<flush;
+				}
 				smoDF.read_HypVecNC(dataSetList[0].varName,rawCoeff,&hypIdx[0],&rdLen[0],
 						dataSetList[0].grpid);
 
-				SMData1D<OpUnit> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
-				SMData1D<OpNablaH> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
-				SMData1D<OpNabla2H> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
+				SMData1D<OpUnitS> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
+				SMData1D<OpNablaHS> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
+				SMData1D<OpNabla2HS> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
 
 				BsplineData<rtIdxData> bsData(A,dhA,d2hA);
 
@@ -281,21 +306,29 @@ int main(int argc, char **argv)
 				centriodPeak.execute();
 
 				localPeaks.addPeakArray(centriodPeak.peak->getPeakData());
+				localPeaks.updateFalseData(centriodPeak.peak->getFalsePeaks(),centriodPeak.peak->getFalseWidths());
+				*p=*p+1;
 			}
 
 			#pragma omp single
 			{
+				cout<<"\r"<<"Processing Scan: "<<fcsLen[0]<<"/"<<fcsLen[0]<<endl;
+				cout<<"Gathering Peaks from all threads..."<<endl;
 				for(int i = 0; i < nthrd; ++i)
 				{
-					if(debug)
-						cout<<"Thread ["<<i<<"] peaks found: "<<peakThreads[i]->numOfPeaks()<<endl;
+					//if(debug)
+					cout<<"Thread ["<<i<<"] peaks found: "<<peakThreads[i]->numOfPeaks()<<endl;
 					totalPeaks.addPeakArray(peakThreads[i]->getPeakData());
+					totalPeaks.updateFalseData(peakThreads[i]->getFalsePeaks(),peakThreads[i]->getFalseWidths());
+					peakThreads[i]->clear();
 				}
 			}
 		}
 
 		totalPeaks.getPeakMat(mzPeak, pkPeak, fcsLen[0], mzpkVecSize);
 		cout<<"Total ["<<totalPeaks.numOfPeaks()<<"] peaks found."<<endl;
+		cout<<"Total ["<<totalPeaks.getFalsePeaks()<<"] Insignificant False Peaks Detected - Peaks Ignored"<<endl;
+		cout<<"Total ["<<totalPeaks.getFalseWidths()<<"] False Peak Widths Detected with Incorrect Peak Widths - Peaks Ignored"<<endl;
 
 		if(debug) totalPeaks.dumpPeakData(smoFileName);
 	}
@@ -346,7 +379,6 @@ int main(int argc, char **argv)
 	//---------------------------------------------------------------------
 	tools =	docmzML.select_nodes("mzML/run/spectrumList/spectrum");
 
-	cout<<"XML: "<<tools.size()<<endl;;
 	for(int i = 0, j = 0; i < tools.size(); ++i)
 	{
 		if( (msLevel[i] == 1) && (j < mzpkVecSize.size()) )
@@ -439,7 +471,8 @@ int main(int argc, char **argv)
 		double *scanMZ;
 		float *scanPK;
 
-		if(msLevel[rt_idx] == 1 && ms1 < centrc[0])
+		cout<<"\r"<<"Writing Scan: "<<rdims[0]<<"/"<<rt_idx+1<<flush;
+		if((msLevel[rt_idx] == 1  || msLevel[rt_idx] == 3) && ms1 < centrc[0])
 		{
 			scanMZ = &mzPeak.m[ms1][0];
 			scanPK = &pkPeak.m[ms1][0];
@@ -470,6 +503,7 @@ int main(int argc, char **argv)
 			mzMLb3NCDF4.write_PutHypMatNC("spectrum_MS_1000515",&writePKCoeff[0],wrcIdx,rawLen);
 		}
 	}
+	cout<<"\nCentroid complete."<<endl;
 
 	return 0;
 }

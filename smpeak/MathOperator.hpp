@@ -28,6 +28,34 @@
 #include "peakcore.hpp"
 
 template<class T>
+class OpUnitS
+{
+protected:
+	void apply(lli row, lli col, T** alpha){};
+	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
+	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	~OpUnitS(){};
+};
+
+template<class T>
+class OpNablaHS : public OpUnitS<T>
+{
+protected:
+	void apply(lli row, lli col, T** alpha);
+	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	~OpNablaHS(){};
+};
+
+template<class T>
+class OpNabla2HS : public OpUnitS<T>
+{
+protected:
+	void apply(lli row, lli col, T** alpha);
+	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	~OpNabla2HS(){};
+};
+
+template<class T>
 class OpUnit
 {
 protected:
@@ -63,7 +91,6 @@ protected:
 	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
 	~OpNablaV(){};
 };
-
 
 template<class T>
 class OpNabla2V : public OpUnit<T>
