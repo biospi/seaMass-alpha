@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -56,10 +56,21 @@ protected:
 };
 
 template<class T>
-class OpUnit
+class OpInterface
 {
 protected:
 	void apply(lli row, lli col, T** alpha){};
+	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
+		{_rt.resize(dims,0.0);};
+	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+		{_mz.resize(dims,0.0);};
+	~OpInterface(){};
+};
+
+template<class T>
+class OpUnit: public OpInterface<T>
+{
+protected:
 	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
 	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
 	~OpUnit(){};

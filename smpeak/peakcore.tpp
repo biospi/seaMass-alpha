@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -50,6 +50,7 @@ VecMat<T>::VecMat(hsize_t _r, hsize_t _c) : row(_r), col(_c)
 template<typename T>
 void VecMat<T>::set(hsize_t _r, hsize_t _c, vector<T> &_vec)
 {
+	this->clear();
 	row=_r;
 	col=_c;
 	v=_vec;
@@ -62,6 +63,7 @@ void VecMat<T>::set(hsize_t _r, hsize_t _c, vector<T> &_vec)
 template<typename T>
 void VecMat<T>::set(hsize_t _r, hsize_t _c)
 {
+	this->clear();
 	row=_r;
 	col=_c;
 	v.resize(row*col,0);
@@ -85,6 +87,7 @@ void VecMat<T>::clear(void)
 	col=0;
 	vector<T>().swap(this->v);
 	vector<T*>().swap(this->matIdx);
+	m=NULL;
 }
 
 template<typename T>

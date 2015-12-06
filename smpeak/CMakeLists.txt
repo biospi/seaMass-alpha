@@ -28,6 +28,7 @@ target_include_directories(smpeak PUBLIC
 	${PUGIXML_INCLUDE_DIR}
 )
 target_link_libraries(smpeak
+	seamass
 	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
 	${NETCDF_LIBRARIES}

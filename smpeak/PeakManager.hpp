@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -36,8 +36,8 @@ template
 	<
 		template<class SubOperator1> class Operator1,
 		template<class SubOperator1, class SubOperator2> class Operator2,
-		typename OpT,
-		typename OpR
+		class OpT,
+		class OpR
 	> class PeakOp,
 	typename R = double,
 	typename T = float
@@ -45,22 +45,21 @@ template
 class PeakManager : public PeakOp<PeakCon<T>,BsplineCon<R,T>, T, R>
 {
 public:
-	PeakManager(BsplineCon<R,T> &_data)
+	PeakManager(BsplineCon<R,T> &_data, T _threshold = 0) : threshold(_threshold)
 	{
 		peak=new PeakCon<T>();
 		data=&_data;
 	};
 	void execute()
 	{
-		calculate(this->peak, this->data);
+		calculate(this->peak, this->data, threshold);
 	};
 	PeakCon<T> *peak;
 	~PeakManager() {delete this->peak;};
-	private:
+private:
 	BsplineCon<R,T> *data;
-
+	T threshold;
 };
-
 
 
 #endif /* SMPEAK_PEAKMANAGER_HPP_ */

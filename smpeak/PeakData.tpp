@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -243,7 +243,7 @@ void PeakData<T>::dumpPeakData(string filename, const H5::DataType &data_type_id
 		string outFileName=filename.substr(0,filename.size()-4);
 		SMPFile smpDataFile(outFileName);
 
-		cout<<"\nSaving Peak Debugging Data to File:"<<endl;
+		cout<<"\nSaving Peak Data to File: "<<outFileName<<".smp"<<endl;
 
 		vector<hsize_t> vecN;
 		vecN.push_back(0.0);

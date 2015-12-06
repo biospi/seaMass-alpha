@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -95,12 +95,12 @@ public:
 	template<typename T>
 	int write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 			int grpid = NULL, bool unlim = false,
-			size_t chunks = 4096, int deflate_level = 4,
+			size_t chunks = 4096, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
 	template<typename T>
 	int write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 			int grpid = NULL, const string rowY="", const string colX="",
-			size_t chunk = 4096, int deflate_level = 4,
+			size_t chunk = 4096, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_AttNC(const string dataSet, const string attName,
@@ -109,11 +109,11 @@ public:
 	template<typename T>
 	void write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,
 			int grpid = NULL,
-			size_t chunk = 4096, int deflate_level = 4, int shuffle = NC_SHUFFLE);
+			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_DefHypMatNC(const string dataSet, const string rowY, const string colX, nc_type xtype,
 			int grpid = NULL,
-			size_t chunk = 4096, int deflate_level = 4, int shuffle = NC_SHUFFLE);
+			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_PutHypMatNC(const string dataSet, VecMat<T> &vm,
 		size_t rcIdx[2], size_t len[2], int grpid = NULL);

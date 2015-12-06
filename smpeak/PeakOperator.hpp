@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -58,7 +58,7 @@ template
 class Centroid1D : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<R,T> *data);
+	void calculate(pPeak<T> *peak, pData<R,T> *data, T threshold);
 protected:
 	~Centroid1D(){};
 };
@@ -74,7 +74,7 @@ template
 class Centroid2D : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<R,T> *data);
+	void calculate(pPeak<T> *peak, pData<R,T> *data, T threshold);
 protected:
 	~Centroid2D(){};
 };
@@ -90,13 +90,35 @@ template
 class ExtractPeak : public MathOp<T,R>
 {
 public:
-	void calculate(pPeak<T> *peak, pData<R,T> *data);
+	void calculate(pPeak<T> *peak, pData<R,T> *data, T threshold);
 protected:
 	~ExtractPeak(){};
 private:
-	void calPeakMZ(DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
+	class DataPoint
+	{
+	public:
+		double mz; // x
+		double rt; // y
+		T pk;      // z
+		double t0;
+	};
+	void mulVecMat(const VecMat<T> &cs, const VecMat<T> &bp, VecMat<T> &pcs, lli i, lli j);
+	int calInnerPeakMZ(DataAxis<T,R> const *bs,DataAxis<T,R> const *dhbs,
 					lli i, lli j, double &mzPeak, T &countMax,
-					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak, bool &peakRT);
+					double &t0, lli &falsePeak);
+	void bezierP(vector<DataPoint> const &spt, vector<DataPoint> &p);
+	void bezierT(vector<DataPoint> &p);
+	DataPoint bezierO3(vector<DataPoint> &p);
+	void calMidPointRT(lli rtIdx, lli mzIdx, T** alpha,
+					const vector<double> &rta, double &rt1, double &a1);
+	vector<T> cal3rdMidPointRT(lli rtIdx, lli mzIdx, T **P);
+	void calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2rt,
+					double &rtlhs, double &rtrhs);
+	void calPeakRT(DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
+					lli i, lli j, double &mzPeak, T &countMax,
+					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak);
+	void calPeakLenRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2rt,
+					double &rtlhs, double &rtrhs);
 };
 
 #include "PeakOperator.tpp"

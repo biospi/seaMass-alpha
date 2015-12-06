@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -29,7 +29,7 @@ template<class T>
 void OpUnitS<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
-	double offset = double(_offset) - 1;
+	double offset = double(_offset);
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
 	for (lli i = 0; i < _rt.size(); ++i) {
 		_rt[i] = (offset + i) * ppbrt;
@@ -40,7 +40,7 @@ template<class T>
 void OpUnitS<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
-	double offset = double(_offset) - 1;
+	double offset = double(_offset);
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	for (lli i = 0; i < _mz.size(); ++i) {
 		_mz[i] = (offset + i) * ppbmz;
@@ -69,7 +69,7 @@ template<class T>
 void OpNablaHS<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
-	double offset = double(_offset) - 1.5;
+	double offset = double(_offset) - 0.5;
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	for (lli i = 0; i < _mz.size(); ++i) {
 		_mz[i] = (offset + i) * ppbmz;
@@ -101,7 +101,7 @@ template<class T>
 void OpNabla2HS<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
-	double offset = double(_offset) - 2;
+	double offset = double(_offset) - 1;
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	for (lli i = 0; i < _mz.size(); ++i) {
 		_mz[i] = (offset + i) * ppbmz;
@@ -113,7 +113,7 @@ template<class T>
 void OpUnit<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
-	double offset = double(_offset) - 1;
+	double offset = double(_offset);
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
 	#pragma omp parallel for
 	for (lli i = 0; i < _rt.size(); ++i) {
@@ -125,7 +125,7 @@ template<class T>
 void OpUnit<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
-	double offset = double(_offset) - 1;
+	double offset = double(_offset);
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	#pragma omp parallel for
 	for (lli i = 0; i < _mz.size(); ++i) {
@@ -157,7 +157,7 @@ template<class T>
 void OpNablaH<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
-	double offset = double(_offset) - 1.5;
+	double offset = double(_offset) - 0.5;
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	#pragma omp parallel for
 	for (lli i = 0; i < _mz.size(); ++i) {
@@ -192,7 +192,7 @@ template<class T>
 void OpNabla2H<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
-	double offset = double(_offset) - 2;
+	double offset = double(_offset) - 1;
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	#pragma omp parallel for
 	for (lli i = 0; i < _mz.size(); ++i) {
@@ -224,7 +224,7 @@ template<class T>
 void OpNablaV<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
-	double offset = double(_offset) - 1.5;
+	double offset = double(_offset) - 0.5;
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
 	#pragma omp parallel for
 	for (lli i = 0; i < _rt.size(); ++i) {
@@ -259,7 +259,7 @@ template<class T>
 void OpNabla2V<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
-	double offset = double(_offset) - 2;
+	double offset = double(_offset) - 1;
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
 	#pragma omp parallel for
 	for (lli i = 0; i < _rt.size(); ++i) {

@@ -2,7 +2,7 @@
 // $Id$
 //
 //
-// Original author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
 //
@@ -27,45 +27,43 @@
 
 #include "peakcore.hpp"
 #include "SMData.hpp"
+#include "core.hpp"
 
+template<typename T = float>
+struct BasisPatch
+{
+public:
+	BasisPatch();
+	void set(vector<T> &x, vector<int> &t);
+	VecMat<T> b;
+};
 
 template<typename R = double, typename T = float>
 class BsplineData
 {
 public:
 	BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dbs, DataAxis<T,R> &d2bs);
-	BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
-				DataAxis<T,R> &dvbs, DataAxis<T,R> &d2vbs);
 	vector<DataAxis<T,R>* > get(void);
 private:
 	vector<DataAxis<T,R>* > bspObjP;
 };
 
 
-template<typename R,typename T>
-BsplineData<R,T>::BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dbs, DataAxis<T,R> &d2bs)
+template<typename R = double, typename T = float>
+class BsplineBasisData
 {
-	bspObjP.push_back(&bs);
-	bspObjP.push_back(&dbs);
-	bspObjP.push_back(&d2bs);
-}
+public:
+	BsplineBasisData(DataAxis<T,R> &bs,
+			DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
+			DataAxis<T,R> &dvbs, DataAxis<T,R> &d2vbs,
+			BasisPatch<T> &bp);
+	void get(vector<DataAxis<T,R>* > &bsDat, BasisPatch<T> *&bp);
+	void dumpData(string filename, const H5::DataType &data_type_id = H5::PredType::NATIVE_FLOAT);
+private:
+	vector<DataAxis<T,R>* > bspObjP;
+	BasisPatch<T> *bPat;
+};
 
-template<typename R,typename T>
-BsplineData<R,T>::BsplineData(DataAxis<T,R> &bs, DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
-		DataAxis<T,R> &dvbs, DataAxis<T,R> &d2vbs)
-{
-	bspObjP.push_back(&bs);
-	bspObjP.push_back(&dhbs);
-	bspObjP.push_back(&d2hbs);
-	bspObjP.push_back(&dvbs);
-	bspObjP.push_back(&d2vbs);
-}
-
-template<typename R,typename T>
-vector<DataAxis<T,R>* > BsplineData<R,T>::get(void)
-{
-	return bspObjP;
-}
-
+#include "BsplineData.tpp"
 
 #endif /* SMPEAK_BSPLINEDATA_HPP_ */
