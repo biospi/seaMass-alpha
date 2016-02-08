@@ -5,9 +5,9 @@ seaMass sparse signal decomposition and restoration of raw LC-MS data
 
 dependencies
 -------
-Depends on _CMake_, _HDF5_, _Boost_ and _libspatialindex_. **Note: _libspatialindex_ MUST be at least version 1.8.5**.
+Depends on _CMake_, _HDF5_, _Boost_, _libspatialindex_, _pugixml_ and _netCDF4_. **Note: _libspatialindex_ MUST be at least version 1.8.5**.
 Windows developers can get these from the [dependency repository](https://github.com/biospi/seamass-windeps).
-Also currently requires _Intel MKL_ with the _Intel C++ Compiler 14.0 or greater_.
+Also currently requires _Intel MKL_ with the _Intel C++ Compiler 14.0 or 15.0_.
 
 building
 -------
