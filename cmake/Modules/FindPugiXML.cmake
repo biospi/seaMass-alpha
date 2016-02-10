@@ -8,10 +8,10 @@
 
 find_path (PugiXML_INCLUDE_DIR
            NAMES pugixml.hpp
-           PATHS ${PugiXML_DIR}/include)
+           PATHS ${PugiXML_DIR}/../../../include)
 find_library (PugiXML_LIBRARY
               NAMES pugixml
-              PATHS ${PugiXML_DIR}/lib)
+              PATHS ${PugiXML_DIR}/../..)
 
 # Support the REQUIRED and QUIET arguments, and set PUGIXML_FOUND if found.
 include (FindPackageHandleStandardArgs)
