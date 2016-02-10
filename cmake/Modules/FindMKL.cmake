@@ -10,11 +10,11 @@
 # Set the include path
 # TODO: what if MKL is not installed in /opt/intel/mkl?
 # try to find at /opt/intel/mkl
-# in windows, try to find MKL at C:/Program Files (x86)/Intel/Composer XE/mkl
+# in windows, try to find MKL at C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows\mkl
 
 if ( WIN32 )
   if(NOT DEFINED ENV{MKLROOT_PATH})
-    set(MKLROOT_PATH "C:/Program Files (x86)/Intel/Composer XE" CACHE PATH "Where the MKL are stored")
+    set(MKLROOT_PATH "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries/windows" CACHE PATH "Where the MKL are stored")
   endif(NOT DEFINED ENV{MKLROOT_PATH}) 
 else ( WIN32 )
     set(MKLROOT_PATH "/opt/intel" CACHE PATH "Where the MKL are stored")
@@ -25,13 +25,6 @@ if (EXISTS ${MKLROOT_PATH}/mkl)
     message("MKL is found at ${MKLROOT_PATH}/mkl")
     IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set( USE_MKL_64BIT On )
-        if ( ARMADILLO_FOUND )
-            if ( ARMADILLO_BLAS_LONG_LONG )
-                set( USE_MKL_64BIT_LIB On )
-                ADD_DEFINITIONS(-DMKL_ILP64)
-                message("MKL is linked against ILP64 interface ... ")
-            endif ( ARMADILLO_BLAS_LONG_LONG )
-        endif ( ARMADILLO_FOUND )
     ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
         set( USE_MKL_64BIT Off )
     ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 8)

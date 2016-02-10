@@ -1,5 +1,3 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
 set(_SAVED_HDF5_DIR ${HDF5_DIR})
 find_package(HDF5 "1.8.5" NO_MODULE COMPONENTS C CXX)
 if(NOT HDF5_FOUND)
@@ -11,9 +9,9 @@ find_package(Boost 1.54 REQUIRED COMPONENTS
 	program_options
 )
 
-find_package (NetCDF REQUIRED)
+find_package(netCDF REQUIRED)
 
-find_package (PugiXML REQUIRED)
+find_package(PugiXML REQUIRED)
 
 
 add_executable(smpeak
@@ -24,13 +22,13 @@ add_executable(smpeak
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
-	${NETCDF_INCLUDE_DIRS}
-	${PUGIXML_INCLUDE_DIR}
+	${netCDF_INCLUDE_DIR}
+	${PugiXML_INCLUDE_DIR}
 )
 target_link_libraries(smpeak
 	seamass
 	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
-	${NETCDF_LIBRARIES}
-	${PUGIXML_LIBRARIES}
+	${netCDF_LIBRARIES}
+	${PugiXML_LIBRARIES}
 )

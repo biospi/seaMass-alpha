@@ -35,6 +35,7 @@ target_include_directories(seamass PUBLIC
   ${SPATIALINDEX_INCLUDE_DIR}
 )
 target_link_libraries(seamass
+  ${IntelOpenMP_LIBRARIES}
   ${MKL_LIBRARIES}
   ${HDF5_LIBRARIES}
   ${Boost_LIBRARIES}
