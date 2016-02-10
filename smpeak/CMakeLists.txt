@@ -22,13 +22,13 @@ add_executable(smpeak
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
-	${netCDF_INCLUDE_DIR}
+	${NETCDF_INCLUDE_DIR}
 	${PugiXML_INCLUDE_DIR}
 )
 target_link_libraries(smpeak
 	seamass
 	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
-	${netCDF_LIBRARIES}
+	${NETCDF_LIBRARIES}
 	${PugiXML_LIBRARIES}
 )
