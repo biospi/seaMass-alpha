@@ -13,11 +13,26 @@ find_package(netCDF REQUIRED)
 
 find_package(PugiXML REQUIRED)
 
-
 add_executable(smpeak
 	smpeak.cpp
 	SMPFile.cpp
 	NetCDFile.cpp
+	BsplineData.hpp
+	BsplineData.tpp
+	MathOperator.hpp
+	MathOperator.tpp
+	NetCDFile.hpp
+	NetCDFile.tpp
+	peakcore.hpp
+	peakcore.tpp
+	PeakData.hpp
+	PeakData.tpp
+	PeakManager.hpp
+	PeakOperator.hpp
+	PeakOperator.tpp
+	SMData.hpp
+	SMData.tpp
+	SMPFile.hpp
 )
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
