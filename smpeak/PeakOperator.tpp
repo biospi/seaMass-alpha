@@ -747,7 +747,7 @@ void ExtractPeak<pPeak,pData,T,R>::bezierT(vector<DataPoint> &p)
 }
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-ExtractPeak<pPeak,pData,T,R>::DataPoint ExtractPeak<pPeak,pData,T,R>::bezierO3(vector<DataPoint> &p)
+typename ExtractPeak<pPeak,pData,T,R>::DataPoint ExtractPeak<pPeak,pData,T,R>::bezierO3(vector<DataPoint> &p)
 {
 	double t = p[0].t0;
 	double tp = (1-t);

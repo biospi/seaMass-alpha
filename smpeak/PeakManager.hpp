@@ -42,7 +42,7 @@ template
 	typename R = double,
 	typename T = float
 >
-class PeakManager : public PeakOp<PeakCon<T>,BsplineCon<R,T>, T, R>
+class PeakManager : public PeakOp<PeakCon,BsplineCon, T, R>
 {
 public:
 	PeakManager(BsplineCon<R,T> &_data, T _threshold = 0) : threshold(_threshold)
@@ -52,7 +52,7 @@ public:
 	};
 	void execute()
 	{
-		calculate(this->peak, this->data, threshold);
+		this->calculate(this->peak, this->data, threshold);
 	};
 	PeakCon<T> *peak;
 	~PeakManager() {delete this->peak;};
