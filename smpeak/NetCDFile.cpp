@@ -103,7 +103,7 @@ NetCDFile::~NetCDFile()
 
 int NetCDFile::read_VarIDNC(const string dataSet, int grpid)
 {
-	if(grpid == NULL) grpid = ncid;
+	if(grpid == 0) grpid = ncid;
 
 	int varid;
 
@@ -117,7 +117,7 @@ int NetCDFile::read_VarIDNC(const string dataSet, int grpid)
 
 vector<size_t> NetCDFile::read_DimNC(const string dataSet, int grpid)
 {
-	if(grpid == NULL) grpid = ncid;
+	if(grpid == 0) grpid = ncid;
 
 	int varid;
 	int ndim;
@@ -147,7 +147,7 @@ vector<size_t> NetCDFile::read_DimNC(const string dataSet, int grpid)
 
 int NetCDFile::search_Group(const string dataSet, int grpid)
 {
-	if(grpid == NULL) grpid = ncid;
+	if(grpid == 0) grpid = ncid;
 
 	int nGrps;
 	vector<int> ngrpids;

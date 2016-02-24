@@ -99,7 +99,7 @@ double ReadSMFile::searchGroup(const string group, int level)
 	if(nObj > 1)
 	{
 		cout<<"Error Specify Single Group!"<<endl;
-		return NULL;
+		return 0;
 	}
 	for (hsize_t i = 0; i <= level; ++i) {
 		obj = dataGroup.getObjnameByIdx(0);
@@ -117,7 +117,7 @@ double ReadSMFile::searchGroup(const string group, int level)
 			case H5G_DATASET:
 				//cout<<"Group NAME: "<<newObj<<endl;
 				cout<<"Error! Level: "<<level<<" too deep!"<<endl;
-				return NULL;
+				return 0;
 				break;
 		}
 	}

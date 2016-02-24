@@ -61,65 +61,65 @@ public:
 	~NetCDFile();
 
 	template<typename T>
-	void read_VecNC(const string dataSet, vector<T> &vecData, int grpid = NULL);
+	void read_VecNC(const string dataSet, vector<T> &vecData, int grpid = 0);
 	template<typename T>
-	void read_VecNC(const string dataSet, T *vecData, int grpid = NULL);
+	void read_VecNC(const string dataSet, T *vecData, int grpid = 0);
 
-	int read_VarIDNC(const string dataSet, int grpid = NULL);
+	int read_VarIDNC(const string dataSet, int grpid = 0);
 
 	template<typename T>
-	void read_MatNC(const string dataSet, VecMat<T> &vm, int grpid = NULL);
+	void read_MatNC(const string dataSet, VecMat<T> &vm, int grpid = 0);
 	template<typename T>
-	void read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid = NULL);
+	void read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid = 0);
 	template<typename T>
-	void read_MatNC(const string dataSet, vector<vector<T> > &vm, int grpid = NULL);
+	void read_MatNC(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
 	template<typename T>
-	void read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid = NULL);
+	void read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
 	template<typename T>
-	vector<size_t> read_DimNC(const string dataSet, int grpid = NULL);
+	vector<size_t> read_DimNC(const string dataSet, int grpid = 0);
 	template<typename T>
-	void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = NULL);
-	vector<size_t> read_DimNC(const string dataSet, int grpid = NULL);
+	void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = 0);
+	vector<size_t> read_DimNC(const string dataSet, int grpid = 0);
 
 	template<typename T>
 	void read_HypVecNC(const string dataSet, vector<T> &vm,
-			size_t *rcIdx, size_t *len, int grpid = NULL);
+			size_t *rcIdx, size_t *len, int grpid = 0);
 	template<typename T>
 	void read_HypMatNC(const string dataSet, VecMat<T> &vm,
-			size_t *rcIdx, size_t *len, int grpid = NULL);
+			size_t *rcIdx, size_t *len, int grpid = 0);
 
-	int search_Group(const string dataSet, int grpid = NULL);
+	int search_Group(const string dataSet, int grpid = 0);
 	template<typename T>
-	T search_Group(size_t level, int grpid = NULL);
+	T search_Group(size_t level, int grpid = 0);
 
 	template<typename T>
 	int write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
-			int grpid = NULL, bool unlim = false,
+			int grpid = 0, bool unlim = false,
 			size_t chunks = 4096, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
 	template<typename T>
 	int write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
-			int grpid = NULL, const string rowY="", const string colX="",
+			int grpid = 0, const string rowY="", const string colX="",
 			size_t chunk = 4096, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_AttNC(const string dataSet, const string attName,
-			vector<T> &attVal, nc_type xtype, int grpid = NULL);
+			vector<T> &attVal, nc_type xtype, int grpid = 0);
 
 	template<typename T>
 	void write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,
-			int grpid = NULL,
+			int grpid = 0,
 			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_DefHypMatNC(const string dataSet, const string rowY, const string colX, nc_type xtype,
-			int grpid = NULL,
+			int grpid = 0,
 			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_PutHypMatNC(const string dataSet, VecMat<T> &vm,
-		size_t rcIdx[2], size_t len[2], int grpid = NULL);
+		size_t rcIdx[2], size_t len[2], int grpid = 0);
 	template<typename T>
 	void write_PutHypMatNC(const string dataSet, T *vm,
-		size_t rcIdx[2], size_t len[2], int grpid = NULL);
+		size_t rcIdx[2], size_t len[2], int grpid = 0);
 
 	vector<InfoGrpVar> get_Info(void) {return dataSetList;};
 private:

@@ -268,7 +268,7 @@ void SMPFile::write_VecMatH5(string group, vector<T> const &data_set,
 
 		for (int i=0; i < rank; ++i)
 		{
-			cdims.push_back({dims[i] < 16384 ? dims[i] : 16384});
+			cdims.push_back(dims[i] < 16384 ? dims[i] : 16384);
 		}
 
 		H5::DSetCreatPropList dataplist;
@@ -323,7 +323,7 @@ void SMPFile::write_VecMatH5(string group, vector<T> const &data_set,
 
 		for (int i=0; i < rank; ++i)
 		{
-			cdims.push_back({dims[i] < 16384 ? dims[i] : 16384});
+			cdims.push_back(dims[i] < 16384 ? dims[i] : 16384);
 		}
 
 		H5::DSetCreatPropList dataplist;
@@ -378,7 +378,7 @@ void SMPFile::write_MatH5(string group, vector<vector<T> > const &data_set,
 
 		for (int i=0; i < rank; ++i)
 		{
-			cdims.push_back({dims[i] < 16384 ? dims[i] : 16384});
+			cdims.push_back(dims[i] < 16384 ? dims[i] : 16384);
 		}
 
 		H5::DSetCreatPropList dataplist;
