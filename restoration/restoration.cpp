@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
 		{
 			istringstream(itr->node().attribute("defaultArrayLength").value())>>scanLength;
 			istringstream(itr->node().attribute("index").value())>>idx;
-			specSize[idx]=scanLength-1;
+			specSize[idx]=scanLength;
 		}
 	}
 
@@ -296,8 +296,8 @@ int main(int argc, char *argv[])
 
         hypIdx[0]=spectra_mzMLb3[i].index;
         rdLen[1]=spectra_mzMLb3[i].count;
-        mzMLb3File.read_HypVecNC<double>(dataSetList[0].varName,mzs_mzMLb3[i],&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
-        //mzMLb3File.read_HypVecNC(dataSetList[1].varName,intensities_mzMLb3[i],&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
+        mzMLb3File.read_HypVecNC(dataSetList[0].varName,mzs_mzMLb3[spectra_mzMLb3[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
+        mzMLb3File.read_HypVecNC(dataSetList[1].varName,intensities_mzMLb3[spectra_mzMLb3[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
        
         loaded++;
 		if ((i == spectra.size()-1 ||
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
 				seamass::process(id,
 					oss.str().c_str(),
 					instrument_type,
-					scan_start_times, mzs, intensities,
+					scan_start_times, mzs_mzMLb3, intensities_mzMLb3,
 					mz_res, mz_res,
 					rt_res, rt_res,
 					shrink, shrink,

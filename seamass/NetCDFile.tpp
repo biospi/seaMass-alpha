@@ -408,8 +408,21 @@ void NetCDFile::read_HypVecNC(const string dataSet, vector<T> &vm,
 
 	vm.resize(N);
 
-	if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm[0]) ))
-		ERR(retval)
+	if(typeid(vector<float>) == typeid(vm))
+	{
+		if (( retval = nc_get_vara_float(grpid, varid, rcIdx, len, reinterpret_cast<float*>(&vm[0])) ))
+			ERR(retval);
+	}
+	else if(typeid(vector<double>) == typeid(vm))
+	{
+		if (( retval = nc_get_vara_double(grpid, varid, rcIdx, len, reinterpret_cast<double*>(&vm[0])) ))
+			ERR(retval);
+	}
+	else
+	{
+		if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm[0]) ))
+			ERR(retval);
+	}
 }
 
 template<typename T>
@@ -454,8 +467,23 @@ void NetCDFile::read_HypMatNC(const string dataSet, VecMat<T> &vm,
 
 	vm.set(hsize_t(len[0]), hsize_t(len[1]));
 
-	if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
-		ERR(retval)
+
+	if(typeid(vector<float>) == typeid(vm.v))
+	{
+		if (( retval = nc_get_vara_float(grpid, varid, rcIdx, len, reinterpret_cast<float*>(&vm.v[0])) ))
+			ERR(retval);
+	}
+	else if(typeid(vector<double>) == typeid(vm.v))
+	{
+		if (( retval = nc_get_vara_double(grpid, varid, rcIdx, len, reinterpret_cast<double*>(&vm.v[0])) ))
+			ERR(retval);
+	}
+	else
+	{
+		if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
+			ERR(retval);
+	}
+
 }
 
 

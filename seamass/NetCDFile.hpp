@@ -32,6 +32,7 @@
 #include <vector>
 #include <netcdf.h>
 #include <fstream>
+#include <typeinfo>
 
 #include "peakcore.hpp"
 
