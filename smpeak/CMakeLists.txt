@@ -9,22 +9,16 @@ find_package(Boost 1.54 REQUIRED COMPONENTS
 	program_options
 )
 
-find_package(netCDF REQUIRED)
-
 find_package(PugiXML REQUIRED)
 
 add_executable(smpeak
 	smpeak.cpp
 	SMPFile.cpp
-	NetCDFile.cpp
+	SMPFile.hpp
 	BsplineData.hpp
 	BsplineData.tpp
 	MathOperator.hpp
 	MathOperator.tpp
-	NetCDFile.hpp
-	NetCDFile.tpp
-	peakcore.hpp
-	peakcore.tpp
 	PeakData.hpp
 	PeakData.tpp
 	PeakManager.hpp
@@ -32,18 +26,17 @@ add_executable(smpeak
 	PeakOperator.tpp
 	SMData.hpp
 	SMData.tpp
-	SMPFile.hpp
+	peakcore.hpp
+	peakcore.tpp
 )
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
-	${netCDF_INCLUDE_DIR}
 	${PugiXML_INCLUDE_DIR}
 )
 target_link_libraries(smpeak
 	seamass
 	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
-	${netCDF_LIBRARIES}
 	${PugiXML_LIBRARIES}
 )

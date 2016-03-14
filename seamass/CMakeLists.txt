@@ -12,20 +12,24 @@ find_package(SpatialIndex 1.8.5 REQUIRED)
 find_package(Boost 1.54 REQUIRED COMPONENTS
 	system filesystem
 )
+find_package(netCDF REQUIRED)
 
 add_library(seamass
   seamass.hpp
   OptimiserASRL.hpp
   SMOWriter.hpp
-  SMVWriter.hpp   
+  SMVWriter.hpp
   BasisFunctions.hpp
   core.hpp
   seamass.cpp
   OptimiserASRL.cpp
-  SMOWriter.cpp   
+  SMOWriter.cpp
   SMVWriter.cpp
   BasisFunctions.cpp
   core.cpp
+  NetCDFile.hpp
+  NetCDFile.tpp
+  NetCDFile.cpp
 )
 target_include_directories(seamass PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -33,6 +37,8 @@ target_include_directories(seamass PUBLIC
   ${HDF5_INCLUDE_DIR}
   ${Boost_INCLUDE_DIRS}
   ${SPATIALINDEX_INCLUDE_DIR}
+  ${netCDF_INCLUDE_DIR}
+  ../smpeak
 )
 target_link_libraries(seamass
   ${IntelOpenMP_LIBRARIES}
@@ -40,6 +46,7 @@ target_link_libraries(seamass
   ${HDF5_LIBRARIES}
   ${Boost_LIBRARIES}
   ${SPATIALINDEX_LIBRARY}
+  ${netCDF_LIBRARIES}
 )
 
 install(TARGETS seamass DESTINATION lib)
