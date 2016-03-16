@@ -69,17 +69,17 @@ write_cs(const string& objectname, const CoeffsMetadata& cm, const vector<fp>& c
     float fillval = -3.0/8.0;
     H5Pset_fill_value(dcpl_id, H5T_NATIVE_FLOAT, &fillval);
 
-    hsize_t cdims[2] = {cm.n[1] < 128 ? cm.n[1] : 128, cm.n[0] < 128 ? cm.n[0] : 128};
+    hsize_t cdims[2] = {cm.n[1] < 128 ? static_cast<hsize_t>(cm.n[1]) : 128, cm.n[0] < 128 ? static_cast<hsize_t>(cm.n[0]) : 128};
     H5Pset_chunk(dcpl_id, 2, cdims);
     H5Pset_shuffle(dcpl_id);
     H5Pset_deflate(dcpl_id, 1);
 
-    hsize_t dims[2] = {cm.n[1], cm.n[0]};
+    hsize_t dims[2] = {static_cast<hsize_t>(cm.n[1]), static_cast<hsize_t>(cm.n[0])};
     hid_t fspace = H5Screate_simple(2, dims, dims);
     hid_t dataset = H5Dcreate(file, objectname.c_str(), H5T_NATIVE_FLOAT, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
 
 	// write
-    hsize_t mdims[2] = {cm.n[1], cm.n[0]};
+    hsize_t mdims[2] = {static_cast<hsize_t>(cm.n[1]), static_cast<hsize_t>(cm.n[0])};
     hid_t mspace = H5Screate_simple(2, mdims, mdims);
     H5Dwrite(dataset, H5T_NATIVE_FLOAT, mspace, fspace, H5P_DEFAULT, cs.data());
     
