@@ -128,8 +128,6 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
 	exposures.assign(intensities.size(), 1);
 
     // if more than one spectrum, ignore last as we do not know its scan end time
-    //if (mzs.size() > 1) mzs.resize(mzs.size() - 1);
-    //if (intensities.size() > 1) intensities.resize(intensities.size() - 1);
     
     if (instrument_type == 1) // ToF
     {

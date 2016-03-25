@@ -130,9 +130,6 @@ int main(int argc, char *argv[])
 	string id = (lastdot == string::npos) ? in_file : in_file.substr(0, lastdot); 
 
 	// Open mzML file
-	// Temp mzML String
-	//string in_file_mzMLb3=id+".mzMLb3";
-	//NetCDFile mzMLb3File(id+string(".mzMLb3"));
 	NetCDFile mzMLb3File(in_file);
 	vector<char> mzMLBuff;
 	vector<size_t> dataMatDim;
@@ -146,11 +143,12 @@ int main(int argc, char *argv[])
 	xml::xpath_node_set tools;
 	xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
 
-	hsize_t ns_mzMLb3;
-	istringstream(docmzML.child("mzML").child("run").child("spectrumList").attribute("count").value())>>ns_mzMLb3;
+	hsize_t ns;
+	istringstream(docmzML.child("mzML").child("run").child("spectrumList").attribute("count").value())>>ns;
 
-    cout << "Querying metadata from " << ns_mzMLb3 << " spectra..." << endl;
-	vector<double> start_times_mzMLb3;
+	// query necessary metadata
+    cout << "Querying metadata from " << ns << " spectra..." << endl;
+	vector<double> start_times;
 	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/scanList/scan/cvParam[@accession='MS:1000016']");
 	if(tools.empty())
 	{
@@ -167,11 +165,11 @@ int main(int argc, char *argv[])
 		{
 			double scanRT;
 			istringstream(itr->node().attribute("value").value()) >> scanRT;
-			start_times_mzMLb3.push_back(scanRT*rescale);
+			start_times.push_back(scanRT*rescale);
 		}
 	}
 
-    vector<double> precursor_mzs_mzMLb3(ns_mzMLb3,0.0);
+    vector<double> precursor_mzs(ns,0.0);
     tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/precursorList/precursor");
 	if(!tools.empty())
 	{
@@ -182,11 +180,11 @@ int main(int argc, char *argv[])
 			istringstream(itr->node().child("selectedIonList").child("selectedIon").
 				find_child_by_attribute("accession","MS:1000744").attribute("value").value())>>preMZ;
 			istringstream(itr->node().parent().parent().attribute("index").value())>>idx;
-			precursor_mzs_mzMLb3[idx]=preMZ;
+			precursor_mzs[idx]=preMZ;
 		}
 	}
 
-    vector<unsigned long> config_indices_mzMLb3(ns_mzMLb3,0);
+    vector<unsigned long> config_indices(ns,0);
 	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/scanList/scan/cvParam[@accession='MS:1000616']");
 	if(!tools.empty())
 	{
@@ -196,13 +194,13 @@ int main(int argc, char *argv[])
 			size_t idx;
 			istringstream(itr->node().attribute("value").value())>>preConfig;
 			istringstream(itr->node().parent().parent().parent().attribute("index").value())>>idx;
-			config_indices_mzMLb3[idx]=preConfig;
+			config_indices[idx]=preConfig;
 		}
 	}
 
-	preSetScanConfig(config_indices_mzMLb3);
+	preSetScanConfig(config_indices);
 
-	vector<size_t> specSize(ns_mzMLb3,0);
+	vector<size_t> specSize(ns,0);
 	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum");
 	if(!tools.empty())
 	{
@@ -216,139 +214,76 @@ int main(int argc, char *argv[])
 		}
 	}
 
-    unsigned long instrument_type_mzMLb3 = 1;
+    unsigned long instrument_type = 1;
 	if(string(docmzML.child("mzML").child("instrumentConfigurationList").child("instrumentConfiguration").child("componentList").
 				child("analyzer").child("cvParam").attribute("name").value()).compare("orbitrap") == 0)
-		instrument_type_mzMLb3=2;
+		instrument_type=2;
 
 	mzMLb3File.search_Group("spectrum_MS_1000514");
 	mzMLb3File.search_Group("spectrum_MS_1000515");
 	dataSetList=mzMLb3File.get_Info();
 	dataMatDim = mzMLb3File.read_DimNC(dataSetList[0].varName,dataSetList[0].grpid);
 
-	// open H5 file
-	//H5::H5File file(in_file, H5F_ACC_RDONLY);
-
-	// query necessary metadata
-    //hsize_t ns;
-
-    //H5::DataSet start_time_ds = file.openDataSet("StartTime");
-    //start_time_ds.getSpace().getSimpleExtentDims(&ns);
-    //cout << "Querying metadata from " << ns << " spectra..." << endl;
-    //vector<double> start_times(ns);
-    //start_time_ds.read(start_times.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
-    //H5::DataSet preset_config_ds = file.openDataSet("PresetConfig");
-    //preset_config_ds.getSpace().getSimpleExtentDims(&ns);
-    //vector<unsigned long> config_indices(ns);
-    //preset_config_ds.read(config_indices.data(), H5::DataType(H5::PredType::NATIVE_ULONG));
-    //H5::DataSet precursor_mz_ds = file.openDataSet("PrecursorMZ");
-    //precursor_mz_ds.getSpace().getSimpleExtentDims(&ns);
-    //vector<double> precursor_mzs(ns);
-    //precursor_mz_ds.read(precursor_mzs.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
-    //vector<spectrum> spectra(ns);
-    vector<spectrum> spectra_mzMLb3(ns_mzMLb3);
-    for (size_t i = 0; i < ns_mzMLb3; i++)
+    vector<spectrum> spectra(ns);
+    for (size_t i = 0; i < ns; i++)
     {
-        //spectra[i].index = i;
-        //spectra[i].preset_config = config_indices[i];
-        //spectra[i].precursor_mz = precursor_mzs[i];
-        //spectra[i].scan_start_time = start_times[i];
-        //spectra[i].count = specSize[i];
-		spectra_mzMLb3[i].index = i;
-		spectra_mzMLb3[i].preset_config = config_indices_mzMLb3[i];
-		spectra_mzMLb3[i].precursor_mz = precursor_mzs_mzMLb3[i];
-		spectra_mzMLb3[i].scan_start_time = start_times_mzMLb3[i];
-		spectra_mzMLb3[i].count = specSize[i];
+		spectra[i].index = i;
+		spectra[i].preset_config = config_indices[i];
+		spectra[i].precursor_mz = precursor_mzs[i];
+		spectra[i].scan_start_time = start_times[i];
+		spectra[i].count = specSize[i];
     }
 	// determine start_scan_time order of spectra
-	//sort(spectra.begin(), spectra.end(), scan_start_time_order);
-	sort(spectra_mzMLb3.begin(), spectra_mzMLb3.end(), scan_start_time_order);
-	for (size_t i = 0; i < spectra_mzMLb3.size(); i++)
+	sort(spectra.begin(), spectra.end(), scan_start_time_order);
+	for (size_t i = 0; i < spectra.size(); i++)
 	{
-		//spectra[i].scan_start_time_index = i;
-		spectra_mzMLb3[i].scan_start_time_index = i;
+		spectra[i].scan_start_time_index = i;
 	}
-	// save scan_start_times and sort into seamass processing order:
-	// preset_config -> ms_level -> scan_start_time
-	//vector<double> scan_start_times(ns);
-	vector<double> scan_start_times_mzMLb3(ns_mzMLb3);
-	for (size_t i = 0; i < spectra_mzMLb3.size(); i++)
+	vector<double> scan_start_times(ns);
+	for (size_t i = 0; i < spectra.size(); i++)
 	{
-		//scan_start_times[i] = spectra[i].scan_start_time;
-		scan_start_times_mzMLb3[i] = spectra_mzMLb3[i].scan_start_time;
+		scan_start_times[i] = spectra[i].scan_start_time;
 	}
-	//sort(spectra.begin(), spectra.end(), seamass_order);
-	sort(spectra_mzMLb3.begin(), spectra_mzMLb3.end(), seamass_order);
-	// load spectra and process
-    //H5::DataSet mzs_ds = file.openDataSet("SpectrumMZ");
-    //H5::DataSet intensities_ds = file.openDataSet("SpectrumIntensity");
-    // read instrument type
-    //unsigned long instrument_type = 1;
-    //H5::Attribute att = intensities_ds.openAttribute("instrumentType");
-    //att.read(H5::IntType(H5::PredType::NATIVE_USHORT), &instrument_type);
-    //hsize_t ns1;
-    //H5::DataSet index_ds = file.openDataSet("SpectrumIndex");
-    //index_ds.getSpace().getSimpleExtentDims(&ns1);
-    //vector<double> indices(ns1);
-    //index_ds.read(indices.data(), H5::DataType(H5::PredType::NATIVE_DOUBLE));
-	//vector< std::vector<double> > mzs(ns);
-	//vector< std::vector<double> > intensities(ns);
-	vector< std::vector<double> > mzs_mzMLb3(ns_mzMLb3);
-	vector< std::vector<double> > intensities_mzMLb3(ns_mzMLb3);
+	sort(spectra.begin(), spectra.end(), seamass_order);
+	vector< std::vector<double> > mzs(ns);
+	vector< std::vector<double> > intensities(ns);
 	vector<size_t> hypIdx(2);
 	vector<size_t> rdLen(2);
 	hypIdx[1]=0; // Read from first Column.
 	rdLen[0]=1; // Always 1 Row to read.
 	int loaded = 0;
     bool precursor_mz_is_constant = true;
-	for (size_t i = 0; i < spectra_mzMLb3.size(); i++)
+	for (size_t i = 0; i < spectra.size(); i++)
 	{
-        if (loaded > 1 && spectra_mzMLb3[i].precursor_mz != spectra_mzMLb3[i-1].precursor_mz)
+        if (loaded > 1 && spectra[i].precursor_mz != spectra[i-1].precursor_mz)
             precursor_mz_is_constant = false;
 
-		//load spectra into mzs and intensities vectors if precursor_mz
-        //hsize_t offset = indices[spectra_mzMLb3[i].index];
-        //hsize_t count = indices[spectra_mzMLb3[i].index+1] - offset;
-        
-        //H5::DataSpace memspace(1, &count);
-
-        //H5::DataSpace mzs_dsp = mzs_ds.getSpace();
-        //mzs_dsp.selectHyperslab(H5S_SELECT_SET, &count, &offset);
-        //mzs[spectra[i].scan_start_time_index].resize(count);
-        //mzs_ds.read(mzs[spectra[i].scan_start_time_index].data(), H5::DataType(H5::PredType::NATIVE_DOUBLE), memspace, mzs_dsp);
-
-        //H5::DataSpace intensities_dsp = intensities_ds.getSpace();
-        //intensities_dsp.selectHyperslab(H5S_SELECT_SET, &count, &offset);
-        //intensities[spectra[i].scan_start_time_index].resize(count);
-        //intensities_ds.read(intensities[spectra[i].scan_start_time_index].data(), H5::DataType(H5::PredType::NATIVE_DOUBLE), memspace, intensities_dsp);
-
-
-		if(spectra_mzMLb3[i].count == 0)
+		if(spectra[i].count == 0)
 		{
 			cout<<"Count is == ZERO AT i: "<<i<<endl;
 		}
-		if(spectra_mzMLb3[i].count > 0 && i < spectra_mzMLb3.size()-1)
+		if(spectra[i].count > 0 && i < spectra.size()-1)
 		{
-			hypIdx[0]=spectra_mzMLb3[i].index;
-			rdLen[1]=spectra_mzMLb3[i].count;
-			mzMLb3File.read_HypVecNC(dataSetList[0].varName,mzs_mzMLb3[spectra_mzMLb3[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
-			mzMLb3File.read_HypVecNC(dataSetList[1].varName,intensities_mzMLb3[spectra_mzMLb3[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
+			hypIdx[0]=spectra[i].index;
+			rdLen[1]=spectra[i].count;
+			mzMLb3File.read_HypVecNC(dataSetList[0].varName,mzs[spectra[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
+			mzMLb3File.read_HypVecNC(dataSetList[1].varName,intensities[spectra[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
 		}
 
         loaded++;
-		if ((i == spectra_mzMLb3.size()-1 ||
-			spectra_mzMLb3[i].preset_config != spectra_mzMLb3[i+1].preset_config ||
-            (spectra_mzMLb3[i].precursor_mz != spectra_mzMLb3[i+1].precursor_mz && spectra_mzMLb3[i].precursor_mz == 0.0)))
+		if ((i == spectra.size()-1 ||
+			spectra[i].preset_config != spectra[i+1].preset_config ||
+            (spectra[i].precursor_mz != spectra[i+1].precursor_mz && spectra[i].precursor_mz == 0.0)))
 		{
             if (loaded > 1 && precursor_mz_is_constant)
 			{
-                ostringstream oss; oss << spectra_mzMLb3[i].preset_config << "_" << spectra_mzMLb3[i].precursor_mz;
+                ostringstream oss; oss << spectra[i].preset_config << "_" << spectra[i].precursor_mz;
 
 				// run seamass 2D
 				seamass::process(id,
 					oss.str().c_str(),
-					instrument_type_mzMLb3,
-					scan_start_times_mzMLb3, mzs_mzMLb3, intensities_mzMLb3,
+					instrument_type,
+					scan_start_times, mzs, intensities,
 					mz_res, mz_res,
 					rt_res, rt_res,
 					shrink, shrink,
@@ -361,14 +296,6 @@ int main(int argc, char *argv[])
 			}
             loaded = 0;
             precursor_mz_is_constant = true;
-			//for (lli w = 0; w < (lli) mzs.size(); w++) vector<double>().swap(mzs[w]);
-			//for (lli w = 0; w < (lli) intensities.size(); w++) vector<double>().swap(intensities[w]);
-			//for (lli w = 0; w < (lli) mzs_mzMLb3.size(); w++) vector<double>().swap(mzs_mzMLb3[w]);
-			//for (lli w = 0; w < (lli) intensities_mzMLb3.size(); w++) vector<double>().swap(intensities_mzMLb3[w]);
-			//if(mzs.size() != ns) mzs.resize(ns);
-			//if(intensities.size() != ns) intensities.resize(ns);
-			//if(mzs_mzMLb3.size() != ns_mzMLb3) mzs_mzMLb3.resize(ns_mzMLb3);
-			//if(intensities_mzMLb3.size() != ns_mzMLb3) intensities_mzMLb3.resize(ns_mzMLb3);
         }
 	}
 
