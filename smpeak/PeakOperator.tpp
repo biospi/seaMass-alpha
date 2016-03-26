@@ -417,6 +417,8 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 					double t0rt=-1.0;
 					double rtrhs = -1.0;
 					double rtlhs = -1.0;
+					double mzrhs = -1.0;
+					double mzlhs = -1.0;
 
 					mulVecMat(*(bs->alpha),pMat->b,csPat,i,j);
 
@@ -437,22 +439,6 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 						dhpA.rt[k]=dhbs->rt[i-1]+k*ddrt;
 						spt[k].rt=A.rt[k];
 					}
-
-					//hsize_t dim[2];
-					//bs->alpha->getDims(dim);
-					//cout<<"CS Patch from ("<<i<<","<<j<<")"<<endl;
-					//for(int u=0; u < dim[0]; ++u){
-					//	for(int v=0; v < dim[1]; ++v){
-					//		cout<<setw(12);
-					//		cout<<bs->alpha->m[u][v]<<"  ";
-					//	}
-					//	cout<<endl;
-					//}
-
-					//for(int k=0 ; k < pr-1; ++k)
-					//	p[k].rt=A.rt[k];
-
-					//this->calPeakMZ(bs,dhbs,dh2bs,i,j,mzPeak0,countMax0,mzlhs,mzrhs,t00,falsePeak);
 
 					vector<int> u(7);
 					u[0]=calInnerPeakMZ(&A, &dhpA, 0, 3, spt[0].mz, spt[0].pk, spt[0].t0, falseInnerPeak);
@@ -489,14 +475,17 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 					if(p[0].t0 >= 0)
 					{
 						this->calPeakLenRT(i,j,dv2bs->alpha->m,dv2bs->rt,rtlhs,rtrhs);
-						if(rtlhs > 0 && rtrhs > 0)
+						this->calPeakWidth(i,j,dh2bs->alpha->m,dh2bs->mz,mzlhs,mzrhs);
+						if(rtlhs > 0 && rtrhs > 0 && mzlhs > bs->mz[0] && mzrhs > bs->mz[0])
 						{
 							DataPoint B = bezierO3(p);
-							if(rtlhs < B.rt && B.rt < rtrhs && B.pk >= threshold)
+							if(rtlhs < B.rt && B.rt < rtrhs &&
+							   mzlhs < bs->mz[col-1] && mzrhs < bs->mz[col-1] &&
+							   B.pk >= threshold)
 							{
 								#pragma omp critical(peak)
 								{
-									peak->addPeak(B.mz,B.rt,B.pk,make_pair(B.mz,B.mz),
+									peak->addPeak(B.mz,B.rt,B.pk,make_pair(mzlhs,mzrhs),
 											make_pair(rtlhs,rtrhs),B.t0,j,i);
 								}
 							}
