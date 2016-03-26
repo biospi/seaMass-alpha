@@ -88,6 +88,7 @@ void preSetScanConfig(vector<unsigned long> &scanConf)
 			++idx;
 		}
 	}
+	if(preSetScanConf.size() == 1) preSetScanConf[scanConf[0]]=0;
 	transform(scanConf.begin(),scanConf.end(),scanConf.begin(),
 			[&preSetScanConf](unsigned long x){return preSetScanConf[x];} );
 }
@@ -197,7 +198,6 @@ int main(int argc, char *argv[])
 			config_indices[idx]=preConfig;
 		}
 	}
-
 	preSetScanConfig(config_indices);
 
 	vector<size_t> specSize(ns,0);
@@ -245,8 +245,8 @@ int main(int argc, char *argv[])
 		scan_start_times[i] = spectra[i].scan_start_time;
 	}
 	sort(spectra.begin(), spectra.end(), seamass_order);
-	vector< std::vector<double> > mzs(ns);
-	vector< std::vector<double> > intensities(ns);
+	vector< std::vector<double> > mzs(ns-1);
+	vector< std::vector<double> > intensities(ns-1);
 	vector<size_t> hypIdx(2);
 	vector<size_t> rdLen(2);
 	hypIdx[1]=0; // Read from first Column.
@@ -258,11 +258,7 @@ int main(int argc, char *argv[])
         if (loaded > 1 && spectra[i].precursor_mz != spectra[i-1].precursor_mz)
             precursor_mz_is_constant = false;
 
-		if(spectra[i].count == 0)
-		{
-			cout<<"Count is == ZERO AT i: "<<i<<endl;
-		}
-		if(spectra[i].count > 0 && i < spectra.size()-1)
+		if(spectra[i].count > 0 && spectra[i].index != spectra.size()-1)
 		{
 			hypIdx[0]=spectra[i].index;
 			rdLen[1]=spectra[i].count;
