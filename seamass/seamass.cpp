@@ -150,7 +150,7 @@ void process(const std::string& id,
         
         ////////////////////////////////////////////////////////////////////////////////////
         // OPTIMISATION
-        double thres = 1.0; // L0 threshold
+        double thres = 0.000001; // L0 threshold
         
         for (ii shr = shrinkage0; shr <= shrinkage1; shr++)
         for (ii tol = tolerance1; tol >= tolerance0; tol--)
