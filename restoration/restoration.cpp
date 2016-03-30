@@ -292,6 +292,7 @@ int main(int argc, char *argv[])
 						shrink, shrink,
 						tol, tol,
 						threads, out_type);
+            		break;
             	}
             	++scanEvt;
 			}
