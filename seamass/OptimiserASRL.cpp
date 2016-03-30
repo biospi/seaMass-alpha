@@ -84,7 +84,11 @@ OptimiserASRL(const vector<Basis*>& _bases,
         else
         {   // sqrt
             // not 64 bit compliant atm // vsSqrt(bases[j]->get_cm().size(), &(l2[j][0]), &(l2[j][0]));
-            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++) l2[j][i] = sqrt(l2[j][i]);
+            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
+             {
+                 l2[j][i] = l2[j][i] == 0.0 ? 1.0 : sqrt(l2[j][i]);
+                 //l2[j][i] = (l2[j][i] >= 0.001) ? sqrt(l2[j][i]) : sqrt(0.001);
+             }
         }
     }
     //cout << "b2" << endl;
@@ -112,7 +116,10 @@ OptimiserASRL(const vector<Basis*>& _bases,
     {
         if (!bases[j]->is_transient())
         for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
-        if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
+        {
+            cs[j][i] /= bases.size();
+        }
+        //if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
     }
     
     // temporaries required for acceleration
@@ -197,12 +204,14 @@ step(ii iteration, double shrinkage)
         else
         {
             ts[pj].resize(bases[pj]->get_cm().size());
-            for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i];
+            for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i] / l2[pj][i];
         }
 
         if (ts[j].size() == 0)
         {
-            bases[j]->synthesis(ts[pj], cs[j]);
+            ts[j].resize(bases[j]->get_cm().size());
+            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++) ts[j][i] = cs[j][i] / l2[j][i];
+            bases[j]->synthesis(ts[pj], ts[j]);
         }
         else
         {
@@ -232,8 +241,7 @@ step(ii iteration, double shrinkage)
     bases.front()->error(fs, gs);
     // timing
     double error_duration = omp_get_wtime() - error_start;
-    static double culm_error_duration = 0.0;
-    culm_error_duration += error_duration;
+
     
     double analysis_start = omp_get_wtime();
     // analysis root
@@ -267,7 +275,7 @@ step(ii iteration, double shrinkage)
             for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
             if (es[j][i] >= FLT_MIN && cs[j][i] >= FLT_MIN)
             {
-                es[j][i] *= cs[j][i] / (shrinkage * l2[j][i] + wcs[j][i]);
+                es[j][i] = (es[j][i] / l2[j][i]) * cs[j][i] / (shrinkage + (wcs[j][i] / l2[j][i]));
             }
             else
             {

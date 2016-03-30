@@ -177,7 +177,7 @@ BasisResampleMZ(vector<Basis*>& bases,
                 
                 // basis coefficient b is _integral_ of area under b-spline basis
                 double b = bspline::im(b1, order+1) - bspline::im(b0, order+1);
-                if (b <= FLT_MIN) b = FLT_MIN; // for numerical instability in im()
+                if (b <= 0.000001) b = 0.0; // saves computation and problems with l2norm later
                 
                 acoo[k] = b;
                 rowind[k] = i;
