@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 {
 	H5::Exception::dontPrint();
 	seamass::notice();
-	if (argc != 8)
+	if (argc != 9)
 	{
 		cout << "Usage" << endl;
 		cout << "-----" << endl;
@@ -117,6 +117,8 @@ int main(int argc, char *argv[])
 		cout << "            guidelines: set to amount of CPU cores or 4, whichever is smaller" << endl;
 		cout << "<out_type>: Type of output desired" << endl;
 		cout << "            guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug" << endl;
+		cout << "<Scan Num>: Number of single Swath Window which will be processed" << endl;
+		cout << "            guidelines: 1 = ms1 spectrum; 2-N = ms2 spectrum" << endl;
 		return 0;
 	}
 	string in_file = argv[1];
@@ -126,6 +128,7 @@ int main(int argc, char *argv[])
 	int tol = atoi(argv[5]);
 	int threads = atoi(argv[6]);
 	int out_type = atoi(argv[7]);
+	int scanEvtNum = atoi(argv[8]);
 
 	int lastdot = in_file.find_last_of("."); 
 	string id = (lastdot == string::npos) ? in_file : in_file.substr(0, lastdot); 
@@ -252,6 +255,7 @@ int main(int argc, char *argv[])
 	hypIdx[1]=0; // Read from first Column.
 	rdLen[0]=1; // Always 1 Row to read.
 	int loaded = 0;
+	int scanEvt = 1;
     bool precursor_mz_is_constant = true;
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
@@ -273,18 +277,23 @@ int main(int argc, char *argv[])
 		{
             if (loaded > 1 && precursor_mz_is_constant)
 			{
-                ostringstream oss; oss << spectra[i].preset_config << "_" << spectra[i].precursor_mz;
+            	if(scanEvtNum==scanEvt)
+            	{
+            		cout << "Processing Swath Window: "<<scanEvt<<endl;
+            		ostringstream oss; oss << spectra[i].preset_config << "_" << spectra[i].precursor_mz;
 
-				// run seamass 2D
-				seamass::process(id,
-					oss.str().c_str(),
-					instrument_type,
-					scan_start_times, mzs, intensities,
-					mz_res, mz_res,
-					rt_res, rt_res,
-					shrink, shrink,
-					tol, tol,
-					threads, out_type);
+            		// run seamass 2D
+            		seamass::process(id,
+            			oss.str().c_str(),
+						instrument_type,
+						scan_start_times, mzs, intensities,
+						mz_res, mz_res,
+						rt_res, rt_res,
+						shrink, shrink,
+						tol, tol,
+						threads, out_type);
+            	}
+            	++scanEvt;
 			}
 			else
 			{
