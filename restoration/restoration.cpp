@@ -255,7 +255,6 @@ int main(int argc, char *argv[])
 	hypIdx[1]=0; // Read from first Column.
 	rdLen[0]=1; // Always 1 Row to read.
 	int loaded = 0;
-	int scanEvt = 1;
     bool precursor_mz_is_constant = true;
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
@@ -277,9 +276,9 @@ int main(int argc, char *argv[])
 		{
             if (loaded > 1 && precursor_mz_is_constant)
 			{
-            	if(scanEvtNum==scanEvt)
+            	if(scanEvtNum==spectra[i].preset_config)
             	{
-            		cout << "Processing Swath Window: "<<scanEvt<<endl;
+            		cout << "Processing Swath Window: "<<spectra[i].preset_config<<endl;
             		ostringstream oss; oss << spectra[i].preset_config << "_" << spectra[i].precursor_mz;
 
             		// run seamass 2D
@@ -294,7 +293,6 @@ int main(int argc, char *argv[])
 						threads, out_type);
             		break;
             	}
-            	++scanEvt;
 			}
 			else
 			{
