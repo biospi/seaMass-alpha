@@ -117,8 +117,8 @@ int main(int argc, char *argv[])
 		cout << "            guidelines: set to amount of CPU cores or 4, whichever is smaller" << endl;
 		cout << "<out_type>: Type of output desired" << endl;
 		cout << "            guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug" << endl;
-		cout << "<Scan Num>: Number of single Swath Window which will be processed" << endl;
-		cout << "            guidelines: 1 = ms1 spectrum; 2-N = ms2 spectrum" << endl;
+		cout << "<Precursor>:Precursor value to single out Swath Window" << endl;
+		cout << "            guidelines: 0 = ms1 spectrum; > 0 = ms2 spectrum" << endl;
 		return 0;
 	}
 	string in_file = argv[1];
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 	int tol = atoi(argv[5]);
 	int threads = atoi(argv[6]);
 	int out_type = atoi(argv[7]);
-	int scanEvtNum = atoi(argv[8]);
+	double scanEvtNum = atof(argv[8]);
 
 	int lastdot = in_file.find_last_of("."); 
 	string id = (lastdot == string::npos) ? in_file : in_file.substr(0, lastdot); 
@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
 		{
             if (loaded > 1 && precursor_mz_is_constant)
 			{
-            	if(scanEvtNum==spectra[i].preset_config)
+            	if(scanEvtNum==spectra[i].precursor_mz)
             	{
             		cout << "Processing Swath Window: "<<spectra[i].preset_config<<endl;
             		ostringstream oss; oss << spectra[i].preset_config << "_" << spectra[i].precursor_mz;
