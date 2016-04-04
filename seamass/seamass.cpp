@@ -150,7 +150,7 @@ void process(const std::string& id,
         
         ////////////////////////////////////////////////////////////////////////////////////
         // OPTIMISATION
-        double thres = 0.000001; // L0 threshold
+        double thres = 0.000000; // L0 threshold
         
         for (ii shr = shrinkage0; shr <= shrinkage1; shr++)
         for (ii tol = tolerance1; tol >= tolerance0; tol--)
@@ -171,6 +171,12 @@ void process(const std::string& id,
             cout << " L1 nc=" << nc << " shrinkage=" << shr << ":" << fixed << setprecision(2) << shrinkage << " tolerance=" << tol << ":" << setprecision(6) << tolerance << endl;
 
             //cout << "a3" << endl;
+            if (debug >= 2)
+            {
+                ostringstream oss;
+                oss << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/init";
+                optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
+            }
 
             for (ii i = 0; grad > tolerance; i++)
             {
@@ -202,7 +208,7 @@ void process(const std::string& id,
             }
             
             // l0
-            cout << " L0 threshold=" << fixed << setprecision(2) << thres << " tolerance=" << tol << ":" << setprecision(6) << tolerance << endl;
+            /*cout << " L0 threshold=" << fixed << setprecision(2) << thres << " tolerance=" << tol << ":" << setprecision(6) << tolerance << endl;
             
             optimiser->threshold(thres);
             grad = DBL_MAX;
@@ -233,8 +239,8 @@ void process(const std::string& id,
                     oss << "/"  << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L0/" << setfill('0') << setw(8) << i;
                     optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
                 }
-            }
-			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
+            }*/
+			cout << "Duration: " << (omp_get_wtime() - start) << "seconds" << endl;
 
             //////////////////////////////////////////////////////////////////////////////////
             // OUTPUT

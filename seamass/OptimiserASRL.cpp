@@ -117,7 +117,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
         if (!bases[j]->is_transient())
         for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         {
-            cs[j][i] /= bases.size();
+            //cs[j][i] /= bases.size();
         }
         //if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
     }
