@@ -293,6 +293,8 @@ int main(int argc, char *argv[])
 						threads, out_type);
             		break;
             	}
+                for (lli j = 0; j < (lli) mzs.size(); j++) vector<double>().swap(mzs[j]);
+                for (lli j = 0; j < (lli) intensities.size(); j++) vector<double>().swap(intensities[j]);
 			}
 			else
 			{
