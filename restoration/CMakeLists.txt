@@ -15,7 +15,7 @@ target_include_directories(restoration PUBLIC
 	${PugiXML_INCLUDE_DIR}
 )
 target_link_libraries (restoration LINK_PUBLIC
-	seamass
+	seamass	
 	${HDF5_LIBRARIES}
 	${PugiXML_LIBRARIES}
 )
