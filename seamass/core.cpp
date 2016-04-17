@@ -153,6 +153,10 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
 			for (ii i = 0; i < intensities[j].size(); i++)
 			{
 				intensities[j][i] *= exposures[j];
+                fp baseline = (mzs[j][i+1] - mzs[j][i]) * 3.0/8.0 * 272.0;//68.0;//136.0;
+                intensities[j][i] = intensities[j][i] >= baseline ? intensities[j][i] : baseline;
+                
+                //if (intensities[j][i] == 0.0) intensities[j][i] = 0.25;
 			}
         }
         else

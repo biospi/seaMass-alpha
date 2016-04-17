@@ -118,6 +118,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
         for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         {
             //cs[j][i] /= bases.size();
+            //if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
         }
         //if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
     }
@@ -276,6 +277,7 @@ step(ii iteration, double shrinkage)
             if (es[j][i] >= FLT_MIN && cs[j][i] >= FLT_MIN)
             {
                 es[j][i] = (es[j][i] / l2[j][i]) * cs[j][i] / (shrinkage + (wcs[j][i] / l2[j][i]));
+                //if (es[j][i] < 0.0001) es[j][i] = 0.0;
             }
             else
             {
