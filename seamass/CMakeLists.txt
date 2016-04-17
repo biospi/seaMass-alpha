@@ -12,7 +12,11 @@ find_package(SpatialIndex 1.8.5 REQUIRED)
 find_package(Boost 1.54 REQUIRED COMPONENTS
 	system filesystem
 )
-find_package(netCDF REQUIRED)
+
+find_package(netCDF NO_MODULE)
+if(NOT netCDF_FOUND)
+    find_package(OldNetCDF REQUIRED)
+endif()
 
 add_library(seamass
   seamass.hpp
