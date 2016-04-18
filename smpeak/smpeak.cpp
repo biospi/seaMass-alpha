@@ -353,7 +353,7 @@ int main(int argc, char **argv)
 			run=0;
 
 			#pragma omp for firstprivate(hypIdx,rdLen) schedule(dynamic)
-			for(size_t rt_idx = 0; rt_idx < dataMatLen[0]; ++rt_idx)
+			for(ii rt_idx = 0; rt_idx < dataMatLen[0]; ++rt_idx)
 			{
 				vector<float> rawCoeff;
 				hypIdx[0]=rt_idx;

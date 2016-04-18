@@ -62,6 +62,8 @@ struct CoeffsMetadata
 };
 
 
+void remove_zeros(vector< vector<double> >& mzs, vector< vector<double> >& intensities);
+
 void bin_mzs_intensities(vector< vector<double> >& mzs,
                          vector< vector<double> >& intensities,
                          ii instrument_type,

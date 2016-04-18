@@ -55,15 +55,21 @@ public:
                   ii accell = 2);
 	~OptimiserASRL();
     
-    double step(ii iteration, double strength);
+	double step(ii iteration, fp lambda);
+
+	void synthesis(vector<fp>& fs, const SMOWriter* file = 0, const string& datafilename = "", ii cs_basis = 0) const;
+	void error(vector<fp>& fs) const;
+	void analysis(vector< vector<fp> >& dcs, const vector<fp>& dfs) const;
+	void shrinkage(vector< vector<fp> >& dcs, fp lambda);
+
     void threshold(double threshold);
     vector< vector<fp> >& get_cs() { return cs; }
 
-	fp compute_norm_max_counts(ii n_core_bases = 0);
+	/*fp compute_norm_max_counts(ii n_core_bases = 0);
     
     void write_h5(const SMOWriter& file, const string& datafilename,
                   const vector<ii>& scale_bases, const vector<li>& is, const vector<ii>& js, const vector<fp>& gains);
-    void calc_error(const std::string& id);
+    void calc_error(const std::string& id);*/
 };
 
 

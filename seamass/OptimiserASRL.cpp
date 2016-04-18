@@ -111,15 +111,14 @@ OptimiserASRL(const vector<Basis*>& _bases,
     {
         if (bases[j]->is_transient()) vector<fp>().swap(cs[j]);
     }
-    // any bases that are too small must be deleted to avoid numerical problems
+    // any bases that are too small must be deleted to avoid numerical problems causing speckles in the output
     for (ii j = 0; j < (ii) bases.size(); j++)
     {
         if (!bases[j]->is_transient())
         for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         {
-            cs[j][i] /= bases.size();
+           if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
         }
-        //if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
     }
     
     // temporaries required for acceleration
@@ -162,137 +161,39 @@ OptimiserASRL::
 }
 
 
-void
-OptimiserASRL::
-threshold(double thresh)
-{
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    if (!bases[j]->is_transient())
-    #pragma omp parallel for
-    for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
-    {
-        if (cs[j][i] < thresh) cs[j][i] = 0.0;
-    }
-    
-    double volume = bases.front()->get_volume();
-    
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    if (!bases[j]->is_transient())
-    #pragma omp parallel for
-    for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
-    {
-        cs[j][i] /= volume;
-    }
-}
-
-
 double
 OptimiserASRL::
-step(ii iteration, double shrinkage)
+step(ii iteration, fp lambda)
 {
-    double synthesis_start = omp_get_wtime();
-    // synthesis except root
-    vector< vector<fp> > ts(bases.size());
-    for (ii j = (ii) bases.size() - 1; j > 0; j--)
-    {
-        ii pj = bases[j]->get_parent()->get_index();
-        if (ts[pj].size() == 0)
-        if (bases[pj]->is_transient())
-        {
-            ts[pj].resize(bases[pj]->get_cm().size(), 0.0);
-        }
-        else
-        {
-            ts[pj].resize(bases[pj]->get_cm().size());
-            for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i] / l2[pj][i];
-        }
+	// SYNTHESIS
+	double synthesis_start = omp_get_wtime();
+	vector<fp> fs;
+	synthesis(fs);
+	double synthesis_duration = omp_get_wtime() - synthesis_start;
 
-        if (ts[j].size() == 0)
-        {
-            ts[j].resize(bases[j]->get_cm().size());
-            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++) ts[j][i] = cs[j][i] / l2[j][i];
-            bases[j]->synthesis(ts[pj], ts[j]);
-        }
-        else
-        {
-            bases[j]->synthesis(ts[pj], ts[j]);
-            
-        }
-        vector<fp>().swap(ts[j]);
-    }
-    //synthesis root
-    vector<fp> fs(gs.size());
-    if (ts.front().size() == 0)
-    {
-        bases.front()->synthesis(fs, cs.front());
-    }
-    else
-    {
-        bases.front()->synthesis(fs, ts.front());
-    }
-    vector<fp>().swap(ts.front());
-    // timing
-    double synthesis_duration = omp_get_wtime() - synthesis_start;
-    static double culm_synthesis_duration = 0.0;
-    culm_synthesis_duration += synthesis_duration;
-    
-    double error_start = omp_get_wtime();
-    // Poisson likelihood error
-    bases.front()->error(fs, gs);
-    // timing
+    // ERROR
+	double error_start = omp_get_wtime();
+	error(fs);
     double error_duration = omp_get_wtime() - error_start;
 
-    
+    // ANALYSIS
     double analysis_start = omp_get_wtime();
-    // analysis root
-    vector< vector<fp> > es(bases.size());
-    es.front().resize(bases.front()->get_cm().size());
-    bases.front()->analysis(es.front(), fs);
-    vector<fp>().swap(fs);
-    // analysis except root
-    for (ii j = 1; j < (ii) bases.size(); j++)
-    {
-        es[j].resize(bases[j]->get_cm().size());
-        bases[j]->analysis(es[j], es[bases[j]->get_parent()->get_index()]);
-        // use child count here to delete transient es sooner
-    }
-    // timing
-    double analysis_duration = omp_get_wtime() - analysis_start;
-    static double culm_analysis_duration = 0.0;
-    culm_analysis_duration += analysis_duration;
+	vector< vector<fp> > dcs(bases.size());
+	analysis(dcs, fs);
+	vector<fp>().swap(fs);
+	double analysis_duration = omp_get_wtime() - analysis_start;
 
+	// SHRINK
     double shrinkage_start = omp_get_wtime();
-    // shrinkage
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        if (bases[j]->is_transient())
-        {
-            vector<fp>().swap(es[j]);
-        }
-        else
-        {
-            #pragma omp parallel for
-            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
-            if (es[j][i] >= FLT_MIN && cs[j][i] >= FLT_MIN)
-            {
-                es[j][i] = (es[j][i] / l2[j][i]) * cs[j][i] / (shrinkage + (wcs[j][i] / l2[j][i]));
-            }
-            else
-            {
-                es[j][i] = 0.0;
-            }
-        }
-    }
+	shrinkage(dcs, lambda);
     double shrinkage_duration = omp_get_wtime() - shrinkage_start;
-    static double culm_shrinkage_duration = 0.0;
-    culm_shrinkage_duration += shrinkage_duration;
-    
-    double accel_start = omp_get_wtime();
+   
     // unaccelerated update
-    double sum = 0.0;
+	double accel_start = omp_get_wtime();
+	double sum = 0.0;
     double sumd = 0.0;
     fp a = 0.0;
-    if (accell == 0)
+    if (lambda == 0.0 || accell == 0)
     {
         for (ii j = 0; j < (ii) bases.size(); j++)
         if (!bases[j]->is_transient())
@@ -300,9 +201,9 @@ step(ii iteration, double shrinkage)
         for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         {
             sum += cs[j][i] * cs[j][i];
-            sumd += (es[j][i] - cs[j][i])*(es[j][i] - cs[j][i]);
+            sumd += (dcs[j][i] - cs[j][i])*(dcs[j][i] - cs[j][i]);
 
-            cs[j][i] = es[j][i];
+            cs[j][i] = dcs[j][i];
         }        
     }
     else // accelerated update    
@@ -316,7 +217,7 @@ step(ii iteration, double shrinkage)
             for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
             if (cs[j][i] > 0.0)
             {
-                u0s[j][i] = es[j][i]/cs[j][i];
+                u0s[j][i] = dcs[j][i]/cs[j][i];
             }
             a = 0.0;
         }
@@ -331,10 +232,10 @@ step(ii iteration, double shrinkage)
             if (cs[j][i] > 0.0)
             {
                 double old_u0 = u0s[j][i];
-                u0s[j][i] = es[j][i]/cs[j][i];
+                u0s[j][i] = dcs[j][i]/cs[j][i];
                 
                 old_u0 = old_u0 > 0.0 ? c0s[j][i]*log(old_u0) : 0.0;
-                sum_u0u += old_u0 * (u0s[j][i] > 0.0 ? es[j][i]*log(u0s[j][i]) : 0.0);
+                sum_u0u += old_u0 * (u0s[j][i] > 0.0 ? dcs[j][i]*log(u0s[j][i]) : 0.0);
                 sum_u0u0 += old_u0 * old_u0;
             }
             a = sqrt(sum_u0u/sum_u0u0);
@@ -352,14 +253,14 @@ step(ii iteration, double shrinkage)
                 if (cs[j][i] > 0.0)
                 {
                     sum += cs[j][i] * cs[j][i];
-                    sumd += (es[j][i] - cs[j][i])*(es[j][i] - cs[j][i]);
+                    sumd += (dcs[j][i] - cs[j][i])*(dcs[j][i] - cs[j][i]);
                     
                     // for this itteration
-                    cs[j][i] = es[j][i];
+                    cs[j][i] = dcs[j][i];
                     // for next itteration
-                    c0s[j][i] = es[j][i];
+                    c0s[j][i] = dcs[j][i];
                 }
-                vector<fp>().swap(es[j]);
+                vector<fp>().swap(dcs[j]);
             }
         }
         else if (accell == 1) // linear vector extrapolation
@@ -371,7 +272,7 @@ step(ii iteration, double shrinkage)
                 for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
                 if (cs[j][i] > 0.0)
                 {
-                    fp c1 = es[j][i] * powf(es[j][i]/c0s[j][i], a);
+                    fp c1 = dcs[j][i] * powf(dcs[j][i]/c0s[j][i], a);
                     
                     sum += cs[j][i] * cs[j][i];
                     sumd += (c1 - cs[j][i])*(c1 - cs[j][i]);
@@ -380,9 +281,9 @@ step(ii iteration, double shrinkage)
                     cs[j][i] = c1;
                     
                     // for next itteration
-                    c0s[j][i] = es[j][i];
+                    c0s[j][i] = dcs[j][i];
                 }
-                vector<fp>().swap(es[j]);
+                vector<fp>().swap(dcs[j]);
             }
         }
         else if (iteration == 1) // linear vector extrapolation this time, but save the qs
@@ -394,8 +295,8 @@ step(ii iteration, double shrinkage)
                 for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
                 if (cs[j][i] > 0.0)
                 {
-                    fp q = es[j][i]/c0s[j][i];
-                    fp c1 = es[j][i] * powf(es[j][i]/c0s[j][i], a);
+                    fp q = dcs[j][i]/c0s[j][i];
+                    fp c1 = dcs[j][i] * powf(dcs[j][i]/c0s[j][i], a);
                     
                     sum += cs[j][i] * cs[j][i];
                     sumd += (c1 - cs[j][i])*(c1 - cs[j][i]);
@@ -404,10 +305,10 @@ step(ii iteration, double shrinkage)
                     cs[j][i] = c1;
                     
                     // for next itteration
-                    c0s[j][i] = es[j][i];
+                    c0s[j][i] = dcs[j][i];
                     q0s[j][i] = q;
                 }
-                vector<fp>().swap(es[j]);
+                vector<fp>().swap(dcs[j]);
             }
         }
         else // quadratic vector extrapolation
@@ -419,8 +320,8 @@ step(ii iteration, double shrinkage)
                 for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
                 if (cs[j][i] > 0.0)
                 {
-                    fp q = es[j][i]/c0s[j][i];
-                    fp c1 = es[j][i] * powf(q, a) * powf(q/q0s[j][i], 0.5f*a*a);
+                    fp q = dcs[j][i]/c0s[j][i];
+                    fp c1 = dcs[j][i] * powf(q, a) * powf(q/q0s[j][i], 0.5f*a*a);
                     
                     sum += cs[j][i] * cs[j][i];
                     sumd += (c1 - cs[j][i])*(c1 - cs[j][i]);
@@ -429,25 +330,175 @@ step(ii iteration, double shrinkage)
                     cs[j][i] = c1;
                     
                     // for next itteration
-                    c0s[j][i] = es[j][i];
+                    c0s[j][i] = dcs[j][i];
                     q0s[j][i] = q;
                 }
-                vector<fp>().swap(es[j]);
+                vector<fp>().swap(dcs[j]);
             }
         }
     }
     double accel_duration = omp_get_wtime() - accel_start;
-    static double culm_accel_duration = 0.0;
-    culm_accel_duration += accel_duration;
     
     //cout << "Iteration   Durations: synthesis=" << setprecision(2) << synthesis_duration << " error=" << error_duration << " analysis=" << analysis_duration << " shrinkage=" << shrinkage_duration << " accel=" << accel_duration << " all=" << synthesis_duration+error_duration+analysis_duration+shrinkage_duration+accel_duration << endl;
-    //cout << "Culminative Durations: synthesis=" << culm_synthesis_duration << " error=" << culm_error_duration << " analysis=" << culm_analysis_duration << " shrinkage=" << culm_shrinkage_duration << " accel=" << culm_accel_duration<< " all=" << culm_synthesis_duration+culm_error_duration+culm_analysis_duration+culm_shrinkage_duration +culm_accel_duration << endl;
     
     return sqrt(sumd)/sqrt(sum);
 }
 
 
-fp
+void
+OptimiserASRL::
+synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii cs_basis) const
+{
+	// synthesis except root
+	vector< vector<fp> > ts(bases.size());
+	for (ii j = (ii)bases.size() - 1; j > 0; j--)
+	{
+		ii pj = bases[j]->get_parent()->get_index();
+		if (ts[pj].size() == 0)
+		{
+			if (bases[pj]->is_transient())
+			{
+				ts[pj].assign(bases[pj]->get_cm().size(), 0.0);
+			}
+			else
+			{
+				ts[pj].resize(bases[pj]->get_cm().size());
+				for (li i = 0; i < (li)bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i] / l2[pj][i];
+			}
+		}
+
+		if (ts[j].size() == 0)
+		{
+			ts[j].resize(bases[j]->get_cm().size());
+			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) ts[j][i] = cs[j][i] / l2[j][i];
+		}
+		bases[j]->synthesis(ts[pj], ts[j]);
+
+		if (file && j == cs_basis)
+		{
+			// write 2D B-spline coefficients
+			ostringstream oss;
+			oss << datafilename << "cs";
+			file->write_cs(oss.str(), bases[j]->get_cm(), ts[j]);
+		}
+
+		vector<fp>().swap(ts[j]);
+	}
+
+	//synthesis root
+	if (ts[0].size() == 0)
+	{
+		ts[0].resize(bases[0]->get_cm().size());
+		for (li i = 0; i < (li)bases[0]->get_cm().size(); i++) ts[0][i] = cs[0][i] / l2[0][i];
+	}
+	fs.assign(gs.size(), 0.0);
+	bases[0]->synthesis(fs, ts[0]);
+
+	if (file)
+	{
+		// write 1D B-spline coefficients
+		ostringstream oss;
+		oss << datafilename << "fcs";
+		file->write_cs(oss.str(), bases[0]->get_cm(), ts[0]);
+
+		// write fs
+		ostringstream oss2;
+		oss2 << datafilename;
+		file->write_cdata(oss2.str(), fs, "fs");
+	}
+
+	vector<fp>().swap(ts[0]);
+}
+
+
+void
+OptimiserASRL::
+error(vector<fp>& fs) const
+{
+	bases.front()->error(fs, gs);
+}
+
+
+void
+OptimiserASRL::
+analysis(vector< vector<fp> >& dcs, const vector<fp>& dfs) const
+{
+	dcs[0].resize(bases.front()->get_cm().size());
+	bases.front()->analysis(dcs.front(), dfs);
+
+	// analysis except root
+	for (ii j = 1; j < (ii)bases.size(); j++)
+	{
+		dcs[j].resize(bases[j]->get_cm().size());
+		bases[j]->analysis(dcs[j], dcs[bases[j]->get_parent()->get_index()]);
+		// use child count here to delete transient es sooner
+	}
+}
+
+
+void
+OptimiserASRL::
+shrinkage(vector< vector<fp> >& dcs, fp shrinkage)
+{
+	for (ii j = 0; j < (ii)bases.size(); j++)
+	{
+		if (bases[j]->is_transient())
+		{
+			vector<fp>().swap(dcs[j]);
+		}
+		else
+		{
+			#pragma omp parallel for
+			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
+			{
+				if (dcs[j][i] >= FLT_MIN && cs[j][i] >= FLT_MIN)
+				{
+					dcs[j][i] = (dcs[j][i] / l2[j][i]) * cs[j][i] / (shrinkage + (wcs[j][i] / l2[j][i]));
+					//if (es[j][i] < 0.0001) es[j][i] = 0.0;
+				}
+				else
+				{
+					dcs[j][i] = 0.0;
+				}
+			}
+		}
+	}
+}
+
+
+void
+OptimiserASRL::
+threshold(double thresh)
+{
+	for (ii j = 0; j < (ii)bases.size(); j++)
+	{
+		if (!bases[j]->is_transient())
+		{
+			#pragma omp parallel for
+			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
+			{
+				if (cs[j][i] < thresh) cs[j][i] = 0.0;
+			}
+		}
+	}
+
+	/*double volume = bases.front()->get_volume();
+
+	for (ii j = 0; j < (ii)bases.size(); j++)
+	{
+		if (!bases[j]->is_transient())
+		{
+			#pragma omp parallel for
+			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
+			{
+				cs[j][i] /= volume;
+			}
+		}
+	}*/
+}
+
+
+/*fp
 OptimiserASRL::
 compute_norm_max_counts(ii n_core_bases)
 {
@@ -519,8 +570,7 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
             else
             {
                 ts[pj].resize(bases[pj]->get_cm().size());
-                for (li i = 0; i < (li) bases[pj]->get_cm().size(); i++)
-                    ts[pj][i] = cs[pj][i];
+				for (li i = 0; i < (li)bases[pj]->get_cm().size(); i++) ts[pj][i] = cs[pj][i] / l2[pj][i];;
             }
         }
 
@@ -596,10 +646,10 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
                 ds[x+y*dcm.n[0]] = (*p)[x+1+y*bases[j]->get_cm().n[0]] - (*p)[x+y*bases[j]->get_cm().n[0]];
             }
             write_h5(oss.str(), "Image", dcm, ds);*/
-        }
+        /*}
 
         vector<fp>().swap(ts[j]);
-    }
+    }*/
 
     // residuals
     /*
@@ -660,7 +710,7 @@ write_h5(const SMOWriter& file, const string& datafilename, const vector<ii>& sc
 
         vector<fp>().swap(ts[j]);
     }*/
-}
+/*}
 
 
 void
@@ -751,7 +801,7 @@ calc_error(const std::string& id)
     }
     ofs.close();
 
-}
+}*/
 
 
 

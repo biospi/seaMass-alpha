@@ -109,6 +109,29 @@ double CatmullRomInterpolate(
 }
 
 
+void remove_zeros(vector< vector<double> >& mzs, vector< vector<double> >& intensities)
+{
+	for (ii j = 0; j < intensities.size(); j++)
+	{
+		ii shift = 0;
+		for (ii i = 0; i < intensities[j].size(); i++)
+		{
+			if (intensities[j][i] <= 0.0)
+			{
+				shift++;
+			}
+			else if (shift > 0 )
+			{
+				intensities[j][i - shift] = intensities[j][i];
+				mzs[j][i - shift] = mzs[j][i];
+			}
+		}
+		intensities[j].resize(intensities[j].size() - shift);
+		mzs[j].resize(mzs[j].size() - shift);
+	}
+}
+
+
 void bin_mzs_intensities(vector< vector<double> >& mzs,
                          vector< vector<double> >& intensities,
 						 ii instrument_type,
@@ -135,7 +158,7 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
         for (ii j = 0; j < mzs.size(); j++)
         if (mzs[j].size() >= 2)
         {
-			// dividing by minimum to get back to ion counts for SWATH data which appears to be scaled to correct for dynamic range restrictions (hack!)
+			// dividing by minimum to get back to ion counts for SWATH data which appears to be automatic gain controlled to correct for dynamic range restrictions (hack!)
 			double minimum = std::numeric_limits<double>::max();
 
 			// we drop the first and last m/z datapoint as we don't know both their bin edges
@@ -153,6 +176,10 @@ void bin_mzs_intensities(vector< vector<double> >& mzs,
 			for (ii i = 0; i < intensities[j].size(); i++)
 			{
 				intensities[j][i] *= exposures[j];
+                //fp baseline = (mzs[j][i+1] - mzs[j][i]) * 3.0/8.0 * 272.0;//68.0;//136.0;
+                //intensities[j][i] = intensities[j][i] >= baseline ? intensities[j][i] : baseline;
+                
+               // if (intensities[j][i] == 0.0) intensities[j][i] = 3.0/8.0;
 			}
         }
         else
