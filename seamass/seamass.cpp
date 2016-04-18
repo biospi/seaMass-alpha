@@ -79,6 +79,9 @@ void process(const std::string& id,
     // difference between carbon12 and carbon13
     double rc_mz = pow(2.0, (double) rc0_mz) * 60 / 1.0033548378;
 
+	// remove zero intensities as SRL is biased for zeros
+	//remove_zeros(mzs, intensities);
+
     // Ensure the raw data is in binned format and compute exposures
 	vector<fp> exposures;
     bin_mzs_intensities(mzs, intensities, instrument_type, exposures);
@@ -104,7 +107,10 @@ void process(const std::string& id,
 
 	ostringstream mzh5;
 	mzh5 << "/" << config_id << "/" << rc0_mz << "/";
-	h5out->write_cdata(mzh5.str(), mzs,"SpectrumMZ");
+	if (debug)
+	{
+		h5out->write_cdata(mzh5.str(), mzs, "SpectrumMZ");
+	}
 
     for (ii j = 0; j < (ii) mzs.size(); j++) vector<double>().swap(mzs[j]);
     //while (bases.back()->get_cm().n[0] > order + 1)
@@ -127,10 +133,10 @@ void process(const std::string& id,
         bases.resize(n_core_bases);
         
         // BasisResampleRT
-        vector<ii> scale_bases(1, n_core_bases);
         BasisResampleRT* bResampleRT = new BasisResampleRT(bases, bResampleMZ, rts, js, rcr, order);
 		double rt_min = bResampleRT->get_min();
 		double rt_max = bResampleRT->get_max();
+		ii cs_basis = bResampleRT->get_index();
         while (bases.back()->get_cm().n[0] > order + 1)
         {
             new BasisDyadicScale(bases, bases.back(), 0, order);
@@ -140,7 +146,6 @@ void process(const std::string& id,
         Basis* last = bResampleRT;
         while (last->get_cm().n[1] > order + 1)
         {
-            scale_bases.push_back(bases.size());
             last = new BasisDyadicScale(bases, last, 1, order);
             while (bases.back()->get_cm().n[0] > order + 1)
             {
@@ -150,7 +155,7 @@ void process(const std::string& id,
         
         ////////////////////////////////////////////////////////////////////////////////////
         // OPTIMISATION
-        double thres = 0.000000; // L0 threshold
+		double thres = 0.0;// 000000001; // L0 threshold
         
         for (ii shr = shrinkage0; shr <= shrinkage1; shr++)
         for (ii tol = tolerance1; tol >= tolerance0; tol--)
@@ -175,18 +180,20 @@ void process(const std::string& id,
             {
                 ostringstream oss;
                 oss << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/init";
-                optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
-            }
+ 				vector<fp> fs;
+				optimiser->synthesis(fs, h5out, oss.str(), cs_basis);
+			}
 
             for (ii i = 0; grad > tolerance; i++)
             {
                 grad = optimiser->step(i, shrinkage);
-                
+				optimiser->threshold(thres);
+
                 li nnz = 0;
                 for (ii j = 0; j < (ii) bases.size(); j++)
                 if (!bases[j]->is_transient())
                 for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
-                if (optimiser->get_cs()[j][i] > thres)
+                if (optimiser->get_cs()[j][i] > 0.0)
                 {
                     nnz++;
                 }
@@ -202,17 +209,18 @@ void process(const std::string& id,
                 if (debug >= 2)
                 {
                     ostringstream oss;
-                    oss << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L1/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
-                }
-            }
+                    oss << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L1/" << setfill('0') << setw(8) << i << "/";
+ 					vector<fp> fs;
+					optimiser->synthesis(fs, h5out, oss.str(), cs_basis);
+				}
+
+			}
             
             // l0
-            /*cout << " L0 threshold=" << fixed << setprecision(2) << thres << " tolerance=" << tol << ":" << setprecision(6) << tolerance << endl;
+            cout << " L0 threshold=" << fixed << setprecision(2) << thres << " tolerance=" << tol << ":" << setprecision(6) << tolerance << endl;
             
-            optimiser->threshold(thres);
             grad = DBL_MAX;
-            for (ii i = 0; grad > tolerance; i++)
+            for (ii i = 0; i < 20; i++)
             {
                 grad = optimiser->step(i, 0.0);
                 
@@ -220,7 +228,7 @@ void process(const std::string& id,
                 for (ii j = 0; j < (ii) bases.size(); j++)
                 if (!bases[j]->is_transient())
                 for (ii i = 0; i < (ii) bases[j]->get_cm().size(); i++)
-                if (optimiser->get_cs()[j][i] > thres)
+                if (optimiser->get_cs()[j][i] > 0.0)
                 {
                     nnz++;
                 }
@@ -237,28 +245,39 @@ void process(const std::string& id,
                 {
                     ostringstream oss;
                     oss << "/"  << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/_debug/L0/" << setfill('0') << setw(8) << i;
-                    optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
-                }
-            }*/
+					vector<fp> fs;
+					optimiser->synthesis(fs, h5out, oss.str(), cs_basis);
+				}
+            }
 			cout << "Duration: " << (omp_get_wtime() - start) << "seconds" << endl;
 
             //////////////////////////////////////////////////////////////////////////////////
             // OUTPUT
 			
-			// write smo
 			if (debug)
 			{
+				// write fc, fcs, fs seamass output
 				ostringstream oss;
 				oss  << "/" << config_id << "/" << rc0_mz << "/" << rcr << "/" << shr << "/" << tol << "/";
-				optimiser->write_h5(*h5out, oss.str(), scale_bases, is, js, exposures);
+				vector<fp> fs;
+				optimiser->synthesis(fs, h5out, oss.str(), cs_basis);
+
+				// write gs original spectrum intensities
+				h5out->write_cdata(mzh5.str(), gs, "SpectrumCount");
+
+				// write mz scan index for spectrum intensities
+				h5out->write_cdata(mzh5.str(), is, "SpectrumCountIndex");
+
+				// write mz scan index for spectrum intensities
+				h5out->write_cdata(mzh5.str(), exposures, "SpectrumExposure");
 			}
 
             // write smv viz r-tree
-			start = omp_get_wtime();
+			/*start = omp_get_wtime();
 			ostringstream oss;
 			oss << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol;
 			vizout->write_cs(oss.str(), bases, n_core_bases, optimiser->get_cs(), mz_min, mz_max, rt_min, rt_max, optimiser->compute_norm_max_counts(n_core_bases));
- 			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;
+ 			cout << "Duration: " << (omp_get_wtime() - start)/60.0 << "mins" << endl;*/
 
             //ostringstream oss2; oss2 << id << "_" << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol << ".error.csv";
             //optimiser->calc_error(oss2.str());           

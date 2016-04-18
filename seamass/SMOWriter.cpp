@@ -26,18 +26,15 @@
 
 
 SMOWriter::
-SMOWriter(const string& filename)
+SMOWriter(const string& _filename) :
+	filename(_filename)
 {
-	file = H5Fcreate(filename.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
+	file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 	if (file < 0)
 	{
-		file = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
-		if (file < 0)
-		{
-			// throw exception
-			cerr << "problem opening smo" << endl;
-			throw "problem opening smo";
-		}
+		// throw exception
+		cerr << "problem opening smo" << endl;
+		throw "problem opening smo";
 	}
 }
 
@@ -45,7 +42,6 @@ SMOWriter(const string& filename)
 SMOWriter::
 ~SMOWriter()
 {
-    cout << "closing smo" << endl;
 	if (H5Fclose(file) < 0)
     {
         // throw exception
@@ -60,7 +56,7 @@ void
 SMOWriter::
 write_cs(const string& objectname, const CoeffsMetadata& cm, const vector<fp>& cs) const
 {
-    cout << "Writing " << filename << "/" << objectname << endl;
+    cout << "Writing " << filename << objectname << endl;
  
     hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
     H5Pset_create_intermediate_group(lcpl_id, 1);
@@ -105,7 +101,7 @@ write_fs(const string& objectname,
          const vector<li>& is,
          const vector<ii>& js) const
 {
-    cout << "Writing " << filename << "/" << objectname << "/" << 0 << ":" << js.size()-1 << endl;
+    cout << "Writing " << filename << objectname << "/" << 0 << ":" << js.size()-1 << endl;
     
     for (hsize_t j = 0; j < js.size(); j++)
     {
@@ -147,7 +143,7 @@ write_cdata(const string& objectname,
          const vector<fp>& cdata,
          const string& setname) const
 {
-    cout << "Writing " << filename << "/" << objectname << "/" << setname << endl;
+	cout << "Writing " << filename << objectname << setname << endl;
 
     write_h5(objectname, cdata, setname, H5T_NATIVE_FLOAT);
 }
@@ -159,7 +155,7 @@ write_cdata(const string& objectname,
          const vector<li>& cdata,
          const string& setname) const
 {
-    cout << "Writing " << filename << "/" << objectname << "/" << setname << endl;
+    cout << "Writing " << filename << objectname << setname << endl;
 
     write_h5(objectname, cdata, setname, H5T_NATIVE_LLONG);
 }
@@ -171,7 +167,7 @@ write_cdata(const string& objectname,
 		 const vector<vector<double> >& mzs,
          const string& setname) const
 {
-    cout << "Writing " << filename << "/" << objectname << "/" << setname << endl;
+    cout << "Writing " << filename << "/" << objectname << setname << endl;
 
     vector<double> cdata;
     hsize_t N=0;

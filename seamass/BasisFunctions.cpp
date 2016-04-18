@@ -25,6 +25,7 @@
 
 #include "BasisFunctions.hpp"
 #include <limits>
+#include <iomanip>
 
 
 Basis::
@@ -65,9 +66,12 @@ error(vector<fp>& fs, const vector<fp>& gs)
         
         if (fs[i] > 0.0 && gs[i] >= 0.0)
         {
-            dis += ((gs[i]-ceil(fs[i]))*(gs[i]-ceil(fs[i])))/ceil(fs[i]);
-            err += fabs(gs[i]-fs[i]);
-            size_d++;
+			if (gs[i] > 0.0)
+			{
+				dis += ((gs[i] - ceil(fs[i]))*(gs[i] - ceil(fs[i]))) / ceil(fs[i]);
+				err += fabs(gs[i] - fs[i]);
+				size_d++;
+			}
             
             fs[i] = gs[i]/fs[i];
         }
@@ -97,7 +101,6 @@ BasisResampleMZ(vector<Basis*>& bases,
     Basis(bases, 2, 0, transient),
     is(_is)
 {
-	double rc = pow(2.0, (double) rci) * 60 / 1.0033548378;
 
     ///////////////////////////////////////////////////////////////////////
     // create A as a temporary COO matrix
@@ -117,15 +120,35 @@ BasisResampleMZ(vector<Basis*>& bases,
     m.resize(cm.n[1]);
     nnz.resize(cm.n[1], 0);
 
-    // find min and max m/z across spectra
+    // find min and max m/z across spectra, and narrowest bin
     mz_min = DBL_MAX;
     mz_max = 0.0;
+	double mz_diff = 0.0;
     for (ii j = 0; j < cm.n[1]; j++)
     {
         m[j] = (ii) (is[j+1] - is[j]);
         mz_min = mzs[js[j]].front() < mz_min ? mzs[js[j]].front() : mz_min;
         mz_max = mzs[js[j]].back() > mz_max ? mzs[js[j]].back() : mz_max;
-    }
+
+		for (ii i = 0; i < m[j]; i++)
+		if (gs[is[j] + i] > 0.0)
+		{
+			double diff = mzs[js[j]][i + 1] - mzs[js[j]][i];
+			mz_diff = diff > mz_diff ? diff : mz_diff;
+		}
+	}
+
+	ii rci_auto = floor(log2(1.0 / mz_diff / 60.0 / 1.0033548378));
+	if (rci >= 100)
+	{
+		rci = rci_auto;
+	}
+	else if (rci_auto != rci)
+	{
+		cout << endl << "WARNING: mz_res is not the suggested value of " << rci_auto << ". Continue at your own risk!" << endl << endl;
+	}
+	double rc = pow(2.0, (double)rci) * 60 / 1.0033548378;
+
     cm.l[0] = rci;
     cm.o[0] = (ii) floor(mz_min * rc);
     cm.n[0] = ((ii) ceil(mz_max * rc)) + order - cm.o[0];
@@ -288,6 +311,21 @@ BasisResampleRT(vector<Basis*>& bases,
                 bool transient) :
     Basis(bases, parent->get_cm().d, parent, transient)
 {
+	double rt_diff = 0.0;
+	for (ii j = 0; j < js.size() - 1; j++)
+	{
+		double diff = rts[js[j + 1]] - rts[js[j]];
+		rt_diff = diff > rt_diff ? diff : rt_diff;
+	}
+	ii rci_auto = floor(log2(1.0 / rt_diff));
+	if (rci >= 100)
+	{
+		rci = rci_auto;
+	}
+	else if (rci_auto != rci)
+	{
+		cout << endl << "WARNING: rt_res is not the suggested value of " << rci_auto << ". Continue at your own risk!" << endl << endl;
+	}
 	double rc = pow(2.0, (double) rci);
     double sp = 1.0 / rc;
 
