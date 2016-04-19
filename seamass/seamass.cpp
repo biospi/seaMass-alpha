@@ -133,7 +133,7 @@ void process(const std::string& id,
         bases.resize(n_core_bases);
         
         // BasisResampleRT
-        BasisResampleRT* bResampleRT = new BasisResampleRT(bases, bResampleMZ, rts, js, rcr, order);
+        BasisResampleRT* bResampleRT = new BasisResampleRT(bases, bResampleMZ, rts, js, exposures, rcr, order);
 		double rt_min = bResampleRT->get_min();
 		double rt_max = bResampleRT->get_max();
 		ii cs_basis = bResampleRT->get_index();
@@ -264,11 +264,9 @@ void process(const std::string& id,
 
 				// write gs original spectrum intensities
 				h5out->write_cdata(mzh5.str(), gs, "SpectrumCount");
-
-				// write mz scan index for spectrum intensities
 				h5out->write_cdata(mzh5.str(), is, "SpectrumCountIndex");
-
-				// write mz scan index for spectrum intensities
+				h5out->write_cdata(mzh5.str(), js, "SpectrumIndex");
+				h5out->write_cdata(mzh5.str(), rts, "SpectrumScanTimes");
 				h5out->write_cdata(mzh5.str(), exposures, "SpectrumExposure");
 			}
 

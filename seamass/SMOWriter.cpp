@@ -29,12 +29,16 @@ SMOWriter::
 SMOWriter(const string& _filename) :
 	filename(_filename)
 {
-	file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	file = H5Fcreate(filename.c_str(), H5F_ACC_EXCL, H5P_DEFAULT, H5P_DEFAULT);
 	if (file < 0)
 	{
-		// throw exception
-		cerr << "problem opening smo" << endl;
-		throw "problem opening smo";
+		file = H5Fopen(filename.c_str(), H5F_ACC_RDWR, H5P_DEFAULT);
+		if (file < 0)
+		{
+			// throw exception
+			cerr << "problem opening smo" << endl;
+			throw "problem opening smo";
+		}
 	}
 }
 
@@ -140,12 +144,24 @@ write_fs(const string& objectname,
 void
 SMOWriter::
 write_cdata(const string& objectname,
-         const vector<fp>& cdata,
+         const vector<float>& cdata,
          const string& setname) const
 {
 	cout << "Writing " << filename << objectname << setname << endl;
 
     write_h5(objectname, cdata, setname, H5T_NATIVE_FLOAT);
+}
+
+
+void
+SMOWriter::
+write_cdata(const string& objectname,
+	const vector<double>& cdata,
+	const string& setname) const
+{
+	cout << "Writing " << filename << objectname << setname << endl;
+
+	write_h5(objectname, cdata, setname, H5T_NATIVE_FLOAT);
 }
 
 
@@ -158,6 +174,18 @@ write_cdata(const string& objectname,
     cout << "Writing " << filename << objectname << setname << endl;
 
     write_h5(objectname, cdata, setname, H5T_NATIVE_LLONG);
+}
+
+
+void
+SMOWriter::
+write_cdata(const string& objectname,
+		const vector<ii>& cdata,
+		const string& setname) const
+{
+	cout << "Writing " << filename << objectname << setname << endl;
+
+	write_h5(objectname, cdata, setname, H5T_NATIVE_LONG);
 }
 
 

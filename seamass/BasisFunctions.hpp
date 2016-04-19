@@ -126,6 +126,7 @@ public:
                     Basis* parent,
                     const vector<double>& rts,
                     const vector<ii>& js,
+					const vector<fp>& exposures,
                     ii rc,
                     ii order = 3,
                     bool transient = false);
