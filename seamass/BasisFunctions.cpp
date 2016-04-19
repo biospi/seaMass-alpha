@@ -306,6 +306,7 @@ BasisResampleRT(vector<Basis*>& bases,
                 Basis* parent,
                 const vector<double>& rts,
                 const vector<ii>& js,
+				const vector<fp>& exposures,
                 ii rci,
                 ii order,
                 bool transient) :
@@ -381,7 +382,7 @@ BasisResampleRT(vector<Basis*>& bases,
             double b = bspline::im(b1, order+1) - bspline::im(b0, order+1);
             if (b <= FLT_MIN) b = FLT_MIN; // for numerical instability in im()
             
-            acoo[mi] = b;
+			acoo[mi] = b * exposures[js[j]];
             rowind[mi] = i;
             colind[mi] = ci - cm.o[1];
             mi++;

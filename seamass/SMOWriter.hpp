@@ -56,12 +56,18 @@ public:
                   const vector<li>& is,
                   const vector<ii>& js) const;
     void write_cdata(const string& objectname,
-				  const vector<fp>& cdata,
+				  const vector<float>& cdata,
 				  const string& setname) const;
-    void write_cdata(const string& objectname,
+	void write_cdata(const string& objectname,
+				  const vector<double>& cdata,
+		          const string& setname) const;
+	void write_cdata(const string& objectname,
 				  const vector<li>& cdata,
 				  const string& setname) const;
-    void write_cdata(const string& objectname,
+	void write_cdata(const string& objectname,
+		          const vector<ii>& cdata,
+		          const string& setname) const;
+	void write_cdata(const string& objectname,
 				  const vector<vector<double> >& mzs,
 				  const string& setname) const;
  };

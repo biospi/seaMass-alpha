@@ -48,6 +48,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
         {
             vector<fp> ts(gs.size(), 1.0);
             bases[j]->analysis(wcs[0], ts);
+			//for (ii i = 0; i < wcs[0].size(); i++) cout << wcs[0][i] << endl;
         }
         else
         {
@@ -56,7 +57,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
     }
     for (ii j = 0; j < (ii) bases.size(); j++)
     {
-        if (bases[j]->is_transient()) vector<fp>().swap(wcs[j]);
+        //if (bases[j]->is_transient()) vector<fp>().swap(wcs[j]);
     }
     //cout << "b1" << endl;
     
@@ -117,7 +118,7 @@ OptimiserASRL(const vector<Basis*>& _bases,
         if (!bases[j]->is_transient())
         for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
         {
-           if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
+           //if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
         }
     }
     
@@ -369,8 +370,15 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 
 		if (ts[j].size() == 0)
 		{
-			ts[j].resize(bases[j]->get_cm().size());
-			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) ts[j][i] = cs[j][i] / l2[j][i];
+			if (bases[j]->is_transient())
+			{
+				ts[j].assign(bases[j]->get_cm().size(), 0.0);
+			}
+			else
+			{
+				ts[j].resize(bases[j]->get_cm().size());
+				for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) ts[j][i] = cs[j][i] / l2[j][i];
+			}
 		}
 		bases[j]->synthesis(ts[pj], ts[j]);
 
@@ -379,7 +387,9 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 			// write 2D B-spline coefficients
 			ostringstream oss;
 			oss << datafilename << "cs";
-			file->write_cs(oss.str(), bases[j]->get_cm(), ts[j]);
+			vector<fp> vs(ts[j].size());
+			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) vs[i] = ts[j][i] * wcs[j][i];
+			file->write_cs(oss.str(), bases[j]->get_cm(), vs);
 		}
 
 		vector<fp>().swap(ts[j]);
@@ -388,8 +398,15 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 	//synthesis root
 	if (ts[0].size() == 0)
 	{
-		ts[0].resize(bases[0]->get_cm().size());
-		for (li i = 0; i < (li)bases[0]->get_cm().size(); i++) ts[0][i] = cs[0][i] / l2[0][i];
+		if (bases[0]->is_transient())
+		{
+			ts[0].assign(bases[0]->get_cm().size(), 0.0);
+		}
+		else
+		{
+			ts[0].resize(bases[0]->get_cm().size());
+			for (li i = 0; i < (li)bases[0]->get_cm().size(); i++) ts[0][i] = cs[0][i] / l2[0][i];
+		}
 	}
 	fs.assign(gs.size(), 0.0);
 	bases[0]->synthesis(fs, ts[0]);
@@ -399,7 +416,9 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 		// write 1D B-spline coefficients
 		ostringstream oss;
 		oss << datafilename << "fcs";
-		file->write_cs(oss.str(), bases[0]->get_cm(), ts[0]);
+		vector<fp> vs(ts[0].size());
+		for (li i = 0; i < (li)bases[0]->get_cm().size(); i++) vs[i] = ts[0][i] * wcs[0][i];
+		file->write_cs(oss.str(), bases[0]->get_cm(), vs);
 
 		// write fs
 		ostringstream oss2;
