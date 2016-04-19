@@ -29,6 +29,7 @@
 
 #include "core.hpp"
 #include <hdf5.h>
+#include <boost/filesystem.hpp>
 
 
 class SMOWriter
