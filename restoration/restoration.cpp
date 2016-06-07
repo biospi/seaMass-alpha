@@ -31,12 +31,14 @@
 #include <H5Cpp.h>
 #include <pugixml.hpp>
 #include <map>
+#include <boost/program_options.hpp>
 
 #include "seamass.hpp"
 #include "NetCDFile.hpp"
 
 using namespace std;
 namespace xml = pugi;
+namespace po = boost::program_options;
 
 struct spectrum
 {
@@ -126,6 +128,178 @@ int main(int argc, char *argv[])
 	int tol = atoi(argv[5]);
 	int threads = atoi(argv[6]);
 	int out_type = atoi(argv[7]);
+	double scanEvtNum;
+
+	// *******************************************************************
+
+	po::options_description general("Usage"
+			"-----"
+			"restoration [OPTIONS...] [MZMLB]"
+			"restoration <in_file> <mz_res> <rt_res> <shrinkage> <tol> <threads> <out_type>");
+
+	general.add_options()
+		("help,h", "Produce help message")
+		("mzMLb,f", po::value<string>(&in_file),
+			"Raw input file in seaMass Input format (mzMLb)"
+			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
+		("mz_res,m",po::value<int>(&mz_res)->default_value(1),
+			"MS resolution given as: \"b-splines per Th = 2^mz_res * 60 / 1.0033548378\""
+			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap"
+			"default: 1")
+		("rt_res,r",po::value<int>(&rt_res)->default_value(4),
+			"LC resolution given as: \"b-splines per minute = 2^rt_res\""
+			"guidelines: around 4"
+			"default: 4")
+		("shrink,s",po::value<int>(&shrink)->default_value(-4),""
+			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\""
+			"guidelines: around -4"
+			"default: -4")
+		("tol,l",po::value<int>(&shrink)->default_value(-9),
+			"Convergence tolerance, given as: \"gradient <= 2^tol\""
+			"guidelines: around -9"
+			"default: -9")
+		("threads,t",po::value<int>(&shrink)->default_value(4),
+			"Number of OpenMP threads to use"
+			"guidelines: set to amount of CPU cores or 4, whichever is smaller"
+			"default: 4")
+		("precursor,p",po::value<int>(&shrink),
+			"Precursor value to single out Swath Window"
+			"guidelines: 0 = ms1 spectrum; > 0 = ms2 spectrum")
+		("out_type,o",po::value<int>(&shrink)->default_value(0),
+			"Type of output desired"
+			"guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug"
+			"default: 0");
+
+	po::options_description examples("Eamples:\n"
+			"Centroid mode:\n"
+			"\tsmpeak -c -s [SMO FILE] -z [mzMLb3 FILE]\n"
+			"\tsmpeak -s [SMO FILE] -z [mzMLb3 FILE]\n"
+			"\tsmpeak -c [SMO FILE] -z [mzMLb3 FILE]\n"
+			"\tsmpeak [SMO FILE] -z [mzMLb3 FILE]\n"
+			"2D Peak Pick mode:\n"
+			"\tsmpeak -p -s [SMO FILE]\n"
+			"\tsmpeak -p [SMO FILE]\n"
+			"Default mode if -c or -p not given - Centroid");
+
+	po::options_description cmdline;
+	cmdline.add(general).add(hidden).add(examples);
+
+	po::options_description desc;
+	desc.add(general).add(examples);
+
+	try
+	{
+		po::positional_options_description pod;
+		pod.add("smo", 1);
+
+		po::variables_map vm;
+		po::store(po::command_line_parser(argc, argv).options(cmdline).positional(pod).run(), vm);
+		po::notify(vm);
+
+		if(vm.count("help"))
+		{
+			cout<<desc<<endl;
+			return 0;
+		}
+		if(vm.count("hidden"))
+		{
+			cout<<cmdline<<endl;
+			return 0;
+		}
+		if(vm.count("centroid"))
+		{
+			cout<<"Transforming data to peak detection Centroid, 1D scan mode."<<endl;
+			process=CENT1DIM;
+			optfcscs="fcs";
+		}
+		else if(vm.count("centroid-2d"))
+		{
+			cout<<"Transforming data to peak detection Centroid, 2D scan mode."<<endl;
+			process=CENT2DIM;
+			optfcscs="fcs";
+		}
+		else if(vm.count("peak"))
+		{
+			cout<<"Extract 2D Peak from RT vs M/Z data set."<<endl;
+			process=PEAKPICK;
+			optfcscs="cs";
+		}
+		else if(vm.count("smo"))
+		{
+			cout<<"Transforming data to peak detection Centroid, 1D scan mode."<<endl;
+			process=CENT1DIM;
+			optfcscs="fcs";
+		}
+		else
+		{
+			process=NOPROC;
+			optfcscs="fcs";
+		}
+		if(vm.count("threads"))
+		{
+			threads=vm["threads"].as<int>();
+		}
+		else
+		{
+			threads=omp_get_max_threads();
+		}
+		if(vm.count("smo"))
+		{
+			cout<<"Opening SMO file: "<<vm["smo"].as<string>()<<endl;
+		}
+		else
+		{
+			throw "SMO file was not give...";
+		}
+		if((vm.count("mzMLb3") && process == CENT1DIM) || (vm.count("mzMLb3") && process == CENT2DIM))
+		{
+			cout<<"Opening mzMLb3 file: "<<vm["mzMLb3"].as<string>()<<endl;
+		}
+		else if(process == CENT1DIM || process == CENT2DIM)
+		{
+			throw "mzMLb3 file was not give...";
+		}
+		else if(vm.count("mzMLb3") && process == PEAKPICK)
+		{
+			throw "Invalid program options for given operation...";
+		}
+		if(vm.count("output"))
+		{
+			cout<<"Output Peak file: "<<vm["output"].as<string>()<<endl;
+		}
+		else
+		{
+			outMZFileName=smoFileName.substr(0,smoFileName.size()-4)+"_Peak.mzMLb3";
+		}
+		if(vm.count("debug"))
+		{
+			debug = true;
+		}
+		else
+		{
+			debug = false;
+		}
+	}
+	catch(exception& e)
+	{
+		cerr<<"error: " << e.what() <<endl;
+		cout<<desc<<endl;
+		return 1;
+	}
+	catch(const char* msg)
+	{
+		cerr<<"error: "<<msg<<endl;
+		cout<<desc<<endl;
+		return 1;
+	}
+	catch(...)
+		{
+		cerr<<"Exception of unknown type!\n";
+	}
+
+
+	// *******************************************************************
+
 
 	int lastdot = in_file.find_last_of("."); 
 	string id = (lastdot == string::npos) ? in_file : in_file.substr(0, lastdot); 
