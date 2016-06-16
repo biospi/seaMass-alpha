@@ -112,7 +112,7 @@ private:
 	void calMidPointRT(lli rtIdx, lli mzIdx, T** alpha,
 					const vector<double> &rta, double &rt1, double &a1);
 	vector<T> cal3rdMidPointRT(lli rtIdx, lli mzIdx, T **P);
-	void calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2rt,
+	void calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> drt,
 					double &rtlhs, double &rtrhs);
 	void calPeakRT(DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
 					lli i, lli j, double &mzPeak, T &countMax,

@@ -57,6 +57,9 @@ public:
 			DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
 			DataAxis<T,R> &dvbs, DataAxis<T,R> &d2vbs,
 			BasisPatch<T> &bp);
+	BsplineBasisData(DataAxis<T,R> &bs,
+			DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
+			DataAxis<T,R> &dvbs, BasisPatch<T> &bp);
 	void get(vector<DataAxis<T,R>* > &bsDat, BasisPatch<T> *&bp);
 	void dumpData(string filename, const H5::DataType &data_type_id = H5::PredType::NATIVE_FLOAT);
 private:
