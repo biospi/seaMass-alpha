@@ -444,9 +444,9 @@ int main(int argc, char **argv)
 		SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 		SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 		SMData2D<OpNablaV> dvA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-		SMData2D<OpNabla2V> d2vA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+		//SMData2D<OpNabla2V> d2vA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 
-		BsplineBasisData<> bsPeakData(A,dhA,d2hA,dvA,d2vA,bpatch);
+		BsplineBasisData<> bsPeakData(A,dhA,d2hA,dvA,bpatch);
 		PeakManager<PeakData,BsplineBasisData,ExtractPeak> extractPeak(bsPeakData,threshold);
 		extractPeak.execute();
 

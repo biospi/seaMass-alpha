@@ -76,6 +76,18 @@ BsplineBasisData<R,T>::BsplineBasisData(DataAxis<T,R> &bs,
 }
 
 template<typename R,typename T>
+BsplineBasisData<R,T>::BsplineBasisData(DataAxis<T,R> &bs,
+			DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
+			DataAxis<T,R> &dvbs, BasisPatch<T> &bp)
+{
+	bspObjP.push_back(&bs);
+	bspObjP.push_back(&dhbs);
+	bspObjP.push_back(&d2hbs);
+	bspObjP.push_back(&dvbs);
+	bPat = &bp;
+}
+
+template<typename R,typename T>
 vector<DataAxis<T,R>* > BsplineData<R,T>::get(void)
 {
 	return bspObjP;

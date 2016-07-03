@@ -370,7 +370,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 	DataAxis<T,R> const *dhbs=bsData[1];
 	DataAxis<T,R> const *dh2bs=bsData[2];
 	DataAxis<T,R> const *dvbs=bsData[3];
-	DataAxis<T,R> const *dv2bs=bsData[4];
+	//DataAxis<T,R> const *dv2bs=bsData[4];
 
 	hsize_t dims[2];
 	bs->alpha->getDims(dims);
@@ -474,7 +474,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 
 					if(p[0].t0 >= 0)
 					{
-						this->calPeakLenRT(i,j,dv2bs->alpha->m,dv2bs->rt,rtlhs,rtrhs);
+						this->calPeakWidthRT(i,j,dvbs->alpha->m,dvbs->rt,rtlhs,rtrhs);
 						this->calPeakWidth(i,j,dh2bs->alpha->m,dh2bs->mz,mzlhs,mzrhs);
 						if(rtlhs > 0 && rtrhs > 0 && mzlhs > bs->mz[0] && mzrhs > bs->mz[0])
 						{
@@ -786,51 +786,40 @@ vector<T> ExtractPeak<pPeak,pData,T,R>::cal3rdMidPointRT(lli row, lli col, T **P
 }
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void ExtractPeak<pPeak,pData,T,R>::calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2rt,
+void ExtractPeak<pPeak,pData,T,R>::calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> drrt,
 		double &rtlhs, double &rtrhs)
 {
-	lli n=d2rt.size();
-	lli lhsIdx=rtIdx+1;
-	lli rhsIdx=rtIdx+1;
+	lli n=drrt.size();
+	lli lhsIdx=rtIdx;   // Above and to the left scan.
+	lli rhsIdx=rtIdx+1; // Below and to the right scan.
 
 	do
 	{
 		--lhsIdx;
 		if(lhsIdx < 0) break;
-	} while( alpha[lhsIdx][mzIdx] < 0);
+	} while( alpha[lhsIdx][mzIdx] > 0);
 	do
 	{
 		++rhsIdx;
-		if(rhsIdx > n) break;
+		if(rhsIdx >= n) break;
 	} while( alpha[rhsIdx][mzIdx] < 0);
 
 	if(lhsIdx > 0 && rhsIdx < n ){
 		double x1,x2,y1,y2,m;
 
-		x1=d2rt[lhsIdx];
+		x1=drrt[lhsIdx];
 		y1=alpha[lhsIdx][mzIdx];
-		x2=d2rt[lhsIdx+1];
+		x2=drrt[lhsIdx+1];
 		y2=alpha[lhsIdx+1][mzIdx];
 		m=(y2-y1)/(x2-x1);
 		rtlhs=(-y1/m)+x1;
 
-		x1=d2rt[rhsIdx];
+		x1=drrt[rhsIdx];
 		y1=alpha[rhsIdx][mzIdx];
-		x2=d2rt[rhsIdx-1];
+		x2=drrt[rhsIdx-1];
 		y2=alpha[rhsIdx-1][mzIdx];
 		m=(y2-y1)/(x2-x1);
 		rtrhs=(-y1/m)+x1;
-
-		/*
-		if (mzlhs < d2mz[0])
-		{
-			cout<<"WTF LHS is out of range!!"<<endl;
-		}
-		if (mzrhs > d2mz[n-1])
-		{
-			cout<<"WTF RHS is out of range!!"<<endl;
-		}
-		*/
 	}
 	else
 	{
@@ -901,9 +890,8 @@ void ExtractPeak<pPeak,pData,T,R>::calPeakLenRT(lli rtIdx,lli mzIdx, T** alpha,
 		const vector<double> d2rt, double &rtlhs, double &rtrhs)
 {
 	lli n=d2rt.size()-1;
-	lli lhsIdx=rtIdx+1;
+	lli lhsIdx=rtIdx-1;
 	lli rhsIdx=rtIdx+1;
-
 	do
 	{
 		--lhsIdx;
@@ -929,7 +917,6 @@ void ExtractPeak<pPeak,pData,T,R>::calPeakLenRT(lli rtIdx,lli mzIdx, T** alpha,
 	}
 	else
 	{
-
 		rtrhs=-1;
 	}
 
