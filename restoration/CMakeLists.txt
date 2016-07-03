@@ -5,6 +5,10 @@ if(NOT HDF5_FOUND)
  find_package(HDF5 "1.8.5" COMPONENTS C CXX REQUIRED)
 endif()
 
+find_package(Boost 1.54 REQUIRED COMPONENTS
+	program_options
+)
+
 find_package(PugiXML REQUIRED)
 
 add_executable(restoration
@@ -12,10 +16,12 @@ add_executable(restoration
 )
 target_include_directories(restoration PUBLIC
 	${HDF5_INCLUDE_DIRS}
+	${Boost_INCLUDE_DIRS}
 	${PugiXML_INCLUDE_DIR}
 )
 target_link_libraries (restoration LINK_PUBLIC
 	seamass	
 	${HDF5_LIBRARIES}
+	${Boost_LIBRARIES}
 	${PugiXML_LIBRARIES}
 )

@@ -29,16 +29,17 @@
 #include <algorithm>
 #include <iomanip>
 #include <H5Cpp.h>
+#include <boost/program_options.hpp>
 #include <pugixml.hpp>
 #include <map>
-#include <boost/program_options.hpp>
+#include <omp.h>
 
 #include "seamass.hpp"
 #include "NetCDFile.hpp"
 
 using namespace std;
-namespace xml = pugi;
 namespace po = boost::program_options;
+namespace xml = pugi;
 
 struct spectrum
 {
@@ -99,48 +100,27 @@ int main(int argc, char *argv[])
 {
 	H5::Exception::dontPrint();
 	seamass::notice();
-	if (argc != 8)
-	{
-		cout << "Usage" << endl;
-		cout << "-----" << endl;
-		cout << "restoration <in_file> <mz_res> <rt_res> <shrinkage> <tol> <threads> <out_type>" << endl;
-		cout << endl;
-		cout << "<in_file>:  Raw input file in seaMass Input format (smi)" << endl;
-		cout << "            guidelines: Use pwiz-seamass to convert from mzML or vendor format" << endl;
-		cout << "<mz_res>:   MS resolution given as: \"b-splines per Th = 2^mz_res * 60 / 1.0033548378\"" << endl;
-		cout << "            guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap" << endl;
-		cout << "<rt_res>:   LC resolution given as: \"b-splines per minute = 2^rt_res\"" << endl;
-		cout << "            guidelines: around 4" << endl;
-		cout << "<shrink>:   Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\"" << endl;
-		cout << "            guidelines: around -4" << endl;
-		cout << "<tol>:      Convergence tolerance, given as: \"gradient <= 2^tol\"" << endl;
-		cout << "            guidelines: around -9" << endl;
-		cout << "<threads>:  Number of OpenMP threads to use" << endl;
-		cout << "            guidelines: set to amount of CPU cores or 4, whichever is smaller" << endl;
-		cout << "<out_type>: Type of output desired" << endl;
-		cout << "            guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug" << endl;
-		return 0;
-	}
-	string in_file = argv[1];
-	int mz_res = atoi(argv[2]);
-	int rt_res = atoi(argv[3]);
-	int shrink = atoi(argv[4]);
-	int tol = atoi(argv[5]);
-	int threads = atoi(argv[6]);
-	int out_type = atoi(argv[7]);
-	double scanEvtNum;
+	string in_file;
+	int mz_res;
+	int rt_res;
+	int shrink;
+	int tol;
+	int threads;
+	int out_type;
+	double precoursorEvt;
 
 	// *******************************************************************
 
-	po::options_description general("Usage"
-			"-----"
-			"restoration [OPTIONS...] [MZMLB]"
-			"restoration <in_file> <mz_res> <rt_res> <shrinkage> <tol> <threads> <out_type>");
+	po::options_description general("Usage\n"
+			"-----\n"
+			"restoration [OPTIONS...] [MZMLB]\n"
+			"restoration <-f in_file> <-m mz_res> <-r rt_res> <-s shrinkage> <-l tol> <-t threads> <-o out_type>\n"
+			"restoration -m 1 -r 4 -s -4 -l -9 -t 4 -o 0");
 
 	general.add_options()
 		("help,h", "Produce help message")
-		("mzMLb,f", po::value<string>(&in_file),
-			"Raw input file in seaMass Input format (mzMLb)"
+		("file,f", po::value<string>(&in_file),
+			"Raw input file in seaMass Input format (mzMLb, csv etc.)"
 			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
 		("mz_res,m",po::value<int>(&mz_res)->default_value(1),
 			"MS resolution given as: \"b-splines per Th = 2^mz_res * 60 / 1.0033548378\""
@@ -154,46 +134,32 @@ int main(int argc, char *argv[])
 			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\""
 			"guidelines: around -4"
 			"default: -4")
-		("tol,l",po::value<int>(&shrink)->default_value(-9),
+		("tol,l",po::value<int>(&tol)->default_value(-9),
 			"Convergence tolerance, given as: \"gradient <= 2^tol\""
 			"guidelines: around -9"
 			"default: -9")
-		("threads,t",po::value<int>(&shrink)->default_value(4),
+		("threads,t",po::value<int>(&threads)->default_value(4),
 			"Number of OpenMP threads to use"
 			"guidelines: set to amount of CPU cores or 4, whichever is smaller"
 			"default: 4")
-		("precursor,p",po::value<int>(&shrink),
+		("precursor,p",po::value<double>(&precoursorEvt),
 			"Precursor value to single out Swath Window"
 			"guidelines: 0 = ms1 spectrum; > 0 = ms2 spectrum")
-		("out_type,o",po::value<int>(&shrink)->default_value(0),
+		("out_type,o",po::value<int>(&out_type)->default_value(0),
 			"Type of output desired"
 			"guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug"
 			"default: 0");
 
-	po::options_description examples("Eamples:\n"
-			"Centroid mode:\n"
-			"\tsmpeak -c -s [SMO FILE] -z [mzMLb3 FILE]\n"
-			"\tsmpeak -s [SMO FILE] -z [mzMLb3 FILE]\n"
-			"\tsmpeak -c [SMO FILE] -z [mzMLb3 FILE]\n"
-			"\tsmpeak [SMO FILE] -z [mzMLb3 FILE]\n"
-			"2D Peak Pick mode:\n"
-			"\tsmpeak -p -s [SMO FILE]\n"
-			"\tsmpeak -p [SMO FILE]\n"
-			"Default mode if -c or -p not given - Centroid");
-
-	po::options_description cmdline;
-	cmdline.add(general).add(hidden).add(examples);
-
 	po::options_description desc;
-	desc.add(general).add(examples);
+	desc.add(general);
 
 	try
 	{
 		po::positional_options_description pod;
-		pod.add("smo", 1);
+		pod.add("file", 1);
 
 		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(cmdline).positional(pod).run(), vm);
+		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
 		po::notify(vm);
 
 		if(vm.count("help"))
@@ -201,41 +167,7 @@ int main(int argc, char *argv[])
 			cout<<desc<<endl;
 			return 0;
 		}
-		if(vm.count("hidden"))
-		{
-			cout<<cmdline<<endl;
-			return 0;
-		}
-		if(vm.count("centroid"))
-		{
-			cout<<"Transforming data to peak detection Centroid, 1D scan mode."<<endl;
-			process=CENT1DIM;
-			optfcscs="fcs";
-		}
-		else if(vm.count("centroid-2d"))
-		{
-			cout<<"Transforming data to peak detection Centroid, 2D scan mode."<<endl;
-			process=CENT2DIM;
-			optfcscs="fcs";
-		}
-		else if(vm.count("peak"))
-		{
-			cout<<"Extract 2D Peak from RT vs M/Z data set."<<endl;
-			process=PEAKPICK;
-			optfcscs="cs";
-		}
-		else if(vm.count("smo"))
-		{
-			cout<<"Transforming data to peak detection Centroid, 1D scan mode."<<endl;
-			process=CENT1DIM;
-			optfcscs="fcs";
-		}
-		else
-		{
-			process=NOPROC;
-			optfcscs="fcs";
-		}
-		if(vm.count("threads"))
+			if(vm.count("threads"))
 		{
 			threads=vm["threads"].as<int>();
 		}
@@ -243,41 +175,13 @@ int main(int argc, char *argv[])
 		{
 			threads=omp_get_max_threads();
 		}
-		if(vm.count("smo"))
+		if(vm.count("file"))
 		{
-			cout<<"Opening SMO file: "<<vm["smo"].as<string>()<<endl;
+			cout<<"Opening file: "<<vm["file"].as<string>()<<endl;
 		}
 		else
 		{
-			throw "SMO file was not give...";
-		}
-		if((vm.count("mzMLb3") && process == CENT1DIM) || (vm.count("mzMLb3") && process == CENT2DIM))
-		{
-			cout<<"Opening mzMLb3 file: "<<vm["mzMLb3"].as<string>()<<endl;
-		}
-		else if(process == CENT1DIM || process == CENT2DIM)
-		{
-			throw "mzMLb3 file was not give...";
-		}
-		else if(vm.count("mzMLb3") && process == PEAKPICK)
-		{
-			throw "Invalid program options for given operation...";
-		}
-		if(vm.count("output"))
-		{
-			cout<<"Output Peak file: "<<vm["output"].as<string>()<<endl;
-		}
-		else
-		{
-			outMZFileName=smoFileName.substr(0,smoFileName.size()-4)+"_Peak.mzMLb3";
-		}
-		if(vm.count("debug"))
-		{
-			debug = true;
-		}
-		else
-		{
-			debug = false;
+			throw "Valid seamass input file was not give...";
 		}
 	}
 	catch(exception& e)
