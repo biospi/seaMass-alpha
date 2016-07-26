@@ -24,12 +24,7 @@ class MassSpecFile;
 class FileFactory
 {
 public:
-    //FileFactory(string fName);
-    //virtual ~FileFactory(void){};
     static MassSpecFile* createFileObj(string fName);
-//protected:
-//    string fileName;
-//    string id;
 };
 
 
@@ -39,10 +34,12 @@ protected:
     virtual void extractData(void) = 0;
     vector<spectrum> msSpec;
     string fileName;
+    unsigned long instrument_type;
 public:
     virtual vector<spectrum> getSpectrum() = 0;
     virtual void getScanMZ(vector<double> &mz, size_t index, size_t count) = 0;
     virtual void getScanIntensities(vector<double> &intensities, size_t index, size_t count) = 0;
+    virtual unsigned long getInstrument(void) = 0;
     virtual ~MassSpecFile() {};
 };
 
@@ -54,8 +51,7 @@ public:
     vector<spectrum> getSpectrum();
     void getScanMZ(vector<double> &mz, size_t index, size_t count);
     void getScanIntensities(vector<double> &intensities, size_t index, size_t count);
-    //vector<double> getScanMZ();
-    //vector<double> getScanIntensities();
+    unsigned long getInstrument(void);
     virtual ~MSmzMLb3(){};
 protected:
     void extractData(void);
@@ -72,10 +68,10 @@ protected:
 class MScsv: public SMFile
 {
 public:
-    virtual vector<spectrum> getSpectrum() = 0;
-    virtual vector<double> getScanMZ() = 0;
-    virtual vector<double> getScanIntensities() = 0;
-    virtual ~MScsv(){};
+    vector<spectrum> getSpectrum() = 0;
+    getScanMZ(vector<double> &mz, size_t index, size_t count) = 0;
+    getScanIntensities(vector<double> &intensities, size_t index, size_t count) = 0;
+    ~MScsv(){};
 protected:
 };
 */

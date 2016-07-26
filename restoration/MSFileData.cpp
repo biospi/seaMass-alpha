@@ -10,15 +10,7 @@
 
 namespace xml = pugi;
 
-/*
-FileFactory::FileFactory(string fName) : fileName(fName)
-{
-	int lastdot = fileName.find_last_of(".");
-	id = (lastdot == string::npos) ? fileName : fileName.substr(0, lastdot);
-}
-*/
-
-void preSetScanConfigtmp(vector<unsigned long> &scanConf)
+void preSetScanConfig(vector<unsigned long> &scanConf)
 {
 	map<unsigned long, unsigned long> preSetScanConf;
 	unsigned long idx=1;
@@ -62,17 +54,12 @@ MSmzMLb3::MSmzMLb3(string fileName)
 	rdLen.resize(2,0);
 	hypIdx[1]=0; // Read from first Column.
 	rdLen[0]=1; // Always 1 Row to read.
+    instrument_type = 1;
 }
 
 
 void MSmzMLb3::extractData(void)
 {
-	// Open mzML file
-	//NetCDFile mzMLb3File(in_file);
-	//vector<char> mzMLBuff;
-	//vector<size_t> dataMatDim;
-	//vector<InfoGrpVar> dataSetList;
-
 	// Load mzML metadata
 	mzMLb3File.read_VecNC("mzML",mzMLBuff);
 	size_t xmlSize=sizeof(char)*mzMLBuff.size();
@@ -135,7 +122,7 @@ void MSmzMLb3::extractData(void)
 			config_indices[idx]=preConfig;
 		}
 	}
-	preSetScanConfigtmp(config_indices);
+	preSetScanConfig(config_indices);
 
 	vector<size_t> specSize(ns,0);
 	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum");
@@ -151,7 +138,6 @@ void MSmzMLb3::extractData(void)
 		}
 	}
 
-    unsigned long instrument_type = 1;
 	if(string(docmzML.child("mzML").child("instrumentConfigurationList").child("instrumentConfiguration").child("componentList").
 				child("analyzer").child("cvParam").attribute("name").value()).compare("orbitrap") == 0)
 		instrument_type=2;
@@ -159,7 +145,6 @@ void MSmzMLb3::extractData(void)
 	mzMLb3File.search_Group("spectrum_MS_1000514");
 	mzMLb3File.search_Group("spectrum_MS_1000515");
 	dataSetList=mzMLb3File.get_Info();
-	//dataMatDim = mzMLb3File.read_DimNC(dataSetList[0].varName,dataSetList[0].grpid);
 
 	spectra.resize(ns);
     for (size_t i = 0; i < ns; i++)
@@ -189,4 +174,9 @@ void MSmzMLb3::getScanIntensities(vector<double> &intensities, size_t index, siz
 	hypIdx[0]=index;
 	rdLen[1]=count;
 	mzMLb3File.read_HypVecNC(dataSetList[1].varName,intensities,&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
+}
+
+unsigned long MSmzMLb3::getInstrument(void)
+{
+	return instrument_type;
 }
