@@ -13,6 +13,8 @@ find_package(PugiXML REQUIRED)
 
 add_executable(restoration
 	restoration.cpp
+	MSFileData.hpp
+	MSFileData.cpp
 )
 target_include_directories(restoration PUBLIC
 	${HDF5_INCLUDE_DIRS}

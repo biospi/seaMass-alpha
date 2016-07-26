@@ -31,26 +31,16 @@
 #include <H5Cpp.h>
 #include <boost/program_options.hpp>
 #include <pugixml.hpp>
-#include <map>
 #include <omp.h>
 
 #include "seamass.hpp"
 #include "NetCDFile.hpp"
 
+#include "MSFileData.hpp"
+
 using namespace std;
 namespace po = boost::program_options;
 namespace xml = pugi;
-
-struct spectrum
-{
-	size_t index;
-	unsigned short preset_config;
-	double precursor_mz;
-	double scan_start_time;
-	size_t scan_start_time_index;
-	size_t count;
-};
-
 
 bool scan_start_time_order(const spectrum& lhs, const spectrum& rhs)
 {
@@ -105,8 +95,8 @@ int main(int argc, char *argv[])
 	int rt_res;
 	int shrink;
 	int tol;
-	int threads;
 	int out_type;
+	int threads;
 	double precoursorEvt;
 
 	// *******************************************************************
@@ -120,34 +110,34 @@ int main(int argc, char *argv[])
 	general.add_options()
 		("help,h", "Produce help message")
 		("file,f", po::value<string>(&in_file),
-			"Raw input file in seaMass Input format (mzMLb, csv etc.)"
+			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
 			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
 		("mz_res,m",po::value<int>(&mz_res)->default_value(1),
-			"MS resolution given as: \"b-splines per Th = 2^mz_res * 60 / 1.0033548378\""
-			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap"
+			"MS resolution given as: \"b-splines per Th = 2^mz_res * 60 / 1.0033548378\" "
+			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
 			"default: 1")
 		("rt_res,r",po::value<int>(&rt_res)->default_value(4),
-			"LC resolution given as: \"b-splines per minute = 2^rt_res\""
-			"guidelines: around 4"
+			"LC resolution given as: \"b-splines per minute = 2^rt_res\" "
+			"guidelines: around 4, "
 			"default: 4")
 		("shrink,s",po::value<int>(&shrink)->default_value(-4),""
-			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\""
-			"guidelines: around -4"
+			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
+			"guidelines: around -4, "
 			"default: -4")
 		("tol,l",po::value<int>(&tol)->default_value(-9),
-			"Convergence tolerance, given as: \"gradient <= 2^tol\""
-			"guidelines: around -9"
+			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
+			"guidelines: around -9, "
 			"default: -9")
 		("threads,t",po::value<int>(&threads)->default_value(4),
-			"Number of OpenMP threads to use"
-			"guidelines: set to amount of CPU cores or 4, whichever is smaller"
+			"Number of OpenMP threads to use, "
+			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
 			"default: 4")
 		("precursor,p",po::value<double>(&precoursorEvt),
-			"Precursor value to single out Swath Window"
+			"Precursor value to single out Swath Window, "
 			"guidelines: 0 = ms1 spectrum; > 0 = ms2 spectrum")
 		("out_type,o",po::value<int>(&out_type)->default_value(0),
-			"Type of output desired"
-			"guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug"
+			"Type of output desired, "
+			"guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug, "
 			"default: 0");
 
 	po::options_description desc;
@@ -204,8 +194,15 @@ int main(int argc, char *argv[])
 
 	// *******************************************************************
 
+	hsize_t ns;
 
-	int lastdot = in_file.find_last_of("."); 
+	MassSpecFile* msFile = FileFactory::createFileObj(in_file);
+
+    vector<spectrum> spectratmp = msFile->getSpectrum();
+
+
+    // *******************************************************************
+	int lastdot = in_file.find_last_of(".");
 	string id = (lastdot == string::npos) ? in_file : in_file.substr(0, lastdot); 
 
 	// Open mzML file
@@ -222,7 +219,7 @@ int main(int argc, char *argv[])
 	xml::xpath_node_set tools;
 	xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
 
-	hsize_t ns;
+	//hsize_t ns;
 	istringstream(docmzML.child("mzML").child("run").child("spectrumList").attribute("count").value())>>ns;
 
 	// query necessary metadata
@@ -313,22 +310,31 @@ int main(int argc, char *argv[])
     }
 	// determine start_scan_time order of spectra
 	sort(spectra.begin(), spectra.end(), scan_start_time_order);
+	sort(spectratmp.begin(), spectratmp.end(), scan_start_time_order);
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
 		spectra[i].scan_start_time_index = i;
+		spectratmp[i].scan_start_time_index = i;
 	}
 	vector<double> scan_start_times(ns);
+	vector<double> scan_start_timestmp(ns);
 	for (size_t i = 0; i < spectra.size(); i++)
 	{
 		scan_start_times[i] = spectra[i].scan_start_time;
+		scan_start_timestmp[i] = spectratmp[i].scan_start_time;
 	}
 	sort(spectra.begin(), spectra.end(), seamass_order);
+	sort(spectratmp.begin(), spectratmp.end(), seamass_order);
 	vector< std::vector<double> > mzs(ns-1);
 	vector< std::vector<double> > intensities(ns-1);
+	vector< std::vector<double> > mzstmp(ns-1);
+	vector< std::vector<double> > intensitiestmp(ns-1);
+
 	vector<size_t> hypIdx(2);
 	vector<size_t> rdLen(2);
 	hypIdx[1]=0; // Read from first Column.
 	rdLen[0]=1; // Always 1 Row to read.
+
 	int loaded = 0;
     bool precursor_mz_is_constant = true;
 	for (size_t i = 0; i < spectra.size(); i++)
@@ -342,6 +348,9 @@ int main(int argc, char *argv[])
 			rdLen[1]=spectra[i].count;
 			mzMLb3File.read_HypVecNC(dataSetList[0].varName,mzs[spectra[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
 			mzMLb3File.read_HypVecNC(dataSetList[1].varName,intensities[spectra[i].scan_start_time_index],&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
+
+			msFile->getScanMZ(mzstmp[spectratmp[i].scan_start_time_index],spectratmp[i].index,spectratmp[i].count);
+			msFile->getScanIntensities(intensitiestmp[spectratmp[i].scan_start_time_index],spectratmp[i].index,spectratmp[i].count);
 		}
 
         loaded++;
@@ -373,5 +382,6 @@ int main(int argc, char *argv[])
         }
 	}
 
+	delete msFile;
 	return 0;
 }

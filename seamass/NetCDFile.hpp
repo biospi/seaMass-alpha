@@ -125,9 +125,9 @@ public:
 	vector<InfoGrpVar> get_Info(void) {return dataSetList;};
 private:
 	string fileName;
+	bool fileStatus;
 	int ncid;
 	int retval;
-	bool fileStatus;
 	vector<InfoGrpVar> dataSetList;
 	void err(int e);
 };

@@ -26,10 +26,10 @@
 #define SMPEAK_PEAKCORE_TPP_
 
 template<typename T>
-VecMat<T>::VecMat(void):row(0),col(0),m(NULL){}
+VecMat<T>::VecMat(void):m(NULL),row(0),col(0){}
 
 template<typename T>
-VecMat<T>::VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec):row(_r), col(_c),v(_vec)
+VecMat<T>::VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec):v(_vec),row(_r), col(_c)
 {
 	matIdx.resize(row,0);
 	for(hsize_t i=0; i < row; ++i)
