@@ -25,7 +25,7 @@
 #ifndef SMPEAK_PEAKMANAGER_HPP_
 #define SMPEAK_PEAKMANAGER_HPP_
 
-#include "peakcore.hpp"
+#include "../io/peakcore.hpp"
 
 
 template

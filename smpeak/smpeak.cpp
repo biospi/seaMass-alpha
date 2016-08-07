@@ -29,8 +29,8 @@
 #include <sstream>
 #include <omp.h>
 
-#include "peakcore.hpp"
-#include "NetCDFile.hpp"
+#include "../io/peakcore.hpp"
+#include "../io/NetCDFile.hpp"
 #include "SMPFile.hpp"
 
 #include "SMData.hpp"

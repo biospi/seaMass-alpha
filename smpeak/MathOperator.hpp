@@ -25,7 +25,7 @@
 #ifndef SMPEAK_MATHOPERATOR_HPP_
 #define SMPEAK_MATHOPERATOR_HPP_
 
-#include "peakcore.hpp"
+#include "../io/peakcore.hpp"
 
 template<class T>
 class OpUnitS

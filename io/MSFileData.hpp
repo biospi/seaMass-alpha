@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include "NetCDFile.hpp"
+#include "../core/seaMass.hpp"
 
 struct spectrum
 {
@@ -61,6 +62,27 @@ protected:
     vector<spectrum> spectra;
 	vector<size_t> hypIdx;
 	vector<size_t> rdLen;
+};
+
+
+class MSFile
+{
+public:
+	MSFile(string fileName);
+	~MSFile();
+
+	bool next(seaMass::Input& output);
+
+protected:
+	MassSpecFile* msFile;
+	vector<spectrum> spectra;
+	vector<double> scan_start_times;
+	unsigned long instrument_type;
+	size_t i;
+
+	void bin_mzs_intensities();
+	static bool scan_start_time_order(const spectrum& lhs, const spectrum& rhs);
+	static bool seamass_order(const spectrum& lhs, const spectrum& rhs);
 };
 
 

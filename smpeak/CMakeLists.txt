@@ -9,33 +9,40 @@ find_package(Boost 1.54 REQUIRED COMPONENTS
 	program_options
 )
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(PugiXML REQUIRED)
 
-add_executable(smpeak
-	smpeak.cpp
-	SMPFile.cpp
+set(HEADER_FILES
 	SMPFile.hpp
 	BsplineData.hpp
-	BsplineData.tpp
 	MathOperator.hpp
-	MathOperator.tpp
 	PeakData.hpp
-	PeakData.tpp
 	PeakManager.hpp
 	PeakOperator.hpp
-	PeakOperator.tpp
 	SMData.hpp
-	SMData.tpp
-	peakcore.hpp
-	peakcore.tpp
 )
+set(SOURCE_FILES
+	smpeak.cpp
+	SMPFile.cpp
+)
+set(TEMPLATE_FILES
+	BsplineData.tpp
+	MathOperator.tpp
+	PeakData.tpp
+	PeakOperator.tpp
+	SMData.tpp
+)
+
+source_group("Template Files" FILES ${TEMPLATE_FILES})
+add_executable(smpeak ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
 target_include_directories(smpeak PUBLIC
 	${HDF5_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
 	${PugiXML_INCLUDE_DIR}
 )
 target_link_libraries(smpeak
-	seamass
+	seamass_io
+	seamass_core
 	${HDF5_LIBRARIES}
 	${Boost_LIBRARIES}
 	${PugiXML_LIBRARIES}

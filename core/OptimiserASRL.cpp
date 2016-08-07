@@ -24,7 +24,6 @@
 
 
 #include "OptimiserASRL.hpp"
-#include <fstream>
 #include <algorithm>
 
 
@@ -348,7 +347,7 @@ step(ii iteration, fp lambda)
 
 void
 OptimiserASRL::
-synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii cs_basis) const
+synthesis(vector<fp>& fs, const string& datafilename, ii cs_basis) const
 {
 	// synthesis except root
 	vector< vector<fp> > ts(bases.size());
@@ -382,7 +381,7 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 		}
 		bases[j]->synthesis(ts[pj], ts[j]);
 
-		if (file && j == cs_basis)
+		/*if (file && j == cs_basis)
 		{
 			// write 2D B-spline coefficients
 			ostringstream oss;
@@ -390,7 +389,7 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 			vector<fp> vs(ts[j].size());
 			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) vs[i] = ts[j][i] * wcs[j][i];
 			file->write_cs(oss.str(), bases[j]->get_cm(), vs);
-		}
+		}*/
 
 		vector<fp>().swap(ts[j]);
 	}
@@ -411,7 +410,7 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 	fs.assign(gs.size(), 0.0);
 	bases[0]->synthesis(fs, ts[0]);
 
-	if (file)
+	/*if (file)
 	{
 		// write 1D B-spline coefficients
 		ostringstream oss;
@@ -424,7 +423,7 @@ synthesis(vector<fp>& fs, const SMOWriter* file, const string& datafilename, ii 
 		ostringstream oss2;
 		oss2 << datafilename;
 		file->write_cdata(oss2.str(), fs, "fs");
-	}
+	}*/
 
 	vector<fp>().swap(ts[0]);
 }

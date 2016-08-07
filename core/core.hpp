@@ -37,46 +37,21 @@
 #include <omp.h>
 #include <mkl.h>
 
+#include "seamass.hpp"
 
 using namespace std;
-
 
 typedef float fp; // fp is the selected floating point precision
 typedef MKL_INT ii; // ii is the selected indexing integer size
 typedef long long li;
 
 
-struct CoeffsMetadata
-{
-    CoeffsMetadata(ii d);
-    ~CoeffsMetadata();
-    
-    li size() const;
-    void print(ostream& out) const;
-    void operator=(const CoeffsMetadata& cm);
-    
-    ii d;        // dimension of the output coefficients
-    vector<ii> l; // coefficient dyadic level for each dimension
-    vector<ii> o; // coefficient offset
-    vector<ii> n; // number of coefficients per set
-};
+void remove_zeros(vector< vector<fp> >& mzs, vector< vector<fp> >& intensities);
 
-
-void remove_zeros(vector< vector<double> >& mzs, vector< vector<double> >& intensities);
-
-void bin_mzs_intensities(vector< vector<double> >& mzs,
-                         vector< vector<double> >& intensities,
-                         ii instrument_type,
-						 vector<fp>& exposures);
-
-void merge_bins(vector< vector<double> >& mzs,
-                vector< vector<double> >& intensities,
+void merge_bins(vector< vector<fp> >& mzs,
+	vector< vector<fp> >& intensities,
 				double width);
 
-void create_gs(vector<fp>& gs,
-               vector<li>& is,
-               vector<ii>& js,
-               const vector< vector<double> >& intensities);
 
 
 namespace bspline

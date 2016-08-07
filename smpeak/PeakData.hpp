@@ -25,7 +25,7 @@
 #ifndef SMPEAK_PEAKDATA_HPP_
 #define SMPEAK_PEAKDATA_HPP_
 
-#include "peakcore.hpp"
+#include "../io/peakcore.hpp"
 
 template<typename T = float>
 struct Peak

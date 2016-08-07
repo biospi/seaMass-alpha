@@ -27,9 +27,7 @@
 #define _SEAMASS_RESTORATION_IMPL_HPP_
 
 
-#include "core.hpp"
 #include "BasisFunctions.hpp"
-#include "SMOWriter.hpp"
 
 
 class OptimiserASRL
@@ -57,7 +55,7 @@ public:
     
 	double step(ii iteration, fp lambda);
 
-	void synthesis(vector<fp>& fs, const SMOWriter* file = 0, const string& datafilename = "", ii cs_basis = 0) const;
+	void synthesis(vector<fp>& fs, const string& datafilename = "", ii cs_basis = 0) const;
 	void error(vector<fp>& fs) const;
 	void analysis(vector< vector<fp> >& dcs, const vector<fp>& dfs) const;
 	void shrinkage(vector< vector<fp> >& dcs, fp lambda);

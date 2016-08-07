@@ -24,9 +24,78 @@
 
 
 #include "BasisFunctions.hpp"
+#include <iostream>
 #include <limits>
 #include <iomanip>
 
+
+using namespace std;
+
+
+CoeffsMetadata::
+CoeffsMetadata(ii _dc) :
+d(_dc),
+l(_dc),
+o(_dc),
+n(_dc)
+{
+}
+
+
+void
+CoeffsMetadata::
+operator=(const CoeffsMetadata& cm)
+{
+	d = cm.d;
+	l = cm.l;
+	o = cm.o;
+	n = cm.n;
+}
+
+
+CoeffsMetadata::
+~CoeffsMetadata()
+{
+}
+
+
+li
+CoeffsMetadata::
+size() const
+{
+	li size = 1;
+	for (ii i = 0; i < d; i++) size *= n[i];
+	return size;
+}
+
+
+void
+CoeffsMetadata::
+print(ostream& out) const
+{
+	out << "lc=[";
+	for (ii i = 0; i < d; i++)
+	{
+		if (l[i] == numeric_limits<ii>::min()) out << "?"; else out << l[i];
+		if (i < d - 1) out << ",";
+	}
+	out << "] oc=[";
+	for (ii i = 0; i < d; i++)
+	{
+		if (o[i] == numeric_limits<ii>::min()) out << "?"; else out << o[i];
+		if (i < d - 1) out << ",";
+	}
+	out << "] nc=[";
+	for (ii i = 0; i < d; i++)
+	{
+		if (n[i] == numeric_limits<ii>::min()) out << "?"; else out << n[i];
+		if (i < d - 1) out << ",";
+	}
+	out << "]:" << size();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
 
 Basis::
 Basis(vector<Basis*>& bases, ii dimensions, Basis* _parent, bool _transient) :
@@ -306,7 +375,7 @@ BasisResampleRT(vector<Basis*>& bases,
                 Basis* parent,
                 const vector<double>& rts,
                 const vector<ii>& js,
-				const vector<fp>& exposures,
+				const vector<double>& exposures,
                 ii rci,
                 ii order,
                 bool transient) :

@@ -29,7 +29,7 @@
 #include <sstream>
 #include <vector>
 #include <H5Cpp.h>
-#include "peakcore.hpp"
+#include "../io/peakcore.hpp"
 
 using namespace std;
 

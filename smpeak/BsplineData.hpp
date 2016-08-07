@@ -25,9 +25,9 @@
 #ifndef SMPEAK_BSPLINEDATA_HPP_
 #define SMPEAK_BSPLINEDATA_HPP_
 
-#include "peakcore.hpp"
+#include "../io/peakcore.hpp"
 #include "SMData.hpp"
-#include "core.hpp"
+#include "../seamass/core.hpp"
 
 template<typename T = float>
 struct BasisPatch

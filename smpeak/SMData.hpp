@@ -25,7 +25,7 @@
 #ifndef SMPEAK_SMDATA_HPP_
 #define SMPEAK_SMDATA_HPP_
 
-#include "peakcore.hpp"
+#include "../io/peakcore.hpp"
 
 
 template<typename T=float, typename R=double>

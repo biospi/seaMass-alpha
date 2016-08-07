@@ -25,7 +25,7 @@
 #ifndef SMPEAK_PEAKOPERATOR_HPP_
 #define SMPEAK_PEAKOPERATOR_HPP_
 
-#include "peakcore.hpp"
+#include "../io/peakcore.hpp"
 
 
 template<typename T, typename R>
