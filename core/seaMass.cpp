@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Original author: Andrew Dowsey <andrew.dowsey <a.t> manchester.ac.uk>
+// Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2013  CADET Laboratory for Medical Bioinformatics, University of Manchester, UK
+// Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -26,6 +26,9 @@
 #include "seamass.hpp"
 #include "BasisFunctions.hpp"
 #include "OptimiserASRL.hpp"
+#include <iostream>
+#include <iomanip>
+#include <omp.h>
 
 
 #include <iostream>
@@ -47,15 +50,9 @@ notice()
 
 
 seaMass::
-seaMass(std::vector<double>& bin_counts,
-        std::vector<double>& bin_locations,
-        std::vector<li>& spectrum_index,
-        std::vector<double>& start_times,
-        std::vector<double>& finish_times,
-        std::vector<double>& exposures,
-        std::vector<char>& resolutions, double shrinkage, double tolerance)
+seaMass(Input& input, std::vector<int>& resolutions, double shrinkage, double tolerance)
 {
-    // difference between carbon12 and carbon13
+   /* // difference between carbon12 and carbon13
     double rc_mz = pow(2.0, (double) mz_res) * 60 / 1.0033548378;
 
     // for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
@@ -84,7 +81,7 @@ seaMass(std::vector<double>& bin_counts,
 		h5out->write_cdata(mzh5.str(), mzs, "SpectrumMZ");
 	}*/
 
-	for (ii j = 0; j < (ii)bin_locations.size(); j++) vector<double>().swap(bin_locations[j]);
+	/*for (ii j = 0; j < (ii)bin_locations.size(); j++) vector<double>().swap(bin_locations[j]);
     //while (bases.back()->get_cm().n[0] > order + 1)
     //{
     //    new BasisDyadicScale(bases, bases.back(), 0, order, true);
@@ -152,7 +149,7 @@ seaMass(std::vector<double>& bin_counts,
 		optimiser->synthesis(fs, h5out, oss.str(), cs_basis);
 	}*/
 
-    for (ii i = 0; grad > tol; i++)
+    /*for (ii i = 0; grad > tol; i++)
     {
         grad = optimiser->step(i, shr);
 		optimiser->threshold(thres);
@@ -182,7 +179,7 @@ seaMass(std::vector<double>& bin_counts,
 			optimiser->synthesis(fs, h5out, oss.str(), cs_basis);
 		}*/
 
-	}
+	/*}
             
     // l0
     cout << " L0 threshold=" << fixed << setprecision(2) << thres << " tolerance=" << tolerance << ":" << setprecision(6) << tol << endl;
@@ -216,7 +213,7 @@ seaMass(std::vector<double>& bin_counts,
 			vector<fp> fs;
 			optimiser->synthesis(fs, h5out, oss.str(), cs_basis);
 		}*/
-    }
+    /*}
 	cout << "Duration: " << (omp_get_wtime() - start) << "seconds" << endl;
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -247,7 +244,7 @@ seaMass(std::vector<double>& bin_counts,
 
     //ostringstream oss2; oss2 << id << "_" << config_id << "_" << rc0_mz << "_" << rcr << "_" << shr << "_" << tol << ".error.csv";
     //optimiser->calc_error(oss2.str());           
-    delete optimiser;
+    /*delete optimiser;
 	//delete vizout;
     
     // output mzML
@@ -261,15 +258,15 @@ seaMass(std::vector<double>& bin_counts,
     }*/
     
     ////////////////////////////////////////////////////////////////////////////////////
-    for (ii j = 0; j < bases.size(); j++) delete bases[j];
+    /*for (ii j = 0; j < bases.size(); j++) delete bases[j];
 	
 	//if (debug) delete h5out; 
-	//omp_set_num_threads(_threads);
+	//omp_set_num_threads(_threads);*/
 }
 
 bool
 seaMass::
-iteration()
+next()
 {
 	return false;
 }

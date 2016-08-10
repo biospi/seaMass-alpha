@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Original author: Andrew Dowsey <andrew.dowsey <a.t> manchester.ac.uk>
+// Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2013  CADET Bioinformatics Laboratory, University of Manchester, UK
+// Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -33,35 +33,35 @@
 class OptimiserASRL
 {
 protected:
-    const vector<Basis*>& bases;
-    vector<fp>& gs;
+    const std::vector<Basis*>& bases;
+	std::vector<fp>& gs;
  
-    vector< vector<fp> > cs;
-    vector< vector<fp> > wcs;
-    vector< vector<fp> > l2;
+	std::vector< std::vector<fp> > cs;
+	std::vector< std::vector<fp> > wcs;
+	std::vector< std::vector<fp> > l2;
     
     ii accell;
-    vector< vector<fp> > c0s;
-    vector< vector<fp> > u0s;
-    vector< vector<fp> > q0s;
+	std::vector< std::vector<fp> > c0s;
+	std::vector< std::vector<fp> > u0s;
+	std::vector< std::vector<fp> > q0s;
     
     ii iteration;
 
 public:    
-	OptimiserASRL(const vector<Basis*>& _bases,
-                  vector<fp>& gs,
+	OptimiserASRL(const std::vector<Basis*>& _bases,
+		          std::vector<fp>& gs,
                   ii accell = 2);
 	~OptimiserASRL();
     
 	double step(ii iteration, fp lambda);
 
-	void synthesis(vector<fp>& fs, const string& datafilename = "", ii cs_basis = 0) const;
-	void error(vector<fp>& fs) const;
-	void analysis(vector< vector<fp> >& dcs, const vector<fp>& dfs) const;
-	void shrinkage(vector< vector<fp> >& dcs, fp lambda);
+	void synthesis(std::vector<fp>& fs, const std::string& datafilename = "", ii cs_basis = 0) const;
+	void error(std::vector<fp>& fs) const;
+	void analysis(std::vector< std::vector<fp> >& dcs, const std::vector<fp>& dfs) const;
+	void shrinkage(std::vector< std::vector<fp> >& dcs, fp lambda);
 
     void threshold(double threshold);
-    vector< vector<fp> >& get_cs() { return cs; }
+	std::vector< std::vector<fp> >& get_cs() { return cs; }
 
 	/*fp compute_norm_max_counts(ii n_core_bases = 0);
     

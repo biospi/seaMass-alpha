@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Original author: Andrew Dowsey <andrew.dowsey <a.t> manchester.ac.uk>
+// Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2013  CADET Laboratory for Medical Bioinformatics, University of Manchester, UK
+// Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -268,7 +268,7 @@ BasisResampleMZ(vector<Basis*>& bases,
                 double b1 = cf1 < bf1 ? cf1 - bf0 : bf1 - bf0;
                 
                 // basis coefficient b is _integral_ of area under b-spline basis
-                double b = bspline::im(b1, order+1) - bspline::im(b0, order+1);
+				double b = 0;// bspline::im(b1, order + 1) - bspline::im(b0, order + 1);
                 if (b <= 0.000001) b = 0.0; // saves computation and problems with l2norm later
                 
                 acoo[k] = b;
@@ -448,7 +448,7 @@ BasisResampleRT(vector<Basis*>& bases,
             double b1 = cf1 < bf1 ? cf1 - bf0 : bf1 - bf0;
             
             // basis coefficient b is _integral_ of area under b-spline basis
-            double b = bspline::im(b1, order+1) - bspline::im(b0, order+1);
+			double b = 0;// bspline::im(b1, order + 1) - bspline::im(b0, order + 1);
             if (b <= FLT_MIN) b = FLT_MIN; // for numerical instability in im()
             
 			acoo[mi] = b * exposures[js[j]];
@@ -546,8 +546,8 @@ BasisDyadicScale(vector<Basis*>& bases,
     double sum = 0.0;
     for (ii i = 0; i < nh; i++)
     {
-        hs[i] = 1.0/pow(2.0, (double)order) *
-        bspline::factorial(order+1)/(double)(bspline::factorial(i)*bspline::factorial(order+1-i));
+        hs[i] = 1.0/pow(2.0, (double)order) /**
+        bspline::factorial(order+1)/(double)(bspline::factorial(i)*bspline::factorial(order+1-i))*/;
         sum += hs[i];
     }
     for (ii i = 0; i < nh; i++)

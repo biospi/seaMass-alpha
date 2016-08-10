@@ -32,6 +32,8 @@
 #include "../io/peakcore.hpp"
 #include "../io/NetCDFile.hpp"
 #include "SMPFile.hpp"
+#include "../core/seaMass.hpp"
+#include "../core/BSpline.hpp"
 
 #include "SMData.hpp"
 #include "MathOperator.hpp"

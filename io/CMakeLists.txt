@@ -18,14 +18,10 @@ set(HEADER_FILES
 	MSFileData.hpp
     NetCDFile.hpp
 	peakcore.hpp
-    #SMOWriter.hpp
-    #SMVWriter.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
     NetCDFile.cpp
-    #SMOWriter.cpp
-    #SMVWriter.cpp
 )
 set(TEMPLATE_FILES
 	NetCDFile.tpp

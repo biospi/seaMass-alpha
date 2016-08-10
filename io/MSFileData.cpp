@@ -73,6 +73,8 @@ void MSmzMLb3::extractData(void)
 
 	// query necessary metadata
     cout << "Querying metadata from " << ns << " spectra..." << endl;
+
+	// capture scan start times 
 	vector<double> start_times;
 	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/scanList/scan/cvParam[@accession='MS:1000016']");
 	if(tools.empty())
@@ -82,18 +84,32 @@ void MSmzMLb3::extractData(void)
 	}
 	else
 	{
-		double rescale=1.0;
-		if(string(tools.first().node().attribute("unitName").value()).compare("second") == 0)
-			rescale = 1.0/60.0;
+		double rescale = 1.0;
+		if(string(tools.first().node().attribute("unitAccession").value()).compare("UO:0000031") == 0)
+			rescale = 60.0;
 
 		for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
 		{
 			double scanRT;
 			istringstream(itr->node().attribute("value").value()) >> scanRT;
-			start_times.push_back(scanRT*rescale);
+			start_times.push_back(scanRT * rescale);
 		}
 	}
 
+	// capture polarity
+	vector<bool> positive_polarity(ns, true);
+	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/cvParam[@accession='MS:1000129']");
+	if (!tools.empty())
+	{
+		for (xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			size_t idx;
+			istringstream(itr->node().parent().attribute("index").value()) >> idx;
+			positive_polarity[idx] = false;
+		}
+	}
+
+	// capture precursor m/z (if MS1 then set as 0.0)
     vector<double> precursor_mzs(ns,0.0);
     tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/precursorList/precursor");
 	if(!tools.empty())
@@ -109,6 +125,7 @@ void MSmzMLb3::extractData(void)
 		}
 	}
 
+	// capture preset scan configurations (note cannot be compared across files)
     vector<unsigned long> config_indices(ns,0);
 	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/scanList/scan/cvParam[@accession='MS:1000616']");
 	if(!tools.empty())
@@ -146,23 +163,24 @@ void MSmzMLb3::extractData(void)
 	mzMLb3File.search_Group("spectrum_MS_1000515");
 	dataSetList=mzMLb3File.get_Info();
 
-	spectra.resize(ns);
+	spectraMetaData.resize(ns);
     for (size_t i = 0; i < ns; i++)
     {
-		spectra[i].index = i;
-		spectra[i].preset_config = config_indices[i];
-		spectra[i].precursor_mz = precursor_mzs[i];
-		spectra[i].scan_start_time = start_times[i];
-		spectra[i].count = specSize[i];
+		spectraMetaData[i].index = i;
+		spectraMetaData[i].positive_polarity = positive_polarity[i];
+		spectraMetaData[i].preset_config = config_indices[i];
+		spectraMetaData[i].precursor_mz = precursor_mzs[i];
+		spectraMetaData[i].start_time = start_times[i];
+		spectraMetaData[i].count = specSize[i];
     }
 }
 
-vector<spectrum> MSmzMLb3::getSpectrum()
+vector<spectrumMetaData>& MSmzMLb3::getSpectraMetaData()
 {
-	return spectra;
+	return spectraMetaData;
 }
 
-void MSmzMLb3::getScanMZ(vector<double> &mz, size_t index, size_t count)
+void MSmzMLb3::getScanMZs(vector<double> &mz, size_t index, size_t count)
 {
 	hypIdx[0]=index;
 	rdLen[1]=count;
@@ -182,20 +200,29 @@ unsigned long MSmzMLb3::getInstrument(void)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool MSmzMLb3File::scan_start_time_order(const spectrum& lhs, const spectrum& rhs)
+
+bool mzMLbInputFile::scan_start_time_order(const spectrumMetaData& lhs, const spectrumMetaData& rhs)
 {
-	return lhs.scan_start_time <= rhs.scan_start_time;
+	return lhs.start_time <= rhs.start_time;
 }
 
 
-bool MSmzMLb3File::seamass_order(const spectrum& lhs, const spectrum& rhs)
+bool mzMLbInputFile::seamass_order(const spectrumMetaData& lhs, const spectrumMetaData& rhs)
 {
 	if (lhs.preset_config == rhs.preset_config)
 	{
 		if (lhs.precursor_mz == rhs.precursor_mz)
 		{
-			return lhs.scan_start_time <= rhs.scan_start_time;
+			if (lhs.positive_polarity == rhs.positive_polarity)
+			{
+				return lhs.start_time <= rhs.start_time;
+			}
+			else
+			{
+				return lhs.positive_polarity < rhs.positive_polarity;
+			}
 		}
 		else
 		{
@@ -209,165 +236,128 @@ bool MSmzMLb3File::seamass_order(const spectrum& lhs, const spectrum& rhs)
 }
 
 
-MSFile::MSFile(string in_file) :
+mzMLbInputFile::mzMLbInputFile(string in_file) :
 	i(0)
 {
 	msFile = FileFactory::createFileObj(in_file);
-	spectra = msFile->getSpectrum();
+	spectraMetaData = msFile->getSpectraMetaData();
 	instrument_type = msFile->getInstrument();
 
 	int lastdot = in_file.find_last_of(".");
 	string id = (lastdot == string::npos) ? in_file : in_file.substr(0, lastdot);
 
 	// determine start_scan_time order of spectra
-	sort(spectra.begin(), spectra.end(), &MSFile::scan_start_time_order);
-	for (size_t i = 0; i < spectra.size(); i++)
+	// set finish time as start time of next spectrum, must discard last spectrum as no finish time
+	sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::scan_start_time_order);
+	for (size_t i = 0; i < spectraMetaData.size() - 1; i++)
 	{
-		spectra[i].scan_start_time_index = i;
+		spectraMetaData[i].finish_time = spectraMetaData[i + 1].start_time;
 	}
-	scan_start_times.resize(spectra.size());
-	for (size_t i = 0; i < spectra.size(); i++)
-	{
-		scan_start_times[i] = spectra[i].scan_start_time;
-	}
-	sort(spectra.begin(), spectra.end(), &MSFile::seamass_order);
+	spectraMetaData.resize(spectraMetaData.size() - 1);
+
+	// finally sort into contiguous blocks for seaMass
+	sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::seamass_order);
 }
 
 
-MSFile::~MSFile()
+mzMLbInputFile::~mzMLbInputFile()
 {
 	delete msFile;
 }
 
 
-bool MSFile::next(seaMass::Input& output)
+bool mzMLbInputFile::next(seaMass::Input& out)
 {
-	out.mzs.assign(spectra.size() - 1, vector<double>());
-	out.intensities.assign(spectra.size() - 1, vector<double>());
-	int loaded = 0;
-	bool precursor_mz_is_constant = true;
-	for (; i < spectra.size(); i++)
+	if (i >= spectraMetaData.size()) return false;
+
+	vector< vector<double> > mzs;
+	vector< vector<double> > intensities;
+
+	size_t loaded = 0;
+	bool done = false;
+	for (; !done; i++)
 	{
-		if (loaded > 1 && spectra[i].precursor_mz != spectra[i - 1].precursor_mz)
-			precursor_mz_is_constant = false;
-
-		if (spectra[i].count > 0 && spectra[i].index != spectra.size() - 1)
-		{
-			msFile->getScanMZ(out.mzs[spectra[i].scan_start_time_index], spectra[i].index, spectra[i].count);
-			msFile->getScanIntensities(out.intensities[spectra[i].scan_start_time_index], spectra[i].index, spectra[i].count);
-		}
-
 		loaded++;
-		if ((i == spectra.size() - 1 ||
-			spectra[i].preset_config != spectra[i + 1].preset_config ||
-			(spectra[i].precursor_mz != spectra[i + 1].precursor_mz && spectra[i].precursor_mz == 0.0)))
+		mzs.resize(loaded);
+		intensities.resize(loaded);
+
+		msFile->getScanMZs(mzs[loaded - 1], spectraMetaData[i].index, spectraMetaData[i].count);
+		msFile->getScanIntensities(intensities[loaded - 1], spectraMetaData[i].index, spectraMetaData[i].count);
+
+		if (i == spectraMetaData.size() - 1 ||
+		    spectraMetaData[i].preset_config != spectraMetaData[i + 1].preset_config ||
+			spectraMetaData[i].precursor_mz != spectraMetaData[i + 1].precursor_mz ||
+			spectraMetaData[i].positive_polarity != spectraMetaData[i + 1].positive_polarity)
 		{
-			bin_mzs_intensities();
-			i++;
-			return true;
+			done = true;
 		}
 	}
-	return false;
-}
 
-
-void MSFile::bin_mzs_intensities()
-{
-	// This modifies the raw data for some limitations of the mzML spec and makes
-	// sure the intensities are treated as binned between m/z datapoints.
-	//
-	// For ToF data, it interpolates the mzs to represent the edges of the bins rather
-	//   than the centres
-	// For FT data, it converts the sampled data to binned counts by treating the
-	//   mz values as the bin edges, and using trapezoid rule to integrate intensity values
-	//
-	// This is all a bit rough at the moment, should be fitting splines to the data
-
+	out.bin_counts.resize(0);
+	out.bin_locations.resize(0);
+	out.spectrum_index.resize(intensities.size());
+	out.start_times.resize(intensities.size());
+	out.finish_times.resize(intensities.size());
 	// initialise exposures to default of 1 (unit exposure)
-	out.exposures.assign(out.intensities.size(), 1);
-
-	// if more than one spectrum, ignore last as we do not know its scan end time
-
-	if (instrument_type == 1) // ToF
+	out.exposures.resize(intensities.size(), 1.0);
+	size_t bck = 0;
+	size_t blk = 0;
+	for (size_t j = 0; j < out.spectrum_index.size(); j++)
 	{
-		#pragma omp parallel for
-		for (int j = 0; j < out.mzs.size(); j++)
+		out.spectrum_index[j] = out.bin_counts.size();
+
+		// This modifies the raw data for some limitations of the mzML spec and makes
+		// sure the intensities are treated as binned between m/z datapoints.
+		//
+		// For ToF data, it interpolates the mzs to represent the edges of the bins rather
+		//   than the centres
+		// For FT data, it converts the sampled data to binned counts by treating the
+		//   mz values as the bin edges, and using trapezoid rule to integrate intensity values
+		//
+		// This is all a bit rough at the moment, should be fitting splines to the data
+
+		if (instrument_type == 1) // ToF
 		{
-			if (out.mzs[j].size() >= 2)
+			if (mzs[j].size() >= 2)
 			{
 				// dividing by minimum to get back to ion counts for SWATH data which appears to be automatic gain controlled to correct for dynamic range restrictions (hack!)
 				double minimum = std::numeric_limits<double>::max();
 
 				// we drop the first and last m/z datapoint as we don't know both their bin edges
-				for (size_t i = 1; i < out.mzs[j].size(); i++)
+				out.bin_counts.resize(out.bin_counts.size() + intensities[j].size() - 2);
+				out.bin_locations.resize(out.bin_locations.size() + mzs[j].size() - 1);
+				for (size_t k = 1; k < mzs[j].size(); k++)
 				{
-					if (out.intensities[j][i] > 0) minimum = minimum < out.intensities[j][i] ? minimum : out.intensities[j][i];
+					if (intensities[j][k] > 0) minimum = minimum < intensities[j][k] ? minimum : intensities[j][k];
 
 					// linear interpolation of mz extent (probably should be cubic)
-					out.mzs[j][i - 1] = 0.5 * (out.mzs[j][i - 1] + out.mzs[j][i]);
-					out.intensities[j][i - 1] = out.intensities[j][i];
+					if (k < mzs[j].size() - 1) out.bin_counts[bck++] = intensities[j][k];
+					out.bin_locations[blk++] = 0.5 * (mzs[j][k - 1] + mzs[j][k]);
 				}
-				out.mzs[j].resize(out.mzs[j].size() - 1);
-				out.intensities[j].resize(out.intensities[j].size() - 2);
+
 				out.exposures[j] = 1.0 / minimum;
-				for (size_t i = 0; i < out.intensities[j].size(); i++)
+				for (size_t i = 0; i < intensities[j].size(); i++)
 				{
-					out.intensities[j][i] *= out.exposures[j];
+					intensities[j][i] *= out.exposures[j];
 					//fp baseline = (mzs[j][i+1] - mzs[j][i]) * 3.0/8.0 * 272.0;//68.0;//136.0;
 					//intensities[j][i] = intensities[j][i] >= baseline ? intensities[j][i] : baseline;
 
 					// if (intensities[j][i] == 0.0) intensities[j][i] = 3.0/8.0;
 				}
 			}
-			else
-			{
-				out.mzs[j].resize(0);
-				out.intensities[j].resize(0);
-			}
 		}
-	}
-	/*else if (instrument_type == 2) // Orbitrap - but disabled for now as doesn't play nicely with merge_bins function
-	{
-	#pragma omp parallel for
-	for (ii j = 0; j < mzs.size(); j++)
-	if (mzs[j].size() >= 2)
-	{
-	// for Orbitrap only, mark zeros as missing data
-	for (ii i = 1; i < mzs[j].size(); i++)
-	if (intensities[j][i-1] <= 0.0 || intensities[j][i] <= 0.0)
-	{
-	intensities[j][i-1] = -1.0;
-	}
-	else
-	{
-	intensities[j][i-1] = (mzs[j][i] - mzs[j][i-1]) * 0.5 * (intensities[j][i] + intensities[j][i-1]);
-	}
-	intensities[j].resize(intensities[j].size() - 1);
-	}
-	else
-	{
-	mzs[j].resize(0);
-	intensities[j].resize(0);
-	}
-	}*/
-	else // FT-ICR (Orbitrap is a type of FT-ICR)
-	{
-		#pragma omp parallel for
-		for (int j = 0; j < out.mzs.size(); j++)
+		else // Orbitrap & FT-ICR
 		{
-			if (out.mzs[j].size() >= 2)
+			if (mzs[j].size() >= 2)
 			{
-				for (size_t i = 1; i < out.mzs[j].size(); i++)
+				for (size_t k = 0; k < mzs[j].size(); k++)
 				{
-					out.intensities[j][i - 1] = (out.mzs[j][i] - out.mzs[j][i - 1]) * 0.5 * (out.intensities[j][i] + out.intensities[j][i - 1]);
+					if (k > 0) out.bin_counts[bck++] = (mzs[j][i] - mzs[j][i - 1]) * 0.5 * (intensities[j][i] + intensities[j][i - 1]);
+					out.bin_locations[blk++] = mzs[j][k];
 				}
-				out.intensities[j].resize(out.intensities[j].size() - 1);
-			}
-			else
-			{
-				out.mzs[j].resize(0);
-				out.intensities[j].resize(0);
 			}
 		}
 	}
+
+	return true;
 }

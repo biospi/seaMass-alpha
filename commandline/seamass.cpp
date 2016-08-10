@@ -40,12 +40,9 @@ int main(int argc, char *argv[])
 
 	string in_file;
 	vector<int> res(2);
-	int rt_res;
 	int shrink;
 	int tol;
-	int out_type;
 	int threads;
-	double precoursorEvt;
 
 	// *******************************************************************
 
@@ -79,14 +76,7 @@ int main(int argc, char *argv[])
 		("threads,t",po::value<int>(&threads)->default_value(4),
 			"Number of OpenMP threads to use, "
 			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
-			"default: 4")
-		("precursor,p",po::value<double>(&precoursorEvt),
-			"Precursor value to single out Swath Window, "
-			"guidelines: 0 = ms1 spectrum; > 0 = ms2 spectrum")
-		("out_type,o",po::value<int>(&out_type)->default_value(0),
-			"Type of output desired, "
-			"guidelines: 0 = just viz_client input; 1 = also smo; 2 = also debug, "
-			"default: 0");
+			"default: 4");
 
 	po::options_description desc;
 	desc.add(general);
@@ -139,10 +129,11 @@ int main(int argc, char *argv[])
 		cerr<<"Exception of unknown type!\n";
 	}
 
-	MSFile msFile(in_file);
+	mzMLbInputFile msFile(in_file);
 	seaMass::Input input;
 	while (msFile.next(input))
 	{
+		cout << input.spectrum_index.size() << ":" << input.bin_counts.size() << ":" << input.bin_locations.size() << endl;
 		seaMass sm(input, res, shrink, tol);
 		do
 		{

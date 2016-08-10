@@ -45,12 +45,12 @@ public:
 	static void notice();
 
 	struct Input {
-		std::vector<double> bin_counts;
+		std::vector<fp> bin_counts;
 		std::vector<double> bin_locations;
 		std::vector<li> spectrum_index;
 		std::vector<double> start_times;
 		std::vector<double> finish_times;
-		std::vector<double> exposures;
+		std::vector<fp> exposures;
 	};
 
 	struct Output {
@@ -71,7 +71,7 @@ public:
 	*/
 	seaMass(Input& input, std::vector<int>& resolutions, double shrinkage, double tolerance);
 
-	virtual bool iteration();
+	virtual bool next();
 
 	void get_output(Output& output);
 
