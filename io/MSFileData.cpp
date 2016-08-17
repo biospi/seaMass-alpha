@@ -36,25 +36,25 @@ MassSpecFile* FileFactory::createFileObj(string fName)
 
 	if(ext == "mzMLb3")
 		return new MSmzMLb3(fName);
-	return NULL;
+	if(ext == "mzMLb")
+		return new MSmzMLb(fName);
     /*
-    if(ext == "mzMLb")
-		return new MSMLb(fName);
     if(ext == "csv")
 		retun new MZcsv(fName);
     */
+	return NULL;
 }
 
 
 MSmzMLb3::MSmzMLb3(string fileName)
 {
 	mzMLb3File.open(fileName);
-	this->extractData();
 	hypIdx.resize(2,0);
 	rdLen.resize(2,0);
 	hypIdx[1]=0; // Read from first Column.
 	rdLen[0]=1; // Always 1 Row to read.
     instrument_type = 1;
+	this->extractData();
 }
 
 
@@ -198,6 +198,223 @@ unsigned long MSmzMLb3::getInstrument(void)
 {
 	return instrument_type;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+MSmzMLb::MSmzMLb(string fileName)
+{
+	mzMLbFile.open(fileName);
+	hypIdx.resize(1,0);
+	rdLen.resize(1,0);
+	hypIdx[0]=0; // Index to read from.
+	rdLen[0]=0; // Length of Hyperslab.
+	instrument_type = 1;
+	this->extractData();
+}
+
+
+void MSmzMLb::extractData(void)
+{
+	// Load mzML metadata
+	mzMLbFile.read_VecNC("mzML",mzMLBuff);
+	size_t xmlSize=sizeof(char)*mzMLBuff.size();
+
+	xml::xml_document docmzML;
+	xml::xpath_node_set tools;
+	xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
+
+	hsize_t ns;
+	istringstream(docmzML.child("mzML").child("run").child("spectrumList").attribute("count").value())>>ns;
+
+	// query necessary metadata
+    cout << "Querying metadata from " << ns << " spectra..." << endl;
+	vector<double> start_times;
+	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/scanList/scan/cvParam[@accession='MS:1000016']");
+	if(tools.empty())
+	{
+		cout<<"Cannot Find Start Time"<<endl;
+		exit(1);
+	}
+	else
+	{
+		double rescale=1.0;
+		if(string(tools.first().node().attribute("unitAccession").value()).compare("UO:0000031") == 0)
+			rescale = 60.0;
+
+
+		for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			double scanRT;
+			istringstream(itr->node().attribute("value").value()) >> scanRT;
+			start_times.push_back(scanRT*rescale);
+		}
+	}
+
+	// capture polarity
+	vector<bool> positive_polarity(ns, true);
+	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/cvParam[@accession='MS:1000129']");
+	if (!tools.empty())
+	{
+		for (xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			size_t idx;
+			istringstream(itr->node().parent().attribute("index").value()) >> idx;
+			positive_polarity[idx] = false;
+		}
+	}
+
+    vector<double> precursor_mzs(ns,0.0);
+    tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/precursorList/precursor");
+	if(!tools.empty())
+	{
+		for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			double preMZ;
+			size_t idx;
+			istringstream(itr->node().child("selectedIonList").child("selectedIon").
+				find_child_by_attribute("accession","MS:1000744").attribute("value").value())>>preMZ;
+			istringstream(itr->node().parent().parent().attribute("index").value())>>idx;
+			precursor_mzs[idx]=preMZ;
+		}
+	}
+
+    vector<unsigned long> config_indices(ns,0);
+	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/scanList/scan/cvParam[@accession='MS:1000616']");
+	if(!tools.empty())
+	{
+		for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			unsigned long preConfig;
+			size_t idx;
+			istringstream(itr->node().attribute("value").value())>>preConfig;
+			istringstream(itr->node().parent().parent().parent().attribute("index").value())>>idx;
+			config_indices[idx]=preConfig;
+		}
+	}
+	preSetScanConfig(config_indices);
+
+	vector<size_t> specSize(ns,0);
+	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum");
+	if(!tools.empty())
+	{
+		size_t idx=0;
+		size_t scanLength=0;
+		for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			istringstream(itr->node().attribute("defaultArrayLength").value())>>scanLength;
+			istringstream(itr->node().attribute("index").value())>>idx;
+			specSize[idx]=scanLength;
+		}
+	}
+
+	string spectrum_mz;
+	string spectrum_intensities;
+	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/binaryDataArrayList/binaryDataArray");
+	mzIdx.resize(ns);
+	intensitiesIdx.resize(ns);
+	if(!tools.empty())
+	{
+		size_t idx=0;
+		size_t jdx=0;
+		size_t scanMzIdx=0;
+		size_t scanIntIdx=0;
+
+		string first = tools[0].node().child("binary").attribute("externalDataset").value();
+		string second = tools[1].node().child("binary").attribute("externalDataset").value();
+
+		if(first.find("spectrum_MS_1000514") != string::npos) spectrum_mz = first;
+		else if(first.find("spectrum_MS_1000515") != string::npos) spectrum_intensities = first;
+
+		if(second.find("spectrum_MS_1000514") != string::npos) spectrum_mz = second;
+		else if(second.find("spectrum_MS_1000515") != string::npos) spectrum_intensities = second;
+
+		for(xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			if(itr->node().child("binary").attribute("externalDataset").value() == spectrum_mz)
+			{
+				istringstream(itr->node().child("binary").attribute("offset").value())>>scanMzIdx;
+				mzIdx[idx]=scanMzIdx;
+			}
+			if(itr->node().child("binary").attribute("externalDataset").value() == spectrum_intensities)
+			{
+				istringstream(itr->node().child("binary").attribute("offset").value())>>scanIntIdx;
+				intensitiesIdx[idx]=scanIntIdx;
+			}
+			if(jdx%2 == 1) ++idx;
+			++jdx;
+		}
+	}
+
+	if(string(docmzML.child("mzML").child("instrumentConfigurationList").child("instrumentConfiguration").child("componentList").
+				child("analyzer").child("cvParam").attribute("name").value()).compare("orbitrap") == 0)
+		instrument_type=2;
+
+	mzMLbFile.search_Group(spectrum_mz);
+	mzMLbFile.search_Group(spectrum_intensities);
+	dataSetList=mzMLbFile.get_Info();
+
+	spectraMetaData.resize(ns);
+    for (size_t i = 0; i < ns; i++)
+    {
+		spectraMetaData[i].index = i;
+		spectraMetaData[i].positive_polarity = positive_polarity[i];
+		spectraMetaData[i].preset_config = config_indices[i];
+		spectraMetaData[i].precursor_mz = precursor_mzs[i];
+		spectraMetaData[i].start_time = start_times[i];
+		spectraMetaData[i].count = specSize[i];
+    }
+
+    /*
+	// determine start_scan_time order of spectra
+	sort(spectraMetaData.begin(), spectraMetaData.end(), scan_start_time_order);
+	for (size_t i = 0; i < spectraMetaData.size(); i++)
+	{
+		spectraMetaData[i].scan_start_time_index = i;
+	}
+
+	scan_start_times.resize(ns);
+	for (size_t i = 0; i < spectraMetaData.size(); i++)
+	{
+		scan_start_times[i] = spectraMetaData[i].scan_start_time;
+	}
+	sort(spectraMetaData.begin(), spectraMetaData.end(), seamass_order);
+	*/
+}
+
+vector<spectrumMetaData>& MSmzMLb::getSpectraMetaData()
+{
+	return spectraMetaData;
+}
+
+void MSmzMLb::getScanMZs(vector<double> &mz, size_t index, size_t count)
+{
+	hypIdx[0]=mzIdx[index];
+	rdLen[0]=count;
+	mzMLbFile.read_HypVecNC(dataSetList[0].varName,mz,&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
+}
+
+void MSmzMLb::getScanIntensities(vector<double> &intensities, size_t index, size_t count)
+{
+	hypIdx[0]=intensitiesIdx[index];
+	rdLen[0]=count;
+	mzMLbFile.read_HypVecNC(dataSetList[1].varName,intensities,&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
+}
+
+unsigned long MSmzMLb::getInstrument(void)
+{
+	return instrument_type;
+}
+
+/*
+vector<double> MSmzMLb::getScanStartTimes(void)
+{
+	return scan_start_times;
+
+}
+*/
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -68,6 +68,31 @@ protected:
 };
 
 
+class MSmzMLb: public MassSpecFile
+{
+public:
+    MSmzMLb(string fileName);
+    vector<spectrumMetaData>& getSpectraMetaData();
+    void getScanMZs(vector<double> &mz, size_t index, size_t count);
+    void getScanIntensities(vector<double> &intensities, size_t index, size_t count);
+    unsigned long getInstrument(void);
+    //vector<double> getScanStartTimes(void);
+    virtual ~MSmzMLb(){};
+protected:
+    void extractData(void);
+    NetCDFile mzMLbFile;
+    vector<char> mzMLBuff;
+    vector<InfoGrpVar> dataSetList;
+    vector<spectrumMetaData> spectraMetaData;
+	vector<size_t> hypIdx;
+	vector<size_t> rdLen;
+	//vector<double> scan_start_times;
+	vector<size_t> mzIdx;
+	vector<size_t> intensitiesIdx;
+};
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -75,6 +100,7 @@ class InputFile
 {
 public:
 	virtual bool next(seaMass::Input& output) = 0;
+	virtual ~InputFile(){};
 };
 
 
