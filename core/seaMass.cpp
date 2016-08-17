@@ -23,7 +23,7 @@
 //
 
 
-#include "seamass.hpp"
+#include "seaMass.hpp"
 #include "BasisFunctions.hpp"
 #include "OptimiserASRL.hpp"
 #include <iostream>

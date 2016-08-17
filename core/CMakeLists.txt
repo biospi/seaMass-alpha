@@ -2,12 +2,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(MKL REQUIRED)
 
 set(HEADER_FILES
+	core.hpp
 	BSpline.hpp
 	OptimiserASRL.hpp
 	BasisFunctions.hpp
 	seaMass.hpp
 )
 set(SOURCE_FILES
+	core.cpp
 	BSpline.cpp
 	OptimiserASRL.cpp
 	BasisFunctions.cpp

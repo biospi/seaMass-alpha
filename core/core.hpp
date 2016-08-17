@@ -37,7 +37,7 @@
 #include <omp.h>
 #include <mkl.h>
 
-#include "seamass.hpp"
+#include "seaMass.hpp"
 
 using namespace std;
 

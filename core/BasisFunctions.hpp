@@ -27,6 +27,7 @@
 #define _SEAMASSRESTORATION_BASISFUNCTIONS_HPP_
 
 
+#include "core.hpp"
 #include "seaMass.hpp"
 
 

@@ -23,7 +23,7 @@
 //
 
 
-
+#include "core.hpp"
 
 double CatmullRomInterpolate(
 	double y0, double y1,
