@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -29,11 +29,12 @@
 #include <sstream>
 #include <omp.h>
 
-#include "../io/peakcore.hpp"
+#include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
 #include "SMPFile.hpp"
 #include "../core/seaMass.hpp"
 #include "../core/BSpline.hpp"
+#include "../io/mzMLxml.hpp"
 
 #include "SMData.hpp"
 #include "MathOperator.hpp"

@@ -22,44 +22,31 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SMPEAK_PEAKMANAGER_HPP_
-#define SMPEAK_PEAKMANAGER_HPP_
+#ifndef SEAMASS_MZMLXML_TPP
+#define SEAMASS_MZMLXML_TPP
 
-#include "../io/iomath.hpp"
-
-
-template
-<
-	template<class Peak> class PeakCon,
-	template<class Bspline1,class Bspline2> class BsplineCon,
-	template
-	<
-		template<class SubOperator1> class Operator1,
-		template<class SubOperator1, class SubOperator2> class Operator2,
-		class OpT,
-		class OpR
-	> class PeakOp,
-	typename R = double,
-	typename T = float
->
-class PeakManager : public PeakOp<PeakCon,BsplineCon, T, R>
+template<typename T>
+void findVecString(vector<char> &vecStr, vector<T> &vec,
+		const string subStr, const string endSubStr)
 {
-public:
-	PeakManager(BsplineCon<R,T> &_data, T _threshold = 0) : threshold(_threshold)
-	{
-		peak=new PeakCon<T>();
-		data=&_data;
-	};
-	void execute()
-	{
-		this->calculate(this->peak, this->data, threshold);
-	};
-	PeakCon<T> *peak;
-	~PeakManager() {delete this->peak;};
-private:
-	BsplineCon<R,T> *data;
-	T threshold;
-};
+	size_t nSub = subStr.length();
+	string str(&vecStr[0]);
+	if(vec.size()>0) vec.resize(0);
 
+	for(size_t i=0; i < (vecStr.size() - nSub);)
+	{
+		size_t pos=str.find(subStr,i);
+		if(pos == string::npos)
+		{
+			pos = str.find(endSubStr,i);
+			vec.push_back(pos);
+			i=vecStr.size();
+		}
+		else{
+			vec.push_back(pos);
+			i=pos+nSub;
+		}
+	}
+}
 
-#endif /* SMPEAK_PEAKMANAGER_HPP_ */
+#endif //SEAMASS_MZMLXML_TPP

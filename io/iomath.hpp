@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -22,13 +22,12 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SMPEAK_PEAKCORE_HPP_
-#define SMPEAK_PEAKCORE_HPP_
+#ifndef SMPEAK_IOMATH_HPP_
+#define SMPEAK_IOMATH_HPP_
 
-#include <iostream>
 #include <vector>
 #include <cmath>
-#include <H5Cpp.h>
+#include <hdf5.h>
 
 using namespace std;
 
@@ -52,25 +51,7 @@ private:
 	hsize_t col;
 };
 
-template<typename T>
-void findVecString(vector<char> &vecStr,vector<T> &vec,
-		const string subStr = "<spectrum index",
-		const string endSubStr = "</spectrum>");
 
-template<typename T>
-vector<size_t> findSize(VecMat<T> data);
+#include "iomath.tpp"
 
-template<typename T>
-vector<size_t> findSizeT(VecMat<T> data);
-
-template<typename T>
-void repackPeakData(VecMat<T> &peak, VecMat<T> &paw, vector<int> msl,
-				vector<size_t> psize, vector<size_t> rsize);
-
-template<typename T>
-void repackPeakDataT(VecMat<T> &peak, VecMat<T> &paw, vector<int> msl,
-				vector<size_t> psize, vector<size_t> rsize);
-
-#include"peakcore.tpp"
-
-#endif /* SMPEAK_PEAKCORE_HPP_ */
+#endif /* SMPEAK_IOMATH_HPP_ */

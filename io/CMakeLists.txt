@@ -17,16 +17,19 @@ find_package(SpatialIndex 1.8.5 REQUIRED)
 set(HEADER_FILES
 	MSFileData.hpp
     NetCDFile.hpp
-	peakcore.hpp
+	iomath.hpp
+	mzMLxml.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
     NetCDFile.cpp
+	mzMLxml.cpp
 )
 set(TEMPLATE_FILES
 	NetCDFile.tpp
-	peakcore.tpp
-)
+	iomath.tpp
+	mzMLxml.tpp
+	)
 
 source_group("Template Files" FILES ${TEMPLATE_FILES})
 add_library(seamass_io ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
