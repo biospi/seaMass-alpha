@@ -62,7 +62,8 @@ public:
 			DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
 			DataAxis<T,R> &dvbs, BasisPatch<T> &bp);
 	void get(vector<DataAxis<T,R>* > &bsDat, BasisPatch<T> *&bp);
-	void dumpData(string filename, const H5::DataType &data_type_id = H5::PredType::NATIVE_FLOAT);
+	void dumpData(string filename, nc_type data_type_id = NC_FLOAT);
+	//void dumpData(string filename, const H5::DataType &data_type_id = H5::PredType::NATIVE_FLOAT);
 private:
 	vector<DataAxis<T,R>* > bspObjP;
 	BasisPatch<T> *bPat;

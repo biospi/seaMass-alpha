@@ -26,6 +26,7 @@
 #define SMPEAK_PEAKDATA_HPP_
 
 #include "../io/iomath.hpp"
+#include "../io/NetCDFile.hpp"
 
 template<typename T = float>
 struct Peak
@@ -73,7 +74,8 @@ public:
 	vector<lli> getRTIdx(void);
 	void getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
 	void getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
-	void dumpPeakData(string filename, const H5::DataType &data_type_id=H5::PredType::NATIVE_FLOAT);
+	void dumpPeakData(string filename, nc_type data_type_id=NC_FLOAT);
+	//void dumpPeakData(string filename, const H5::DataType &data_type_id=H5::PredType::NATIVE_FLOAT);
 	lli getFalsePeaks(void);
 	lli getFalseWidths(void);
 	void clear(void);

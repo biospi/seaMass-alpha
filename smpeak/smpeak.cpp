@@ -406,7 +406,8 @@ int main(int argc, char **argv)
 			cout<<"Total false Peak detected with incorrect Peak Widths - "
 				<<"["<<totalPeaks.getFalseWidths()<<"] Peaks Ignored"<<endl;
 
-		if(debug) totalPeaks.dumpPeakData(smoFileName,H5::PredType::NATIVE_FLOAT);
+		//if(debug) totalPeaks.dumpPeakData(smoFileName,H5::PredType::NATIVE_FLOAT);
+		if(debug) totalPeaks.dumpPeakData(smoFileName,NC_FLOAT);
 	}
 	else if(process == CENT2DIM)
 	{
@@ -432,7 +433,7 @@ int main(int argc, char **argv)
 		centriodPeak.execute();
 		centriodPeak.peak->getPeakMat(mzPeak, pkPeak, dataMatLen[0], mzpkVecSize);
 
-		if(debug) centriodPeak.peak->dumpPeakData(smoFileName);
+		if(debug) centriodPeak.peak->dumpPeakData(smoFileName, NC_FLOAT);
 	}
 	else if(process == PEAKPICK)
 	{
@@ -461,7 +462,7 @@ int main(int argc, char **argv)
 			cout<<"Total false Peak detected with incorrect Peak Widths - "
 				<<"["<<extractPeak.peak->getFalseWidths()<<"] Peaks Ignored"<<endl;
 
-		extractPeak.peak->dumpPeakData(smoFileName,H5::PredType::NATIVE_FLOAT);
+		extractPeak.peak->dumpPeakData(smoFileName,NC_FLOAT);
 	}
 	else if(process == NOPROC)
 	{

@@ -101,8 +101,27 @@ void BsplineBasisData<R,T>::get(vector<DataAxis<T,R>* > &bsDat, BasisPatch<T> *&
 }
 
 template<typename R, typename T>
-void BsplineBasisData<R,T>::dumpData(string filename, const H5::DataType &data_type_id)
+void BsplineBasisData<R,T>::dumpData(string filename, nc_type data_type_id)
 {
+
+	// Write data to SMD (debug) file.
+	string outFileName=filename.substr(0,filename.size()-4)+".smd";
+	NetCDFile smpDataFile(outFileName,NC_NETCDF4);
+
+	DataAxis<T,R> const *bs=bspObjP[0];
+	DataAxis<T,R> const *dhbs=bspObjP[1];
+	DataAxis<T,R> const *dh2bs=bspObjP[2];
+	DataAxis<T,R> const *dvbs=bspObjP[3];
+	DataAxis<T,R> const *dv2bs=bspObjP[4];
+
+	cout<<"\nSaving Peak Debugging Data to File:"<<endl;
+	smpDataFile.write_VecNC("csOrig",bs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dhcs",dhbs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dh2cs",dh2bs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dvcs",dvbs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dv2cs",dv2bs->alpha->v,data_type_id);
+
+	/*
 	// Write data to SMD (debug) file.
 	string outFileName=filename.substr(0,filename.size()-4)+".smd";
 	SMPFile smpDataFile(outFileName);
@@ -122,6 +141,7 @@ void BsplineBasisData<R,T>::dumpData(string filename, const H5::DataType &data_t
 	smpDataFile.write_VecMatH5("dh2cs",dh2bs->alpha->v,dims,data_type_id);
 	smpDataFile.write_VecMatH5("dvcs",dvbs->alpha->v,dims,data_type_id);
 	smpDataFile.write_VecMatH5("dv2cs",dv2bs->alpha->v,dims,data_type_id);
+	*/
 }
 
 #endif /* SMPEAK_BSPLINEDATA_TPP_ */

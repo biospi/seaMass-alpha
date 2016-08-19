@@ -237,30 +237,58 @@ void PeakData<T>::getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, v
 }
 
 template<typename T>
-void PeakData<T>::dumpPeakData(string filename, const H5::DataType &data_type_id)
+void PeakData<T>::dumpPeakData(string filename, nc_type data_type_id)
+//void PeakData<T>::dumpPeakData(string filename, const H5::DataType &data_type_id)
 {
-		// Write data to SMP file.
-		string outFileName=filename.substr(0,filename.size()-4);
-		SMPFile smpDataFile(outFileName);
+	// Write data to SMP file.
+	string outFileName=filename.substr(0,filename.size()-4)+".smp";
+	NetCDFile smpDataFile(string(outFileName),NC_NETCDF4);
 
-		cout<<"\nSaving Peak Data to File: "<<outFileName<<".smp"<<endl;
+	cout<<"\nSaving Peak Data to File: "<<outFileName<<endl;
 
-		vector<hsize_t> vecN;
-		vecN.push_back(0.0);
-		vecN[0]=getMZ().size();
-		smpDataFile.write_VecMatH5("Peak_mz",getMZ(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=getMZwidth().size();
-		smpDataFile.write_VecMatH5("Peak_mz_width",getMZwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=getRT().size();
-		smpDataFile.write_VecMatH5("Peak_rt",getRT(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=getRTwidth().size();
-		smpDataFile.write_VecMatH5("Peak_rt_width",getRTwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
-		vecN[0]=getPKcount().size();
-		smpDataFile.write_VecMatH5("Peak_Count",getPKcount(),vecN,data_type_id);
-		vecN[0]=getMZIdx().size();
-		smpDataFile.write_VecMatH5("Peak_mz_idx",getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
-		vecN[0]=getRTIdx().size();
-		smpDataFile.write_VecMatH5("Peak_rt_idx",getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
+	vector<T> tbuff;
+	vector<double> dbuff;
+	vector<lli> ibuff;
+
+	dbuff=this->getMZ();
+	smpDataFile.write_VecNC("Peak_mz",dbuff,NC_DOUBLE);
+	dbuff=this->getMZwidth();
+	smpDataFile.write_VecNC("Peak_mz_width",dbuff,NC_DOUBLE);
+	dbuff=this->getRT();
+	smpDataFile.write_VecNC("Peak_rt",dbuff,NC_DOUBLE);
+	dbuff=this->getRTwidth();
+	smpDataFile.write_VecNC("Peak_rt_width",dbuff,NC_DOUBLE);
+	tbuff=this->getPKcount();
+	smpDataFile.write_VecNC("Peak_Count",tbuff,data_type_id);
+	ibuff=this->getMZIdx();
+	smpDataFile.write_VecNC("Peak_mz_idx",ibuff,NC_INT64);
+	ibuff=this->getRTIdx();
+	smpDataFile.write_VecNC("Peak_rt_idx",ibuff,NC_INT64);
+
+	/*
+	// Write data to SMP file.
+	string outFileName=filename.substr(0,filename.size()-4);
+	SMPFile smpDataFile(outFileName);
+
+	cout<<"\nSaving Peak Data to File: "<<outFileName<<".smp"<<endl;
+
+	vector<hsize_t> vecN;
+	vecN.push_back(0.0);
+	vecN[0]=getMZ().size();
+	smpDataFile.write_VecMatH5("Peak_mz",getMZ(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=getMZwidth().size();
+	smpDataFile.write_VecMatH5("Peak_mz_width",getMZwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=getRT().size();
+	smpDataFile.write_VecMatH5("Peak_rt",getRT(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=getRTwidth().size();
+	smpDataFile.write_VecMatH5("Peak_rt_width",getRTwidth(),vecN,H5::PredType::NATIVE_DOUBLE);
+	vecN[0]=getPKcount().size();
+	smpDataFile.write_VecMatH5("Peak_Count",getPKcount(),vecN,data_type_id);
+	vecN[0]=getMZIdx().size();
+	smpDataFile.write_VecMatH5("Peak_mz_idx",getMZIdx(),vecN,H5::PredType::NATIVE_LLONG);
+	vecN[0]=getRTIdx().size();
+	smpDataFile.write_VecMatH5("Peak_rt_idx",getRTIdx(),vecN,H5::PredType::NATIVE_LLONG);
+	*/
 }
 
 template<typename T>
