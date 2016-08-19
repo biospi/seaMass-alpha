@@ -32,6 +32,7 @@
 using namespace std;
 
 typedef long long int lli;
+typedef unsigned long long uli;
 
 template<typename T = float>
 struct VecMat

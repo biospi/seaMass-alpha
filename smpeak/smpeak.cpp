@@ -26,12 +26,10 @@
 #include <iterator>
 #include <boost/program_options.hpp>
 #include <pugixml.hpp>
-#include <sstream>
 #include <omp.h>
 
 #include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
-#include "SMPFile.hpp"
 #include "../core/seaMass.hpp"
 #include "../core/BSpline.hpp"
 #include "../io/mzMLxml.hpp"
@@ -406,7 +404,6 @@ int main(int argc, char **argv)
 			cout<<"Total false Peak detected with incorrect Peak Widths - "
 				<<"["<<totalPeaks.getFalseWidths()<<"] Peaks Ignored"<<endl;
 
-		//if(debug) totalPeaks.dumpPeakData(smoFileName,H5::PredType::NATIVE_FLOAT);
 		if(debug) totalPeaks.dumpPeakData(smoFileName,NC_FLOAT);
 	}
 	else if(process == CENT2DIM)
