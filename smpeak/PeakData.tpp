@@ -184,8 +184,8 @@ void PeakData<T>::getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, ve
 	for(size_t i = 0;i < maxRT ; ++i)
 		if(mzbuff[i].size() > maxMZ) maxMZ = mzbuff[i].size();
 
-	mz.set(hsize_t(maxRT),hsize_t(maxMZ));
-	pk.set(hsize_t(maxRT),hsize_t(maxMZ));
+	mz.set(uli(maxRT),uli(maxMZ));
+	pk.set(uli(maxRT),uli(maxMZ));
 
 	for(size_t i = 0; i < maxRT; ++i)
 	{
@@ -222,8 +222,8 @@ void PeakData<T>::getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, v
 	for(size_t i = 0; i < maxRT; ++i)
 		if(mzbuff[i].size() > maxMZ) maxMZ = mzbuff[i].size();
 
-	mz.set(hsize_t(maxMZ),hsize_t(maxRT));
-	pk.set(hsize_t(maxMZ),hsize_t(maxRT));
+	mz.set(uli(maxMZ),uli(maxRT));
+	pk.set(uli(maxMZ),uli(maxRT));
 
 	for(size_t i = 0; i < maxRT; ++i)
 	{

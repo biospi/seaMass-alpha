@@ -43,11 +43,11 @@ template<typename T>
 void BasisPatch<T>::set(vector<T> &x, vector<int> &t)
 {
 	int k =4;
-	hsize_t r = t.size();
-	hsize_t c = x.size();
+	uli r = t.size();
+	uli c = x.size();
 	b.set(r,c);
-	for(hsize_t i = 0; i < r; ++i)
-		for(hsize_t j = 0; j < c; ++j)
+	for(uli i = 0; i < r; ++i)
+		for(uli j = 0; j < c; ++j)
 			b.m[i][j] = m(x[j],k,t[i]);
 }
 

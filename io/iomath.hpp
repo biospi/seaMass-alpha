@@ -27,7 +27,6 @@
 
 #include <vector>
 #include <cmath>
-#include <hdf5.h>
 
 using namespace std;
 
@@ -38,18 +37,18 @@ template<typename T = float>
 struct VecMat
 {
 	VecMat(void);
-	VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec);
-	VecMat(hsize_t _r, hsize_t _c);
+	VecMat(uli _r, uli _c, vector<T> &_vec);
+	VecMat(uli _r, uli _c);
 	vector<T> v; // Vector of Matrix data.
 	T** m; // Data Matrix
-	void set(hsize_t _r, hsize_t _c, vector<T> &_vec);
-	void set(hsize_t _r, hsize_t _c);
-	void getDims(hsize_t dims[]);
+	void set(uli _r, uli _c, vector<T> &_vec);
+	void set(uli _r, uli _c);
+	void getDims(uli dims[]);
 	void clear(void);
 private:
 	vector<T*> matIdx;
-	hsize_t row;
-	hsize_t col;
+	uli row;
+	uli col;
 };
 
 

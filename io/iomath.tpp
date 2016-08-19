@@ -29,52 +29,52 @@ template<typename T>
 VecMat<T>::VecMat(void):m(NULL),row(0),col(0){}
 
 template<typename T>
-VecMat<T>::VecMat(hsize_t _r, hsize_t _c, vector<T> &_vec):v(_vec),row(_r), col(_c)
+VecMat<T>::VecMat(uli _r, uli _c, vector<T> &_vec):v(_vec),row(_r), col(_c)
 {
 	matIdx.resize(row,0);
-	for(hsize_t i=0; i < row; ++i)
+	for(uli i=0; i < row; ++i)
 		matIdx[i]=&v[i*col];
 	m=&matIdx[0];
 }
 
 template<typename T>
-VecMat<T>::VecMat(hsize_t _r, hsize_t _c) : row(_r), col(_c)
+VecMat<T>::VecMat(uli _r, uli _c) : row(_r), col(_c)
 {
 	v.resize(row*col);
 	matIdx.resize(row,0);
-	for(hsize_t i=0; i < row; ++i)
+	for(uli i=0; i < row; ++i)
 		matIdx[i]=&v[i*col];
 	m=&matIdx[0];
 }
 
 template<typename T>
-void VecMat<T>::set(hsize_t _r, hsize_t _c, vector<T> &_vec)
+void VecMat<T>::set(uli _r, uli _c, vector<T> &_vec)
 {
 	this->clear();
 	row=_r;
 	col=_c;
 	v=_vec;
 	matIdx.resize(row,0);
-	for(hsize_t i=0; i < row; ++i)
+	for(uli i=0; i < row; ++i)
 		matIdx[i]=&v[i*col];
 	m=&matIdx[0];
 }
 
 template<typename T>
-void VecMat<T>::set(hsize_t _r, hsize_t _c)
+void VecMat<T>::set(uli _r, uli _c)
 {
 	this->clear();
 	row=_r;
 	col=_c;
 	v.resize(row*col,0);
 	matIdx.resize(row,0);
-	for(hsize_t i=0; i < row; ++i)
+	for(uli i=0; i < row; ++i)
 		matIdx[i]=&v[i*col];
 	m=&matIdx[0];
 }
 
 template<typename T>
-void VecMat<T>::getDims(hsize_t dims[])
+void VecMat<T>::getDims(uli dims[])
 {
 	dims[0]=row;
 	dims[1]=col;

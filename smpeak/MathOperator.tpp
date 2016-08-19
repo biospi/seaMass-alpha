@@ -26,7 +26,7 @@
 #define SMPEAK_MATHOPERATOR_TPP_
 
 template<class T>
-void OpUnitS<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
+void OpUnitS<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
 	double offset = double(_offset);
@@ -37,7 +37,7 @@ void OpUnitS<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double>
 }
 
 template<class T>
-void OpUnitS<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+void OpUnitS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
 	double offset = double(_offset);
@@ -66,7 +66,7 @@ void OpNablaHS<T>::apply(lli row, lli col, T** alpha)
 }
 
 template<class T>
-void OpNablaHS<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+void OpNablaHS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 0.5;
@@ -98,7 +98,7 @@ void OpNabla2HS<T>::apply(lli row, lli col, T** alpha)
 }
 
 template<class T>
-void OpNabla2HS<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+void OpNabla2HS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 1;
@@ -110,7 +110,7 @@ void OpNabla2HS<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<doub
 
 
 template<class T>
-void OpUnit<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
+void OpUnit<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
 	double offset = double(_offset);
@@ -122,7 +122,7 @@ void OpUnit<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> 
 }
 
 template<class T>
-void OpUnit<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+void OpUnit<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
 	double offset = double(_offset);
@@ -154,7 +154,7 @@ void OpNablaH<T>::apply(lli row, lli col, T** alpha)
 }
 
 template<class T>
-void OpNablaH<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+void OpNablaH<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 0.5;
@@ -189,7 +189,7 @@ void OpNabla2H<T>::apply(lli row, lli col, T** alpha)
 }
 
 template<class T>
-void OpNabla2H<T>::axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+void OpNabla2H<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz)
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 1;
@@ -221,7 +221,7 @@ void OpNablaV<T>::apply(lli row, lli col, T** alpha)
 }
 
 template<class T>
-void OpNablaV<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
+void OpNablaV<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
 	double offset = double(_offset) - 0.5;
@@ -256,7 +256,7 @@ void OpNabla2V<T>::apply(lli row, lli col, T** alpha)
 }
 
 template<class T>
-void OpNabla2V<T>::axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
+void OpNabla2V<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt)
 {
 	_rt.resize(dims);
 	double offset = double(_offset) - 1;

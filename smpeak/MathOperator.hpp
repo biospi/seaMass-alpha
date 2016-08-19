@@ -32,8 +32,8 @@ class OpUnitS
 {
 protected:
 	void apply(lli row, lli col, T** alpha){};
-	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
-	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	void axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt);
+	void axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz);
 	~OpUnitS(){};
 };
 
@@ -42,7 +42,7 @@ class OpNablaHS : public OpUnitS<T>
 {
 protected:
 	void apply(lli row, lli col, T** alpha);
-	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	void axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz);
 	~OpNablaHS(){};
 };
 
@@ -51,7 +51,7 @@ class OpNabla2HS : public OpUnitS<T>
 {
 protected:
 	void apply(lli row, lli col, T** alpha);
-	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	void axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz);
 	~OpNabla2HS(){};
 };
 
@@ -60,9 +60,9 @@ class OpInterface
 {
 protected:
 	void apply(lli row, lli col, T** alpha){};
-	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt)
+	void axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt)
 		{_rt.resize(dims,0.0);};
-	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz)
+	void axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz)
 		{_mz.resize(dims,0.0);};
 	~OpInterface(){};
 };
@@ -71,8 +71,8 @@ template<class T>
 class OpUnit: public OpInterface<T>
 {
 protected:
-	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
-	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	void axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt);
+	void axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz);
 	~OpUnit(){};
 };
 
@@ -81,7 +81,7 @@ class OpNablaH : public OpUnit<T>
 {
 protected:
 	void apply(lli row, lli col, T** alpha);
-	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	void axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz);
 	~OpNablaH(){};
 };
 
@@ -90,7 +90,7 @@ class OpNabla2H : public OpUnit<T>
 {
 protected:
 	void apply(lli row, lli col, T** alpha);
-	void axisMZ(hsize_t dims, int _offset, double mz_res, vector<double> &_mz);
+	void axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz);
 	~OpNabla2H(){};
 };
 
@@ -99,7 +99,7 @@ class OpNablaV : public OpUnit<T>
 {
 protected:
 	void apply(lli row, lli col, T** alpha);
-	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
+	void axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt);
 	~OpNablaV(){};
 };
 
@@ -108,7 +108,7 @@ class OpNabla2V : public OpUnit<T>
 {
 protected:
 	void apply(lli row, lli col, T** alpha);
-	void axisRT(hsize_t dims, int _offset, double rt_res, vector<double> &_rt);
+	void axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt);
 	~OpNabla2V(){};
 };
 

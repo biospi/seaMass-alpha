@@ -1,10 +1,3 @@
-set(_SAVED_HDF5_DIR ${HDF5_DIR})
-find_package(HDF5 1.8.5 NO_MODULE)
-if(NOT HDF5_FOUND)
- set(HDF5_DIR ${_SAVED_HDF5_DIR} CACHE PATH "HDF5 install dir" FORCE)
- find_package(HDF5 1.8.5 REQUIRED)
-endif()
-
 find_package(netCDF NO_MODULE)
 if(NOT netCDF_FOUND)
     find_package(OldNetCDF REQUIRED)

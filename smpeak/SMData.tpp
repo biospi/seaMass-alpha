@@ -27,7 +27,7 @@
 
 
 template<template<class Operator> class MathOp, typename T, typename R>
-SMData1D<MathOp,T,R>::SMData1D(hsize_t dims[], int offset[],
+SMData1D<MathOp,T,R>::SMData1D(uli dims[], int offset[],
 		double mz_res, R rt, vector<T> &vec)
 {
 	DataAxis<T,R>::alpha = new VecMat<T>(dims[0],dims[1],vec);
@@ -41,13 +41,13 @@ template<template<class Operator> class MathOp, typename T,typename R>
 SMData2D<MathOp,T,R>::SMData2D(vector<R> &_rt, vector<double> &_mz,
 		vector<T> &vec) : DataAxis<T,R>::rt(_rt),DataAxis<T,R>::mz(_mz)
 {
-	hsize_t row = hsize_t(_rt.size());
-	hsize_t col = hsize_t(_mz.size());
+	uli row = uli(_rt.size());
+	uli col = uli(_mz.size());
 	DataAxis<T,R>::alpha = new VecMat<T>(row,col,vec);
 }
 
 template<template<class Operator> class MathOp, typename T,typename R>
-SMData2D<MathOp,T,R>::SMData2D(hsize_t dims[], int offset[],
+SMData2D<MathOp,T,R>::SMData2D(uli dims[], int offset[],
 		double mz_res, double rt_res, vector<T> &vec)
 {
 	DataAxis<T,R>::alpha = new VecMat<T>(dims[0],dims[1],vec);

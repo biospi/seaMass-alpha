@@ -88,7 +88,7 @@ void MSmzMLb3::extractData(void)
 	xml::xpath_node_set tools;
 	xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
 
-	hsize_t ns;
+	uli ns;
 	istringstream(docmzML.child("mzML").child("run").child("spectrumList").attribute("count").value())>>ns;
 
 	// query necessary metadata
@@ -246,7 +246,7 @@ void MSmzMLb::extractData(void)
 	xml::xpath_node_set tools;
 	xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
 
-	hsize_t ns;
+	uli ns;
 	istringstream(docmzML.child("mzML").child("run").child("spectrumList").attribute("count").value())>>ns;
 
 	// query necessary metadata
