@@ -25,6 +25,10 @@
 
 #include "core.hpp"
 
+
+using namespace std;
+
+
 double CatmullRomInterpolate(
 	double y0, double y1,
 	double y2, double y3,
@@ -115,86 +119,3 @@ void merge_bins(vector< vector<fp> >& mzs,
         intensities[j].resize(k-1);
     }
 }
-
-
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-namespace bspline {
-
-double
-m(double x, int k, int i, vector<fp>& ks)
-{
-    if (k == 1)
-    {
-        if (ks[i] <= x && x < ks[i+1])
-        {
-            return 1.0 / (ks[i+1] - ks[i]);
-        }
-        else
-        {
-            return 0.0;
-        }
-    }
-    else
-    {
-        if (ks[i+k]-ks[i] == 0.0)
-        {
-            return 0.0;
-        }
-        else
-        {
-            return (k*((x-ks[i]) * m(x,k-1,i,ks) +
-                       (ks[i+k]-x) * m(x,k-1,i+1,ks)))/((k-1)*(ks[i+k]-ks[i]));
-        }
-    }
-}
-
-
-double
-m(double x, int k, int i)
-{
-    if (k == 1)
-    {
-        if (i <= x && x < i+1)
-        {
-            return 1.0;
-        }
-        else
-        {
-            return 0.0;
-        }
-    }
-    else
-    {
-        return (k*((x-i) * m(x,k-1,i) +
-                   ((i+k)-x) * m(x,k-1,i+1)))/((k-1)*k);
-    }
-}
-
-
-double
-im(double x, int k)
-{
-    double v = 0.0;
-    for (int i = 0; i < k+1; ++i)
-    {
-        v += m(x,k+1,i);
-    }
-    return v;
-}
- 
-    
-int
-factorial(int n)
-{
-    return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
-}
-
-}
-
-
-

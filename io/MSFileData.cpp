@@ -366,22 +366,6 @@ void MSmzMLb::extractData(void)
 		spectraMetaData[i].start_time = start_times[i];
 		spectraMetaData[i].count = specSize[i];
     }
-
-    /*
-	// determine start_scan_time order of spectra
-	sort(spectraMetaData.begin(), spectraMetaData.end(), scan_start_time_order);
-	for (size_t i = 0; i < spectraMetaData.size(); i++)
-	{
-		spectraMetaData[i].scan_start_time_index = i;
-	}
-
-	scan_start_times.resize(ns);
-	for (size_t i = 0; i < spectraMetaData.size(); i++)
-	{
-		scan_start_times[i] = spectraMetaData[i].scan_start_time;
-	}
-	sort(spectraMetaData.begin(), spectraMetaData.end(), seamass_order);
-	*/
 }
 
 vector<spectrumMetaData>& MSmzMLb::getSpectraMetaData()
@@ -465,15 +449,18 @@ mzMLbInputFile::mzMLbInputFile(string in_file) :
 
 	// determine start_scan_time order of spectra
 	// set finish time as start time of next spectrum, must discard last spectrum as no finish time
-	sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::scan_start_time_order);
-	for (size_t i = 0; i < spectraMetaData.size() - 1; i++)
+	if (spectraMetaData.size() > 1)
 	{
-		spectraMetaData[i].finish_time = spectraMetaData[i + 1].start_time;
-	}
-	spectraMetaData.resize(spectraMetaData.size() - 1);
+		sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::scan_start_time_order);
+		for (size_t i = 0; i < spectraMetaData.size() - 1; i++)
+		{
+			spectraMetaData[i].finish_time = spectraMetaData[i + 1].start_time;
+		}
+		spectraMetaData.resize(spectraMetaData.size() - 1);
 
-	// finally sort into contiguous blocks for seaMass
-	sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::seamass_order);
+		// finally sort into contiguous blocks for seaMass
+		sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::seamass_order);
+	}
 }
 
 
@@ -511,17 +498,21 @@ bool mzMLbInputFile::next(seaMass::Input& out)
 	}
 
 	out.bin_counts.resize(0);
-	out.bin_locations.resize(0);
-	out.spectrum_index.resize(intensities.size());
-	out.start_times.resize(intensities.size());
-	out.finish_times.resize(intensities.size());
-	// initialise exposures to default of 1 (unit exposure)
-	out.exposures.resize(intensities.size(), 1.0);
+	out.bin_edges.resize(0);
+	out.spectrum_index.resize(intensities.size() > 1 ? intensities.size() + 1 : 0);
+	out.start_times.resize(intensities.size() > 1 ? intensities.size() : 0);
+	out.finish_times.resize(intensities.size() > 1 ? intensities.size() : 0);
+	out.exposures.resize(intensities.size(), 1.0); // initialise exposures to default of 1 (unit exposure)
 	size_t bck = 0;
 	size_t blk = 0;
-	for (size_t j = 0; j < out.spectrum_index.size(); j++)
+	for (size_t j = 0; j < intensities.size(); j++)
 	{
-		out.spectrum_index[j] = out.bin_counts.size();
+		if (intensities.size() > 1)
+		{
+			out.spectrum_index[j] = out.bin_counts.size();
+			out.start_times[j] = spectraMetaData[j].start_time;
+			out.finish_times[j] = spectraMetaData[j].finish_time;
+		}
 
 		// This modifies the raw data for some limitations of the mzML spec and makes
 		// sure the intensities are treated as binned between m/z datapoints.
@@ -542,24 +533,25 @@ bool mzMLbInputFile::next(seaMass::Input& out)
 
 				// we drop the first and last m/z datapoint as we don't know both their bin edges
 				out.bin_counts.resize(out.bin_counts.size() + intensities[j].size() - 2);
-				out.bin_locations.resize(out.bin_locations.size() + mzs[j].size() - 1);
+				out.bin_edges.resize(out.bin_edges.size() + mzs[j].size() - 1);
 				for (size_t k = 1; k < mzs[j].size(); k++)
 				{
 					if (intensities[j][k] > 0) minimum = minimum < intensities[j][k] ? minimum : intensities[j][k];
 
 					// linear interpolation of mz extent (probably should be cubic)
 					if (k < mzs[j].size() - 1) out.bin_counts[bck++] = intensities[j][k];
-					out.bin_locations[blk++] = 0.5 * (mzs[j][k - 1] + mzs[j][k]);
+					out.bin_edges[blk++] = 0.5 * (mzs[j][k - 1] + mzs[j][k]);
 				}
 
-				out.exposures[j] = 1.0 / minimum;
-				for (size_t i = 0; i < intensities[j].size(); i++)
+				// check to see if we can estimate the exposure i.e. is the minimum reasonable?
+				if (minimum >= 1.0 && minimum <= 1000.0)
 				{
-					intensities[j][i] *= out.exposures[j];
-					//fp baseline = (mzs[j][i+1] - mzs[j][i]) * 3.0/8.0 * 272.0;//68.0;//136.0;
-					//intensities[j][i] = intensities[j][i] >= baseline ? intensities[j][i] : baseline;
-
-					// if (intensities[j][i] == 0.0) intensities[j][i] = 3.0/8.0;
+					// correct bin_counts with derived exposures
+					for (size_t k = bck - (intensities[j].size() - 2); k < bck; k++)
+					{
+						out.bin_counts[k] /= minimum;
+					}
+					out.exposures[j] = 1.0 / minimum;
 				}
 			}
 		}
@@ -570,11 +562,12 @@ bool mzMLbInputFile::next(seaMass::Input& out)
 				for (size_t k = 0; k < mzs[j].size(); k++)
 				{
 					if (k > 0) out.bin_counts[bck++] = (mzs[j][i] - mzs[j][i - 1]) * 0.5 * (intensities[j][i] + intensities[j][i - 1]);
-					out.bin_locations[blk++] = mzs[j][k];
+					out.bin_edges[blk++] = mzs[j][k];
 				}
 			}
 		}
 	}
+	if (intensities.size() > 1) out.spectrum_index.back() = out.bin_counts.size();
 
 	return true;
 }

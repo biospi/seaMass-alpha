@@ -28,39 +28,15 @@
 
 
 #include <vector>
-#include <iostream>
-#include <iomanip>
-#include <sstream>
-#include <math.h>
-#include <float.h>
-#include <cstdlib>
-#include <omp.h>
 #include <mkl.h>
-
-#include "seaMass.hpp"
-
-using namespace std;
 
 typedef float fp; // fp is the selected floating point precision
 typedef MKL_INT ii; // ii is the selected indexing integer size
 typedef long long li;
 
 
-void remove_zeros(vector< vector<fp> >& mzs, vector< vector<fp> >& intensities);
-
-void merge_bins(vector< vector<fp> >& mzs,
-	vector< vector<fp> >& intensities,
-				double width);
-
-
-
-namespace bspline
-{
-    double m(double x, int k, int i, vector<fp>& ks);
-    double m(double x, int k, int i);
-    double im(double x, int k);
-    int factorial(int n);
-}
+void remove_zeros(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities);
+void merge_bins(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities, double width);
 
 
 #endif // _SEAMASSRESTORATION_AUX_HPP_

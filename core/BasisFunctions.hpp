@@ -28,7 +28,6 @@
 
 
 #include "core.hpp"
-#include "seaMass.hpp"
 
 
 struct CoeffsMetadata
@@ -97,28 +96,18 @@ public:
 class BasisResampleMZ : public Basis
 {
 protected:
-	const std::vector<li>& is;
+	std::vector<li> is;
     
     // CSR sparse A basis matrices and their transposes
 	std::vector<ii> nnz;
 	std::vector<ii> m;
 	std::vector< std::vector<fp> > a;
 	std::vector< std::vector<ii> > ia, ja;
-    //vector< vector<fp> > at;
-    //vector< vector<ii> > iat, jat;
 
 	double mz_min, mz_max;
     
 public:
-	BasisResampleMZ(std::vector<Basis*>& bases,
-		const std::vector< std::vector<double> >& mzs,
-		const std::vector<fp>& gs,
-		const std::vector<li>& is,
-		const std::vector<ii>& js,
-        ii rc,
-        ii order = 3,
-         bool transient = false);
-    
+	BasisResampleMZ(std::vector<Basis*>& bases, const std::vector<fp>& bin_counts, const std::vector<li>& spectrum_index, const std::vector<double>& bin_edges, short resolution, ii order = 3, bool transient = false);
     ~BasisResampleMZ();
     
 	void synthesis(std::vector<fp>& fs, const std::vector<fp>& cs, bool accum = true);
@@ -142,15 +131,7 @@ protected:
 	double rt_min, rt_max;
     
 public:
-	BasisResampleRT(std::vector<Basis*>& bases,
-                    Basis* parent,
-					const std::vector<double>& rts,
-					const std::vector<ii>& js,
-					const std::vector<double>& exposures,
-                    ii rc,
-                    ii order = 3,
-                    bool transient = false);
-    
+	BasisResampleRT(std::vector<Basis*>& bases, Basis* parent, const std::vector<double>& start_times, const std::vector<double>& finish_times, const std::vector<fp>& exposures, short resolution, ii order = 3, bool transient = false);    
     ~BasisResampleRT();
     
 	void synthesis(std::vector<fp>& fs, const std::vector<fp>& cs, bool accum = true);
@@ -173,12 +154,7 @@ protected:
     ii dim;
     
 public:
-	BasisDyadicScale(std::vector<Basis*>& bases,
-                     Basis* parent,
-                     ii dim,
-                     ii order = 3,
-                     bool transient = false);
-    
+	BasisDyadicScale(std::vector<Basis*>& bases, Basis* parent, ii dim, ii order = 3, bool transient = false);    
     ~BasisDyadicScale();
     
 	void synthesis(std::vector<fp>& fs, const std::vector<fp>& cs, bool accum = true);

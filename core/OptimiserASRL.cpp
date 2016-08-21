@@ -34,130 +34,12 @@ using namespace std;
 
 
 OptimiserASRL::
-OptimiserASRL(const vector<Basis*>& _bases,
-              vector<fp>& _gs,
-              ii _accell) :
+OptimiserASRL(const vector<Basis*>& _bases, vector<fp>& _gs, ii _accell) :
     bases(_bases),
     gs(_gs),
     accell(_accell),
     iteration(0)
 {
-    //cout << "Entering Optimizer init" << endl;
-    // pre-compute weights
-    wcs.resize(bases.size());
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        //cout << j << endl;
-        wcs[j].resize(bases[j]->get_cm().size());
-        if (j == 0)
-        {
-            vector<fp> ts(gs.size(), 1.0);
-            bases[j]->analysis(wcs[0], ts);
-			//for (ii i = 0; i < wcs[0].size(); i++) cout << wcs[0][i] << endl;
-        }
-        else
-        {
-            bases[j]->analysis(wcs[j], wcs[bases[j]->get_parent()->get_index()]);
-        }
-    }
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        //if (bases[j]->is_transient()) vector<fp>().swap(wcs[j]);
-    }
-    //cout << "b1" << endl;
-    
-    // pre-compute l2norm
-    l2.resize(bases.size());
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        l2[j].resize(bases[j]->get_cm().size());
-        if (j == 0)
-        {
-            vector<fp> ts(gs.size(), 1.0);
-            bases[j]->l2norm(l2[0], ts);
-        }
-        else
-        {
-            bases[j]->l2norm(l2[j], l2[bases[j]->get_parent()->get_index()]);
-        }
-    }
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        if (bases[j]->is_transient())
-        {
-            vector<fp>().swap(l2[j]);
-        }
-        else
-        {   // sqrt
-            // not 64 bit compliant atm // vsSqrt(bases[j]->get_cm().size(), &(l2[j][0]), &(l2[j][0]));
-            for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
-             {
-                 l2[j][i] = l2[j][i] == 0.0 ? 1.0 : sqrt(l2[j][i]);
-                 //l2[j][i] = (l2[j][i] >= 0.001) ? sqrt(l2[j][i]) : sqrt(0.001);
-             }
-        }
-    }
-    //cout << "b2" << endl;
-    
-    // starting cs from ng
-    cs.resize(bases.size());
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        cs[j].resize(bases[j]->get_cm().size());
-        if (j == 0)
-        {
-            bases[j]->analysis(cs[0], gs);
-        }
-        else
-        {
-            bases[j]->analysis(cs[j], cs[bases[j]->get_parent()->get_index()]);
-        }
-    }
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        if (bases[j]->is_transient()) vector<fp>().swap(cs[j]);
-    }
-    // any bases that are too small must be deleted to avoid numerical problems causing speckles in the output
-    for (ii j = 0; j < (ii) bases.size(); j++)
-    {
-        if (!bases[j]->is_transient())
-        for (li i = 0; i < (li) bases[j]->get_cm().size(); i++)
-        {
-           //if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
-        }
-    }
-    
-    // temporaries required for acceleration
-    if (accell >= 1)
-    {
-        c0s.resize(bases.size());
-        u0s.resize(bases.size());
-        for (ii j = 0; j < (ii) bases.size(); j++)
-        if (!bases[j]->is_transient())
-        {
-            c0s[j].resize(bases[j]->get_cm().size());
-            u0s[j].resize(bases[j]->get_cm().size());
-        }
-    }
-    if (accell >= 2)
-    {
-        q0s.resize(bases.size());
-        for (ii j = 0; j < (ii) bases.size(); j++)
-        if (!bases[j]->is_transient())
-        {
-            q0s[j].resize(bases[j]->get_cm().size());
-        }
-    }
-    
-    // how much memory are we using?
-    li size = 0;
-    for (ii j = 0; j < cs.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
-    for (ii j = 0; j < wcs.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
-    for (ii j = 0; j < l2.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
-    for (ii j = 0; j < c0s.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
-    for (ii j = 0; j < u0s.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
-    for (ii j = 0; j < q0s.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
-    cout << endl << "Vector Extrapolated Sparse Richardson-Lucy mem=" << fixed << setprecision(2) << (size*sizeof(fp) + sizeof(this))/(1024.0*1024.0) << "Mb" << endl;
 }
 
 
@@ -171,6 +53,126 @@ double
 OptimiserASRL::
 step(ii iteration, fp lambda)
 {
+	if (iteration == 0)
+	{
+		//cout << "Entering Optimizer init" << endl;
+		// pre-compute weights
+		wcs.resize(bases.size());
+		for (ii j = 0; j < (ii)bases.size(); j++)
+		{
+			//cout << j << endl;
+			wcs[j].resize(bases[j]->get_cm().size());
+			if (j == 0)
+			{
+				vector<fp> ts(gs.size(), 1.0);
+				bases[j]->analysis(wcs[0], ts);
+				//for (ii i = 0; i < wcs[0].size(); i++) cout << wcs[0][i] << endl;
+			}
+			else
+			{
+				bases[j]->analysis(wcs[j], wcs[bases[j]->get_parent()->get_index()]);
+			}
+		}
+		for (ii j = 0; j < (ii)bases.size(); j++)
+		{
+			//if (bases[j]->is_transient()) vector<fp>().swap(wcs[j]);
+		}
+		//cout << "b1" << endl;
+
+		// pre-compute l2norm
+		l2.resize(bases.size());
+		for (ii j = 0; j < (ii)bases.size(); j++)
+		{
+			l2[j].resize(bases[j]->get_cm().size());
+			if (j == 0)
+			{
+				vector<fp> ts(gs.size(), 1.0);
+				bases[j]->l2norm(l2[0], ts);
+			}
+			else
+			{
+				bases[j]->l2norm(l2[j], l2[bases[j]->get_parent()->get_index()]);
+			}
+		}
+		for (ii j = 0; j < (ii)bases.size(); j++)
+		{
+			if (bases[j]->is_transient())
+			{
+				vector<fp>().swap(l2[j]);
+			}
+			else
+			{   // sqrt
+				// not 64 bit compliant atm // vsSqrt(bases[j]->get_cm().size(), &(l2[j][0]), &(l2[j][0]));
+				for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
+				{
+					l2[j][i] = l2[j][i] == 0.0 ? 1.0 : sqrt(l2[j][i]);
+					//l2[j][i] = (l2[j][i] >= 0.001) ? sqrt(l2[j][i]) : sqrt(0.001);
+				}
+			}
+		}
+		//cout << "b2" << endl;
+
+		// starting cs from ng
+		cs.resize(bases.size());
+		for (ii j = 0; j < (ii)bases.size(); j++)
+		{
+			cs[j].resize(bases[j]->get_cm().size());
+			if (j == 0)
+			{
+				bases[j]->analysis(cs[0], gs);
+			}
+			else
+			{
+				bases[j]->analysis(cs[j], cs[bases[j]->get_parent()->get_index()]);
+			}
+		}
+		for (ii j = 0; j < (ii)bases.size(); j++)
+		{
+			if (bases[j]->is_transient()) vector<fp>().swap(cs[j]);
+		}
+		// any bases that are too small must be deleted to avoid numerical problems causing speckles in the output
+		for (ii j = 0; j < (ii)bases.size(); j++)
+		{
+			if (!bases[j]->is_transient())
+				for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
+				{
+					//if (wcs[j][i] < 0.001) cs[j][i] = 0.0;
+				}
+		}
+
+		// temporaries required for acceleration
+		if (accell >= 1)
+		{
+			c0s.resize(bases.size());
+			u0s.resize(bases.size());
+			for (ii j = 0; j < (ii)bases.size(); j++)
+				if (!bases[j]->is_transient())
+				{
+					c0s[j].resize(bases[j]->get_cm().size());
+					u0s[j].resize(bases[j]->get_cm().size());
+				}
+		}
+		if (accell >= 2)
+		{
+			q0s.resize(bases.size());
+			for (ii j = 0; j < (ii)bases.size(); j++)
+				if (!bases[j]->is_transient())
+				{
+					q0s[j].resize(bases[j]->get_cm().size());
+				}
+		}
+
+		// how much memory are we using?
+		li size = 0;
+		for (ii j = 0; j < cs.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
+		for (ii j = 0; j < wcs.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
+		for (ii j = 0; j < l2.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
+		for (ii j = 0; j < c0s.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
+		for (ii j = 0; j < u0s.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
+		for (ii j = 0; j < q0s.size(); j++) if (!bases[j]->is_transient()) size += bases[j]->get_cm().size();
+		cout << endl << "Vector Extrapolated Sparse Richardson-Lucy mem=" << fixed << setprecision(2) << (size*sizeof(fp) + sizeof(this)) / (1024.0*1024.0) << "Mb" << endl;
+	}
+
 	// SYNTHESIS
 	double synthesis_start = omp_get_wtime();
 	vector<fp> fs;
@@ -353,7 +355,7 @@ step(ii iteration, fp lambda)
 
 void
 OptimiserASRL::
-synthesis(vector<fp>& fs, const string& datafilename, ii cs_basis) const
+synthesis(vector<fp>& fs, ii return_cs) const
 {
 	// synthesis except root
 	vector< vector<fp> > ts(bases.size());
@@ -387,15 +389,13 @@ synthesis(vector<fp>& fs, const string& datafilename, ii cs_basis) const
 		}
 		bases[j]->synthesis(ts[pj], ts[j]);
 
-		/*if (file && j == cs_basis)
+		if (return_cs == j) // return with B-spline control points
 		{
-			// write 2D B-spline coefficients
-			ostringstream oss;
-			oss << datafilename << "cs";
-			vector<fp> vs(ts[j].size());
-			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) vs[i] = ts[j][i] * wcs[j][i];
-			file->write_cs(oss.str(), bases[j]->get_cm(), vs);
-		}*/
+			cout << "returning cs " << j << endl;
+			fs.resize(ts[j].size());
+			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) fs[i] = ts[j][i] * wcs[j][i];
+			return;
+		}
 
 		vector<fp>().swap(ts[j]);
 	}
@@ -416,22 +416,12 @@ synthesis(vector<fp>& fs, const string& datafilename, ii cs_basis) const
 	fs.assign(gs.size(), 0.0);
 	bases[0]->synthesis(fs, ts[0]);
 
-	/*if (file)
+	if (return_cs == 0) // return with B-spline control points
 	{
-		// write 1D B-spline coefficients
-		ostringstream oss;
-		oss << datafilename << "fcs";
-		vector<fp> vs(ts[0].size());
-		for (li i = 0; i < (li)bases[0]->get_cm().size(); i++) vs[i] = ts[0][i] * wcs[0][i];
-		file->write_cs(oss.str(), bases[0]->get_cm(), vs);
-
-		// write fs
-		ostringstream oss2;
-		oss2 << datafilename;
-		file->write_cdata(oss2.str(), fs, "fs");
-	}*/
-
-	vector<fp>().swap(ts[0]);
+		fs.resize(ts[0].size());
+		for (li i = 0; i < (li)bases[0]->get_cm().size(); i++) fs[i] = ts[0][i] * wcs[0][i];
+		return;
+	}
 }
 
 

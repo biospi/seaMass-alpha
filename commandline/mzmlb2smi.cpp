@@ -30,7 +30,6 @@
 
 #include "../io/HDF5Writer.hpp"
 #include "../io/MSFileData.hpp"
-#include "../core/seaMass.hpp"
 
 
 using namespace std;
@@ -39,47 +38,20 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
-	seaMass::notice();
-
 	string in_file;
-	vector<ii> scales(2);
-	ii _shrinkage;
-	ii _tolerance;
-	ii threads;
 
 	// *******************************************************************
 
 	po::options_description general("Usage\n"
 			"-----\n"
-			"seamass [OPTIONS...] [MZMLB]\n"
-			"seamass <-f in_file> <-m mz_scale> <-r st_scale> <-s shrinkage> <-l tol> <-t threads> <-o out_type>\n"
-			"seamass -m 1 -r 4 -s -4 -l -9 -t 4 -o 0");
+			"mzmlb2smi [OPTIONS...] [MZMLB]\n"
+			"mzmlb2smi <-f in_file>\n");
 
 	general.add_options()
 		("help,h", "Produce help message")
 		("file,f", po::value<string>(&in_file),
 			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
-			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
-		("mz_scale,m",po::value<ii>(&scales[0])->default_value(numeric_limits<short>::max()),
-			"m/z resolution given as: \"b-splines per Th = 2^mz_scales * 60 / 1.0033548378\" "
-			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
-			"default: auto")
-		("st_scale,r", po::value<ii>(&scales[1])->default_value(numeric_limits<short>::max()),
-			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
-			"guidelines: around 4, "
-			"default: auto")
-		("shrinkage,s",po::value<ii>(&_shrinkage)->default_value(-4),""
-			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
-			"guidelines: around -4, "
-			"default: -4")
-		("tolerance,l",po::value<ii>(&_tolerance)->default_value(-9),
-			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
-			"guidelines: around -9, "
-			"default: -9")
-		("threads,t",po::value<ii>(&threads)->default_value(4),
-			"Number of OpenMP threads to use, "
-			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
-			"default: 4");
+			"guidelines: Use pwiz-seamass to convert from mzML or vendor format");
 
 	po::options_description desc;
 	desc.add(general);
@@ -98,14 +70,7 @@ int main(int argc, char *argv[])
 			cout<<desc<<endl;
 			return 0;
 		}
-			if(vm.count("threads"))
-		{
-			threads=vm["threads"].as<int>();
-		}
-		else
-		{
-			threads=omp_get_max_threads();
-		}
+
 		if(vm.count("file"))
 		{
 			cout<<"Opening file: "<<vm["file"].as<string>()<<endl;
@@ -128,7 +93,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	catch(...)
-		{
+	{
 		cerr<<"Exception of unknown type!\n";
 	}
 
@@ -136,32 +101,10 @@ int main(int argc, char *argv[])
 	seaMass::Input input;
 	for (int i = 0; msFile.next(input); i++)
 	{
-		seaMass sm(input, scales);
-		do
-		{
-			// if debug save 
-		}
-		while (sm.step(pow(2.0, _shrinkage), pow(2.0, _tolerance)));
-
 		ostringstream oss;
-		oss << boost::filesystem::change_extension(in_file, "").string() << "." << i << ".smv";
-		HDF5Writer smv(oss.str());
-
-		seaMass::Output output;
-		sm.get_output(output);
-		smv.write_output(output);
-
-		vector<fp> residuals;
-		sm.get_output_residuals(residuals);
-		smv.write("residuals", residuals);
-
-		ostringstream oss2;
-		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << i << ".smo";
-		HDF5Writer smo(oss2.str());
-
-		seaMass::ControlPoints control_points;
-		sm.get_output_control_points(control_points);
-		smo.write_output_control_points(control_points);
+		oss << boost::filesystem::change_extension(in_file, "").string() << "." << i << ".smi";
+		HDF5Writer smi(oss.str());
+		smi.write_input(input);
 	}
 
 	return 0;

@@ -28,16 +28,13 @@
 
 
 #include <vector>
-#include <mkl.h>
-
-
-typedef float fp; // fp is the selected floating point precision
-typedef MKL_INT ii; // ii is the selected indexing integer size
-typedef long long li;
+#include "core.hpp"
+#include "BasisFunctions.hpp"
+#include "OptimiserASRL.hpp"
 
 
 /**
-* seaMass fitting of a 1-d curve or 2-dimensional surface to the input spectr(um|a).
+* seaMass fitting of a 1-d curve or multi-dimensional surface to the input spectr(um|a).
 */
 class seaMass
 {
@@ -46,37 +43,48 @@ public:
 
 	struct Input {
 		std::vector<fp> bin_counts;
-		std::vector<double> bin_locations;
 		std::vector<li> spectrum_index;
+		std::vector<double> bin_edges;
 		std::vector<double> start_times;
 		std::vector<double> finish_times;
 		std::vector<fp> exposures;
 	};
 
 	struct Output {
-		std::vector<fp> coeffs;
-		std::vector<short> levels;
-		std::vector<long> offsets;
+		std::vector<fp> weights;
+		std::vector< std::vector<ii> > scales;
+		std::vector< std::vector<li> > offsets;
 	};
 
-	/**
-	* Initialise seaMass fitting of a 1-d curve or 2-dimensional surface to the input spectr(um|a).
-	* param mzs m/z values for the input spectra, where each value denotes the start m/z of the respective intensity bin; may be modified to save momo
-	* param intensities ion counts for the input spectra, where each vector must have one less value than the respective vector in mzs (unless both are empty).
-	* param stan_times Start scan times for the input spectra, must contain one more item than that of mzs and intensities (denoting the end scan time of the last spectrum)
-	* param mz_res
-	* param st_res
-	* param shrinkage
-	* param tolerance
-	*/
-	seaMass(Input& input, std::vector<int>& resolutions, double shrinkage, double tolerance);
+	struct ControlPoints {
+		std::vector<fp> coeffs;
+		std::vector<ii> size;
+		std::vector<ii> scale;
+		std::vector<ii> offset;
+	};
 
-	virtual bool next();
+	struct ControlPoints1D {
+		std::vector< std::vector<fp> > coeffs;
+		ii scale;
+		std::vector<ii> offsets;
+	};
 
-	void get_output(Output& output);
+	seaMass(Input& input, const std::vector<ii>& scales);
+	seaMass(Input& input, const Output& seed);
+
+	virtual bool step(double shrinkage, double tolerance);
+	void get_output(Output& output) const;
+
+	void get_output_residuals(std::vector<fp>& residuals) const;
+	void get_output_control_points(ControlPoints& control_points) const;
+	void get_output_control_points_1d(ControlPoints1D& control_points) const;
 
 private:
-	void create_gs(std::vector<fp>& gs, std::vector<li>& is, std::vector<ii>& js, const std::vector< std::vector<double> >& bin_locations);
+	void init(Input& input, const std::vector<ii>& scales);
+
+	short dimensions;
+	std::vector<Basis*> bases;
+	OptimiserASRL* optimiser;
 };
 
 

@@ -48,20 +48,19 @@ protected:
     ii iteration;
 
 public:    
-	OptimiserASRL(const std::vector<Basis*>& _bases,
-		          std::vector<fp>& gs,
-                  ii accell = 2);
+	OptimiserASRL(const std::vector<Basis*>& _bases, std::vector<fp>& gs, ii accell = 2);
 	~OptimiserASRL();
     
 	double step(ii iteration, fp lambda);
 
-	void synthesis(std::vector<fp>& fs, const std::string& datafilename = "", ii cs_basis = 0) const;
+	void synthesis(std::vector<fp>& fs, ii return_cs = -1) const;
 	void error(std::vector<fp>& fs) const;
 	void analysis(std::vector< std::vector<fp> >& dcs, const std::vector<fp>& dfs) const;
 	void shrinkage(std::vector< std::vector<fp> >& dcs, fp lambda);
 
     void threshold(double threshold);
 	std::vector< std::vector<fp> >& get_cs() { return cs; }
+	std::vector<fp>& get_gs() { return gs; }
 
 	/*fp compute_norm_max_counts(ii n_core_bases = 0);
     

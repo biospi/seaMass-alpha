@@ -18,10 +18,12 @@ set(HEADER_FILES
 	MSFileData.hpp
     NetCDFile.hpp
 	peakcore.hpp
+	HDF5Writer.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
     NetCDFile.cpp
+	HDF5Writer.cpp
 )
 set(TEMPLATE_FILES
 	NetCDFile.tpp

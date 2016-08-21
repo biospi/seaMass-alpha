@@ -27,58 +27,38 @@
 #define _SEAMASSRESTORATION_SMOWRITER_HPP_
 
 
-#include "core.hpp"
 #include <hdf5.h>
-#include <boost/filesystem.hpp>
+#include "../core/BasisFunctions.hpp"
+#include "../core/seaMass.hpp"
 
 
-class SMOWriter
+class HDF5Writer
 {
 protected:
-    string filename;
+    std::string filename;
     int file;
     template<typename T>
-    void write_h5(const string& _objectname,
-				  const vector<T>& _cdata,
-				  const string& _setname,
-				  hid_t& _data_type_id) const;
+    void write(const std::string& _objectname, const std::vector<T>& _cdata, hid_t& _data_type_id) const;
     
 public:
-	SMOWriter(const string& filename);
-	~SMOWriter();
+	HDF5Writer(const std::string& filename);
+	~HDF5Writer();
     
-    void write_cs(const string& objectname,
-                  const CoeffsMetadata& cm,
-                  const vector<fp>& cs) const;
-    
-    void write_fs(const string& objectname,
-                  const vector<fp>& fs,
-                  const vector<li>& is,
-                  const vector<ii>& js) const;
-    void write_cdata(const string& objectname,
-				  const vector<float>& cdata,
-				  const string& setname) const;
-	void write_cdata(const string& objectname,
-				  const vector<double>& cdata,
-		          const string& setname) const;
-	void write_cdata(const string& objectname,
-				  const vector<li>& cdata,
-				  const string& setname) const;
-	void write_cdata(const string& objectname,
-		          const vector<ii>& cdata,
-		          const string& setname) const;
-	void write_cdata(const string& objectname,
-				  const vector<vector<double> >& mzs,
-				  const string& setname) const;
- };
+	void write_input(const seaMass::Input& input) const;
+	void write_output(const seaMass::Output& output) const;
+	void write_output_control_points(const seaMass::ControlPoints& control_points) const;
+   
+    void write(const std::string& objectname, const std::vector<float>& cdata) const;
+	void write(const std::string& objectname, const std::vector<double>& cdata) const;
+	void write(const std::string& objectname, const std::vector<long long>& cdata) const;
+	void write(const std::string& objectname, const std::vector<long>& cdata) const;
+};
+
 
 template<typename T>
 void
-SMOWriter::
-write_h5(const string& _objectname,
-		const vector<T>& _cdata,
-		const string& _setname,
-		hid_t& _data_type_id) const
+HDF5Writer::
+write(const std::string& _objectname, const std::vector<T>& _cdata, hid_t& _data_type_id) const
 {
     hsize_t n = _cdata.size();
 
@@ -96,8 +76,7 @@ write_h5(const string& _objectname,
 
     hsize_t dims[1] = {n};
     hid_t fspace = H5Screate_simple(1, dims, dims);
-    ostringstream oss; oss << _objectname << "/" << _setname;
-    hid_t dataset = H5Dcreate(file, oss.str().c_str(), _data_type_id, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
+    hid_t dataset = H5Dcreate(file, _objectname.c_str(), _data_type_id, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
 
     // write
     hsize_t mdims[1] = {n};

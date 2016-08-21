@@ -24,6 +24,7 @@
 
 
 #include "BasisFunctions.hpp"
+#include "BSpline.hpp"
 #include <iostream>
 #include <limits>
 #include <iomanip>
@@ -159,17 +160,18 @@ error(vector<fp>& fs, const vector<fp>& gs)
 
 
 BasisResampleMZ::
-BasisResampleMZ(vector<Basis*>& bases,
-                const vector< vector<double> >& mzs,
-                const vector<fp>& gs,
-                const vector<li>& _is,
-                const vector<ii>& js,
-                ii rci,
-                ii order,
-                bool transient) :
-    Basis(bases, 2, 0, transient),
-    is(_is)
+BasisResampleMZ(std::vector<Basis*>& bases, const std::vector<fp>& bin_counts, const std::vector<li>& spectrum_index, const std::vector<double>& bin_edges, short resolution, ii order, bool transient) :
+    Basis(bases, 2, 0, transient)
 {
+	if (spectrum_index.size() > 0)
+	{
+		is = spectrum_index;
+	}
+	else
+	{
+		is.push_back(0);
+		is.push_back(bin_counts.size());
+	}
 
     ///////////////////////////////////////////////////////////////////////
     // create A as a temporary COO matrix
@@ -177,65 +179,62 @@ BasisResampleMZ(vector<Basis*>& bases,
     // calculate indicies of non-empty spectra
     cm.l[1] = numeric_limits<ii>::min();
     cm.o[1] = numeric_limits<ii>::min();
-    cm.n[1] = js.size();
+    cm.n[1] = is.size() - 1;
 
     // init arrays
     a.resize(cm.n[1]);
     ia.resize(cm.n[1]);
     ja.resize(cm.n[1]);
-    //at.resize(cm.n[1]);
-    //iat.resize(cm.n[1]);
-    //jat.resize(cm.n[1]);
     m.resize(cm.n[1]);
     nnz.resize(cm.n[1], 0);
 
     // find min and max m/z across spectra, and narrowest bin
-    mz_min = DBL_MAX;
+    mz_min = numeric_limits<double>::max();
     mz_max = 0.0;
-	double mz_diff = 0.0;
+	double mz_diff = numeric_limits<double>::max();
     for (ii j = 0; j < cm.n[1]; j++)
     {
         m[j] = (ii) (is[j+1] - is[j]);
-        mz_min = mzs[js[j]].front() < mz_min ? mzs[js[j]].front() : mz_min;
-        mz_max = mzs[js[j]].back() > mz_max ? mzs[js[j]].back() : mz_max;
+		mz_min = bin_edges[is[j] + j] < mz_min ? bin_edges[is[j] + j] : mz_min;
+		mz_max = bin_edges[is[j + 1] + j] > mz_max ? bin_edges[is[j + 1] + j] : mz_max;
 
 		for (ii i = 0; i < m[j]; i++)
-		if (gs[is[j] + i] > 0.0)
 		{
-			double diff = mzs[js[j]][i + 1] - mzs[js[j]][i];
-			mz_diff = diff > mz_diff ? diff : mz_diff;
+			double diff = bin_edges[is[j] + j + i + 1] - bin_edges[is[j] + j + i];
+			mz_diff = diff < mz_diff ? diff : mz_diff;
 		}
 	}
 
-	ii rci_auto = floor(log2(1.0 / mz_diff / 60.0 / 1.0033548378));
-	if (rci >= 100)
+	ii resolution_auto = floor(log2(1.0 / mz_diff / 60.0 / 1.0033548378));
+	if (resolution == numeric_limits<short>::max())
 	{
-		rci = rci_auto;
+		resolution = resolution_auto;
 	}
-	else if (rci_auto != rci)
-	{
-		cout << endl << "WARNING: mz_res is not the suggested value of " << rci_auto << ". Continue at your own risk!" << endl << endl;
-	}
-	double rc = pow(2.0, (double)rci) * 60 / 1.0033548378;
+	// Bases per 1.0033548378Th (difference between carbon12 and carbon13)
+	double bpi = pow(2.0, (double)resolution) * 60 / 1.0033548378;
 
-    cm.l[0] = rci;
-    cm.o[0] = (ii) floor(mz_min * rc);
-    cm.n[0] = ((ii) ceil(mz_max * rc)) + order - cm.o[0];
+	cm.l[0] = resolution;
+    cm.o[0] = (ii) floor(mz_min * bpi);
+    cm.n[0] = ((ii) ceil(mz_max * bpi)) + order - cm.o[0];
 
     // figure out nnz
     #pragma omp parallel for
-    for(ii j = 0; j < cm.n[1]; ++j)
-    for (ii i = 0; i < m[j]; i++)
-    if (gs[is[j]+i] >= 0.0)
-    {
-        double cf0 = mzs[js[j]][i] * rc;
-        double cf1 = mzs[js[j]][i+1] * rc;
-        
-        ii ci0 = (ii) floor(cf0);
-        ii ci1 = ((ii) ceil(cf1)) + order;
-        
-        nnz[j] += ci1 - ci0;
-    }
+	for (ii j = 0; j < cm.n[1]; ++j)
+	{
+		for (ii i = 0; i < m[j]; i++)
+		{
+			if (bin_counts[is[j] + i] >= 0.0)
+			{
+				double cf0 = bin_edges[is[j] + j + i] * bpi;
+				double cf1 = bin_edges[is[j] + j + i + 1] * bpi;
+
+				ii ci0 = (ii)floor(cf0);
+				ii ci1 = ((ii)ceil(cf1)) + order;
+
+				nnz[j] += ci1 - ci0;
+			}
+		}
+	}
 
     // populate coo matrix
     // should also implement b-splines as a lookup table, possibly faster
@@ -249,11 +248,11 @@ BasisResampleMZ(vector<Basis*>& bases,
         
         ii k = 0;
         for (ii i = 0; i < m[j]; i++)
-        if (gs[is[j]+i] >= 0.0)
+        if (bin_counts[is[j]+i] >= 0.0)
         {
-            double cf0 = mzs[js[j]][i] * rc;
-            double cf1 = mzs[js[j]][i+1] * rc;
-            
+			double cf0 = bin_edges[is[j] + j + i] * bpi;
+			double cf1 = bin_edges[is[j] + j + i + 1] * bpi;
+
             ii ci0 = (ii) floor(cf0);
             ii ci1 = ((ii) ceil(cf1)) + order;
             
@@ -268,7 +267,7 @@ BasisResampleMZ(vector<Basis*>& bases,
                 double b1 = cf1 < bf1 ? cf1 - bf0 : bf1 - bf0;
                 
                 // basis coefficient b is _integral_ of area under b-spline basis
-				double b = 0;// bspline::im(b1, order + 1) - bspline::im(b0, order + 1);
+				double b = BSpline::im(b1, order + 1) - BSpline::im(b0, order + 1);
                 if (b <= 0.000001) b = 0.0; // saves computation and problems with l2norm later
                 
                 acoo[k] = b;
@@ -282,13 +281,9 @@ BasisResampleMZ(vector<Basis*>& bases,
         a[j].resize(nnz[j]);
         ia[j].resize(m[j]+1);
         ja[j].resize(nnz[j]);
-        //at[j].resize(nnz[j]);
-        //iat[j].resize(cm.n[0]+1);
-        //jat[j].resize(nnz[j]);
         
         ii job[] = {2, 0, 0, 0, nnz[j], 0}; ii info;
         mkl_scsrcoo(job, &m[j], a[j].data(), ja[j].data(), ia[j].data(), &(nnz[j]), acoo.data(), rowind.data(), colind.data(), &info);
-        //mkl_scsrcoo(job, &cm.n[0], at[j].data(), jat[j].data(), iat[j].data(), &(nnz[j]), acoo.data(), colind.data(), rowind.data(), &info);
         
         // display progress update
         #pragma omp critical
@@ -310,6 +305,11 @@ BasisResampleMZ(vector<Basis*>& bases,
     cout << " mem=" << setprecision(2) << fixed << (sizeof(this)+size*sizeof(fp))/(1024.0*1024.0) << "Mb";
     if (transient) cout << " (t)";
     cout << endl;
+	cout << "   resolution=" << resolution << " (" << bpi << " bases per 1.0033548378Th)" << " range=" << setprecision(3) << mz_min << ":" << mz_diff << ":" << mz_max << "Th" << endl;
+	if (resolution_auto != resolution)
+	{
+		cerr << endl << "WARNING: resolution is not the suggested value of " << resolution_auto << ". Continue at your own risk!" << endl << endl;
+	}
 }
 
 
@@ -371,44 +371,34 @@ l2norm(vector<fp>& es, const vector<fp>& fs)
 
 
 BasisResampleRT::
-BasisResampleRT(vector<Basis*>& bases,
-                Basis* parent,
-                const vector<double>& rts,
-                const vector<ii>& js,
-				const vector<double>& exposures,
-                ii rci,
-                ii order,
-                bool transient) :
+BasisResampleRT(std::vector<Basis*>& bases, Basis* parent, const std::vector<double>& start_times, const std::vector<double>& finish_times, const std::vector<fp>& exposures, short resolution, ii order, bool transient) :
     Basis(bases, parent->get_cm().d, parent, transient)
 {
-	double rt_diff = 0.0;
-	for (ii j = 0; j < js.size() - 1; j++)
-	{
-		double diff = rts[js[j + 1]] - rts[js[j]];
-		rt_diff = diff > rt_diff ? diff : rt_diff;
-	}
-	ii rci_auto = floor(log2(1.0 / rt_diff));
-	if (rci >= 100)
-	{
-		rci = rci_auto;
-	}
-	else if (rci_auto != rci)
-	{
-		cout << endl << "WARNING: rt_res is not the suggested value of " << rci_auto << ". Continue at your own risk!" << endl << endl;
-	}
-	double rc = pow(2.0, (double) rci);
-    double sp = 1.0 / rc;
+	rt_min = start_times.front();
+	rt_max = finish_times.back();
 
-	rt_min = rts.front();
-	rt_max = rts.back();
+	double rt_diff = numeric_limits<double>::max();
+	for (ii j = 0; j < exposures.size(); j++)
+	{
+		double diff = finish_times[j] - start_times[j];
+		rt_diff = diff < rt_diff ? diff : rt_diff;
+	}
+	ii resolution_auto = floor(log2(1.0 / rt_diff));
+	if (resolution == numeric_limits<short>::max())
+	{
+		resolution = resolution_auto;
+	}
+	double bpi = pow(2.0, (double) resolution);
+    double spacing = 1.0 / bpi;
+
     
     // create A as a temporary COO matrix
-    m = js.size();
+    m = exposures.size();
     nnz = 0;
-    for (ii j = 0; j < js.size(); j++)
+    for (ii j = 0; j < exposures.size(); j++)
     {
-        double cf0 = rts[js[j]] / sp;
-        double cf1 = rts[js[j]+1] / sp;
+		double cf0 = start_times[j] / spacing;
+		double cf1 = finish_times[j] / spacing;
         
         ii ci0 = (ii) floor(cf0);
         ii ci1 = ((ii) ceil(cf1)) + order;
@@ -419,9 +409,9 @@ BasisResampleRT(vector<Basis*>& bases,
     cm.l[0] = parent->get_cm().l[0];
     cm.o[0] = parent->get_cm().o[0];
     cm.n[0] = parent->get_cm().n[0];
-    cm.l[1] = rci;
-    cm.o[1] = (ii) floor(rts.front() / sp);
-    cm.n[1] = ((ii) ceil(rts.back() / sp)) + order - cm.o[1];
+    cm.l[1] = resolution;
+    cm.o[1] = (ii) floor(start_times.front() / spacing);
+    cm.n[1] = ((ii) ceil(finish_times.back() / spacing)) + order - cm.o[1];
 
     // populate coo matrix
     vector<fp> acoo(nnz);
@@ -430,11 +420,11 @@ BasisResampleRT(vector<Basis*>& bases,
     
     // create A as a temporary COO matrix
     ii mi = 0;
-    for (ii i = 0, j = 0; j < js.size(); j++)
+    for (ii i = 0, j = 0; j < exposures.size(); j++)
     {
-        double cf0 = rts[js[j]] / sp;
-        double cf1 = rts[js[j]+1] / sp;
-        
+		double cf0 = start_times[j] / spacing;
+		double cf1 = finish_times[j] / spacing;
+
         ii ci0 = (ii) floor(cf0);
         ii ci1 = ((ii) ceil(cf1)) + order;
         
@@ -448,10 +438,10 @@ BasisResampleRT(vector<Basis*>& bases,
             double b1 = cf1 < bf1 ? cf1 - bf0 : bf1 - bf0;
             
             // basis coefficient b is _integral_ of area under b-spline basis
-			double b = 0;// bspline::im(b1, order + 1) - bspline::im(b0, order + 1);
+			double b = BSpline::im(b1, order + 1) - BSpline::im(b0, order + 1);
             if (b <= FLT_MIN) b = FLT_MIN; // for numerical instability in im()
             
-			acoo[mi] = b * exposures[js[j]];
+			acoo[mi] = b * exposures[j];
             rowind[mi] = i;
             colind[mi] = ci - cm.o[1];
             mi++;
@@ -476,6 +466,11 @@ BasisResampleRT(vector<Basis*>& bases,
     cout << " A=[" << m << "," << cm.n[1] << "]:" << nnz;
     if (transient) cout << " (t)";
     cout << endl;
+	cout << "   resolution=" << resolution << " (" << bpi << " bases per second)" << " range=" << setprecision(3) << rt_min << ":" << rt_diff << ":" << rt_max << "seconds" << endl;
+	if (resolution_auto != resolution)
+	{
+		cerr << endl << "WARNING: resolution is not the suggested value of " << resolution_auto << ". Continue at your own risk!" << endl << endl;
+	}
 }
 
 
