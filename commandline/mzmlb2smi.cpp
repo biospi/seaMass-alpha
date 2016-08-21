@@ -99,10 +99,11 @@ int main(int argc, char *argv[])
 
 	mzMLbInputFile msFile(in_file);
 	seaMass::Input input;
-	for (int i = 0; msFile.next(input); i++)
+	string id;
+	for (int i = 0; msFile.next(input, id); i++)
 	{
 		ostringstream oss;
-		oss << boost::filesystem::change_extension(in_file, "").string() << "." << i << ".smi";
+		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smi";
 		HDF5Writer smi(oss.str());
 		smi.write_input(input);
 	}

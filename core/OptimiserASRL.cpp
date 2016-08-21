@@ -391,7 +391,6 @@ synthesis(vector<fp>& fs, ii return_cs) const
 
 		if (return_cs == j) // return with B-spline control points
 		{
-			cout << "returning cs " << j << endl;
 			fs.resize(ts[j].size());
 			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++) fs[i] = ts[j][i] * wcs[j][i];
 			return;

@@ -470,23 +470,34 @@ mzMLbInputFile::~mzMLbInputFile()
 }
 
 
-bool mzMLbInputFile::next(seaMass::Input& out)
+bool mzMLbInputFile::next(seaMass::Input& out, std::string& id)
 {
 	if (i >= spectraMetaData.size()) return false;
 
+	ostringstream oss;
+	oss << (spectraMetaData[i].positive_polarity ? "pos_" : "neg_") << spectraMetaData[i].precursor_mz;
+	id = oss.str();
+
 	vector< vector<double> > mzs;
 	vector< vector<double> > intensities;
+	vector<double> start_times;
+	vector<double> finish_times;
 
 	size_t loaded = 0;
 	bool done = false;
 	for (; !done; i++)
 	{
-		loaded++;
-		mzs.resize(loaded);
-		intensities.resize(loaded);
+		mzs.resize(loaded+1);
+		intensities.resize(loaded+1);
+		start_times.resize(loaded + 1);
+		finish_times.resize(loaded + 1);
 
-		msFile->getScanMZs(mzs[loaded - 1], spectraMetaData[i].index, spectraMetaData[i].count);
-		msFile->getScanIntensities(intensities[loaded - 1], spectraMetaData[i].index, spectraMetaData[i].count);
+		msFile->getScanMZs(mzs[loaded], spectraMetaData[i].index, spectraMetaData[i].count);
+		msFile->getScanIntensities(intensities[loaded], spectraMetaData[i].index, spectraMetaData[i].count);
+		start_times[loaded] = spectraMetaData[i].start_time;
+		finish_times[loaded] = spectraMetaData[i].finish_time;
+
+		loaded++;
 
 		if (i == spectraMetaData.size() - 1 ||
 		    spectraMetaData[i].preset_config != spectraMetaData[i + 1].preset_config ||
@@ -510,8 +521,8 @@ bool mzMLbInputFile::next(seaMass::Input& out)
 		if (intensities.size() > 1)
 		{
 			out.spectrum_index[j] = out.bin_counts.size();
-			out.start_times[j] = spectraMetaData[j].start_time;
-			out.finish_times[j] = spectraMetaData[j].finish_time;
+			out.start_times[j] = start_times[j];
+			out.finish_times[j] = finish_times[j];
 		}
 
 		// This modifies the raw data for some limitations of the mzML spec and makes

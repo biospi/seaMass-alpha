@@ -134,8 +134,10 @@ int main(int argc, char *argv[])
 
 	mzMLbInputFile msFile(in_file);
 	seaMass::Input input;
-	for (int i = 0; msFile.next(input); i++)
+	string id;
+	while(msFile.next(input, id))
 	{
+		cout << "Processing id=" << id << endl;
 		seaMass sm(input, scales);
 		do
 		{
@@ -144,7 +146,7 @@ int main(int argc, char *argv[])
 		while (sm.step(pow(2.0, _shrinkage), pow(2.0, _tolerance)));
 
 		ostringstream oss;
-		oss << boost::filesystem::change_extension(in_file, "").string() << "." << i << ".smv";
+		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
 		HDF5Writer smv(oss.str());
 
 		seaMass::Output output;
@@ -156,7 +158,7 @@ int main(int argc, char *argv[])
 		smv.write("residuals", residuals);
 
 		ostringstream oss2;
-		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << i << ".smo";
+		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
 		HDF5Writer smo(oss2.str());
 
 		seaMass::ControlPoints control_points;
