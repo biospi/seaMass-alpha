@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -465,7 +465,7 @@ void NetCDFile::read_HypMatNC(const string dataSet, VecMat<T> &vm,
 		N *=len[i];
 	}
 
-	vm.set(hsize_t(len[0]), hsize_t(len[1]));
+	vm.set(uli(len[0]), uli(len[1]));
 
 
 	if(typeid(vector<float>) == typeid(vm.v))
@@ -503,7 +503,7 @@ T NetCDFile::search_Group(size_t level, int grpid)
 	T val;
 	size_t ds=0;
 
-	for(hsize_t i = 0; i <= level; ++i)
+	for(uli i = 0; i <= level; ++i)
 	{
 		size_t cidx=strGrpL;
 		// How many Groups
@@ -619,7 +619,7 @@ int NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	int ndim = 2;
 	int deflate = 0;
 	size_t N[2];
-	hsize_t buffN[2];
+	uli buffN[2];
 
 	// Set chunking, shuffle, and deflate.
 	shuffle = NC_SHUFFLE;

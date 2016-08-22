@@ -22,44 +22,36 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SMPEAK_PEAKMANAGER_HPP_
-#define SMPEAK_PEAKMANAGER_HPP_
+#ifndef SMPEAK_IOMATH_HPP_
+#define SMPEAK_IOMATH_HPP_
 
-#include "../io/iomath.hpp"
+#include <vector>
+#include <cmath>
 
+using namespace std;
 
-template
-<
-	template<class Peak> class PeakCon,
-	template<class Bspline1,class Bspline2> class BsplineCon,
-	template
-	<
-		template<class SubOperator1> class Operator1,
-		template<class SubOperator1, class SubOperator2> class Operator2,
-		class OpT,
-		class OpR
-	> class PeakOp,
-	typename R = double,
-	typename T = float
->
-class PeakManager : public PeakOp<PeakCon,BsplineCon, T, R>
+typedef long long int lli;
+typedef unsigned long long uli;
+
+template<typename T = float>
+struct VecMat
 {
-public:
-	PeakManager(BsplineCon<R,T> &_data, T _threshold = 0) : threshold(_threshold)
-	{
-		peak=new PeakCon<T>();
-		data=&_data;
-	};
-	void execute()
-	{
-		this->calculate(this->peak, this->data, threshold);
-	};
-	PeakCon<T> *peak;
-	~PeakManager() {delete this->peak;};
+	VecMat(void);
+	VecMat(uli _r, uli _c, vector<T> &_vec);
+	VecMat(uli _r, uli _c);
+	vector<T> v; // Vector of Matrix data.
+	T** m; // Data Matrix
+	void set(uli _r, uli _c, vector<T> &_vec);
+	void set(uli _r, uli _c);
+	void getDims(uli dims[]);
+	void clear(void);
 private:
-	BsplineCon<R,T> *data;
-	T threshold;
+	vector<T*> matIdx;
+	uli row;
+	uli col;
 };
 
 
-#endif /* SMPEAK_PEAKMANAGER_HPP_ */
+#include "iomath.tpp"
+
+#endif /* SMPEAK_IOMATH_HPP_ */

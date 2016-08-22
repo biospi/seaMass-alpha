@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -43,11 +43,11 @@ template<typename T>
 void BasisPatch<T>::set(vector<T> &x, vector<int> &t)
 {
 	int k =4;
-	hsize_t r = t.size();
-	hsize_t c = x.size();
+	uli r = t.size();
+	uli c = x.size();
 	b.set(r,c);
-	for(hsize_t i = 0; i < r; ++i)
-		for(hsize_t j = 0; j < c; ++j)
+	for(uli i = 0; i < r; ++i)
+		for(uli j = 0; j < c; ++j)
 			b.m[i][j] = m(x[j],k,t[i]);
 }
 
@@ -101,12 +101,12 @@ void BsplineBasisData<R,T>::get(vector<DataAxis<T,R>* > &bsDat, BasisPatch<T> *&
 }
 
 template<typename R, typename T>
-void BsplineBasisData<R,T>::dumpData(string filename, const H5::DataType &data_type_id)
+void BsplineBasisData<R,T>::dumpData(string filename, nc_type data_type_id)
 {
+
 	// Write data to SMD (debug) file.
 	string outFileName=filename.substr(0,filename.size()-4)+".smd";
-	SMPFile smpDataFile(outFileName);
-	hsize_t dims[2];
+	NetCDFile smpDataFile(outFileName,NC_NETCDF4);
 
 	DataAxis<T,R> const *bs=bspObjP[0];
 	DataAxis<T,R> const *dhbs=bspObjP[1];
@@ -114,14 +114,12 @@ void BsplineBasisData<R,T>::dumpData(string filename, const H5::DataType &data_t
 	DataAxis<T,R> const *dvbs=bspObjP[3];
 	DataAxis<T,R> const *dv2bs=bspObjP[4];
 
-	bs->alpha->getDims(dims);
-
 	cout<<"\nSaving Peak Debugging Data to File:"<<endl;
-	smpDataFile.write_VecMatH5("csOrig",bs->alpha->v,dims,data_type_id);
-	smpDataFile.write_VecMatH5("dhcs",dhbs->alpha->v,dims,data_type_id);
-	smpDataFile.write_VecMatH5("dh2cs",dh2bs->alpha->v,dims,data_type_id);
-	smpDataFile.write_VecMatH5("dvcs",dvbs->alpha->v,dims,data_type_id);
-	smpDataFile.write_VecMatH5("dv2cs",dv2bs->alpha->v,dims,data_type_id);
+	smpDataFile.write_VecNC("csOrig",bs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dhcs",dhbs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dh2cs",dh2bs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dvcs",dvbs->alpha->v,data_type_id);
+	smpDataFile.write_VecNC("dv2cs",dv2bs->alpha->v,data_type_id);
 }
 
 #endif /* SMPEAK_BSPLINEDATA_TPP_ */

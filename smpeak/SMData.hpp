@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -25,7 +25,7 @@
 #ifndef SMPEAK_SMDATA_HPP_
 #define SMPEAK_SMDATA_HPP_
 
-#include "../io/peakcore.hpp"
+#include "../io/iomath.hpp"
 
 
 template<typename T=float, typename R=double>
@@ -47,7 +47,7 @@ template
 >
 struct SMData1D : public DataAxis<T,R>, public MathOp<T>
 {
-	SMData1D(hsize_t dims[], int offset[], double mz_res, R rt,
+	SMData1D(uli dims[], int offset[], double mz_res, R rt,
 			vector<T> &vec);
 	~SMData1D(){delete this->alpha;};
 };
@@ -62,7 +62,7 @@ template
 struct SMData2D : public DataAxis<T,R>, public MathOp<T>
 {
 	SMData2D(vector<R> &_rt, vector<double> &_mz, vector<T> &vec);
-	SMData2D(hsize_t dims[], int offset[], double mz_res, double rt_res,
+	SMData2D(uli dims[], int offset[], double mz_res, double rt_res,
 			vector<T> &vec);
 	~SMData2D(){delete this->alpha;};
 };

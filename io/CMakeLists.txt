@@ -1,8 +1,8 @@
 set(_SAVED_HDF5_DIR ${HDF5_DIR})
 find_package(HDF5 1.8.5 NO_MODULE)
 if(NOT HDF5_FOUND)
- set(HDF5_DIR ${_SAVED_HDF5_DIR} CACHE PATH "HDF5 install dir" FORCE)
- find_package(HDF5 1.8.5 REQUIRED)
+	set(HDF5_DIR ${_SAVED_HDF5_DIR} CACHE PATH "HDF5 install dir" FORCE)
+	find_package(HDF5 1.8.5 REQUIRED)
 endif()
 
 find_package(netCDF NO_MODULE)
@@ -17,18 +17,21 @@ find_package(SpatialIndex 1.8.5 REQUIRED)
 set(HEADER_FILES
 	MSFileData.hpp
     NetCDFile.hpp
-	peakcore.hpp
 	HDF5Writer.hpp
+	iomath.hpp
+	mzMLxml.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
     NetCDFile.cpp
 	HDF5Writer.cpp
+	mzMLxml.cpp
 )
 set(TEMPLATE_FILES
 	NetCDFile.tpp
-	peakcore.tpp
-)
+	iomath.tpp
+	mzMLxml.tpp
+	)
 
 source_group("Template Files" FILES ${TEMPLATE_FILES})
 add_library(seamass_io ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})

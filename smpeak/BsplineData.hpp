@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -26,7 +26,7 @@
 #define SMPEAK_BSPLINEDATA_HPP_
 
 
-#include "../io/peakcore.hpp"
+#include "../io/iomath.hpp"
 #include "SMData.hpp"
 
 
@@ -62,7 +62,7 @@ public:
 			DataAxis<T,R> &dhbs, DataAxis<T,R> &d2hbs,
 			DataAxis<T,R> &dvbs, BasisPatch<T> &bp);
 	void get(vector<DataAxis<T,R>* > &bsDat, BasisPatch<T> *&bp);
-	void dumpData(string filename, const H5::DataType &data_type_id = H5::PredType::NATIVE_FLOAT);
+	void dumpData(string filename, nc_type data_type_id = NC_FLOAT);
 private:
 	vector<DataAxis<T,R>* > bspObjP;
 	BasisPatch<T> *bPat;

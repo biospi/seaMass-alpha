@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -25,7 +25,8 @@
 #ifndef SMPEAK_PEAKDATA_HPP_
 #define SMPEAK_PEAKDATA_HPP_
 
-#include "../io/peakcore.hpp"
+#include "../io/iomath.hpp"
+#include "../io/NetCDFile.hpp"
 
 template<typename T = float>
 struct Peak
@@ -73,7 +74,7 @@ public:
 	vector<lli> getRTIdx(void);
 	void getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
 	void getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
-	void dumpPeakData(string filename, const H5::DataType &data_type_id=H5::PredType::NATIVE_FLOAT);
+	void dumpPeakData(string filename, nc_type data_type_id=NC_FLOAT);
 	lli getFalsePeaks(void);
 	lli getFalseWidths(void);
 	void clear(void);

@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -26,14 +26,13 @@
 #include <iterator>
 #include <boost/program_options.hpp>
 #include <pugixml.hpp>
-#include <sstream>
 #include <omp.h>
 
-#include "../io/peakcore.hpp"
+#include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
-#include "SMPFile.hpp"
 #include "../core/seaMass.hpp"
 #include "../core/BSpline.hpp"
+#include "../io/mzMLxml.hpp"
 
 #include "SMData.hpp"
 #include "MathOperator.hpp"
@@ -330,14 +329,14 @@ int main(int argc, char **argv)
 	//---------------------------------------------------------------------
 	if(process == CENT1DIM)
 	{
-		vector<hsize_t> dims(2,0);
+		vector<uli> dims(2,0);
 		vector<size_t> hypIdx(2);
 		vector<size_t> rdLen(2);
 
 		rdLen[0]=1;
 		rdLen[1]=dataMatLen[1];
-		dims[0]=hsize_t(rdLen[0]);
-		dims[1]=hsize_t(rdLen[1]);
+		dims[0]=uli(rdLen[0]);
+		dims[1]=uli(rdLen[1]);
 		hypIdx[1]=0; // = Always read from first Column;
 
 		PeakData<> totalPeaks;
@@ -405,11 +404,11 @@ int main(int argc, char **argv)
 			cout<<"Total false Peak detected with incorrect Peak Widths - "
 				<<"["<<totalPeaks.getFalseWidths()<<"] Peaks Ignored"<<endl;
 
-		if(debug) totalPeaks.dumpPeakData(smoFileName,H5::PredType::NATIVE_FLOAT);
+		if(debug) totalPeaks.dumpPeakData(smoFileName,NC_FLOAT);
 	}
 	else if(process == CENT2DIM)
 	{
-		hsize_t dims[2];
+		uli dims[2];
 		VecMat<float> rawCoeff;
 		smoDF.read_MatNC(dataSetList[0].varName,rawCoeff,dataSetList[0].grpid);
 		rawCoeff.getDims(dims);
@@ -431,11 +430,11 @@ int main(int argc, char **argv)
 		centriodPeak.execute();
 		centriodPeak.peak->getPeakMat(mzPeak, pkPeak, dataMatLen[0], mzpkVecSize);
 
-		if(debug) centriodPeak.peak->dumpPeakData(smoFileName);
+		if(debug) centriodPeak.peak->dumpPeakData(smoFileName, NC_FLOAT);
 	}
 	else if(process == PEAKPICK)
 	{
-		hsize_t dims[2];
+		uli dims[2];
 		VecMat<float> rawCoeff;
 		smoDF.read_MatNC(dataSetList[0].varName,rawCoeff,dataSetList[0].grpid);
 		rawCoeff.getDims(dims);
@@ -460,7 +459,7 @@ int main(int argc, char **argv)
 			cout<<"Total false Peak detected with incorrect Peak Widths - "
 				<<"["<<extractPeak.peak->getFalseWidths()<<"] Peaks Ignored"<<endl;
 
-		extractPeak.peak->dumpPeakData(smoFileName,H5::PredType::NATIVE_FLOAT);
+		extractPeak.peak->dumpPeakData(smoFileName,NC_FLOAT);
 	}
 	else if(process == NOPROC)
 	{
@@ -562,7 +561,7 @@ int main(int argc, char **argv)
 				"spectrum_MS_1000515_row","spectrum_MS_1000515_col",NC_FLOAT);
 
 		// Write ragged unlimited matrix scan by scan
-		hsize_t centrc[2];
+		uli centrc[2];
 		mzPeak.getDims(centrc);
 		for(size_t rt_idx = 0, ms1 = 0; rt_idx < rdims[0]; ++rt_idx)
 		{

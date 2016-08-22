@@ -22,44 +22,22 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SMPEAK_PEAKMANAGER_HPP_
-#define SMPEAK_PEAKMANAGER_HPP_
+#ifndef SEAMASS_MZMLXML_HPP
+#define SEAMASS_MZMLXML_HPP
 
-#include "../io/iomath.hpp"
+#include <iostream>
+#include <fstream>
+#include <vector>
 
+using namespace std;
 
-template
-<
-	template<class Peak> class PeakCon,
-	template<class Bspline1,class Bspline2> class BsplineCon,
-	template
-	<
-		template<class SubOperator1> class Operator1,
-		template<class SubOperator1, class SubOperator2> class Operator2,
-		class OpT,
-		class OpR
-	> class PeakOp,
-	typename R = double,
-	typename T = float
->
-class PeakManager : public PeakOp<PeakCon,BsplineCon, T, R>
-{
-public:
-	PeakManager(BsplineCon<R,T> &_data, T _threshold = 0) : threshold(_threshold)
-	{
-		peak=new PeakCon<T>();
-		data=&_data;
-	};
-	void execute()
-	{
-		this->calculate(this->peak, this->data, threshold);
-	};
-	PeakCon<T> *peak;
-	~PeakManager() {delete this->peak;};
-private:
-	BsplineCon<R,T> *data;
-	T threshold;
-};
+template<typename T>
+void findVecString(vector<char> &vecStr,vector<T> &vec,
+		const string subStr = "<spectrum index",
+		const string endSubStr = "</spectrum>");
 
+void mzMLdump(const string fileName, string data);
 
-#endif /* SMPEAK_PEAKMANAGER_HPP_ */
+#include "mzMLxml.tpp"
+
+#endif //SEAMASS_MZMLXML_HPP

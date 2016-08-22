@@ -2,9 +2,9 @@
 // $Id$
 //
 //
-// Author: Ranjeet Bhamber <ranjeet <a.t> liverpool.ac.uk>
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Liverpool, UK
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -214,7 +214,7 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 	DataAxis<T,R> const *dbs=bsData[1];
 	DataAxis<T,R> const *d2bs=bsData[2];
 
-	hsize_t dims[2];
+	uli dims[2];
 	bs->alpha->getDims(dims);
 	lli i = 0;
 	lli col = dims[1];
@@ -266,7 +266,7 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 	DataAxis<T,R> const *dbs=bsData[1];
 	DataAxis<T,R> const *d2bs=bsData[2];
 
-	hsize_t dims[2];
+	uli dims[2];
 	bs->alpha->getDims(dims);
 	lli row = dims[0];
 	lli col = dims[1];
@@ -372,7 +372,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 	DataAxis<T,R> const *dvbs=bsData[3];
 	//DataAxis<T,R> const *dv2bs=bsData[4];
 
-	hsize_t dims[2];
+	uli dims[2];
 	bs->alpha->getDims(dims);
 	lli row = dims[0];
 	lli col = dims[1];
@@ -524,7 +524,7 @@ void ExtractPeak<pPeak,pData,T,R>::mulVecMat(const VecMat<T> &cs, const VecMat<T
 	lli rows = 5;
 
 	/*
-	hsize_t dim[2];
+	uli dim[2];
 	cout<<"CS Peak at ("<<i<<","<<j<<")"<<endl;
 	cout<<"CS Patch from ("<<rdx<<","<<cdx<<")"<<endl;
 	for(int i=rdx; i < rdx+rows; ++i){
