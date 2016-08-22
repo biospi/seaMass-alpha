@@ -464,7 +464,7 @@ shrinkage(vector< vector<fp> >& dcs, fp shrinkage)
 			#pragma omp parallel for
 			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
 			{
-				if (dcs[j][i] >= FLT_MIN && cs[j][i] >= FLT_MIN)
+				if (dcs[j][i] >= numeric_limits<float>::min() && cs[j][i] >= numeric_limits<float>::min())
 				{
 					dcs[j][i] = (dcs[j][i] / l2[j][i]) * cs[j][i] / (shrinkage + (wcs[j][i] / l2[j][i]));
 					//if (es[j][i] < 0.0001) es[j][i] = 0.0;

@@ -27,6 +27,7 @@
 #define _SEAMASSRESTORATION_BASISFUNCTIONS_HPP_
 
 
+#include <iostream>
 #include "core.hpp"
 
 

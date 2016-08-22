@@ -28,9 +28,9 @@
 
 
 #include <hdf5.h>
+#include <iostream>
 #include "../core/BasisFunctions.hpp"
 #include "../core/seaMass.hpp"
-
 
 class HDF5Writer
 {
@@ -86,7 +86,7 @@ write(const std::string& _objectname, const std::vector<T>& _cdata, hid_t& _data
     H5Sclose(fspace);
     H5Sclose(mspace);
 
-   if(H5Dclose(dataset)<0) cout << "ARGH" << endl;
+   if(H5Dclose(dataset)<0) std::cout << "ARGH" << std::endl;
 }
 
 

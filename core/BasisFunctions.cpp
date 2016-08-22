@@ -28,6 +28,7 @@
 #include <iostream>
 #include <limits>
 #include <iomanip>
+#include <cmath>
 
 
 using namespace std;
@@ -439,8 +440,8 @@ BasisResampleRT(std::vector<Basis*>& bases, Basis* parent, const std::vector<dou
             
             // basis coefficient b is _integral_ of area under b-spline basis
 			double b = BSpline::im(b1, order + 1) - BSpline::im(b0, order + 1);
-            if (b <= FLT_MIN) b = FLT_MIN; // for numerical instability in im()
-            
+            if (b <= numeric_limits<float>::min()) b = numeric_limits<float>::min(); // for numerical instability in im()
+
 			acoo[mi] = b * exposures[j];
             rowind[mi] = i;
             colind[mi] = ci - cm.o[1];

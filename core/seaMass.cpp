@@ -27,7 +27,7 @@
 #include <iostream>
 #include <iomanip>
 #include <omp.h>
-
+#include <limits>
 
 using namespace std;
 
@@ -112,7 +112,7 @@ step(double shrinkage, double tolerance)
 	////////////////////////////////////////////////////////////////////////////////////
 	// OPTIMISATION
 	double threshold = 0.0;// 000000001; // L0 threshold
-	double grad = DBL_MAX;
+	double grad = numeric_limits<double>::max();
 
 	// l1
 	li nc = 0;
@@ -147,7 +147,7 @@ step(double shrinkage, double tolerance)
 	// l0
 	cout << " L0 threshold=" << fixed << setprecision(2) << threshold << " tolerance=" << tolerance << ":" << setprecision(6) << tolerance << endl;
 
-	grad = DBL_MAX;
+	grad = numeric_limits<double>::max();
 	for (ii i = 0; i < 20; i++)
 	{
 		grad = optimiser->step(i, 0.0);

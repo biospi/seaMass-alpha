@@ -1,5 +1,5 @@
 find_package(Boost 1.54 REQUIRED COMPONENTS
-	program_options filesystem
+	program_options filesystem system
 )
 
 add_executable(mzmlb2smi
