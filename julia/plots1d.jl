@@ -5,16 +5,18 @@ using PyCall
 @pyimport scipy.interpolate as interpolate
 
 
-spectrumID = 1
+spectrumID = 1000
 
-
+filename = "/Volumes/C/s/Metabolomics_ToF/16_PBQC-10_522-16470.mzMLb"
 # load spectrum from mzMLb file
 type mzMLb_spectrum
   mzs
   intensities
 end
-mzmlb_spectrum = h5open("/Volumes/C/s/vocs/06-17-2016-AUHCC46-0045_30.mzMLb", "r") do file
-  mzML = xp_parse(join(read(file, "mzML")))["//spectrum[@index='$(spectrumID-1)']"][1]
+mzmlb_spectrum = h5open(filename, "r") do file
+  spectrumIndex = file["mzML_spectrumIndex"][spectrumID:spectrumID+1] + 1
+
+  mzML = xp_parse(utf8(file["mzML"][spectrumIndex[1]:spectrumIndex[2]-1]))
 
   arrayLength = parse(Int, mzML["@defaultArrayLength"][1])
   mzs_dataset = mzML["binaryDataArrayList/binaryDataArray/cvParam[@accession='MS:1000514']/../binary"]["@externalDataset"][1]
@@ -28,6 +30,11 @@ mzmlb_spectrum = h5open("/Volumes/C/s/vocs/06-17-2016-AUHCC46-0045_30.mzMLb", "r
   )
 end
 
+figure()
+plot(mzmlb_spectrum.mzs, mzmlb_spectrum.intensities)
+xlabel("m/z (Th)")
+ylabel("intensity")
+
 
 # load spectrum from smi file
 type SMI_Spectrum
@@ -35,7 +42,7 @@ type SMI_Spectrum
   bin_counts
   exposure
 end
-smi_spectrum = h5open("/Volumes/C/s/vocs/06-17-2016-AUHCC46-0045_30.0.smi", "r") do file
+smi_spectrum = h5open("/Volumes/C/s/vocs3/29-07-2016-AUHHEC00-02.pos_0.smi", "r") do file
   spectrumIndex = [1 size(file["bin_counts"])[1]+1]
   try
     spectrumIndex = file["spectrum_index"][spectrumID:spectrumID+1] + 1

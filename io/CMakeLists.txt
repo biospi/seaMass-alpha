@@ -14,24 +14,30 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(PugiXML REQUIRED)
 find_package(SpatialIndex 1.8.5 REQUIRED)
 
+find_package(Boost 1.54 REQUIRED COMPONENTS
+	filesystem
+)
+
 set(HEADER_FILES
 	MSFileData.hpp
     NetCDFile.hpp
 	HDF5Writer.hpp
 	iomath.hpp
 	mzMLxml.hpp
+	RTreeReader.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
     NetCDFile.cpp
 	HDF5Writer.cpp
 	mzMLxml.cpp
+	RTreeReader.cpp
 )
 set(TEMPLATE_FILES
 	NetCDFile.tpp
 	iomath.tpp
 	mzMLxml.tpp
-	)
+)
 
 source_group("Template Files" FILES ${TEMPLATE_FILES})
 add_library(seamass_io ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
@@ -40,6 +46,7 @@ target_include_directories(seamass_io PUBLIC
 	${netCDF_INCLUDE_DIR}
 	${PugiXML_INCLUDE_DIR}
 	${SPATIALINDEX_INCLUDE_DIR}
+	${Boost_INCLUDE_DIR}
 )
 target_link_libraries(seamass_io
 	seamass_core
@@ -47,5 +54,6 @@ target_link_libraries(seamass_io
 	${netCDF_LIBRARIES}
 	${PugiXML_LIBRARIES}
 	${SPATIALINDEX_LIBRARY}
+	${Boost_LIBRARY}
 )
 

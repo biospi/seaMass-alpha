@@ -27,6 +27,6 @@
 void mzMLdump(const string fileName, string data)
 {
     ofstream out(fileName.c_str());
-    out<<data;
+    out<<data.c_str();
     out.close();
 }

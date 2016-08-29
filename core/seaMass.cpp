@@ -54,9 +54,15 @@ seaMass(Input& input, const std::vector<ii>& scales)
 seaMass::
 seaMass(Input& input, const Output& seed)
 {
-	// todo
 	vector<ii> scales(seed.scales.size());
 	init(input, scales);
+
+	// todo
+	/*cout << seed.weights.size() << endl;
+	for (ii i = 0; i < seed.weights.size(); i++)
+	{
+		//cout << seed.scales[0][i] << "," << seed.scales[1][i] << ":" << seed.offsets[0][i] << "," << seed.offsets[1][i] << ":" << seed.weights[i] << endl;
+	}*/
 }
 
 
@@ -178,8 +184,18 @@ void
 seaMass::
 get_output(Output& output) const
 {
-	output.weights.resize(0); output.scales.resize(0); output.offsets.resize(0);
-	output.scales.resize(dimensions); output.offsets.resize(dimensions);
+	output.scales.resize(dimensions);
+	output.offsets.resize(dimensions);
+	output.baseline_size.resize(dimensions);
+	output.baseline_scale.resize(dimensions);
+	output.baseline_offset.resize(dimensions);
+
+	for (ii i = 0; i < dimensions; i++)
+	{
+		output.baseline_size[i] = bases[dimensions - 1]->get_cm().n[i];
+		output.baseline_scale[i] = bases[dimensions - 1]->get_cm().l[i];
+		output.baseline_offset[i] = bases[dimensions - 1]->get_cm().o[i];
+	}
 
 	for (ii j = 0; j < (ii)bases.size(); j++)
 	{
@@ -187,11 +203,18 @@ get_output(Output& output) const
 		{
 			for (ii i = 0; i < (ii)bases[j]->get_cm().size(); i++)
 			{
-				if (optimiser->get_cs()[j][i] > 0.0)
+				double c = optimiser->get_cs()[j][i];
+				if (c > 0.0)
 				{
-					output.weights.push_back(optimiser->get_cs()[j][i]);
-					output.scales[0].push_back(bases[j]->get_cm().l[0]);
-					if (dimensions > 1) output.scales[1].push_back(bases[j]->get_cm().l[1]);
+					output.weights.push_back(c);
+
+					ii index = i;
+					for (ii d = 0; d < dimensions; d++)
+					{
+						output.scales[d].push_back(bases[j]->get_cm().l[d]);
+						output.offsets[d].push_back(bases[j]->get_cm().o[d] + index % bases[j]->get_cm().n[d]);
+						index /= bases[j]->get_cm().n[d];
+					}
 				}
 			}
 		}
@@ -201,11 +224,9 @@ get_output(Output& output) const
 
 void
 seaMass::
-get_output_residuals(std::vector<fp>& residuals) const
+get_output_bin_counts(std::vector<fp>& bin_counts) const
 {
-	optimiser->synthesis(residuals);
-	vector<fp>& gs = optimiser->get_gs();
-	for (ii i = 0; i < residuals.size(); i++) residuals[i] = gs[i] - residuals[i];
+	optimiser->synthesis(bin_counts);
 }
 
 
@@ -214,10 +235,11 @@ seaMass::
 get_output_control_points(ControlPoints& control_points) const
 {
 	optimiser->synthesis(control_points.coeffs, dimensions - 1);
-	control_points.size = bases[dimensions - 1]->get_cm().n;
-	control_points.scale = bases[dimensions - 1]->get_cm().l;
-	control_points.offset = bases[dimensions - 1]->get_cm().o;
-	for (ii i = 0; i < control_points.size.size(); i++) control_points.size[i] = (control_points.size[i] == numeric_limits<ii>::min()) ? 1 : control_points.size[i];
-	for (ii i = 0; i < control_points.scale.size(); i++) control_points.scale[i] = (control_points.scale[i] == numeric_limits<ii>::min()) ? 1 : control_points.scale[i];
-	for (ii i = 0; i < control_points.offset.size(); i++) control_points.offset[i] = (control_points.offset[i] == numeric_limits<ii>::min()) ? 1 : control_points.offset[i];
+
+	for (ii i = 0; i < dimensions; i++)
+	{
+		control_points.size[i] = bases[dimensions - 1]->get_cm().n[i];
+		control_points.scale[i] = bases[dimensions - 1]->get_cm().l[i];
+		control_points.offset[i] = bases[dimensions - 1]->get_cm().o[i];
+	}
 }

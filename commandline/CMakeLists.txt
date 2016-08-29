@@ -27,3 +27,16 @@ target_link_libraries (seamass LINK_PUBLIC
 	${IntelOpenMP_LIBRARIES}
 	${Boost_LIBRARIES}
 )
+
+add_executable(seamass2controlpoints
+	seamass2controlpoints.cpp
+)
+target_include_directories(seamass2controlpoints PUBLIC
+	${Boost_INCLUDE_DIRS}
+)
+target_link_libraries (seamass2controlpoints LINK_PUBLIC
+	seamass_io
+	seamass_core	
+	${IntelOpenMP_LIBRARIES}
+	${Boost_LIBRARIES}
+)

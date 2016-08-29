@@ -54,6 +54,9 @@ public:
 		std::vector<fp> weights;
 		std::vector< std::vector<ii> > scales;
 		std::vector< std::vector<li> > offsets;
+		std::vector<ii> baseline_size;
+		std::vector<ii> baseline_scale;
+		std::vector<ii> baseline_offset;
 	};
 
 	struct ControlPoints {
@@ -75,11 +78,11 @@ public:
 	virtual bool step(double shrinkage, double tolerance);
 	void get_output(Output& output) const;
 
-	void get_output_residuals(std::vector<fp>& residuals) const;
+	void get_output_bin_counts(std::vector<fp>& bin_counts) const;
 	void get_output_control_points(ControlPoints& control_points) const;
 	void get_output_control_points_1d(ControlPoints1D& control_points) const;
 
-private:
+public:
 	void init(Input& input, const std::vector<ii>& scales);
 
 	short dimensions;

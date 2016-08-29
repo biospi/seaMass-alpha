@@ -29,6 +29,7 @@
 #include <omp.h>
 
 #include "../io/HDF5Writer.hpp"
+#include "../io/RTreeReader.hpp"
 #include "../io/MSFileData.hpp"
 #include "../core/seaMass.hpp"
 
@@ -43,8 +44,8 @@ int main(int argc, char *argv[])
 
 	string in_file;
 	vector<ii> scales(2);
-	ii _shrinkage;
-	ii _tolerance;
+	ii shrinkage;
+	ii tolerance;
 	ii threads;
 
 	// *******************************************************************
@@ -61,18 +62,18 @@ int main(int argc, char *argv[])
 			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
 			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
 		("mz_scale,m",po::value<ii>(&scales[0])->default_value(numeric_limits<short>::max()),
-			"m/z resolution given as: \"b-splines per Th = 2^mz_scales * 60 / 1.0033548378\" "
+			"m/z resolution given as: \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\" "
 			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
 			"default: auto")
 		("st_scale,r", po::value<ii>(&scales[1])->default_value(numeric_limits<short>::max()),
 			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
 			"guidelines: around 4, "
 			"default: auto")
-		("shrinkage,s",po::value<ii>(&_shrinkage)->default_value(-4),""
+		("shrinkage,s",po::value<ii>(&shrinkage)->default_value(-4),""
 			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
 			"guidelines: around -4, "
 			"default: -4")
-		("tolerance,l",po::value<ii>(&_tolerance)->default_value(-9),
+		("tolerance,l",po::value<ii>(&tolerance)->default_value(-9),
 			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
 			"guidelines: around -9, "
 			"default: -9")
@@ -143,27 +144,34 @@ int main(int argc, char *argv[])
 		{
 			// if debug save 
 		}
-		while (sm.step(pow(2.0, _shrinkage), pow(2.0, _tolerance)));
+		while (sm.step(pow(2.0, shrinkage), pow(2.0, tolerance)));
 
 		ostringstream oss;
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
 		HDF5Writer smv(oss.str());
 
+		// save back input but with bin_counts now containing the residuals
+		vector<fp> bin_counts(input.bin_counts.size(), 0.0);
+		sm.get_output_bin_counts(bin_counts);
+		for (ii i = 0; i < input.bin_counts.size(); i++) input.bin_counts[i] -= bin_counts[i];
+		smv.write_input(input);
+
+		// save seamass output as RTree
 		seaMass::Output output;
 		sm.get_output(output);
-		smv.write_output(output);
+		smv.write_output(output, shrinkage, tolerance, 4096);
 
-		vector<fp> residuals;
-		sm.get_output_residuals(residuals);
-		smv.write("residuals", residuals);
-
-		ostringstream oss2;
-		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
-		HDF5Writer smo(oss2.str());
-
-		seaMass::ControlPoints control_points;
-		sm.get_output_control_points(control_points);
-		smo.write_output_control_points(control_points);
+		// demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
+		// lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)
+		// therefore we just need to load from the RTree ito Output::weights,scales,offsets
+		seaMass::Output loaded;
+		loaded.baseline_offset = output.baseline_offset;
+		loaded.baseline_scale = output.baseline_scale;
+		loaded.baseline_size = output.baseline_size;
+		RTreeReader rtree(oss.str());
+		rtree.read(loaded);
+		cout << "Number of saved bases: " << output.weights.size() << endl;
+		cout << "Number of loaded bases: " << loaded.weights.size() << endl;
 	}
 
 	return 0;

@@ -45,10 +45,11 @@ public:
 	~HDF5Writer();
     
 	void write_input(const seaMass::Input& input) const;
-	void write_output(const seaMass::Output& output) const;
+	void write_output(const seaMass::Output& output, ii shrinkage, ii tolerance, ii page_size) const;
 	void write_output_control_points(const seaMass::ControlPoints& control_points) const;
    
-    void write(const std::string& objectname, const std::vector<float>& cdata) const;
+	void write(const std::string& objectname, const std::vector<unsigned char>& cdata) const;
+	void write(const std::string& objectname, const std::vector<float>& cdata) const;
 	void write(const std::string& objectname, const std::vector<double>& cdata) const;
 	void write(const std::string& objectname, const std::vector<long long>& cdata) const;
 	void write(const std::string& objectname, const std::vector<long>& cdata) const;

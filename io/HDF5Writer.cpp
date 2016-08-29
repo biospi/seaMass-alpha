@@ -24,8 +24,64 @@
 
 #include "HDF5Writer.hpp"
 #include <iostream>
+#include <boost/filesystem.hpp>
+#include <SpatialIndex.h>
 
 using namespace std;
+using namespace SpatialIndex;
+using namespace boost;
+
+
+class MyDataStream : public IDataStream
+{
+public:
+	const seaMass::Output& output;
+	ii index;
+	ii dimensions;
+	vector<double> low;
+	vector<double> high;
+
+	MyDataStream(const seaMass::Output& _output) :
+		output(_output),
+		index(0),
+		dimensions(output.baseline_size.size()),
+		low(dimensions + 1),
+		high(dimensions + 1)
+	{
+	}
+
+	virtual ~MyDataStream() {}
+
+	virtual IData* getNext()
+	{
+		double i = output.weights[index];
+		for (ii j = 0; j < dimensions; j++)
+		{
+			i *= pow(2.0, -output.scales[j][index]);
+			low[j] = pow(2.0, -output.scales[j][index]) * (output.offsets[j][index] - 3);
+			high[j] = pow(2.0, -output.scales[j][index]) * (output.offsets[j][index] + 1);
+		}
+		low[dimensions] = -i;
+		high[dimensions] = -i;
+
+		return new RTree::Data(0, 0, Region(low.data(), high.data(), dimensions + 1), index++);
+	}
+
+	virtual bool hasNext()
+	{
+		return index <= output.weights.size();
+	}
+
+	virtual uint32_t size()
+	{
+		return output.weights.size();
+	}
+
+	virtual void rewind()
+	{
+		index = 0;
+	}
+};
 
 
 HDF5Writer::
@@ -68,11 +124,82 @@ write_input(const seaMass::Input& input) const
 
 void
 HDF5Writer::
-write_output(const seaMass::Output& output) const
+write_output(const seaMass::Output& output, ii shrinkage, ii tolerance, ii page_size) const
 {
-	write("weights", output.weights);
-	// write scales as matrix
-	// write offsets as matrix
+	// placeholder idx and dat datasets
+	hsize_t dims = 1;
+	hid_t fspace = H5Screate_simple(1, &dims, &dims);
+	hid_t type_id = H5Tcreate(H5T_OPAQUE, 1);
+	hid_t dataset = H5Dcreate(file, "seamass_index", type_id, fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	{
+		hsize_t dims = output.baseline_size.size();
+		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
+		hid_t scale_attr = H5Acreate(dataset, "size", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baseline_size[0]));
+		H5Sclose(scale_fspace);
+		H5Aclose(scale_attr);
+	}
+	{
+		hsize_t dims = output.baseline_size.size();
+		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
+		hid_t scale_attr = H5Acreate(dataset, "scale", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baseline_scale[0]));
+		H5Sclose(scale_fspace);
+		H5Aclose(scale_attr);
+	}
+	{
+		hsize_t dims = output.baseline_size.size();
+		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
+		hid_t scale_attr = H5Acreate(dataset, "offset", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baseline_offset[0]));
+		H5Sclose(scale_fspace);
+		H5Aclose(scale_attr);
+	}
+	{
+		hsize_t dims = 1;
+		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
+		hid_t scale_attr = H5Acreate(dataset, "shrinkage", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &shrinkage);
+		H5Sclose(scale_fspace);
+		H5Aclose(scale_attr);
+	}
+	{
+		hsize_t dims = 1;
+		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
+		hid_t scale_attr = H5Acreate(dataset, "tolerance", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &tolerance);
+		H5Sclose(scale_fspace);
+		H5Aclose(scale_attr);
+	}
+	H5Dclose(dataset);
+
+	hid_t dataset2 = H5Dcreate(file, "seamass_data", type_id, fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	H5Sclose(fspace);
+	H5Dclose(dataset2);
+
+	// Create a new storage manager with the provided base name and page size.
+	string _filename = filename;
+	SpatialIndex::IStorageManager* diskfile = StorageManager::createNewDiskStorageManager(_filename, page_size);
+
+	// applies a main memory random buffer on top of the persistent storage manager (LRU buffer, etc can be created the same way).
+	SpatialIndex::StorageManager::IBuffer* file = StorageManager::createNewRandomEvictionsBuffer(*diskfile, 10, false);
+
+	// Create and bulk load a new RTree, using "file" as the StorageManager and the RSTAR splitting policy.
+	MyDataStream stream(output);
+	id_type indexIdentifier;
+	ISpatialIndex* tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, stream, *file, 0.7, 100, 100, output.baseline_size.size() + 1, SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
+
+	cout << "RTREE OUTPUT" << endl;
+	cout << *tree;
+	cout << "Buffer hits: " << file->getHits() << endl;
+	cout << "Index ID: " << indexIdentifier << endl;
+
+	bool ret = tree->isIndexValid();
+	if (ret == false) cout << "ERROR: Structure is invalid!" << endl;
+
+	delete tree;
+	delete file;
+	delete diskfile;
 }
 
 
@@ -121,6 +248,14 @@ write_output_control_points(const seaMass::ControlPoints& control_points) const
 	H5Aclose(offset_attr);
     
     if(H5Dclose(dataset)<0) cout << "ARGH" << endl;
+}
+
+
+void
+HDF5Writer::
+write(const string& objectname, const vector<unsigned char>& cdata) const
+{
+	write(objectname, cdata, H5T_NATIVE_UCHAR);
 }
 
 
