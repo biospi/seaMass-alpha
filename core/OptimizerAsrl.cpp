@@ -511,6 +511,12 @@ double OptimizerAsrl::acceleration(vector<Matrix>& cEs, fp lambda)
 }
 
 
+const std::vector<Matrix>& OptimizerAsrl::getCs() const
+{ 
+	return cs_;
+}
+
+
 /*void
 OptimizerAsrl::
 threshold(fp thresh)

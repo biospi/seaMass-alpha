@@ -146,7 +146,7 @@ ii SeaMass::getIteration() const
 
 void SeaMass::getOutput(Output& output) const
 {
-	/*output.scales.resize(dimensions_);
+	output.scales.resize(dimensions_);
 	output.offsets.resize(dimensions_);
 	output.baselineScale.resize(dimensions_);
 	output.baselineOffset.resize(dimensions_);
@@ -167,9 +167,9 @@ void SeaMass::getOutput(Output& output) const
 		{
 			const BasisBspline::MeshInfo& meshInfo = static_cast<BasisBspline*>(bases_[j])->getMeshInfo();
 
-			for (ii i = 0; i < (ii)bases_[j]->getSize(); i++)
+			for (ii i = 0; i < optimiser_->getCs()[j].size(); i++)
 			{
-				fp c = optimiser_->getCoeffs()[j].vs_[i];
+				fp c = optimiser_->getCs()[j].vs_[i];
 				if (c > 0.0)
 				{
 					output.weights.push_back(c);
@@ -184,7 +184,7 @@ void SeaMass::getOutput(Output& output) const
 				}
 			}
 		}
-	}*/
+	}
 }
 
 

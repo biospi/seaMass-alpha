@@ -31,6 +31,7 @@ mzmlb_spectrum = h5open(filename, "r") do file
 end
 
 figure()
+axhline(color="grey")
 plot(mzmlb_spectrum.mzs, mzmlb_spectrum.intensities)
 xlabel("m/z (Th)")
 ylabel("intensity")
@@ -62,30 +63,45 @@ xlabel("m/z (Th)")
 ylabel("intensity")
 
 
-# load spectrum from smi file
-type SMO_Spectrum
-  outputBinCounts
-  controlPoints
-  offset
-  scale
+# load spectrum from smv file
+type SMV_Spectrum
+  binCounts
 end
-filename = "/Volumes/C/s/swath/P02U_Swath_1_1D.pos_617.55.0.smo"
-smo_spectrum = h5open(filename, "r") do file
-  SMO_Spectrum(
-    read(file, "outputBinCounts"),
-    read(file, "controlPoints"),
-    h5readattr(filename, "controlPoints")["offset"][1],
-    h5readattr(filename, "controlPoints")["scale"][1]
+filename = "/Volumes/C/s/swath/P02U_Swath_1_1D.pos_617.55.smv"
+smv_spectrum = h5open(filename, "r") do file
+  spectrumIndex = [1 size(file["binCounts"])[1]+1]
+  try
+    spectrumIndex = file["spectrumIndex"][spectrumID:spectrumID+1] + 1
+  end
+  SMV_Spectrum(
+    file["binCounts"][spectrumIndex[1]:spectrumIndex[2]-1],
   )
 end
 
 
 figure()
+axhline(color="grey")
 smi_spectrum_bin_widths = smi_spectrum.binEdges[2:length(smi_spectrum.binEdges)] - smi_spectrum.binEdges[1:length(smi_spectrum.binEdges)-1]
 step(smi_spectrum.binEdges, vcat(0.0, smi_spectrum.binCounts ./ smi_spectrum_bin_widths ))
-step(smi_spectrum.binEdges, vcat(0.0, smo_spectrum.outputBinCounts ./ smi_spectrum_bin_widths ))
+step(smi_spectrum.binEdges, vcat(0.0, (smi_spectrum.binCounts - smv_spectrum.binCounts) ./ smi_spectrum_bin_widths ))
 xlabel("m/z (Th)")
 ylabel("ion count per Th")
+
+
+# load spectrum from smo file
+type SMO_Spectrum
+  controlPoints
+  offset
+  scale
+end
+filename = "/Volumes/C/s/swath/P02U_Swath_1_1D.pos_617.55.smo"
+smo_spectrum = h5open(filename, "r") do file
+  SMO_Spectrum(
+    read(file, "controlPoints"),
+    h5readattr(filename, "controlPoints")["offset"][1],
+    h5readattr(filename, "controlPoints")["scale"][1]
+  )
+end
 
 
 npoints = 10000
@@ -102,9 +118,9 @@ figure()
 axhline(color="grey")
 axvline(x=mz_range[1],color="grey")
 axvline(x=mz_range[2],color="grey")
-step(smi_spectrum.binEdges, vcat(0.0, smi_spectrum.binCounts ./ smi_spectrum_bin_widths ))
-step(smi_spectrum.binEdges, vcat(0.0, smo_spectrum.outputBinCounts ./ smi_spectrum_bin_widths ))
-plot(mzs_bspline, intensities_bspline * 300)
+#step(smi_spectrum.binEdges, vcat(0.0, smi_spectrum.binCounts ./ smi_spectrum_bin_widths ))
+#step(smi_spectrum.binEdges, vcat(0.0, smo_spectrum.outputBinCounts ./ smi_spectrum_bin_widths ))
+plot(mzs_bspline, intensities_bspline ./ (mzs_bspline[2] - mzs_bspline[1]))
 
 
 

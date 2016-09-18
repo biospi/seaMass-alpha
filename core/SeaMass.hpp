@@ -83,7 +83,7 @@ public:
 	void getOutputControlPoints(ControlPoints& controlPoints) const;
 	void getOutputControlPoints1d(ControlPoints1D& controlPoints) const;
 
-public:
+private:
 	void init(Input& input, const std::vector<ii>& scales);
 
 	Matrix g_;

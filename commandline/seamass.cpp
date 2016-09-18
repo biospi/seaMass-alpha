@@ -145,49 +145,64 @@ int main(int argc, char *argv[])
 
 		do
 		{
+			// create SMV file
 			ostringstream oss;
-			oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
-			HDF5Writer smo(oss.str());
+			oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
+			HDF5Writer smv(oss.str());
+
+			// save back input but with bin_counts now containing the residuals
+			vector<fp> originalBinCounts = input.binCounts;
+			sm.getOutputBinCounts(input.binCounts);
+			for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
+			smv.write_input(input);
+			input.binCounts = originalBinCounts;
+
+			// write RTree
+			SeaMass::Output output;
+			sm.getOutput(output);
+			smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+
+			// for now, lets also write out an smo
+			ostringstream oss2;
+			oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
+			HDF5Writer smo(oss2.str());
 
 			SeaMass::ControlPoints controlPoints;
 			sm.getOutputControlPoints(controlPoints);
 			smo.write_output_control_points(controlPoints);
-
-			vector<fp> binCounts;
-			sm.getOutputBinCounts(binCounts);
-			smo.write("outputBinCounts", binCounts);
 		}
 		while (sm.step(shrinkage, tolerance));
 
-		{
-			ostringstream oss;
-			oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
-			HDF5Writer smo(oss.str());
-
-			SeaMass::ControlPoints controlPoints;
-			sm.getOutputControlPoints(controlPoints);
-			smo.write_output_control_points(controlPoints);
-
-			vector<fp> binCounts;
-			sm.getOutputBinCounts(binCounts);
-			smo.write("outputBinCounts", binCounts);
-		}
+		// create SMV file
+		ostringstream oss;
+		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
+		HDF5Writer smv(oss.str());
 
 		// save back input but with bin_counts now containing the residuals
-		/*vector<fp> binCounts(input.binCounts.size(), 0.0);
-		sm.getOutputBinCounts(binCounts);
-		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] -= binCounts[i];
-		smo.write_input(input);*/
+		vector<fp> originalBinCounts = input.binCounts;
+		sm.getOutputBinCounts(input.binCounts);
+		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
+		smv.write_input(input);
+		input.binCounts = originalBinCounts;
 
-		// save seamass output as RTree
-		/*SeaMass::Output output;
+		// write RTree
+		SeaMass::Output output;
 		sm.getOutput(output);
-		smv.write_output(output, shrinkage, tolerance, 4096);
+		smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+
+		// for now, lets also write out an smo
+		ostringstream oss2;
+		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
+		HDF5Writer smo(oss2.str());
+
+		SeaMass::ControlPoints controlPoints;
+		sm.getOutputControlPoints(controlPoints);
+		smo.write_output_control_points(controlPoints);
 
 		// demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
 		// lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)
 		// therefore we just need to load from the RTree ito Output::weights,scales,offsets
-		SeaMass::Output loaded;
+		/*SeaMass::Output loaded;
 		loaded.baselineOffset = output.baselineOffset;
 		loaded.baselineScale = output.baselineScale;
 		loaded.baselineExtent = output.baselineExtent;

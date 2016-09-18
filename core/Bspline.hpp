@@ -29,11 +29,6 @@
 
 class Bspline
 {
-protected:
-	ii order_;
-	ii n_;
-	std::vector<double> lookup_;
-
 public:
 	Bspline(ii order, ii n);
 	double ibasis(double x);
@@ -42,6 +37,11 @@ public:
 	static double m(double x, ii k, ii i);
 	static double im(double x, ii k);
 	static ii factorial(ii n);
+
+private:
+	ii order_;
+	ii n_;
+	std::vector<double> lookup_;
 };
 
 

@@ -34,13 +34,10 @@ public:
 	virtual ~OptimizerAsrl();
     
 	double step(fp lambda);
-
     //void threshold(fp threshold);
-	//std::vector<Matrix>& getCoeffs() { return cs_; }
-	//const std::vector<Matrix>& getL1Norms() const { return l1s_; }
-	//const std::vector<Matrix>& getL2Norms() const { return l2s_; }
 
 	void synthesis(Matrix& f, ii basis = -1) const;
+	const std::vector<Matrix>& getCs() const;
 
 protected:
 	void error(Matrix& f) const;
