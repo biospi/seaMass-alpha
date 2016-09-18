@@ -119,7 +119,7 @@ protected:
 class InputFile
 {
 public:
-	virtual bool next(seaMass::Input& output, std::string& id) = 0;
+	virtual bool next(SeaMass::Input& output, std::string& id) = 0;
 	virtual ~InputFile(){};
 };
 
@@ -130,7 +130,7 @@ public:
 	mzMLbInputFile(string fileName);
 	~mzMLbInputFile();
 
-	virtual bool next(seaMass::Input& output, std::string& id);
+	virtual bool next(SeaMass::Input& output, std::string& id);
 
 protected:
 	MassSpecFile* msFile;
@@ -148,7 +148,7 @@ class SMIInputFile : public InputFile
 public:
 	SMIInputFile(string fileName) {}
 
-	virtual bool next(seaMass::Input& output, std::string& id) { return false; }
+	virtual bool next(SeaMass::Input& output, std::string& id) { return false; }
 };
 
 

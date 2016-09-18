@@ -36,7 +36,7 @@ BasisPatch<T>::BasisPatch()
 	b.set(5,7);
 	for(int i = 0; i < 5; ++i)
 		for(int j = 0; j < 7; ++j)
-			b.m[i][j] =  BSpline::m(x[j],k,t[i]);
+			b.m[i][j] =  Bspline::m(x[j],k,t[i]);
 }
 
 template<typename T>

@@ -86,7 +86,7 @@ public:
 	RTreeReader(const std::string& filename);
 	~RTreeReader();
 
-	void read(seaMass::Output& output);
+	void read(SeaMass::Output& output);
 };
 
 

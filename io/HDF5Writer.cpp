@@ -35,16 +35,16 @@ using namespace boost;
 class MyDataStream : public IDataStream
 {
 public:
-	const seaMass::Output& output;
+	const SeaMass::Output& output;
 	ii index;
 	ii dimensions;
 	vector<double> low;
 	vector<double> high;
 
-	MyDataStream(const seaMass::Output& _output) :
+	MyDataStream(const SeaMass::Output& _output) :
 		output(_output),
 		index(0),
-		dimensions(output.baseline_size.size()),
+		dimensions(output.baselineExtent.size()),
 		low(dimensions + 1),
 		high(dimensions + 1)
 	{
@@ -88,7 +88,8 @@ HDF5Writer::
 HDF5Writer(const string& _filename) :
 	filename(_filename)
 {
-	file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+	file = H5Fcreate(filename.c_str(), H5F_ACC_TRUNC | H5F_ACC_DEBUG, H5P_DEFAULT, H5P_DEFAULT);
+
 	if (file < 0)
 	{
 		// throw exception
@@ -112,46 +113,46 @@ HDF5Writer::
 
 void
 HDF5Writer::
-write_input(const seaMass::Input& input) const
+write_input(const SeaMass::Input& input) const
 {
-	write("bin_edges", input.bin_edges);
-	write("bin_counts", input.bin_counts);
-	if (input.spectrum_index.size() > 0) write("spectrum_index", input.spectrum_index);
-	if (input.start_times.size() > 0) write("start_times", input.start_times);
-	if (input.finish_times.size() > 0) write("finish_times", input.finish_times);
+	write("binEdges", input.binEdges);
+	write("binCounts", input.binCounts);
+	if (input.spectrumIndex.size() > 0) write("spectrumIndex", input.spectrumIndex);
+	if (input.startTimes.size() > 0) write("startTimes", input.startTimes);
+	if (input.finishTimes.size() > 0) write("finishTimes", input.finishTimes);
 	if (input.exposures.size() > 0) write("exposures", input.exposures);
 }
 
 void
 HDF5Writer::
-write_output(const seaMass::Output& output, ii shrinkage, ii tolerance, ii page_size) const
+write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_size) const
 {
 	// placeholder idx and dat datasets
 	hsize_t dims = 1;
 	hid_t fspace = H5Screate_simple(1, &dims, &dims);
 	hid_t type_id = H5Tcreate(H5T_OPAQUE, 1);
-	hid_t dataset = H5Dcreate(file, "seamass_index", type_id, fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hid_t dataset = H5Dcreate(file, "seamassIndex", type_id, fspace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	{
-		hsize_t dims = output.baseline_size.size();
+		hsize_t dims = output.baselineExtent.size();
 		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
-		hid_t scale_attr = H5Acreate(dataset, "size", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
-		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baseline_size[0]));
+		hid_t scale_attr = H5Acreate(dataset, "extent", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baselineExtent[0]));
 		H5Sclose(scale_fspace);
 		H5Aclose(scale_attr);
 	}
 	{
-		hsize_t dims = output.baseline_size.size();
+		hsize_t dims = output.baselineExtent.size();
 		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
 		hid_t scale_attr = H5Acreate(dataset, "scale", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
-		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baseline_scale[0]));
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baselineScale[0]));
 		H5Sclose(scale_fspace);
 		H5Aclose(scale_attr);
 	}
 	{
-		hsize_t dims = output.baseline_size.size();
+		hsize_t dims = output.baselineExtent.size();
 		hid_t scale_fspace = H5Screate_simple(1, &dims, &dims);
 		hid_t scale_attr = H5Acreate(dataset, "offset", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
-		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baseline_offset[0]));
+		H5Awrite(scale_attr, H5T_NATIVE_INT, &(output.baselineOffset[0]));
 		H5Sclose(scale_fspace);
 		H5Aclose(scale_attr);
 	}
@@ -187,7 +188,7 @@ write_output(const seaMass::Output& output, ii shrinkage, ii tolerance, ii page_
 	// Create and bulk load a new RTree, using "file" as the StorageManager and the RSTAR splitting policy.
 	MyDataStream stream(output);
 	id_type indexIdentifier;
-	ISpatialIndex* tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, stream, *file, 0.7, 100, 100, output.baseline_size.size() + 1, SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
+	ISpatialIndex* tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, stream, *file, 0.7, 100, 100, output.baselineExtent.size() + 1, SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
 
 	cout << "RTREE OUTPUT" << endl;
 	cout << *tree;
@@ -203,47 +204,48 @@ write_output(const seaMass::Output& output, ii shrinkage, ii tolerance, ii page_
 }
 
 
-// only supports cm with dimension 2 at present
 void
 HDF5Writer::
-write_output_control_points(const seaMass::ControlPoints& control_points) const
+write_output_control_points(const SeaMass::ControlPoints& controlPoints) const
 {
-    hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
+	vector<hsize_t> dims(controlPoints.extent.size());
+	vector<hsize_t> cdims(controlPoints.extent.size());
+	for (ii i = 0; i < (ii)dims.size(); i++)
+	{
+		dims[i] = controlPoints.extent[i];
+		cdims[i] = (controlPoints.extent[i] < 128) ? controlPoints.extent[i] : 128;
+	}
+
+	hid_t lcpl_id = H5Pcreate(H5P_LINK_CREATE);
     H5Pset_create_intermediate_group(lcpl_id, 1);
     
     hid_t dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
     float fillval = -3.0/8.0;
     H5Pset_fill_value(dcpl_id, H5T_NATIVE_FLOAT, &fillval);
-
-	hsize_t cdims[2] = { control_points.size[1] < 128 ? static_cast<hsize_t>(control_points.size[1]) : 128, control_points.size[0] < 128 ? static_cast<hsize_t>(control_points.size[0]) : 128 };
-    H5Pset_chunk(dcpl_id, 2, cdims);
+    H5Pset_chunk(dcpl_id, dims.size(), cdims.data());
     H5Pset_shuffle(dcpl_id);
     H5Pset_deflate(dcpl_id, 1);
 
-	hsize_t dims[2] = { static_cast<hsize_t>(control_points.size[1]), static_cast<hsize_t>(control_points.size[0]) };
-    hid_t fspace = H5Screate_simple(2, dims, dims);
-    hid_t dataset = H5Dcreate(file, "control_points", H5T_NATIVE_FLOAT, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
+	hid_t fspace = H5Screate_simple(dims.size(), dims.data(), dims.data());
+    hid_t dataset = H5Dcreate(file, "controlPoints", H5T_NATIVE_FLOAT, fspace, lcpl_id,  dcpl_id, H5P_DEFAULT);
 
 	// write
-	hsize_t mdims[2] = { static_cast<hsize_t>(control_points.size[1]), static_cast<hsize_t>(control_points.size[0]) };
-    hid_t mspace = H5Screate_simple(2, mdims, mdims);
-	H5Dwrite(dataset, H5T_NATIVE_FLOAT, mspace, fspace, H5P_DEFAULT, control_points.coeffs.data());
+	hid_t mspace = H5Screate_simple(dims.size(), dims.data(), dims.data());
+	H5Dwrite(dataset, H5T_NATIVE_FLOAT, mspace, fspace, H5P_DEFAULT, controlPoints.coeffs.data());
     
     H5Sclose(fspace);
     H5Sclose(mspace);
 
-    hsize_t two = 2;
-    hid_t scale_fspace = H5Screate_simple(1, &two, &two);
+	hsize_t size = dims.size();
+    hid_t scale_fspace = H5Screate_simple(1, &size, &size);
 	hid_t scale_attr = H5Acreate(dataset, "scale", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
-	int scale_val[2] = { control_points.scale[0], control_points.scale[1] };
-	H5Awrite(scale_attr, H5T_NATIVE_INT, &scale_val);
+	H5Awrite(scale_attr, H5T_NATIVE_INT, controlPoints.scale.data());
 	H5Sclose(scale_fspace);
 	H5Aclose(scale_attr);
 
-	hid_t offset_fspace = H5Screate_simple(1, &two, &two);
+	hid_t offset_fspace = H5Screate_simple(1, &size, &size);
 	hid_t offset_attr = H5Acreate(dataset, "offset", H5T_NATIVE_INT, offset_fspace, H5P_DEFAULT, H5P_DEFAULT);
-	int offset_val[2] = { control_points.offset[0], control_points.offset[1] };
-	H5Awrite(offset_attr, H5T_NATIVE_INT, &offset_val);
+	H5Awrite(offset_attr, H5T_NATIVE_INT, controlPoints.offset.data());
 	H5Sclose(offset_fspace);
 	H5Aclose(offset_attr);
     

@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -27,17 +24,18 @@
 #define _SEAMASS_CORE_BSPLINE_HPP_
 
 
-#include "seaMass.hpp"
+#include "Matrix.hpp"
 
 
-class BSpline
+class Bspline
 {
 protected:
-	ii order, n;
-	std::vector<double> lookup;
+	ii order_;
+	ii n_;
+	std::vector<double> lookup_;
 
 public:
-	BSpline(ii order, ii n);
+	Bspline(ii order, ii n);
 	double ibasis(double x);
 
 	static double m(double x, ii k, ii i, std::vector<fp>& ks);

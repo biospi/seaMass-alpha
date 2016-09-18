@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -23,30 +20,32 @@
 //
 
 
-#ifndef _SEAMASS_HPP_
-#define _SEAMASS_HPP_
+#ifndef _SEAMASS_CORE_SEAMASS_HPP_
+#define _SEAMASS_CORE_SEAMASS_HPP_
 
 
-#include <vector>
-#include "core.hpp"
-#include "BasisFunctions.hpp"
-#include "OptimiserASRL.hpp"
+#include "Basis.hpp"
+#include "OptimizerAsrl.hpp"
+
+
+//void remove_zeros(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities);
+//void merge_bins(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities, double width);
 
 
 /**
-* seaMass fitting of a 1-d curve or multi-dimensional surface to the input spectr(um|a).
+* SeaMass fitting of a 1-d curve or multi-dimensional surface to the input spectr(um|a).
 */
-class seaMass
+class SeaMass
 {
 public:
 	static void notice();
 
 	struct Input {
-		std::vector<fp> bin_counts;
-		std::vector<li> spectrum_index;
-		std::vector<double> bin_edges;
-		std::vector<double> start_times;
-		std::vector<double> finish_times;
+		std::vector<fp> binCounts;
+		std::vector<li> spectrumIndex;
+		std::vector<double> binEdges;
+		std::vector<double> startTimes;
+		std::vector<double> finishTimes;
 		std::vector<fp> exposures;
 	};
 
@@ -54,16 +53,16 @@ public:
 		std::vector<fp> weights;
 		std::vector< std::vector<ii> > scales;
 		std::vector< std::vector<li> > offsets;
-		std::vector<ii> baseline_size;
-		std::vector<ii> baseline_scale;
-		std::vector<ii> baseline_offset;
+		std::vector<ii> baselineScale;
+		std::vector<ii> baselineOffset;
+		std::vector<ii> baselineExtent;
 	};
 
 	struct ControlPoints {
 		std::vector<fp> coeffs;
-		std::vector<ii> size;
 		std::vector<ii> scale;
 		std::vector<ii> offset;
+		std::vector<ii> extent;
 	};
 
 	struct ControlPoints1D {
@@ -72,22 +71,26 @@ public:
 		std::vector<ii> offsets;
 	};
 
-	seaMass(Input& input, const std::vector<ii>& scales);
-	seaMass(Input& input, const Output& seed);
+	SeaMass(Input& input, const std::vector<ii>& scales);
+	SeaMass(Input& input, const Output& seed);
+	virtual ~SeaMass();
 
-	virtual bool step(double shrinkage, double tolerance);
-	void get_output(Output& output) const;
+	bool step(double shrinkage, double tolerance);
+	ii getIteration() const;
 
-	void get_output_bin_counts(std::vector<fp>& bin_counts) const;
-	void get_output_control_points(ControlPoints& control_points) const;
-	void get_output_control_points_1d(ControlPoints1D& control_points) const;
+	void getOutput(Output& output) const;
+	void getOutputBinCounts(std::vector<fp>& binCounts) const;
+	void getOutputControlPoints(ControlPoints& controlPoints) const;
+	void getOutputControlPoints1d(ControlPoints1D& controlPoints) const;
 
 public:
 	void init(Input& input, const std::vector<ii>& scales);
 
-	short dimensions;
-	std::vector<Basis*> bases;
-	OptimiserASRL* optimiser;
+	Matrix g_;
+	ii dimensions_;
+	std::vector<Basis*> bases_;
+	OptimizerAsrl* optimiser_;
+	ii iteration_;
 };
 
 

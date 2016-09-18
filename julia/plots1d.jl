@@ -5,9 +5,9 @@ using PyCall
 @pyimport scipy.interpolate as interpolate
 
 
-spectrumID = 1000
+spectrumID = 1
 
-filename = "/Volumes/C/s/Metabolomics_ToF/16_PBQC-10_522-16470.mzMLb"
+filename = "/Volumes/C/s/swath/P02U_Swath_1_1D.mzMLb"
 # load spectrum from mzMLb file
 type mzMLb_spectrum
   mzs
@@ -38,18 +38,18 @@ ylabel("intensity")
 
 # load spectrum from smi file
 type SMI_Spectrum
-  bin_edges
-  bin_counts
+  binEdges
+  binCounts
   exposure
 end
-smi_spectrum = h5open("/Volumes/C/s/vocs3/29-07-2016-AUHHEC00-02.pos_0.smi", "r") do file
-  spectrumIndex = [1 size(file["bin_counts"])[1]+1]
+smi_spectrum = h5open("/Volumes/C/s/swath/P02U_Swath_1_1D.pos_617.55.smi", "r") do file
+  spectrumIndex = [1 size(file["binCounts"])[1]+1]
   try
-    spectrumIndex = file["spectrum_index"][spectrumID:spectrumID+1] + 1
+    spectrumIndex = file["spectrumIndex"][spectrumID:spectrumID+1] + 1
   end
   SMI_Spectrum(
-    file["bin_edges"][spectrumIndex[1]+spectrumID-1:spectrumIndex[2]+spectrumID-1],
-    file["bin_counts"][spectrumIndex[1]:spectrumIndex[2]-1],
+    file["binEdges"][spectrumIndex[1]+spectrumID-1:spectrumIndex[2]+spectrumID-1],
+    file["binCounts"][spectrumIndex[1]:spectrumIndex[2]-1],
     file["exposures"][spectrumID][1]
   )
 end
@@ -57,42 +57,57 @@ end
 
 figure()
 plot(mzmlb_spectrum.mzs, mzmlb_spectrum.intensities)
-step(smi_spectrum.bin_edges, vcat(0.0, smi_spectrum.bin_counts / smi_spectrum.exposure))
+step(smi_spectrum.binEdges, vcat(0.0, smi_spectrum.binCounts / smi_spectrum.exposure))
 xlabel("m/z (Th)")
 ylabel("intensity")
 
 
 # load spectrum from smi file
 type SMO_Spectrum
-  bin_counts
-  control_points
+  outputBinCounts
+  controlPoints
   offset
+  scale
 end
-smo_spectrum = h5open("/Volumes/C/s/vocs/06-17-2016-AUHCC46-0045_30.0.smo", "r") do file
+filename = "/Volumes/C/s/swath/P02U_Swath_1_1D.pos_617.55.0.smo"
+smo_spectrum = h5open(filename, "r") do file
   SMO_Spectrum(
-    read(file, "bin_counts")
-    read(file, "control_points")
-    h5readattr("/Volumes/C/s/vocs/06-17-2016-AUHCC46-0045_30.0.smo", "control_points")["Offset"][1]
+    read(file, "outputBinCounts"),
+    read(file, "controlPoints"),
+    h5readattr(filename, "controlPoints")["offset"][1],
+    h5readattr(filename, "controlPoints")["scale"][1]
   )
 end
 
 
-h5readattr("P02U_Swath_1__682_690.smo", "51_0/2/5/0/-9/fcs")["Offset"][1]
-
-
 figure()
-smi_spectrum_bin_widths = smi_spectrum.bin_edges[2:length(smi_spectrum.bin_edges)] - smi_spectrum.bin_edges[1:length(smi_spectrum.bin_edges)-1]
-step(smi_spectrum.bin_edges, vcat(0.0, smi_spectrum.bin_counts ./ smi_spectrum_bin_widths ))
-step(smi_spectrum.bin_edges, vcat(0.0, smo_spectrum.bin_counts ./ smi_spectrum_bin_widths ))
+smi_spectrum_bin_widths = smi_spectrum.binEdges[2:length(smi_spectrum.binEdges)] - smi_spectrum.binEdges[1:length(smi_spectrum.binEdges)-1]
+step(smi_spectrum.binEdges, vcat(0.0, smi_spectrum.binCounts ./ smi_spectrum_bin_widths ))
+step(smi_spectrum.binEdges, vcat(0.0, smo_spectrum.outputBinCounts ./ smi_spectrum_bin_widths ))
 xlabel("m/z (Th)")
 ylabel("ion count per Th")
 
 
+npoints = 10000
+coefs = vcat(smo_spectrum.controlPoints, 0, 0, 0, 0) # no idea why I have to pad this
+knots = -3:length(coefs)-4
+tck = (knots, coefs, 3)
+x = linspace(0, length(smo_spectrum.controlPoints)-3, npoints)
+intensities_bspline = interpolate.splev(x, tck, ext=1)
+
+mz_range = (smo_spectrum.offset + [0, length(smo_spectrum.controlPoints) - 3]) * 1.0033548378 / (60 * 2^smo_spectrum.scale)
+mzs_bspline = linspace(mz_range[1], mz_range[2], npoints)
+
+figure()
+axhline(color="grey")
+axvline(x=mz_range[1],color="grey")
+axvline(x=mz_range[2],color="grey")
+step(smi_spectrum.binEdges, vcat(0.0, smi_spectrum.binCounts ./ smi_spectrum_bin_widths ))
+step(smi_spectrum.binEdges, vcat(0.0, smo_spectrum.outputBinCounts ./ smi_spectrum_bin_widths ))
+plot(mzs_bspline, intensities_bspline * 300)
 
 
 
-plot(mzmlb_spectrum.mzs, mzmlb_spectrum.intensities * smi_spectrum.exposure)
-step(smi_spectrum.bin_edges, vcat(0.0, smi_spectrum.bin_counts))
 
 
 
@@ -108,7 +123,39 @@ step(smi_spectrum.bin_edges, vcat(0.0, smi_spectrum.bin_counts))
 
 
 
-npoints = 100000
+
+
+figure()
+scatter(-1:length(smo_spectrum.controlPoints)-2, smo_spectrum.controlPoints)
+
+
+
+axhline(color="grey")
+axvline(x=x[1],color="grey")
+axvline(x=x[end],color="grey")
+plot(x, outputBspline)
+scatter(-1:length(smo_spectrum.controlPoints)-2, smo_spectrum.controlPoints)
+
+figure()
+axhline(color="grey")
+axvline(x=x[1],color="grey")
+axvline(x=x[end],color="grey")
+plot(x, intensities_bspline)
+scatter(-1:length(fcs)-2, fcs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 figure()
 

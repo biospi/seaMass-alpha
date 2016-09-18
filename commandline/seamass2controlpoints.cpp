@@ -29,7 +29,6 @@
 #include <omp.h>
 
 #include "../io/HDF5Writer.hpp"
-#include "../io/SMVWriter.hpp"
 #include "../io/MSFileData.hpp"
 #include "../core/seaMass.hpp"
 
@@ -40,7 +39,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
-	seaMass::notice();
+	SeaMass::notice();
 
 	string in_file;
 	vector<ii> scales(2);

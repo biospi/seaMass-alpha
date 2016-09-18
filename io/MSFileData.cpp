@@ -490,7 +490,7 @@ mzMLbInputFile::~mzMLbInputFile()
 }
 
 
-bool mzMLbInputFile::next(seaMass::Input& out, std::string& id)
+bool mzMLbInputFile::next(SeaMass::Input& out, std::string& id)
 {
 	if (i >= spectraMetaData.size()) return false;
 
@@ -528,11 +528,11 @@ bool mzMLbInputFile::next(seaMass::Input& out, std::string& id)
 		}
 	}
 
-	out.bin_counts.resize(0);
-	out.bin_edges.resize(0);
-	out.spectrum_index.resize(intensities.size() > 1 ? intensities.size() + 1 : 0);
-	out.start_times.resize(intensities.size() > 1 ? intensities.size() : 0);
-	out.finish_times.resize(intensities.size() > 1 ? intensities.size() : 0);
+	out.binCounts.resize(0);
+	out.binEdges.resize(0);
+	out.spectrumIndex.resize(intensities.size() > 1 ? intensities.size() + 1 : 0);
+	out.startTimes.resize(intensities.size() > 1 ? intensities.size() : 0);
+	out.finishTimes.resize(intensities.size() > 1 ? intensities.size() : 0);
 	out.exposures.resize(intensities.size(), 1.0); // initialise exposures to default of 1 (unit exposure)
 	size_t bck = 0;
 	size_t blk = 0;
@@ -540,9 +540,9 @@ bool mzMLbInputFile::next(seaMass::Input& out, std::string& id)
 	{
 		if (intensities.size() > 1)
 		{
-			out.spectrum_index[j] = out.bin_counts.size();
-			out.start_times[j] = start_times[j];
-			out.finish_times[j] = finish_times[j];
+			out.spectrumIndex[j] = out.binCounts.size();
+			out.startTimes[j] = start_times[j];
+			out.finishTimes[j] = finish_times[j];
 		}
 
 		// This modifies the raw data for some limitations of the mzML spec and makes
@@ -563,15 +563,15 @@ bool mzMLbInputFile::next(seaMass::Input& out, std::string& id)
 				double minimum = std::numeric_limits<double>::max();
 
 				// we drop the first and last m/z datapoint as we don't know both their bin edges
-				out.bin_counts.resize(out.bin_counts.size() + intensities[j].size() - 2);
-				out.bin_edges.resize(out.bin_edges.size() + mzs[j].size() - 1);
+				out.binCounts.resize(out.binCounts.size() + intensities[j].size() - 2);
+				out.binEdges.resize(out.binEdges.size() + mzs[j].size() - 1);
 				for (size_t k = 1; k < mzs[j].size(); k++)
 				{
 					if (intensities[j][k] > 0) minimum = minimum < intensities[j][k] ? minimum : intensities[j][k];
 
 					// linear interpolation of mz extent (probably should be cubic)
-					if (k < mzs[j].size() - 1) out.bin_counts[bck++] = intensities[j][k];
-					out.bin_edges[blk++] = 0.5 * (mzs[j][k - 1] + mzs[j][k]);
+					if (k < mzs[j].size() - 1) out.binCounts[bck++] = intensities[j][k];
+					out.binEdges[blk++] = 0.5 * (mzs[j][k - 1] + mzs[j][k]);
 				}
 
 				// check to see if we can estimate the exposure i.e. is the minimum reasonable?
@@ -580,7 +580,7 @@ bool mzMLbInputFile::next(seaMass::Input& out, std::string& id)
 					// correct bin_counts with derived exposures
 					for (size_t k = bck - (intensities[j].size() - 2); k < bck; k++)
 					{
-						out.bin_counts[k] /= minimum;
+						out.binCounts[k] /= minimum;
 					}
 					out.exposures[j] = 1.0 / minimum;
 				}
@@ -592,13 +592,13 @@ bool mzMLbInputFile::next(seaMass::Input& out, std::string& id)
 			{
 				for (size_t k = 0; k < mzs[j].size(); k++)
 				{
-					if (k > 0) out.bin_counts[bck++] = (mzs[j][i] - mzs[j][i - 1]) * 0.5 * (intensities[j][i] + intensities[j][i - 1]);
-					out.bin_edges[blk++] = mzs[j][k];
+					if (k > 0) out.binCounts[bck++] = (mzs[j][i] - mzs[j][i - 1]) * 0.5 * (intensities[j][i] + intensities[j][i - 1]);
+					out.binEdges[blk++] = mzs[j][k];
 				}
 			}
 		}
 	}
-	if (intensities.size() > 1) out.spectrum_index.back() = out.bin_counts.size();
+	if (intensities.size() > 1) out.spectrumIndex.back() = out.binCounts.size();
 
 	return true;
 }

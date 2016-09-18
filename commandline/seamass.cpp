@@ -40,12 +40,12 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
-	seaMass::notice();
+	SeaMass::notice();
 
 	string in_file;
 	vector<ii> scales(2);
-	ii shrinkage;
-	ii tolerance;
+	ii shrinkageExponent;
+	ii toleranceExponent;
 	ii threads;
 
 	// *******************************************************************
@@ -69,11 +69,11 @@ int main(int argc, char *argv[])
 			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
 			"guidelines: around 4, "
 			"default: auto")
-		("shrinkage,s",po::value<ii>(&shrinkage)->default_value(-4),""
+		("shrinkage,s",po::value<ii>(&shrinkageExponent)->default_value(-4),""
 			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
 			"guidelines: around -4, "
 			"default: -4")
-		("tolerance,l",po::value<ii>(&tolerance)->default_value(-9),
+		("tolerance,l",po::value<ii>(&toleranceExponent)->default_value(-9),
 			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
 			"guidelines: around -9, "
 			"default: -9")
@@ -134,44 +134,67 @@ int main(int argc, char *argv[])
 	}
 
 	mzMLbInputFile msFile(in_file);
-	seaMass::Input input;
+	SeaMass::Input input;
 	string id;
+	double shrinkage = pow(2.0, shrinkageExponent);
+	double tolerance = pow(2.0, toleranceExponent);
 	while(msFile.next(input, id))
 	{
 		cout << "Processing id=" << id << endl;
-		seaMass sm(input, scales);
+		SeaMass sm(input, scales);
+
 		do
 		{
-			// if debug save 
-		}
-		while (sm.step(pow(2.0, shrinkage), pow(2.0, tolerance)));
+			ostringstream oss;
+			oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
+			HDF5Writer smo(oss.str());
 
-		ostringstream oss;
-		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
-		HDF5Writer smv(oss.str());
+			SeaMass::ControlPoints controlPoints;
+			sm.getOutputControlPoints(controlPoints);
+			smo.write_output_control_points(controlPoints);
+
+			vector<fp> binCounts;
+			sm.getOutputBinCounts(binCounts);
+			smo.write("outputBinCounts", binCounts);
+		}
+		while (sm.step(shrinkage, tolerance));
+
+		{
+			ostringstream oss;
+			oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
+			HDF5Writer smo(oss.str());
+
+			SeaMass::ControlPoints controlPoints;
+			sm.getOutputControlPoints(controlPoints);
+			smo.write_output_control_points(controlPoints);
+
+			vector<fp> binCounts;
+			sm.getOutputBinCounts(binCounts);
+			smo.write("outputBinCounts", binCounts);
+		}
 
 		// save back input but with bin_counts now containing the residuals
-		vector<fp> bin_counts(input.bin_counts.size(), 0.0);
-		sm.get_output_bin_counts(bin_counts);
-		for (ii i = 0; i < input.bin_counts.size(); i++) input.bin_counts[i] -= bin_counts[i];
-		smv.write_input(input);
+		/*vector<fp> binCounts(input.binCounts.size(), 0.0);
+		sm.getOutputBinCounts(binCounts);
+		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] -= binCounts[i];
+		smo.write_input(input);*/
 
 		// save seamass output as RTree
-		seaMass::Output output;
-		sm.get_output(output);
+		/*SeaMass::Output output;
+		sm.getOutput(output);
 		smv.write_output(output, shrinkage, tolerance, 4096);
 
 		// demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
 		// lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)
 		// therefore we just need to load from the RTree ito Output::weights,scales,offsets
-		seaMass::Output loaded;
-		loaded.baseline_offset = output.baseline_offset;
-		loaded.baseline_scale = output.baseline_scale;
-		loaded.baseline_size = output.baseline_size;
+		SeaMass::Output loaded;
+		loaded.baselineOffset = output.baselineOffset;
+		loaded.baselineScale = output.baselineScale;
+		loaded.baselineExtent = output.baselineExtent;
 		RTreeReader rtree(oss.str());
 		rtree.read(loaded);
 		cout << "Number of saved bases: " << output.weights.size() << endl;
-		cout << "Number of loaded bases: " << loaded.weights.size() << endl;
+		cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
 	}
 
 	return 0;

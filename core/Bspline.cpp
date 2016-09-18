@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -23,38 +20,31 @@
 //
 
 
-#include "BSpline.hpp"
+#include "Bspline.hpp"
 using namespace std;
 
 
-BSpline::
-BSpline(ii _order, ii _n) :
-	order(_order),
-	n(_n),
-	lookup(n+1)
+Bspline::Bspline(ii order, ii n)
+	: order_(order), n_(n), lookup_(n+1)
 {
 	for (ii i = 0; i < n; i++)
 	{
-		lookup[i] = im(i / (double)(n - 1) * (order + 1), order + 1);
+		lookup_[i] = im(i / (double)(n - 1) * (order + 1), order + 1);
  	}
-	lookup[n] = 1.0;
+	lookup_[n] = 1.0;
 }
 
 
-double
-BSpline::
-ibasis(double x)
+double Bspline::ibasis(double x)
 {
-	double f = x / (order + 1) * n;
+	double f = x / (order_ + 1) * n_;
 	ii i = (ii) f;
 	f = f - i;
-	return (1-f)*lookup[i] + f*lookup[i+1];
+	return (1 - f) * lookup_[i] + f * lookup_[i + 1];
 }
 
 
-double
-BSpline::
-m(double x, ii k, ii i, vector<fp>& ks)
+double Bspline::m(double x, ii k, ii i, vector<fp>& ks)
 {
 	if (k == 1)
 	{
@@ -82,9 +72,7 @@ m(double x, ii k, ii i, vector<fp>& ks)
 }
 
 
-double
-BSpline::
-m(double x, ii k, ii i)
+double Bspline::m(double x, ii k, ii i)
 {
 	if (k == 1)
 	{
@@ -105,9 +93,7 @@ m(double x, ii k, ii i)
 }
 
 
-double
-BSpline::
-im(double x, ii k)
+double Bspline::im(double x, ii k)
 {
 	double v = 0.0;
 	for (ii i = 0; i < k + 1; ++i)
@@ -118,9 +104,7 @@ im(double x, ii k)
 }
 
 
-ii
-BSpline::
-factorial(ii n)
+ii Bspline::factorial(ii n)
 {
 	return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
 }
