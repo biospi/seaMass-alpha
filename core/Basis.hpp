@@ -45,7 +45,7 @@ public:
 	virtual void analysis(Matrix& cE, const Matrix& fE, bool sqrA) const = 0;
 
 	virtual ErrorInfo error(Matrix& fE, const Matrix& f, const Matrix& g) const;
-	virtual void shrink(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp shrinkage) const;
+	virtual void shrinkage(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda) const;
 
 	virtual ii getM() const = 0;
 	virtual ii getN() const = 0;
@@ -57,7 +57,6 @@ public:
 private:
 	ii index_;       // index of this basis in the serialised tree
 	ii parentIndex_; // parent node
-	ii childCount_;  // how many children synthesise to this node
 	bool isTransient_; // if transient, coefficients not part of fitting
 };
 

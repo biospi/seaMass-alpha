@@ -31,7 +31,6 @@ class Matrix
 {
 public:
 	Matrix();
-	//Matrix(const Matrix& a);
 	~Matrix();
 
 	void init(li m, ii n); // create matrix with storage but do not initialise
@@ -45,17 +44,22 @@ public:
 	li nnz() const;
 	li size() const;
 
+	void copy(const Matrix& a);
 	void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA);
 	void elementwiseMul(const Matrix& a, const Matrix& b);
 	void elementwiseMul(fp scale, const Matrix& a);
-	void elementwiseDiv(const Matrix& n, const Matrix& d);
+	void elementwiseDiv(const Matrix& n, const Matrix& d, fp divideByZeroValue);
 	void elementwiseSqrt(const Matrix& a);
+	double sumSqrs();
+	double sumSqrDiffs(const Matrix& a);
+	void shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda);
 
-	bool operator=(const Matrix a);
 	bool operator!() const;
 	li mem() const;
 
-public:
+	const fp* getVs() const;
+
+private:
 	li m_; // rows
 	ii n_; // columns
 	ii s_; // stride

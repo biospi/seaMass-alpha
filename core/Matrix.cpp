@@ -36,13 +36,6 @@ Matrix::Matrix()
 }
 
 
-/*Matrix::Matrix(const Matrix& a)
-{
-	init(a.m, a.n);
-	memcpy(vs_, a.vs_, sizeof(fp) * a.size());
-}*/
-
-
 Matrix::~Matrix()
 {
 	free();
@@ -144,8 +137,8 @@ ii Matrix::n() const
 
 
 bool Matrix::operator!() const
-{ 
-	return vs_ == 0; 
+{
+	return vs_ == 0;
 }
 
 
@@ -162,7 +155,26 @@ void Matrix::mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool t
 	fp beta = (fp)(accumulate ? 1.0 : 0.0);
 	mkl_scsrmm(transposeA ? "T" : "N", &a.m_, &x.n_, &a.n_, &alpha, "G**C", a.vs_, a.js_, a.is_, &a.is_[1], x.vs_, &x.n_, &beta, vs_, &x.n_);
 
+#ifndef NDEBUG
 	cout << "  Y" << *this << (accumulate ? " += A" : " = A") << (transposeA ? "t" : "") << a << " . X" << x << endl;
+#endif
+}
+
+
+void Matrix::copy(const Matrix& a)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(a.m_, a.n_);
+
+	#pragma omp parallel for
+	for (ii i = 0; i < a.size(); i++)
+	{
+		vs_[i] = a.vs_[i];
+	}
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = A" << a << endl;
+#endif
 }
 
 
@@ -187,7 +199,9 @@ void Matrix::elementwiseMul(const Matrix& a, const Matrix& b)
 		vsMul((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], &b.vs_[k * chunk_size], &vs_[k * chunk_size]);
 	}
 
+#ifndef NDEBUG
 	cout << "  Y" << *this << " = A" << a << " ./ B" << b << endl;
+#endif
 }
 
 
@@ -202,32 +216,33 @@ void Matrix::elementwiseMul(fp scale, const Matrix& a)
 		vs_[i] = scale * a.vs_[i];
 	}
 
-	cout << "  Y" << *this << " = " << scale << " * " << a << endl;
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = " << scale << " * A" << a << endl;
+#endif
 }
 
 
-void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d)
+void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d, fp divideByZeroValue)
 {
 	// initialise output matrix if not already done
 	if (!*this) init(d.m_, d.n_);
 
-	// split into tasty chunks for openmp and when using 32bit MKL_INT
-	static ii chunk_size = 0x10000;
-	ii chunks = (ii) size() / chunk_size + 1;
-	ii last_chunk = size() % chunk_size;
-	if (last_chunk == 0)
-	{
-		chunks--;
-		last_chunk = chunk_size;
-	}
-
 	#pragma omp parallel for
-	for (ii k = 0; k < chunks; k++)
+	for (li i = 0; i < d.size(); i++)
 	{
-		vsDiv((k == chunks - 1) ? last_chunk : chunk_size, &n.vs_[k * chunk_size], &d.vs_[k * chunk_size], &vs_[k * chunk_size]);
+		if (n.vs_[i] > 0.0 && d.vs_[i] >= 0.0)
+		{
+			vs_[i] = n.vs_[i] / d.vs_[i];
+		}
+		else
+		{
+			vs_[i] = divideByZeroValue;
+		}
 	}
 
+#ifndef NDEBUG
 	cout << "  Y" << *this << " = N" << n << " ./ D" << d << endl;
+#endif
 }
 
 
@@ -252,7 +267,79 @@ void Matrix::elementwiseSqrt(const Matrix& a)
 		vsSqrt((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], &vs_[k * chunk_size]);
 	}
 
+#ifndef NDEBUG
 	cout << "  Y" << *this << " = sqrt(A" << a << ")" << endl;
+#endif
+}
+
+
+double Matrix::sumSqrs()
+{
+	double sum = 0.0;
+
+	#pragma omp parallel for reduction(+:sum)
+	for (li i = 0; i < size(); i++)
+	{
+		sum += vs_[i] * vs_[i];
+	}
+
+#ifndef NDEBUG
+	cout << "  " << defaultfloat << setprecision(8) << sum << " = sum((Y" << *this << ")^2)" << endl;
+#endif
+
+	return sum;
+}
+
+
+double Matrix::sumSqrDiffs(const Matrix& a)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(a.m_, a.n_);
+
+	double sum = 0.0;
+
+	#pragma omp parallel for reduction(+:sum)
+	for (li i = 0; i < size(); i++)
+	{
+		sum += (vs_[i] - a.vs_[i]) * (vs_[i] - a.vs_[i]);
+	}
+
+#ifndef NDEBUG
+	cout << "  " << defaultfloat << setprecision(8) << sum << " = sum((Y" << *this << " - A" << a << ")^2)" << endl;
+#endif
+
+	return sum;
+}
+
+
+void Matrix::shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(c0.m_, c0.n_);
+
+	#pragma omp parallel for
+	for (li i = 0; i < size(); i++)
+	{
+		if (cE.vs_[i] >= numeric_limits<float>::min() && c0.vs_[i] >= numeric_limits<float>::min())
+		{
+			vs_[i] = (cE.vs_[i] / l2.vs_[i]) * c0.vs_[i] / (lambda + (l1.vs_[i] / l2.vs_[i]));
+			//if (cEs[j].vs_[i] < 0.0001) cEs[j].vs_[i] = 0.0;
+		}
+		else
+		{
+			cE.vs_[i] = 0.0;
+		}
+	}
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = shrinkage(cE, c0" << c0 << ", l1, l2, " << lambda << ")" << endl;
+#endif
+}
+
+
+const fp* Matrix::getVs() const
+{
+	return vs_;
 }
 
 

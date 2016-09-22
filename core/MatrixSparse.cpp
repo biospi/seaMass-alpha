@@ -34,15 +34,6 @@ MatrixSparse::MatrixSparse()
 }
 
 
-/*MatrixSparse::MatrixSparse(const MatrixSparse& a)
-{
-	init(a.m, a.n, a.nnz);
-	memcpy(vs_, a.vs_, sizeof(fp) * a.size());
-	memcpy(is_, a.is_, sizeof(fp) * a.size());
-	memcpy(js_, a.js_, sizeof(fp) * a.size());
-}*/
-
-
 MatrixSparse::~MatrixSparse()
 {
 	free();
@@ -152,7 +143,9 @@ void MatrixSparse::elementwiseSqr(const MatrixSparse& a)
 
 	vsSqr(nnz_, a.vs_, vs_);
 
-	cout << "  Y" << *this << " = sqr(A" << a << ")" << endl;
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = (A" << a << ")^2" << endl;
+#endif
 }
 
 

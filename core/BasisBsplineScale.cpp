@@ -83,10 +83,12 @@ BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii _dimension, ii order
 	a.init(m, n, nnz, acoo.data(), rowind.data(), colind.data());
 	aT.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
 
+#ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale";
 	if (isTransient()) cout << " (t)";
 	cout << " parent=" << getParentIndex() << " dimension=" << dimension << " " << meshInfo() << endl;
 	cout << "  A" << a << " (" << defaultfloat << setprecision(2) << (a.mem() + aT.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
+#endif
 }
 
 
@@ -99,7 +101,9 @@ void
 BasisBsplineScale::
 synthesis(Matrix& f, const Matrix& c, bool accumulate) const
 {
+#ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
+#endif
 
 	f.mul(a, c, accumulate, false);
 }
@@ -109,7 +113,9 @@ void
 BasisBsplineScale::
 analysis(Matrix& cE, const Matrix& fE, bool sqrA) const
 {
+#ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::analysis" << endl;
+#endif
 
 	if (sqrA)
 	{

@@ -39,12 +39,6 @@ public:
 	void synthesis(Matrix& f, ii basis = -1) const;
 	const std::vector<Matrix>& getCs() const;
 
-protected:
-	void error(Matrix& f) const;
-	void analysis(std::vector<Matrix>& cE, const Matrix& fE) const;
-	void shrinkage(std::vector<Matrix>& cE, fp lambda);
-	double acceleration(std::vector<Matrix>& cE, fp lambda);
-
 private:
 	const std::vector<Basis*>& bases_;
 	const Matrix& g_;

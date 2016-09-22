@@ -117,7 +117,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 					// basis coefficient b is _integral_ of area under b-spline basis
 					fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-					if (b >= 0.000001) // small basis coefficients waste cpu and cause problems when calculating l2norm
+					//if (b >= 0.000001) // small basis coefficients waste cpu and cause problems when calculating l2norm
 					{
 						acoo.push_back(b);
 						rowind.push_back(i);
@@ -143,6 +143,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	}
 	for (int i = 0; i < 256; ++i) cout << '\b';
 
+#ifndef NDEBUG
 	li m = 0; for (ii k = 0; k < (ii)as.size(); k++) m += as[k].m();
 	li n = 0; for (ii k = 0; k < (ii)as.size(); k++) n += as[k].n();
 	li nnz = 0; for (ii k = 0; k < (ii)as.size(); k++) nnz += as[k].nnz();
@@ -153,6 +154,8 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	cout << " resolution=" << fixed << setprecision(1) << resolution << " (" << bpi << " bases per 1.0033548378Th)";
 	cout << " " << meshInfo() << endl;
 	cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=" << defaultfloat << setprecision(2) << nnz / (double) (m * n) << "% (" << defaultfloat << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb)" << endl;
+#endif
+
 	if (resolutionAuto != resolution)
 	{
 		cerr << endl << "WARNING: resolution is not the suggested value of " << resolutionAuto << ". Continue at your own risk!" << endl << endl;
@@ -175,7 +178,9 @@ void BasisBsplineMz::synthesis(Matrix& f, const Matrix& c, bool accumulate) cons
 		Matrix f_sub; f_sub.init(f, is[k], 0, as[k].m(), 1);
 		Matrix c_sub; c_sub.init(c, k * as[k].n(), 0, as[k].n(), 1, 1);
 
+#ifndef NDEBUG
 		cout << " " << getIndex() << " BasisBsplineMz::synthesis[" << k << "]" << endl;
+#endif
 
 		f_sub.mul(as[k], c_sub, accumulate, false);
 	}
@@ -192,7 +197,9 @@ void BasisBsplineMz::analysis(Matrix& cE, const Matrix& fE, bool sqrA) const
 		Matrix cESub; cESub.init(cE, k * as[k].n(), 0, as[k].n(), 1, 1);
 		Matrix fESub; fESub.init(fE, is[k], 0, as[k].m(), 1);
 
+#ifndef NDEBUG
 		cout << " " << getIndex() << " BasisBsplineMz::analysis[" << k << "]" << endl;
+#endif
 
 		if (sqrA)
 		{

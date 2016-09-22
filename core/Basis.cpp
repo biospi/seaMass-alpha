@@ -31,7 +31,6 @@ Basis::Basis(vector<Basis*>& bases, bool isTransient, ii parentIndex)
 {
 	index_ = (ii) bases.size();
 	bases.push_back(this);
-	if (parentIndex_ >= 0) bases[parentIndex_]->childCount_++;
 }
 
 
@@ -42,9 +41,18 @@ Basis::~Basis()
 
 Basis::ErrorInfo Basis::error(Matrix& fE, const Matrix& f, const Matrix& g) const
 {
-	ErrorInfo info;
+#ifndef NDEBUG
+	cout << " " << getIndex() << " Basis::error" << endl;
+#endif
 
-	ii size_d = 0;
+	ErrorInfo info;
+	info.discrepancy = 0.0;
+	info.error = 0.0;
+	info.maxError = 0.0;
+	info.volume = 0.0;
+
+
+	/*ii size_d = 0;
 	double discrepancy = 0.0;
 	double error = 0.0;
 	double sum_g = 0.0;
@@ -81,27 +89,21 @@ Basis::ErrorInfo Basis::error(Matrix& fE, const Matrix& f, const Matrix& g) cons
 	}
 	info.volume = sum_f / sum_g;
 	info.discrepancy = discrepancy / size_d;
-	info.error = error / size_d;
+	info.error = error / size_d;*/
+
+	fE.elementwiseDiv(g, f, (fp)1.0);
 
 	return info;
 }
 
 
-void Basis::shrink(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp shrinkage) const
+void Basis::shrinkage(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda) const
 {
-	// Standard shrinkage
-	#pragma omp parallel for
-	for (li i = 0; i < cE.size(); i++)
-	{
-		if (cE.vs_[i] >= FLT_MIN && c.vs_[i] >= FLT_MIN)
-		{
-			c.vs_[i] = cE.vs_[i] * c0.vs_[i] / (shrinkage * l2.vs_[i] + l1.vs_[i]);
-		}
-		else
-		{
-			c.vs_[i] = 0.0;
-		}
-	}
+#ifndef NDEBUG
+	cout << " " << getIndex() << " BasisBsplineScale::shrinkage" << endl;
+#endif
+
+	c.shrinkage(cE, c0, l1, l2, lambda);
 }
 
 

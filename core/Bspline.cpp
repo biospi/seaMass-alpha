@@ -25,22 +25,32 @@ using namespace std;
 
 
 Bspline::Bspline(ii order, ii n)
-	: order_(order), n_(n), lookup_(n+1)
+	: order_(order), n_(n), lookup_(n)
 {
 	for (ii i = 0; i < n; i++)
 	{
-		lookup_[i] = im(i / (double)(n - 1) * (order + 1), order + 1);
+		lookup_[i] = im((i + 0.5) / (double)(n - 1) * (order + 1), order + 1);
  	}
-	lookup_[n] = 1.0;
 }
 
 
 double Bspline::ibasis(double x)
 {
-	double f = x / (order_ + 1) * n_;
-	ii i = (ii) f;
-	f = f - i;
-	return (1 - f) * lookup_[i] + f * lookup_[i + 1];
+	if (x >= order_ + 1)
+	{
+		return 1.0;
+	}
+	else if (x <= 0.0)
+	{
+		return 0.0;
+	}
+	else
+	{
+		double f = x / (order_ + 1) * n_;
+		ii i = (ii)f;
+		f = f - i;
+		return (1 - f) * lookup_[i] + f * lookup_[i + 1];
+	}
 }
 
 

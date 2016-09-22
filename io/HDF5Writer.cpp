@@ -69,7 +69,7 @@ public:
 
 	virtual bool hasNext()
 	{
-		return index <= output.weights.size();
+		return index < output.weights.size();
 	}
 
 	virtual uint32_t size()
@@ -190,10 +190,12 @@ write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_
 	id_type indexIdentifier;
 	ISpatialIndex* tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, stream, *file, 0.7, 100, 100, output.baselineExtent.size() + 1, SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
 
+#ifndef NDEBUG
 	cout << "RTREE OUTPUT" << endl;
 	cout << *tree;
 	cout << "Buffer hits: " << file->getHits() << endl;
 	cout << "Index ID: " << indexIdentifier << endl;
+#endif
 
 	bool ret = tree->isIndexValid();
 	if (ret == false) cout << "ERROR: Structure is invalid!" << endl;

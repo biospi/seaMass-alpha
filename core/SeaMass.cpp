@@ -76,8 +76,6 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 	////////////////////////////////////////////////////////////////////////////////////
 	// INIT BASIS FUNCTIONS
 
-	cout << "Init Basis Functions..." << endl;
-
 	// Create our tree of bases
 	ii order = 3; // B-spline order
 
@@ -125,14 +123,14 @@ bool SeaMass::step(double shrinkage, double tolerance)
 				nc += static_cast<BasisBspline*>(bases_[j])->getMeshInfo().size();
 			}
 		}
-		cout << "L1 nc=" << nc << " shrinkage=" << setprecision(3) << defaultfloat << shrinkage << " tolerance=" << tolerance << endl;
+		cout << endl << "L1 nc=" << nc << " shrinkage=" << setprecision(3) << fixed << setprecision(6) << shrinkage << " tolerance=" << tolerance << endl;
 	}
 	iteration_++;
 
 	double grad = optimiser_->step((fp)shrinkage);
 
-	cout << "  f: " << fixed << setw(5) << iteration_;
-	cout << "  grad: " << fixed << setprecision(6) << setw(8) << grad << endl;
+	cout << "f: " << setw(5) << iteration_;
+	cout << " grad: " << fixed << setprecision(6) << setw(8) << grad << endl;
 
 	return grad > tolerance;
 }
@@ -146,6 +144,10 @@ ii SeaMass::getIteration() const
 
 void SeaMass::getOutput(Output& output) const
 {
+#ifndef NDEBUG
+	cout << iteration_ << " getOutput" << endl;
+#endif
+
 	output.scales.resize(dimensions_);
 	output.offsets.resize(dimensions_);
 	output.baselineScale.resize(dimensions_);
@@ -169,7 +171,7 @@ void SeaMass::getOutput(Output& output) const
 
 			for (ii i = 0; i < optimiser_->getCs()[j].size(); i++)
 			{
-				fp c = optimiser_->getCs()[j].vs_[i];
+				fp c = optimiser_->getCs()[j].getVs()[i];
 				if (c > 0.0)
 				{
 					output.weights.push_back(c);
@@ -190,6 +192,10 @@ void SeaMass::getOutput(Output& output) const
 
 void SeaMass::getOutputBinCounts(std::vector<fp>& binCounts) const
 {
+#ifndef NDEBUG
+	cout << iteration_ << " getOutputBinCounts" << endl;
+#endif
+
 	binCounts.assign(g_.size(), 0.0);
 	Matrix f; f.init(g_.m(), g_.n(), g_.n(), binCounts.data());
 	optimiser_->synthesis(f);
@@ -198,6 +204,10 @@ void SeaMass::getOutputBinCounts(std::vector<fp>& binCounts) const
 
 void SeaMass::getOutputControlPoints(ControlPoints& controlPoints) const
 {
+#ifndef NDEBUG
+	cout << iteration_ << " getOutputControlPoints" << endl;
+#endif
+
 	const BasisBspline::MeshInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getMeshInfo();
 
 	controlPoints.coeffs.assign(meshInfo.size(), 0.0);
