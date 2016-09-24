@@ -3,9 +3,10 @@ module Seamass
 using HDF5
 using LibExpat
 
+
 type MzmlSpectrum
-  mzs
-  intensities
+    mzs
+    intensities
 end
 
 function MzmlSpectrum(filename::AbstractString, spectrumID::Number)
@@ -26,5 +27,48 @@ function MzmlSpectrum(filename::AbstractString, spectrumID::Number)
         )
     end
 end
+
+
+type SmiSpectrum
+    binEdges
+    binCounts
+    exposure
+end
+
+function SmiSpectrum(filename::AbstractString, spectrumID::Number)
+    h5open(filename, "r") do file
+        if (has(file,"spectrumIndex"))
+            spectrumIndex = file["spectrumIndex"][spectrumID:spectrumID+1] + 1
+        else
+            spectrumIndex = [1 size(file["binCounts"])[1]+1]
+        end
+        
+        SmiSpectrum(
+            file["binEdges"][spectrumIndex[1]+spectrumID-1:spectrumIndex[2]+spectrumID-1],
+            file["binCounts"][spectrumIndex[1]:spectrumIndex[2]-1],
+            file["exposures"][spectrumID][1]
+        )
+    end
+end
+
+
+type SmvSpectrum
+    residualBinCounts
+end
+
+function SmvSpectrum(filename::AbstractString, spectrumID::Number)
+    h5open(filename, "r") do file
+        if (has(file,"spectrumIndex"))
+            spectrumIndex = file["spectrumIndex"][spectrumID:spectrumID+1] + 1
+        else
+            spectrumIndex = [1 size(file["binCounts"])[1]+1]
+        end
+        
+        SmvSpectrum(
+            file["binCounts"][spectrumIndex[1]:spectrumIndex[2]-1],
+        )
+    end
+end
+
 
 end
