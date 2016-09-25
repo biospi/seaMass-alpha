@@ -459,8 +459,7 @@ synthesis(Matrix& f, ii basis) const
 
 		if (basis == i) // return with B-spline control points
 		{
-			f.elementwiseMul(ts[i], l1s_[i]);
-			//f.elementwiseMul(1.0, ts[i]);
+			f.copy(ts[i]);
 
 			break;
 		}
