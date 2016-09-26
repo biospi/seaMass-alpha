@@ -48,11 +48,15 @@ public:
 	void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA);
 	void elementwiseMul(const Matrix& a, const Matrix& b);
 	void elementwiseMul(fp scale, const Matrix& a);
-	void elementwiseDiv(const Matrix& n, const Matrix& d, fp divideByZeroValue);
+	void elementwiseDiv(const Matrix& n, const Matrix& d);
 	void elementwiseSqrt(const Matrix& a);
-	double sumSqrs();
-	double sumSqrDiffs(const Matrix& a);
-	void shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda);
+	void shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda);
+
+	void prune(fp threshold);
+
+	double sum() const;
+	double sumSqrs() const;
+	double sumSqrDiffs(const Matrix& a) const;
 
 	bool operator!() const;
 	li mem() const;

@@ -107,7 +107,7 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 	}
 
 	g_.init((li)input.binCounts.size(), 1, 1, input.binCounts.data());
-	optimiser_ = new OptimizerAsrl(bases_, g_, 2);
+	optimizer_ = new OptimizerAsrl(bases_, g_, 2);
 }
 
 
@@ -115,22 +115,40 @@ bool SeaMass::step(double shrinkage, double tolerance)
 {
 	if (iteration_ == 0)
 	{
+		optimizer_->prune((fp)0.001);
+
+		double volG = g_.sum() / g_.size();
+
 		li nc = 0;
+		li nnz = 0;
 		for (ii j = 0; j < (ii)bases_.size(); j++)
 		{
 			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
 			{
-				nc += static_cast<BasisBspline*>(bases_[j])->getMeshInfo().size();
+				nc += optimizer_->getCs()[j].size();
+				nnz += optimizer_->getCs()[j].nnz();
 			}
 		}
-		cout << endl << "L1 nc=" << nc << " shrinkage=" << setprecision(3) << fixed << setprecision(6) << shrinkage << " tolerance=" << tolerance << endl;
+
+		cout << endl << "L1 nc=" << nc << " nnz=" << nnz << " shrinkage=" << setprecision(3) << fixed << setprecision(8) << shrinkage << " tolerance=" << tolerance << endl;
 	}
 	iteration_++;
 
-	double grad = optimiser_->step((fp)shrinkage);
+	double grad = optimizer_->step((fp)shrinkage);
+	optimizer_->prune((fp)0.001);
+
+	li nnz = 0;
+	for (ii j = 0; j < (ii)bases_.size(); j++)
+	{
+		if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
+		{
+			nnz += optimizer_->getCs()[j].nnz();
+		}
+	}
 
 	cout << "f: " << setw(5) << iteration_;
-	cout << " grad: " << fixed << setprecision(6) << setw(8) << grad << endl;
+	cout << " nnz: " << setw(10) << nnz;
+	cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 
 	return grad > tolerance;
 }
@@ -169,9 +187,9 @@ void SeaMass::getOutput(Output& output) const
 		{
 			const BasisBspline::MeshInfo& meshInfo = static_cast<BasisBspline*>(bases_[j])->getMeshInfo();
 
-			for (ii i = 0; i < optimiser_->getCs()[j].size(); i++)
+			for (ii i = 0; i < optimizer_->getCs()[j].size(); i++)
 			{
-				fp c = optimiser_->getCs()[j].getVs()[i];
+				fp c = optimizer_->getCs()[j].getVs()[i];
 				if (c > 0.0)
 				{
 					output.weights.push_back(c);
@@ -198,7 +216,7 @@ void SeaMass::getOutputBinCounts(std::vector<fp>& binCounts) const
 
 	binCounts.assign(g_.size(), 0.0);
 	Matrix f; f.init(g_.m(), g_.n(), g_.n(), binCounts.data());
-	optimiser_->synthesis(f);
+	optimizer_->synthesis(f);
 }
 
 
@@ -212,7 +230,7 @@ void SeaMass::getOutputControlPoints(ControlPoints& controlPoints) const
 
 	controlPoints.coeffs.assign(meshInfo.size(), 0.0);
 	Matrix c; c.init(meshInfo.m(), meshInfo.n, meshInfo.n, controlPoints.coeffs.data());
-	optimiser_->synthesis(c, dimensions_ - 1);
+	optimizer_->synthesis(c, dimensions_ - 1);
 
 	controlPoints.scale = meshInfo.scale;
 	controlPoints.offset = meshInfo.offset;

@@ -117,12 +117,9 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 					// basis coefficient b is _integral_ of area under b-spline basis
 					fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-					//if (b >= 0.000001) // small basis coefficients waste cpu and cause problems when calculating l2norm
-					{
-						acoo.push_back(b);
-						rowind.push_back(i);
-						colind.push_back(c - meshInfo().offset[0]);
-					}
+					acoo.push_back(b);
+					rowind.push_back(i);
+					colind.push_back(c - meshInfo().offset[0]);
 				}
 			}
 		}
@@ -172,7 +169,7 @@ void BasisBsplineMz::synthesis(Matrix& f, const Matrix& c, bool accumulate) cons
 {
 	if (!f) f.init(is.back(), 1);
 
-	//# pragma omp parallel for
+	# pragma omp parallel for
 	for (ii k = 0; k < (ii)as.size(); k++)
 	{
 		Matrix f_sub; f_sub.init(f, is[k], 0, as[k].m(), 1);
@@ -191,7 +188,7 @@ void BasisBsplineMz::analysis(Matrix& cE, const Matrix& fE, bool sqrA) const
 {
 	if (!cE) cE.init(getMeshInfo().m(), getMeshInfo().n);
 
-	//# pragma omp parallel for
+	# pragma omp parallel for
 	for (ii k = 0; k < (ii)as.size(); k++)
 	{
 		Matrix cESub; cESub.init(cE, k * as[k].n(), 0, as[k].n(), 1, 1);
@@ -213,15 +210,4 @@ void BasisBsplineMz::analysis(Matrix& cE, const Matrix& fE, bool sqrA) const
 	}
 }
 
-
-double BasisBsplineMz::getMin() const
-{
-	return mzMin;
-}
-
-
-double BasisBsplineMz::getMax() const
-{
-	return mzMax;
-}
 

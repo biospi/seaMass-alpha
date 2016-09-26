@@ -56,7 +56,7 @@ public:
 
 	void elementwiseSqr(const MatrixSparse& a);
 
-private:
+public:
 	ii m_;
 	ii n_;
 	ii nnz_;

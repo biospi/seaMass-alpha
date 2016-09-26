@@ -36,31 +36,6 @@ OptimizerAsrl::OptimizerAsrl(const vector<Basis*>& bases, const Matrix& g, ii ac
 	cout << "Init Optimizer ASRL..." << endl;
 #endif
 
-	// compute L1 norm of each basis function and store in 'l1s'
-#ifndef NDEBUG
-	cout << " Init L1s..." << endl;
-#endif
-	l1s_.resize(bases_.size());
-	for (ii i = 0; i < (ii)bases_.size(); i++)
-	{
-		if (i == 0)
-		{
-			Matrix t; t.init(g_.m(), g_.n(), 1.0);
-			bases_[i]->analysis(l1s_[0], t, false);
-		}
-		else
-		{
-			bases_[i]->analysis(l1s_[i], l1s_[bases_[i]->getParentIndex()], false);
-		}
-	}
-	for (ii i = 0; i < (ii)bases_.size(); i++)
-	{
-		if (bases_[i]->isTransient())
-		{
-			l1s_[i].free();
-		}
-	}
-
 	// compute L2 norm of each basis function and store in 'l2s'
 #ifndef NDEBUG
 	cout << " Init L2s..." << endl;
@@ -90,10 +65,40 @@ OptimizerAsrl::OptimizerAsrl(const vector<Basis*>& bases, const Matrix& g, ii ac
 		}
 	}
 
+	// compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
+#ifndef NDEBUG
+	cout << " Init L1s..." << endl;
+#endif
+	l1l2s_.resize(bases_.size());
+	for (ii i = 0; i < (ii)bases_.size(); i++)
+	{
+		if (i == 0)
+		{
+			Matrix t; t.init(g_.m(), g_.n(), 1.0);
+			bases_[i]->analysis(l1l2s_[0], t, false);
+		}
+		else
+		{
+			bases_[i]->analysis(l1l2s_[i], l1l2s_[bases_[i]->getParentIndex()], false);
+		}
+	}
+	for (ii i = 0; i < (ii)bases_.size(); i++)
+	{
+		if (!bases_[i]->isTransient())
+		{
+			l1l2s_[i].elementwiseDiv(l1l2s_[i], l2s_[i]);
+		}
+		else
+		{
+			l1l2s_[i].free();
+		}
+	}
+
 	// initialise starting estimate of 'c' from analysis of 'g'
 #ifndef NDEBUG
 	cout << " Init Cs from G" << endl;
 #endif
+	double sumC = 0.0;
 	cs_.resize(bases_.size());
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
@@ -105,25 +110,19 @@ OptimizerAsrl::OptimizerAsrl(const vector<Basis*>& bases, const Matrix& g, ii ac
 		{
 			bases_[i]->analysis(cs_[i], cs_[bases_[i]->getParentIndex()], false);
 		}
+		sumC += cs_[i].sum();
 	}
-	ii notTransient = 0;
-	for (ii i = 0; i < (ii)bases_.size(); i++)
-	{
-		if (bases_[i]->isTransient())
-		{
-			cs_[i].free();
-		}
-		else
-		{
-			notTransient++;
-		}
-	}
+	double sumG = g_.sum();
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (!bases_[i]->isTransient())
 		{
-			cs_[i].elementwiseDiv(cs_[i], l1s_[i], (fp)0.0);
-			cs_[i].elementwiseMul((fp)1.0 / notTransient, cs_[i]);
+			cs_[i].elementwiseMul((fp) (sumG / sumC), cs_[i]);
+			cs_[i].elementwiseMul(cs_[i], l2s_[i]);
+		}
+		else
+		{
+			cs_[i].free();
 		}
 	}
 
@@ -156,8 +155,8 @@ OptimizerAsrl::OptimizerAsrl(const vector<Basis*>& bases, const Matrix& g, ii ac
 	// how much memory are we using?
 	li mem = 0;
 	for (ii i = 0; i < cs_.size(); i++) mem += cs_[i].mem();
-	for (ii i = 0; i < l1s_.size(); i++) mem += l1s_[i].mem();
 	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
+	for (ii i = 0; i < l1l2s_.size(); i++) mem += l1l2s_[i].mem();
 	for (ii i = 0; i < c0s_.size(); i++) mem += c0s_[i].mem();
 	for (ii i = 0; i < u0s_.size(); i++) mem += u0s_[i].mem();
 	for (ii i = 0; i < q0s_.size(); i++) mem += q0s_[i].mem();
@@ -179,7 +178,6 @@ step(fp lambda)
 	// temporary variables
 	Matrix f;
 	vector<Matrix> cEs(bases_.size());
-	Basis::ErrorInfo errorInfo;
 	double sumSqrs = 0.0;
 	double sumSqrDiffs = 0.0;
 
@@ -193,13 +191,17 @@ step(fp lambda)
 	}
 	double synthesisDuration = omp_get_wtime() - synthesisStart;
 
+	double volG = g_.sum() / g_.size();
+	double volF = f.sum() / f.size();
+	cout << "  volF=" << volF << " volG=" << volG << " vol=" << volF / volG << endl;
+
     // ERROR
 #ifndef NDEBUG
 	cout << iteration_ << " error" << endl;
 #endif
 	double errorStart = omp_get_wtime();
 	{
-		errorInfo = bases_[0]->error(f, f, g_);
+		f.elementwiseDiv(g_, f);
 	}
 	double errorDuration = omp_get_wtime() - errorStart;
 
@@ -222,6 +224,13 @@ step(fp lambda)
 			}
 		}
 	}
+	for (ii i = 0; i < (ii)bases_.size(); i++)
+	{
+		if (!bases_[i]->isTransient())
+		{
+			cEs[i].elementwiseDiv(cEs[i], l2s_[i]);
+		}
+	}
 	double analysisDuration = omp_get_wtime() - analysisStart;
 
 	// SHRINKAGE
@@ -234,7 +243,7 @@ step(fp lambda)
 		{
 			if (!bases_[i]->isTransient())
 			{
-				bases_[i]->shrinkage(cEs[i], cEs[i], cs_[i], l1s_[i], l2s_[i], lambda);
+				bases_[i]->shrinkage(cEs[i], cEs[i], cs_[i], l1l2s_[i], lambda);
 			}
 			else
 			{
@@ -244,23 +253,20 @@ step(fp lambda)
 	}
     double shrinkageDuration = omp_get_wtime() - shrinkageStart;
    
-    // ACCELERATION (currently turned off)
+    // ACCELERATION (currently NO acceleration, just calculate gradient and copy new cs (cEs) to cs)
 #ifndef NDEBUG
 	cout << iteration_ << " acceleration" << endl;
 #endif
 	double accelerationStart = omp_get_wtime();
 	{
-		//if (accelleration_ == 0)
+		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
-			for (ii i = 0; i < (ii)bases_.size(); i++)
+			if (!bases_[i]->isTransient())
 			{
-				if (!bases_[i]->isTransient())
-				{
-					sumSqrs += cs_[i].sumSqrs();
-					sumSqrDiffs += cEs[i].sumSqrDiffs(cs_[i]);
+				sumSqrs += cs_[i].sumSqrs();
+				sumSqrDiffs += cEs[i].sumSqrDiffs(cs_[i]);
 
-					cs_[i].elementwiseMul((fp)1.0, cEs[i]);
-				}
+				cs_[i].copy(cEs[i]);
 			}
 		}
 	}
@@ -277,170 +283,186 @@ step(fp lambda)
 
 	return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
 
-	/*fp a = 0.0;
+	// TODO : ACCELERATION
+	/*
+	fp a = 0.0;
 
 	else // accelerated update
 	{
-	// init/update u0s and compute acceleration factor a
-	if (iteration_ == 0)
-	{
-	for (ii j = 0; j < (ii)bases_.size(); j++)
-	{
-	if (!bases_[j]->isTransient())
-	{
-	#pragma omp parallel for
-	for (li i = 0; i < cs_[j].size(); i++)
-	{
-	if (cs_[j].vs_[i] > 0.0)
-	{
-	u0s_[j].vs_[i] = cEs[j].vs_[i] / cs_[j].vs_[i];
-	}
-	}
-	}
-	}
-	a = 0.0;
-	}
-	else
-	{
-	double sum_u0u = 0.0;
-	double sum_u0u0 = 0.0;
-	for (ii j = 0; j < (ii)bases_.size(); j++)
-	{
-	if (!bases_[j]->isTransient())
-	{
-	#pragma omp parallel for reduction(+:sum_u0u,sum_u0u0)
-	for (li i = 0; i < cs_[j].size(); i++)
-	{
-	if (cs_[j].vs_[i] > 0.0)
-	{
-	double old_u0 = u0s_[j].vs_[i];
-	u0s_[j].vs_[i] = cEs[j].vs_[i] / cs_[j].vs_[i];
+		// init/update u0s and compute acceleration factor a
+		if (iteration_ == 0)
+		{
+			for (ii j = 0; j < (ii)bases_.size(); j++)
+			{
+				if (!bases_[j]->isTransient())
+				{
+					#pragma omp parallel for
+					for (li i = 0; i < cs_[j].size(); i++)
+					{
+						if (cs_[j].vs_[i] > 0.0)
+						{
+							u0s_[j].vs_[i] = cEs[j].vs_[i] / cs_[j].vs_[i];
+						}
+					}
+				}
+			}
+			a = 0.0;
+		}
+		else
+		{
+			double sum_u0u = 0.0;
+			double sum_u0u0 = 0.0;
+			for (ii j = 0; j < (ii)bases_.size(); j++)
+			{
+				if (!bases_[j]->isTransient())
+				{
+					#pragma omp parallel for reduction(+:sum_u0u,sum_u0u0)
+					for (li i = 0; i < cs_[j].size(); i++)
+					{
+						if (cs_[j].vs_[i] > 0.0)
+						{
+							double old_u0 = u0s_[j].vs_[i];
+							u0s_[j].vs_[i] = cEs[j].vs_[i] / cs_[j].vs_[i];
 
-	old_u0 = old_u0 > 0.0 ? c0s_[j].vs_[i] * log(old_u0) : 0.0;
-	sum_u0u += old_u0 * (u0s_[j].vs_[i] > 0.0 ? cEs[j].vs_[i] * log(u0s_[j].vs_[i]) : 0.0);
-	sum_u0u0 += old_u0 * old_u0;
-	}
-	}
-	}
-	}
+							old_u0 = old_u0 > 0.0 ? c0s_[j].vs_[i] * log(old_u0) : 0.0;
+							sum_u0u += old_u0 * (u0s_[j].vs_[i] > 0.0 ? cEs[j].vs_[i] * log(u0s_[j].vs_[i]) : 0.0);
+							sum_u0u0 += old_u0 * old_u0;
+						}
+					}
+				}
+			}
 
-	a = (fp) sqrt(sum_u0u / sum_u0u0);
-	a = a > 0.0f ? a : 0.0f;
-	a = a < 1.0f ? a : 1.0f;
-	}
+			a = (fp)sqrt(sum_u0u / sum_u0u0);
+			a = a > 0.0f ? a : 0.0f;
+			a = a < 1.0f ? a : 1.0f;
+		}
 
-	if (iteration_ == 0) // unaccelerated this time, but save es as c0s
-	{
-	for (ii j = 0; j < (ii)bases_.size(); j++)
-	{
-	if (!bases_[j]->isTransient())
-	{
-	#pragma omp parallel for reduction(+:sum,sumd)
-	for (li i = 0; i < cs_[j].size(); i++)
-	{
-	if (cs_[j].vs_[i] > 0.0)
-	{
-	sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-	sumd += (cEs[j].vs_[i] - cs_[j].vs_[i])*(cEs[j].vs_[i] - cs_[j].vs_[i]);
+		if (iteration_ == 0) // unaccelerated this time, but save es as c0s
+		{
+			for (ii j = 0; j < (ii)bases_.size(); j++)
+			{
+				if (!bases_[j]->isTransient())
+				{
+					#pragma omp parallel for reduction(+:sum,sumd)
+					for (li i = 0; i < cs_[j].size(); i++)
+					{
+						if (cs_[j].vs_[i] > 0.0)
+						{
+							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
+							sumd += (cEs[j].vs_[i] - cs_[j].vs_[i])*(cEs[j].vs_[i] - cs_[j].vs_[i]);
 
-	// for this itteration
-	cs_[j].vs_[i] = cEs[j].vs_[i];
-	// for next itteration
-	c0s_[j].vs_[i] = cEs[j].vs_[i];
-	}
-	}
-	cEs[j].free();
-	}
-	}
-	}
-	else if (accelleration_ == 1) // linear vector extrapolation
-	{
-	for (ii j = 0; j < (ii)bases_.size(); j++)
-	{
-	if (!bases_[j]->isTransient())
-	{
-	#pragma omp parallel for reduction(+:sum,sumd)
-	for (li i = 0; i < cs_[j].size(); i++)
-	{
-	if (cs_[j].vs_[i] > 0.0)
-	{
-	fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
+							// for this itteration
+							cs_[j].vs_[i] = cEs[j].vs_[i];
+							// for next itteration
+							c0s_[j].vs_[i] = cEs[j].vs_[i];
+						}
+					}
+					cEs[j].free();
+				}
+			}
+		}
+		else if (accelleration_ == 1) // linear vector extrapolation
+		{
+			for (ii j = 0; j < (ii)bases_.size(); j++)
+			{
+				if (!bases_[j]->isTransient())
+				{
+					#pragma omp parallel for reduction(+:sum,sumd)
+					for (li i = 0; i < cs_[j].size(); i++)
+					{
+						if (cs_[j].vs_[i] > 0.0)
+						{
+							fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
 
-	sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-	sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
+							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
+							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
 
-	// for this itteration
-	cs_[j].vs_[i] = c1;
+							// for this itteration
+							cs_[j].vs_[i] = c1;
 
-	// for next itteration
-	c0s_[j].vs_[i] = cEs[j].vs_[i];
-	}
-	}
-	cEs[j].free();
-	}
-	}
-	}
-	else if (iteration_ == 1) // linear vector extrapolation this time, but save the qs
-	{
-	for (ii j = 0; j < (ii)bases_.size(); j++)
-	{
-	if (!bases_[j]->isTransient())
-	{
-	#pragma omp parallel for reduction(+:sum,sumd)
-	for (li i = 0; i < cs_[j].size(); i++)
-	{
-	if (cs_[j].vs_[i] > 0.0)
-	{
-	fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
-	fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
+							// for next itteration
+							c0s_[j].vs_[i] = cEs[j].vs_[i];
+						}
+					}
+					cEs[j].free();
+				}
+			}
+		}
+		else if (iteration_ == 1) // linear vector extrapolation this time, but save the qs
+		{
+			for (ii j = 0; j < (ii)bases_.size(); j++)
+			{
+				if (!bases_[j]->isTransient())
+				{
+					#pragma omp parallel for reduction(+:sum,sumd)
+					for (li i = 0; i < cs_[j].size(); i++)
+					{
+						if (cs_[j].vs_[i] > 0.0)
+						{
+							fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
+							fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
 
-	sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-	sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
+							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
+							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
 
-	// for this itteration
-	cs_[j].vs_[i] = c1;
+							// for this itteration
+							cs_[j].vs_[i] = c1;
 
-	// for next itteration
-	c0s_[j].vs_[i] = cEs[j].vs_[i];
-	q0s_[j].vs_[i] = q;
-	}
-	}
-	cEs[j].free();
-	}
-	}
-	}
-	else // quadratic vector extrapolation
-	{
-	for (ii j = 0; j < (ii)bases_.size(); j++)
-	{
-	if (!bases_[j]->isTransient())
-	{
-	#pragma omp parallel for reduction(+:sum,sumd)
-	for (li i = 0; i < cs_[j].size(); i++)
-	{
-	if (cs_[j].vs_[i] > 0.0)
-	{
-	fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
-	fp c1 = cEs[j].vs_[i] * powf(q, a) * powf(q / q0s_[j].vs_[i], 0.5f*a*a);
+							// for next itteration
+							c0s_[j].vs_[i] = cEs[j].vs_[i];
+							q0s_[j].vs_[i] = q;
+						}
+					}
+					cEs[j].free();
+				}
+			}
+		}
+		else // quadratic vector extrapolation
+		{
+			for (ii j = 0; j < (ii)bases_.size(); j++)
+			{
+				if (!bases_[j]->isTransient())
+				{
+					#pragma omp parallel for reduction(+:sum,sumd)
+					for (li i = 0; i < cs_[j].size(); i++)
+					{
+						if (cs_[j].vs_[i] > 0.0)
+						{
+							fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
+							fp c1 = cEs[j].vs_[i] * powf(q, a) * powf(q / q0s_[j].vs_[i], 0.5f*a*a);
 
-	sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-	sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
+							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
+							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
 
-	// for this itteration
-	cs_[j].vs_[i] = c1;
+							// for this itteration
+							cs_[j].vs_[i] = c1;
 
-	// for next itteration
-	c0s_[j].vs_[i] = cEs[j].vs_[i];
-	q0s_[j].vs_[i] = q;
-	}
-	}
-	cEs[j].free();
-	}
-	}
-	}
+							// for next itteration
+							c0s_[j].vs_[i] = cEs[j].vs_[i];
+							q0s_[j].vs_[i] = q;
+						}
+					}
+					cEs[j].free();
+				}
+			}
+		}
 	}
 
 	return sqrt(sumd) / sqrt(sum);*/
+}
+
+
+void
+OptimizerAsrl::
+prune(fp threshold)
+{
+	for (ii i = 0; i < (ii)bases_.size(); i++)
+	{
+		if (!bases_[i]->isTransient())
+		{
+			cs_[i].prune(threshold);
+		}
+	}
 }
 
 
@@ -453,8 +475,7 @@ synthesis(Matrix& f, ii basis) const
 	{
 		if (!ts[i] && !bases_[i]->isTransient())
 		{
-			ts[i].init(bases_[i]->getM(), bases_[i]->getN());
-			ts[i].elementwiseDiv(cs_[i], l2s_[i], (fp)0.0);
+			ts[i].elementwiseDiv(cs_[i], l2s_[i]);
 		}
 
 		if (basis == i) // return with B-spline control points
@@ -469,8 +490,7 @@ synthesis(Matrix& f, ii basis) const
 			ii pi = bases_[i]->getParentIndex();
 			if (!ts[pi] && !bases_[pi]->isTransient())
 			{
-				ts[pi].init(bases_[pi]->getM(), bases_[pi]->getN());
-				ts[pi].elementwiseDiv(cs_[pi], l2s_[pi], (fp)0.0);
+				ts[pi].elementwiseDiv(cs_[pi], l2s_[pi]);
 			}
 
 			bases_[i]->synthesis(ts[pi], ts[i], true);
@@ -490,34 +510,3 @@ const std::vector<Matrix>& OptimizerAsrl::getCs() const
 	return cs_;
 }
 
-
-/*void
-OptimizerAsrl::
-threshold(fp thresh)
-{
-	for (ii j = 0; j < (ii)bases.size(); j++)
-	{
-		if (!bases[j]->is_transient())
-		{
-			#pragma omp parallel for
-			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
-			{
-				if (cs[j][i] < thresh) cs[j][i] = 0.0;
-			}
-		}
-	}*/
-
-	/*double volume = bases.front()->get_volume();
-
-	for (ii j = 0; j < (ii)bases.size(); j++)
-	{
-		if (!bases[j]->is_transient())
-		{
-			#pragma omp parallel for
-			for (li i = 0; i < (li)bases[j]->get_cm().size(); i++)
-			{
-				cs[j][i] /= volume;
-			}
-		}
-	}
-}*/

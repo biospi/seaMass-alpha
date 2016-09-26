@@ -39,71 +39,13 @@ Basis::~Basis()
 }
 
 
-Basis::ErrorInfo Basis::error(Matrix& fE, const Matrix& f, const Matrix& g) const
-{
-#ifndef NDEBUG
-	cout << " " << getIndex() << " Basis::error" << endl;
-#endif
-
-	ErrorInfo info;
-	info.discrepancy = 0.0;
-	info.error = 0.0;
-	info.maxError = 0.0;
-	info.volume = 0.0;
-
-
-	/*ii size_d = 0;
-	double discrepancy = 0.0;
-	double error = 0.0;
-	double sum_g = 0.0;
-	double sum_f = 0.0;
-	info.maxError = 0;
-	for (li i = 0; i < g.size(); i++)
-	{
-		double v = fabs(g.vs_[i] - f.vs_[i]);
-		info.maxError = info.maxError > v ? info.maxError : v;
-	}
-
-	// bug in this openmp section at present for err and discrep
-	//#pragma omp parallel for simd reduction(+:dis,err,size_d,sum_g,sum_f)
-	for (li i = 0; i < g.size(); i++)
-	{
-		sum_g += g.vs_[i];
-		sum_f += f.vs_[i];
-
-		if (f.vs_[i] > 0.0 && g.vs_[i] >= 0.0)
-		{
-			if (g.vs_[i] > 0.0)
-			{
-				discrepancy += ((g.vs_[i] - ceil(f.vs_[i]))*(g.vs_[i] - ceil(f.vs_[i]))) / ceil(f.vs_[i]);
-				error += fabs(g.vs_[i] - f.vs_[i]);
-				size_d++;
-			}
-
-			fE.vs_[i] = g.vs_[i] / f.vs_[i];
-		}
-		else
-		{
-			fE.vs_[i] = 1.0;
-		}
-	}
-	info.volume = sum_f / sum_g;
-	info.discrepancy = discrepancy / size_d;
-	info.error = error / size_d;*/
-
-	fE.elementwiseDiv(g, f, (fp)1.0);
-
-	return info;
-}
-
-
-void Basis::shrinkage(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda) const
+void Basis::shrinkage(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::shrinkage" << endl;
 #endif
 
-	c.shrinkage(cE, c0, l1, l2, lambda);
+	c.shrinkage(cE, c0, l1, lambda);
 }
 
 

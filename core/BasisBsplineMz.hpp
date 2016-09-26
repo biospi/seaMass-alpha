@@ -37,9 +37,6 @@ public:
 	void synthesis(Matrix& f, const Matrix& c, bool accumulate) const;
 	void analysis(Matrix& cE, const Matrix& fE, bool sqrA = false) const;
 
-	double getMin() const;
-	double getMax() const;
-
 private:
 	std::vector<MatrixSparse> as; // CSR sparse 'A' basis matrices
 	std::vector<li> is; // spectrum_index into 'g'

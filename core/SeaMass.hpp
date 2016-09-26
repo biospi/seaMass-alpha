@@ -89,7 +89,7 @@ private:
 	Matrix g_;
 	ii dimensions_;
 	std::vector<Basis*> bases_;
-	OptimizerAsrl* optimiser_;
+	OptimizerAsrl* optimizer_;
 	ii iteration_;
 };
 

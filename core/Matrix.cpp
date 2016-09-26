@@ -222,7 +222,7 @@ void Matrix::elementwiseMul(fp scale, const Matrix& a)
 }
 
 
-void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d, fp divideByZeroValue)
+void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d)
 {
 	// initialise output matrix if not already done
 	if (!*this) init(d.m_, d.n_);
@@ -230,13 +230,13 @@ void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d, fp divideByZeroVal
 	#pragma omp parallel for
 	for (li i = 0; i < d.size(); i++)
 	{
-		if (n.vs_[i] > 0.0 && d.vs_[i] >= 0.0)
+		if (d.vs_[i] != 0.0)
 		{
 			vs_[i] = n.vs_[i] / d.vs_[i];
 		}
 		else
 		{
-			vs_[i] = divideByZeroValue;
+			vs_[i] = 0.0;
 		}
 	}
 
@@ -273,7 +273,52 @@ void Matrix::elementwiseSqrt(const Matrix& a)
 }
 
 
-double Matrix::sumSqrs()
+void Matrix::shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(c0.m_, c0.n_);
+
+	#pragma omp parallel for
+	for (li i = 0; i < size(); i++)
+	{
+		vs_[i] = cE.vs_[i] * c0.vs_[i] / (l1.vs_[i] + lambda);
+	}
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = shrinkage(cE, c0" << c0 << ", l1, l2, " << lambda << ")" << endl;
+#endif
+}
+
+
+void Matrix::prune(fp threshold)
+{
+	#pragma omp parallel for
+	for (li i = 0; i < size(); i++)
+	{
+		if (vs_[i] < threshold) vs_[i] = 0.0;
+	}
+}
+
+
+double Matrix::sum() const
+{
+	double sum = 0.0;
+
+	#pragma omp parallel for reduction(+:sum)
+	for (li i = 0; i < size(); i++)
+	{
+		sum += vs_[i];
+	}
+
+#ifndef NDEBUG
+	cout << "  " << defaultfloat << setprecision(8) << sum << " = sum(Y" << *this << ")" << endl;
+#endif
+
+	return sum;
+}
+
+
+double Matrix::sumSqrs() const
 {
 	double sum = 0.0;
 
@@ -291,11 +336,8 @@ double Matrix::sumSqrs()
 }
 
 
-double Matrix::sumSqrDiffs(const Matrix& a)
+double Matrix::sumSqrDiffs(const Matrix& a) const
 {
-	// initialise output matrix if not already done
-	if (!*this) init(a.m_, a.n_);
-
 	double sum = 0.0;
 
 	#pragma omp parallel for reduction(+:sum)
@@ -309,31 +351,6 @@ double Matrix::sumSqrDiffs(const Matrix& a)
 #endif
 
 	return sum;
-}
-
-
-void Matrix::shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda)
-{
-	// initialise output matrix if not already done
-	if (!*this) init(c0.m_, c0.n_);
-
-	#pragma omp parallel for
-	for (li i = 0; i < size(); i++)
-	{
-		if (cE.vs_[i] >= numeric_limits<float>::min() && c0.vs_[i] >= numeric_limits<float>::min())
-		{
-			vs_[i] = (cE.vs_[i] / l2.vs_[i]) * c0.vs_[i] / (lambda + (l1.vs_[i] / l2.vs_[i]));
-			//if (cEs[j].vs_[i] < 0.0001) cEs[j].vs_[i] = 0.0;
-		}
-		else
-		{
-			cE.vs_[i] = 0.0;
-		}
-	}
-
-#ifndef NDEBUG
-	cout << "  Y" << *this << " = shrinkage(cE, c0" << c0 << ", l1, l2, " << lambda << ")" << endl;
-#endif
 }
 
 

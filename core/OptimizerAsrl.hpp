@@ -30,11 +30,11 @@
 class OptimizerAsrl
 {
 public:    
-	OptimizerAsrl(const std::vector<Basis*>& bases, const Matrix& g, ii accelleration = 2);
+	OptimizerAsrl(const std::vector<Basis*>& bases, const Matrix& g, ii accelleration = 0);
 	virtual ~OptimizerAsrl();
     
 	double step(fp lambda);
-    //void threshold(fp threshold);
+    void prune(fp threshold);
 
 	void synthesis(Matrix& f, ii basis = -1) const;
 	const std::vector<Matrix>& getCs() const;
@@ -44,8 +44,8 @@ private:
 	const Matrix& g_;
 
 	std::vector<Matrix> cs_;
-	std::vector<Matrix> l1s_;
 	std::vector<Matrix> l2s_;
+	std::vector<Matrix> l1l2s_;
 
 	ii accelleration_;
 	std::vector<Matrix> c0s_;

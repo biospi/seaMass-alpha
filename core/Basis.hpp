@@ -30,22 +30,12 @@
 class Basis
 {
 public:
-	struct ErrorInfo
-	{
-		double volume;
-		double discrepancy;
-		double error;
-		double maxError;
-	};
-
 	Basis(std::vector<Basis*>& bases, bool isTransient = false, ii parentIndex = -1);
 	virtual ~Basis();
 
 	virtual void synthesis(Matrix& f, const Matrix& c, bool accumulate) const = 0;
 	virtual void analysis(Matrix& cE, const Matrix& fE, bool sqrA) const = 0;
-
-	virtual ErrorInfo error(Matrix& fE, const Matrix& f, const Matrix& g) const;
-	virtual void shrinkage(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, const Matrix& l2, fp lambda) const;
+	virtual void shrinkage(Matrix& c, const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda) const;
 
 	virtual ii getM() const = 0;
 	virtual ii getN() const = 0;
