@@ -25,7 +25,7 @@
 
 
 #include "Basis.hpp"
-#include "OptimizerAsrl.hpp"
+#include "OptimizerSrl.hpp"
 
 
 //void remove_zeros(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities);
@@ -71,11 +71,11 @@ public:
 		std::vector<ii> offsets;
 	};
 
-	SeaMass(Input& input, const std::vector<ii>& scales);
+	SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance);
 	SeaMass(Input& input, const Output& seed);
 	virtual ~SeaMass();
 
-	bool step(double shrinkage, double tolerance);
+	bool step();
 	ii getIteration() const;
 
 	void getOutput(Output& output) const;
@@ -89,7 +89,9 @@ private:
 	Matrix g_;
 	ii dimensions_;
 	std::vector<Basis*> bases_;
-	OptimizerAsrl* optimizer_;
+	OptimizerSrl* optimizer_;
+	double shrinkage_;
+	double tolerance_;
 	ii iteration_;
 };
 

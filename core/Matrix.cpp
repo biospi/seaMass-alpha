@@ -273,6 +273,57 @@ void Matrix::elementwiseSqrt(const Matrix& a)
 }
 
 
+void Matrix::elementwisePow(const Matrix& a, fp power)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(a.m_, a.n_);
+
+	// split into tasty chunks for openmp and when 32bit using MKL_INT
+	static ii chunk_size = 0x10000;
+	ii chunks = (ii)size() / chunk_size + 1;
+	ii last_chunk = size() % chunk_size;
+	if (last_chunk == 0)
+	{
+		chunks--;
+		last_chunk = chunk_size;
+	}
+
+#pragma omp parallel for
+	for (ii k = 0; k < chunks; k++)
+	{
+		vsPowx((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], power, &vs_[k * chunk_size]);
+	}
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = (A" << a << ")^" << power << endl;
+#endif
+}
+
+
+void Matrix::elementwiseLn(const Matrix& a)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(a.m_, a.n_);
+
+	#pragma omp parallel for
+	for (li i = 0; i < a.size(); i++)
+	{
+		if (a.vs_[i] != 0.0)
+		{
+			vs_[i] = log(a.vs_[i]);
+		}
+		else
+		{
+			vs_[i] = 0.0;
+		}
+	}
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = ln(A" << a << ")" << endl;
+#endif
+}
+
+
 void Matrix::shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda)
 {
 	// initialise output matrix if not already done
@@ -281,7 +332,10 @@ void Matrix::shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, fp 
 	#pragma omp parallel for
 	for (li i = 0; i < size(); i++)
 	{
-		vs_[i] = cE.vs_[i] * c0.vs_[i] / (l1.vs_[i] + lambda);
+		if (l1.vs_[i] != 0.0)
+		{
+			vs_[i] = cE.vs_[i] * c0.vs_[i] / (l1.vs_[i] + lambda);
+		}
 	}
 
 #ifndef NDEBUG

@@ -10,7 +10,8 @@ set(HEADER_FILES
 	BasisBsplineMz.hpp
 	BasisBsplineScantime.hpp
 	BasisBsplineScale.hpp
-	OptimizerAsrl.hpp
+	OptimizerSrl.hpp
+	OptimizerSrlBiggs.hpp
 	SeaMass.hpp
 )
 set(SOURCE_FILES
@@ -22,7 +23,8 @@ set(SOURCE_FILES
 	BasisBSplineMz.cpp
 	BasisBSplineScantime.cpp
 	BasisBSplineScale.cpp
-	OptimizerAsrl.cpp
+	OptimizerSrl.cpp 
+	OptimizerSrlBiggs.cpp
 	SeaMass.cpp
 )
 

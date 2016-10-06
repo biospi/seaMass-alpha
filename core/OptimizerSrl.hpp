@@ -20,38 +20,38 @@
 //
 
 
-#ifndef _SEAMASS_CORE_OPTIMIZERASRL_HPP_
-#define _SEAMASS_CORE_OPTIMIZERASRL_HPP_
+#ifndef _SEAMASS_CORE_OPTIMIZERSRL_HPP_
+#define _SEAMASS_CORE_OPTIMIZERSRL_HPP_
 
 
 #include "Basis.hpp"
 
 
-class OptimizerAsrl
+class OptimizerSrl
 {
 public:    
-	OptimizerAsrl(const std::vector<Basis*>& bases, const Matrix& g, ii accelleration = 0);
-	virtual ~OptimizerAsrl();
+	OptimizerSrl(const std::vector<Basis*>& bases, const Matrix& g, fp pruneThreshold);
+	virtual ~OptimizerSrl();
     
-	double step(fp lambda);
-    void prune(fp threshold);
+	void init(fp lamba);
+	double step();
 
 	void synthesis(Matrix& f, ii basis = -1) const;
 	const std::vector<Matrix>& getCs() const;
 
+protected:
+	virtual void update(std::vector<Matrix>& c, std::vector<Matrix>& c1, ii iteration);
+
 private:
 	const std::vector<Basis*>& bases_;
 	const Matrix& g_;
+	fp pruneThreshold_;
 
 	std::vector<Matrix> cs_;
 	std::vector<Matrix> l2s_;
 	std::vector<Matrix> l1l2s_;
 
-	ii accelleration_;
-	std::vector<Matrix> c0s_;
-	std::vector<Matrix> u0s_;
-	std::vector<Matrix> q0s_;
-
+	fp lambda_;
 	ii iteration_;
 };
 

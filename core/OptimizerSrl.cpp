@@ -20,7 +20,7 @@
 //
 
 
-#include "OptimizerAsrl.hpp"
+#include "OptimizerSrl.hpp"
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -30,10 +30,10 @@
 using namespace std;
 
 
-OptimizerAsrl::OptimizerAsrl(const vector<Basis*>& bases, const Matrix& g, ii accelleration) : bases_(bases), g_(g), accelleration_(accelleration), iteration_(0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& g, fp pruneThreshold) : bases_(bases), g_(g), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0)
 {
 #ifndef NDEBUG
-	cout << "Init Optimizer ASRL..." << endl;
+	cout << "Init Optimizer SRL..." << endl;
 #endif
 
 	// compute L2 norm of each basis function and store in 'l2s'
@@ -117,38 +117,15 @@ OptimizerAsrl::OptimizerAsrl(const vector<Basis*>& bases, const Matrix& g, ii ac
 	{
 		if (!bases_[i]->isTransient())
 		{
-			cs_[i].elementwiseMul((fp) (sumG / sumC), cs_[i]);
+			Matrix l1; l1.elementwiseMul(l1l2s_[i], l2s_[i]);
+			cs_[i].elementwiseDiv(cs_[i], l1);
+			cs_[i].elementwiseMul((fp)(sumG / sumC), cs_[i]);
 			cs_[i].elementwiseMul(cs_[i], l2s_[i]);
+			cs_[i].prune(pruneThreshold);
 		}
 		else
 		{
 			cs_[i].free();
-		}
-	}
-
-	// temporaries required for acceleration
-	if (accelleration_ >= 1)
-	{
-		c0s_.resize(bases_.size());
-		u0s_.resize(bases_.size());
-		for (ii i = 0; i < (ii)bases.size(); i++)
-		{
-			if (!bases[i]->isTransient())
-			{
-				c0s_[i].init(bases_[i]->getM(), bases_[i]->getN());
-				u0s_[i].init(bases_[i]->getM(), bases_[i]->getN());
-			}
-		}
-	}
-	if (accelleration_ >= 2)
-	{
-		q0s_.resize(bases.size());
-		for (ii i = 0; i < (ii)bases.size(); i++)
-		{
-			if (!bases[i]->isTransient())
-			{
-				q0s_[i].init(bases_[i]->getM(), bases_[i]->getN());
-			}
 		}
 	}
 
@@ -157,21 +134,23 @@ OptimizerAsrl::OptimizerAsrl(const vector<Basis*>& bases, const Matrix& g, ii ac
 	for (ii i = 0; i < cs_.size(); i++) mem += cs_[i].mem();
 	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
 	for (ii i = 0; i < l1l2s_.size(); i++) mem += l1l2s_[i].mem();
-	for (ii i = 0; i < c0s_.size(); i++) mem += c0s_[i].mem();
-	for (ii i = 0; i < u0s_.size(); i++) mem += u0s_[i].mem();
-	for (ii i = 0; i < q0s_.size(); i++) mem += q0s_[i].mem();
-	cout << "Vector Extrapolated Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout << "Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
 }
 
 
-OptimizerAsrl::~OptimizerAsrl()
+OptimizerSrl::~OptimizerSrl()
 {
 }
 
 
-double
-OptimizerAsrl::
-step(fp lambda)
+void OptimizerSrl::init(fp lambda)
+{
+	lambda_ = lambda;
+	iteration_ = 0;
+}
+
+
+double OptimizerSrl::step()
 {
 	iteration_++;
 
@@ -243,7 +222,7 @@ step(fp lambda)
 		{
 			if (!bases_[i]->isTransient())
 			{
-				bases_[i]->shrinkage(cEs[i], cEs[i], cs_[i], l1l2s_[i], lambda);
+				bases_[i]->shrinkage(cEs[i], cEs[i], cs_[i], l1l2s_[i], lambda_);
 			}
 			else
 			{
@@ -253,20 +232,31 @@ step(fp lambda)
 	}
     double shrinkageDuration = omp_get_wtime() - shrinkageStart;
    
-    // ACCELERATION (currently NO acceleration, just calculate gradient and copy new cs (cEs) to cs)
+    // UPDATE
 #ifndef NDEBUG
 	cout << iteration_ << " acceleration" << endl;
 #endif
 	double accelerationStart = omp_get_wtime();
 	{
+		// gradient calculation is based on unaccelerated update so we can terminate at the same point regardless 
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (!bases_[i]->isTransient())
 			{
 				sumSqrs += cs_[i].sumSqrs();
 				sumSqrDiffs += cEs[i].sumSqrDiffs(cs_[i]);
+			}
+		}
 
-				cs_[i].copy(cEs[i]);
+		// possible accelerated update
+		update(cs_, cEs, iteration_);
+
+		// prune small coefficients
+		for (ii i = 0; i < (ii)bases_.size(); i++)
+		{
+			if (!bases_[i]->isTransient())
+			{
+				cs_[i].prune(pruneThreshold_);
 			}
 		}
 	}
@@ -282,193 +272,24 @@ step(fp lambda)
 #endif
 
 	return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
-
-	// TODO : ACCELERATION
-	/*
-	fp a = 0.0;
-
-	else // accelerated update
-	{
-		// init/update u0s and compute acceleration factor a
-		if (iteration_ == 0)
-		{
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							u0s_[j].vs_[i] = cEs[j].vs_[i] / cs_[j].vs_[i];
-						}
-					}
-				}
-			}
-			a = 0.0;
-		}
-		else
-		{
-			double sum_u0u = 0.0;
-			double sum_u0u0 = 0.0;
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for reduction(+:sum_u0u,sum_u0u0)
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							double old_u0 = u0s_[j].vs_[i];
-							u0s_[j].vs_[i] = cEs[j].vs_[i] / cs_[j].vs_[i];
-
-							old_u0 = old_u0 > 0.0 ? c0s_[j].vs_[i] * log(old_u0) : 0.0;
-							sum_u0u += old_u0 * (u0s_[j].vs_[i] > 0.0 ? cEs[j].vs_[i] * log(u0s_[j].vs_[i]) : 0.0);
-							sum_u0u0 += old_u0 * old_u0;
-						}
-					}
-				}
-			}
-
-			a = (fp)sqrt(sum_u0u / sum_u0u0);
-			a = a > 0.0f ? a : 0.0f;
-			a = a < 1.0f ? a : 1.0f;
-		}
-
-		if (iteration_ == 0) // unaccelerated this time, but save es as c0s
-		{
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for reduction(+:sum,sumd)
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-							sumd += (cEs[j].vs_[i] - cs_[j].vs_[i])*(cEs[j].vs_[i] - cs_[j].vs_[i]);
-
-							// for this itteration
-							cs_[j].vs_[i] = cEs[j].vs_[i];
-							// for next itteration
-							c0s_[j].vs_[i] = cEs[j].vs_[i];
-						}
-					}
-					cEs[j].free();
-				}
-			}
-		}
-		else if (accelleration_ == 1) // linear vector extrapolation
-		{
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for reduction(+:sum,sumd)
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
-
-							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
-
-							// for this itteration
-							cs_[j].vs_[i] = c1;
-
-							// for next itteration
-							c0s_[j].vs_[i] = cEs[j].vs_[i];
-						}
-					}
-					cEs[j].free();
-				}
-			}
-		}
-		else if (iteration_ == 1) // linear vector extrapolation this time, but save the qs
-		{
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for reduction(+:sum,sumd)
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
-							fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
-
-							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
-
-							// for this itteration
-							cs_[j].vs_[i] = c1;
-
-							// for next itteration
-							c0s_[j].vs_[i] = cEs[j].vs_[i];
-							q0s_[j].vs_[i] = q;
-						}
-					}
-					cEs[j].free();
-				}
-			}
-		}
-		else // quadratic vector extrapolation
-		{
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for reduction(+:sum,sumd)
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
-							fp c1 = cEs[j].vs_[i] * powf(q, a) * powf(q / q0s_[j].vs_[i], 0.5f*a*a);
-
-							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
-
-							// for this itteration
-							cs_[j].vs_[i] = c1;
-
-							// for next itteration
-							c0s_[j].vs_[i] = cEs[j].vs_[i];
-							q0s_[j].vs_[i] = q;
-						}
-					}
-					cEs[j].free();
-				}
-			}
-		}
-	}
-
-	return sqrt(sumd) / sqrt(sum);*/
 }
 
 
-void
-OptimizerAsrl::
-prune(fp threshold)
+// unaccelerated update
+void OptimizerSrl::update(std::vector<Matrix>& cs, std::vector<Matrix>& c1s, ii iteration)
 {
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (!bases_[i]->isTransient())
 		{
-			cs_[i].prune(threshold);
+			cs[i].copy(c1s[i]);
+			c1s[i].free();
 		}
 	}
 }
 
 
-void
-OptimizerAsrl::
-synthesis(Matrix& f, ii basis) const
+void OptimizerSrl::synthesis(Matrix& f, ii basis) const
 {
 	vector<Matrix> ts(bases_.size());
 	for (ii i = (ii)bases_.size() - 1; i >= 0; i--)
@@ -505,7 +326,7 @@ synthesis(Matrix& f, ii basis) const
 }
 
 
-const std::vector<Matrix>& OptimizerAsrl::getCs() const
+const std::vector<Matrix>& OptimizerSrl::getCs() const
 { 
 	return cs_;
 }

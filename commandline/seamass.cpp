@@ -69,15 +69,15 @@ int main(int argc, char *argv[])
 			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
 			"guidelines: around 4, "
 			"default: auto")
-		("shrinkage,s",po::value<ii>(&shrinkageExponent)->default_value(-4),""
+		("shrinkage,s",po::value<ii>(&shrinkageExponent)->default_value(0),""
 			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
-			"guidelines: around -4, "
-			"default: -4")
-		("tolerance,l",po::value<ii>(&toleranceExponent)->default_value(-9),
+			"guidelines: around 0, "
+			"default: 0")
+		("tolerance,t",po::value<ii>(&toleranceExponent)->default_value(-10),
 			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
-			"guidelines: around -9, "
-			"default: -9")
-		("threads,t",po::value<ii>(&threads)->default_value(4),
+			"guidelines: around -10, "
+			"default: -10")
+		("threads",po::value<ii>(&threads)->default_value(4),
 			"Number of OpenMP threads to use, "
 			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
 			"default: 4");
@@ -136,12 +136,12 @@ int main(int argc, char *argv[])
 	mzMLbInputFile msFile(in_file);
 	SeaMass::Input input;
 	string id;
-	double shrinkage = pow(2.0, shrinkageExponent);
 	double tolerance = pow(2.0, toleranceExponent);
-	while(msFile.next(input, id))
+	double shrinkage = pow(2.0, shrinkageExponent);
+	while (msFile.next(input, id))
 	{
 		cout << "Processing id=" << id << endl;
-		SeaMass sm(input, scales);
+		SeaMass sm(input, scales, shrinkage, tolerance);
 
 		do
 		{
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
 			sm.getOutputControlPoints(controlPoints);
 			smo.write_output_control_points(controlPoints);
 		}
-		while (sm.step(shrinkage, tolerance));
+		while (sm.step());
 
 		// create SMV file
 		ostringstream oss;

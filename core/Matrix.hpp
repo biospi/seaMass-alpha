@@ -50,6 +50,8 @@ public:
 	void elementwiseMul(fp scale, const Matrix& a);
 	void elementwiseDiv(const Matrix& n, const Matrix& d);
 	void elementwiseSqrt(const Matrix& a);
+	void elementwiseLn(const Matrix& a);
+	void elementwisePow(const Matrix& a, fp power);
 	void shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda);
 
 	void prune(fp threshold);

@@ -22,6 +22,8 @@
 
 #include "SeaMass.hpp"
 
+#include "OptimizerSrlBiggs.hpp"
+
 #include "BasisBsplineMz.hpp"
 #include "BasisBsplineScale.hpp"
 
@@ -32,7 +34,7 @@
 using namespace std;
 
 
-SeaMass::SeaMass(Input& input, const std::vector<ii>& scales) : iteration_(0)
+SeaMass::SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0)
 {
 	init(input, scales);
 }
@@ -106,17 +108,18 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 		}*/
 	}
 
+	//for (li i = 0; i < (li)input.binCounts.size(); i++) input.binCounts[i] += 100.0;
 	g_.init((li)input.binCounts.size(), 1, 1, input.binCounts.data());
-	optimizer_ = new OptimizerAsrl(bases_, g_, 2);
+	//optimizer_ = new OptimizerSrl(bases_, g_);
+	optimizer_ = new OptimizerSrlBiggs(bases_, g_);
+	optimizer_->init(shrinkage_);
 }
 
 
-bool SeaMass::step(double shrinkage, double tolerance)
+bool SeaMass::step()
 {
 	if (iteration_ == 0)
 	{
-		optimizer_->prune((fp)0.001);
-
 		double volG = g_.sum() / g_.size();
 
 		li nc = 0;
@@ -130,12 +133,11 @@ bool SeaMass::step(double shrinkage, double tolerance)
 			}
 		}
 
-		cout << endl << "L1 nc=" << nc << " nnz=" << nnz << " shrinkage=" << setprecision(3) << fixed << setprecision(8) << shrinkage << " tolerance=" << tolerance << endl;
+		cout << endl << "L1 nc=" << nc << " nnz=" << nnz << " shrinkage=" << setprecision(3) << fixed << setprecision(8) << shrinkage_ << " tolerance=" << tolerance_ << endl;
 	}
 	iteration_++;
 
-	double grad = optimizer_->step((fp)shrinkage);
-	optimizer_->prune((fp)0.001);
+	double grad = optimizer_->step();
 
 	li nnz = 0;
 	for (ii j = 0; j < (ii)bases_.size(); j++)
@@ -147,10 +149,19 @@ bool SeaMass::step(double shrinkage, double tolerance)
 	}
 
 	cout << "f: " << setw(5) << iteration_;
+	cout << " shrinkage: " << defaultfloat << setprecision(4) << setw(6) << shrinkage_;
 	cout << " nnz: " << setw(10) << nnz;
 	cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 
-	return grad > tolerance;
+	if (grad <= tolerance_)
+	{
+		if (shrinkage_ == 0) return false;
+
+		shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
+		optimizer_->init(shrinkage_);
+	}
+
+	return true;
 }
 
 
