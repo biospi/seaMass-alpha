@@ -20,13 +20,14 @@
 //
 
 
-#include "BasisBsplineMZ.hpp"
+#include "BasisBsplineMz.hpp"
 
 #include "Bspline.hpp"
 
 #include <limits>
 #include <iomanip>
-
+#include <cmath>
+#include <iostream>
 
 using namespace std;
 
@@ -147,10 +148,18 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	li mem = 0; for (ii k = 0; k < (ii)as.size(); k++) mem += as[k].mem();
 	cout << " " << getIndex() << " BasisBsplineMz";
 	if (isTransient()) cout << " (t)";
-	cout << " range=" << setprecision(3) << mzMin << ":" << defaultfloat << mzDiff << ":" << fixed << mzMax << "Th";
+	cout << " range=" << setprecision(3) << mzMin << ":";
+    cout.unsetf(std::ios::floatfield);
+    cout << mzDiff << ":" << fixed << mzMax << "Th";
+    //cout << " range=" << setprecision(3) << mzMin << ":" << defaultfloat << mzDiff << ":" << fixed << mzMax << "Th";
 	cout << " resolution=" << fixed << setprecision(1) << resolution << " (" << bpi << " bases per 1.0033548378Th)";
 	cout << " " << meshInfo() << endl;
-	cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=" << defaultfloat << setprecision(2) << nnz / (double) (m * n) << "% (" << defaultfloat << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb)" << endl;
+	cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=";
+    cout.unsetf(std::ios::floatfield);
+    cout << setprecision(2) << nnz / (double) (m * n) << "% (";
+    cout.unsetf(std::ios::floatfield);
+    cout << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb)" << endl;
+    //cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=" << defaultfloat << setprecision(2) << nnz / (double) (m * n) << "% (" << defaultfloat << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb)" << endl;
 #endif
 
 	if (resolutionAuto != resolution)

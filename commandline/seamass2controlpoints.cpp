@@ -30,7 +30,7 @@
 
 #include "../io/HDF5Writer.hpp"
 #include "../io/MSFileData.hpp"
-#include "../core/seaMass.hpp"
+#include "../core/SeaMass.hpp"
 
 
 using namespace std;

@@ -52,7 +52,10 @@ OptimizerSrlBiggs::OptimizerSrlBiggs(const vector<Basis*>& bases, const Matrix& 
 	li mem = 0;
 	for (ii i = 0; i < c0s_.size(); i++) mem += c0s_[i].mem();
 	for (ii i = 0; i < u0s_.size(); i++) mem += u0s_[i].mem();
-	cout << "Biggs-Andrews Acceleration mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout << "Biggs-Andrews Acceleration mem=";
+    cout << cout.unsetf(std::ios::floatfield);
+    cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+    //cout << "Biggs-Andrews Acceleration mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
 }
 
 

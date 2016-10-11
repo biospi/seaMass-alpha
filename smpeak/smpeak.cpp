@@ -30,8 +30,8 @@
 
 #include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
-#include "../core/seaMass.hpp"
-#include "../core/BSpline.hpp"
+#include "../core/SeaMass.hpp"
+#include "../core/Bspline.hpp"
 #include "../io/mzMLxml.hpp"
 
 #include "SMData.hpp"

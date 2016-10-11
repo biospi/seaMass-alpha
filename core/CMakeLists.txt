@@ -4,7 +4,7 @@ find_package(MKL REQUIRED)
 set(HEADER_FILES
 	Matrix.hpp
 	MatrixSparse.hpp
-	BSpline.hpp
+	Bspline.hpp
 	Basis.hpp
 	BasisBspline.hpp
 	BasisBsplineMz.hpp
@@ -19,10 +19,10 @@ set(SOURCE_FILES
 	MatrixSparse.cpp
 	Bspline.cpp
 	Basis.cpp
-	BasisBSpline.cpp
-	BasisBSplineMz.cpp
-	BasisBSplineScantime.cpp
-	BasisBSplineScale.cpp
+	BasisBspline.cpp
+	BasisBsplineMz.cpp
+	BasisBsplineScantime.cpp
+	BasisBsplineScale.cpp
 	OptimizerSrl.cpp 
 	OptimizerSrlBiggs.cpp
 	SeaMass.cpp

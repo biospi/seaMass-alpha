@@ -25,7 +25,7 @@
 #include "MatrixSparse.hpp"
 
 #include <iomanip>
-
+#include <iostream>
 
 using namespace std;
 
@@ -365,7 +365,10 @@ double Matrix::sum() const
 	}
 
 #ifndef NDEBUG
-	cout << "  " << defaultfloat << setprecision(8) << sum << " = sum(Y" << *this << ")" << endl;
+    cout << "  ";
+    cout.unsetf(std::ios::floatfield);
+    cout << setprecision(8) << sum << " = sum(Y" << *this << ")" << endl;
+    //cout << "  " << defaultfloat << setprecision(8) << sum << " = sum(Y" << *this << ")" << endl;
 #endif
 
 	return sum;
@@ -383,7 +386,10 @@ double Matrix::sumSqrs() const
 	}
 
 #ifndef NDEBUG
-	cout << "  " << defaultfloat << setprecision(8) << sum << " = sum((Y" << *this << ")^2)" << endl;
+    cout << "  ";
+    cout.unsetf(std::ios::floatfield);
+    cout << setprecision(8) << sum << " = sum((Y" << *this << ")^2)" << endl;
+    //cout << "  " << defaultfloat << setprecision(8) << sum << " = sum((Y" << *this << ")^2)" << endl;
 #endif
 
 	return sum;
@@ -401,7 +407,10 @@ double Matrix::sumSqrDiffs(const Matrix& a) const
 	}
 
 #ifndef NDEBUG
-	cout << "  " << defaultfloat << setprecision(8) << sum << " = sum((Y" << *this << " - A" << a << ")^2)" << endl;
+    cout << "  ";
+    cout.unsetf(std::ios::floatfield);
+    cout << setprecision(8) << sum << " = sum((Y" << *this << " - A" << a << ")^2)" << endl;
+    //cout << "  " << defaultfloat << setprecision(8) << sum << " = sum((Y" << *this << " - A" << a << ")^2)" << endl;
 #endif
 
 	return sum;
@@ -422,7 +431,10 @@ ostream& operator<<(ostream& os, const Matrix& a)
 	}
 	else
 	{
-		os << "[" << a.m() << "," << a.n() << "]:" << a.nnz() << "/" << a.size() << ":" << defaultfloat << setprecision(3) << 100.0 * a.nnz() / (double) a.size() << "%";
+        os << "[" << a.m() << "," << a.n() << "]:" << a.nnz() << "/" << a.size() << ":";
+		os.unsetf(std::ios::floatfield);
+        os << setprecision(3) << 100.0 * a.nnz() / (double) a.size() << "%";
+        //os << "[" << a.m() << "," << a.n() << "]:" << a.nnz() << "/" << a.size() << ":" << defaultfloat << setprecision(3) << 100.0 * a.nnz() / (double) a.size() << "%";
 	}
 
 	return  os;

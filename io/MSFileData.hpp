@@ -28,7 +28,7 @@
 #include <vector>
 #include <string>
 #include "NetCDFile.hpp"
-#include "../core/seaMass.hpp"
+#include "../core/SeaMass.hpp"
 
 
 struct spectrumMetaData

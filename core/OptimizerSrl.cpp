@@ -134,7 +134,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& g, fp prun
 	for (ii i = 0; i < cs_.size(); i++) mem += cs_[i].mem();
 	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
 	for (ii i = 0; i < l1l2s_.size(); i++) mem += l1l2s_[i].mem();
-	cout << "Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout << "Sparse Richardson-Lucy mem=";
+    cout << cout.unsetf(std::ios::floatfield);
+    cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+    //cout << "Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
 }
 
 
@@ -263,7 +266,10 @@ double OptimizerSrl::step()
 	double accelerationDuration = omp_get_wtime() - accelerationStart;
 
 #ifndef NDEBUG
-	cout << "Durations: synthesis=" << defaultfloat << setprecision(3) << synthesisDuration;
+	cout << "Durations: synthesis=";
+    cout << cout.unsetf(std::ios::floatfield);
+    cout << setprecision(3) << synthesisDuration;
+    //cout << "Durations: synthesis=" << defaultfloat << setprecision(3) << synthesisDuration;
 	cout << " error=" << errorDuration;
 	cout << " analysis=" << analysisDuration;
 	cout << " shrinkage=" << shrinkageDuration;
