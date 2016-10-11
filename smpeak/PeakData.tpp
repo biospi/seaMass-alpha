@@ -25,6 +25,7 @@
 #ifndef SMPEAK_PEAKDATA_TPP_
 #define SMPEAK_PEAKDATA_TPP_
 
+#include "PeakData.hpp"
 
 template<typename T>
 Peak<T>::Peak(double _mz, double _rt,T _pkcnt,

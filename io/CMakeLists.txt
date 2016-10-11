@@ -13,6 +13,7 @@ set(HEADER_FILES
 	iomath.hpp
 	mzMLxml.hpp
 	RTreeReader.hpp
+	MzMLb.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
@@ -20,6 +21,7 @@ set(SOURCE_FILES
 	HDF5Writer.cpp
 	mzMLxml.cpp
 	RTreeReader.cpp
+	MzMLb.cpp
 )
 set(TEMPLATE_FILES
 	NetCDFile.tpp

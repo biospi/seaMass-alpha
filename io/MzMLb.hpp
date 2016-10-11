@@ -22,33 +22,30 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_MZMLXML_TPP
-#define SEAMASS_MZMLXML_TPP
+#ifndef SEAMASS_MZMLB_HPP
+#define SEAMASS_MZMLB_HPP
 
-#include "mzMLxml.hpp"
+#include <pugixml.hpp>
+#include "NetCDFile.hpp"
 
-template<typename T>
-void findVecString(vector<char> &vecStr, vector<T> &vec,
-		const string subStr, const string endSubStr)
+namespace xml = pugi;
+
+class OutmzMLb
 {
-	size_t nSub = subStr.length();
-	string str(&vecStr[0]);
-	if(vec.size()>0) vec.resize(0);
+public:
+    OutmzMLb(string _filename);
+    ~OutmzMLb();
+    void writeData(vector<float>& _data);
+private:
+    string filename;
+    vector<char> mzMLBuff;
+    vector<double> mz;
+    vector<unsigned long long int> specIdx;
+    vector<unsigned long long int> chroIdx;
+    vector<float> chroBinCounts;
+    vector<double> chroMz;
+    NetCDFile mzMLbFileOut;
+    xml::xml_document mzMLXML;
+};
 
-	for(size_t i=0; i < (vecStr.size() - nSub);)
-	{
-		size_t pos=str.find(subStr,i);
-		if(pos == string::npos)
-		{
-			pos = str.find(endSubStr,i);
-			vec.push_back(pos);
-			i=vecStr.size();
-		}
-		else{
-			vec.push_back(pos);
-			i=pos+nSub;
-		}
-	}
-}
-
-#endif //SEAMASS_MZMLXML_TPP
+#endif //SEAMASS_MZMLB_HPP

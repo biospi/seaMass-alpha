@@ -32,7 +32,7 @@
 #include "../io/RTreeReader.hpp"
 #include "../io/MSFileData.hpp"
 #include "../core/SeaMass.hpp"
-
+#include "../io/MzMLb.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
@@ -134,6 +134,7 @@ int main(int argc, char *argv[])
 	}
 
 	mzMLbInputFile msFile(in_file);
+    OutmzMLb outmzMLb(in_file);
 	SeaMass::Input input;
 	string id;
 	double tolerance = pow(2.0, toleranceExponent);
@@ -190,7 +191,9 @@ int main(int argc, char *argv[])
 		sm.getOutput(output);
 		smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
 
-		// for now, lets also write out an smo
+        outmzMLb.writeData(originalBinCounts);
+
+        // for now, lets also write out an smo
 		ostringstream oss2;
 		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
 		HDF5Writer smo(oss2.str());
