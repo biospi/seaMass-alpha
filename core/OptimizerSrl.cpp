@@ -135,9 +135,9 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& g, fp prun
 	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
 	for (ii i = 0; i < l1l2s_.size(); i++) mem += l1l2s_[i].mem();
 	cout << "Sparse Richardson-Lucy mem=";
-    cout << cout.unsetf(std::ios::floatfield);
-    cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
-    //cout << "Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout.unsetf(std::ios::floatfield);
+	cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	//cout << "Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
 }
 
 
@@ -177,7 +177,7 @@ double OptimizerSrl::step()
 	double volF = f.sum() / f.size();
 	cout << "  volF=" << volF << " volG=" << volG << " vol=" << volF / volG << endl;
 
-    // ERROR
+	// ERROR
 #ifndef NDEBUG
 	cout << iteration_ << " error" << endl;
 #endif
@@ -187,7 +187,7 @@ double OptimizerSrl::step()
 	}
 	double errorDuration = omp_get_wtime() - errorStart;
 
-    // ANALYSIS
+	// ANALYSIS
 #ifndef NDEBUG
 	cout << iteration_ << " analysis" << endl;
 #endif
@@ -233,15 +233,15 @@ double OptimizerSrl::step()
 			}
 		}
 	}
-    double shrinkageDuration = omp_get_wtime() - shrinkageStart;
-   
-    // UPDATE
+	double shrinkageDuration = omp_get_wtime() - shrinkageStart;
+
+	// UPDATE
 #ifndef NDEBUG
 	cout << iteration_ << " acceleration" << endl;
 #endif
 	double accelerationStart = omp_get_wtime();
 	{
-		// gradient calculation is based on unaccelerated update so we can terminate at the same point regardless 
+		// gradient calculation is based on unaccelerated update so we can terminate at the same point regardless
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (!bases_[i]->isTransient())
@@ -267,9 +267,9 @@ double OptimizerSrl::step()
 
 #ifndef NDEBUG
 	cout << "Durations: synthesis=";
-    cout << cout.unsetf(std::ios::floatfield);
-    cout << setprecision(3) << synthesisDuration;
-    //cout << "Durations: synthesis=" << defaultfloat << setprecision(3) << synthesisDuration;
+	cout.unsetf(std::ios::floatfield);
+	cout << setprecision(3) << synthesisDuration;
+	//cout << "Durations: synthesis=" << defaultfloat << setprecision(3) << synthesisDuration;
 	cout << " error=" << errorDuration;
 	cout << " analysis=" << analysisDuration;
 	cout << " shrinkage=" << shrinkageDuration;
@@ -333,7 +333,6 @@ void OptimizerSrl::synthesis(Matrix& f, ii basis) const
 
 
 const std::vector<Matrix>& OptimizerSrl::getCs() const
-{ 
+{
 	return cs_;
 }
-

@@ -53,9 +53,9 @@ OptimizerSrlBiggs::OptimizerSrlBiggs(const vector<Basis*>& bases, const Matrix& 
 	for (ii i = 0; i < c0s_.size(); i++) mem += c0s_[i].mem();
 	for (ii i = 0; i < u0s_.size(); i++) mem += u0s_[i].mem();
 	cout << "Biggs-Andrews Acceleration mem=";
-    cout << cout.unsetf(std::ios::floatfield);
-    cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
-    //cout << "Biggs-Andrews Acceleration mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout.unsetf(std::ios::floatfield);
+	cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	//cout << "Biggs-Andrews Acceleration mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
 }
 
 
@@ -73,10 +73,10 @@ void OptimizerSrlBiggs::update(std::vector<Matrix>& cs, std::vector<Matrix>& c1s
 			if (!!cs[i])
 			{
 				// save for next iteration
-				u0s_[i].elementwiseDiv(c1s[i], cs[i]); 
-				c0s_[i].copy(c1s[i]); 
+				u0s_[i].elementwiseDiv(c1s[i], cs[i]);
+				c0s_[i].copy(c1s[i]);
 
-				cs[i].copy(c1s[i]); 
+				cs[i].copy(c1s[i]);
 				c1s[i].free();
 			}
 		}
@@ -193,6 +193,3 @@ void OptimizerSrlBiggs::update(std::vector<Matrix>& cs, std::vector<Matrix>& c1s
 
 	return sqrt(sumd) / sqrt(sum);
 */
-
-
-
