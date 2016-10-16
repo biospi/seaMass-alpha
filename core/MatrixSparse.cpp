@@ -141,11 +141,11 @@ void MatrixSparse::elementwiseSqr(const MatrixSparse& a)
 {
 	if (!*this) init(a);
 
-	vsSqr(nnz_, a.vs_, vs_);
-
 #ifndef NDEBUG
 	cout << "  Y" << *this << " = (A" << a << ")^2" << endl;
 #endif
+
+	vsSqr(nnz_, a.vs_, vs_);
 }
 
 

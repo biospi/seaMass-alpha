@@ -32,19 +32,19 @@ using namespace std;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii _dimension, ii order, bool transient)
-	: BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getMeshInfo().dimensions, transient, parentIndex), dimension(_dimension)
+BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii dimension, ii order, bool transient)
+	: BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
 {
-	const MeshInfo parentMeshInfo = static_cast<BasisBspline*>(bases[parentIndex])->getMeshInfo();
-	meshInfo() = parentMeshInfo;
-	meshInfo().scale[dimension] = parentMeshInfo.scale[dimension] - 1;
-	meshInfo().offset[dimension] = parentMeshInfo.offset[dimension] / 2;
-	meshInfo().extent[dimension] = (parentMeshInfo.offset[dimension] + parentMeshInfo.extent[dimension] - 1 - order) / 2 + order + 1 - meshInfo().offset[dimension];
-	ii m = parentMeshInfo.extent[dimension];
-	ii n = meshInfo().extent[dimension];
+	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
+	gridInfo() = parentGridInfo;
+	gridInfo().scale[dimension] = parentGridInfo.scale[dimension] - 1;
+	gridInfo().offset[dimension] = parentGridInfo.offset[dimension] / 2;
+	gridInfo().extent[dimension] = (parentGridInfo.offset[dimension] + parentGridInfo.extent[dimension] - 1 - order) / 2 + order + 1 - gridInfo().offset[dimension];
+	ii m = parentGridInfo.extent[dimension];
+	ii n = gridInfo().extent[dimension];
 
 	ii stride = 1;
-	for (ii j = 0; j < dimension; j++) stride *= meshInfo().extent[j];
+	for (ii j = 0; j < dimension; j++) stride *= gridInfo().extent[j];
 
 	// create our kernel
 	ii nh = order + 2;
@@ -66,7 +66,7 @@ BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii _dimension, ii order
 	vector<ii> colind(nh * n);
 
 	ii nnz = 0;
-	ii offset = order + ((parentMeshInfo.offset[dimension] + 1) % 2);
+	ii offset = order + ((parentGridInfo.offset[dimension] + 1) % 2);
 	for (ii j = 0; j < n; j++)
 	{
 		for (ii i = 0; i < nh; i++)
@@ -80,14 +80,14 @@ BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii _dimension, ii order
 		}
 	}
 
-	a.init(m, n, nnz, acoo.data(), rowind.data(), colind.data());
-	aT.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
+	a_.init(m, n, nnz, acoo.data(), rowind.data(), colind.data());
+	aT_.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
 
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale";
 	if (isTransient()) cout << " (t)";
-	cout << " parent=" << getParentIndex() << " dimension=" << dimension << " " << meshInfo() << endl;
-	cout << "  A" << a << " (" << defaultfloat << setprecision(2) << (a.mem() + aT.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
+	cout << " parent=" << getParentIndex() << " dimension=" << dimension << " " << gridInfo() << endl;
+	cout << "  A" << a_ << " (" << defaultfloat << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
 #endif
 }
 
@@ -99,19 +99,19 @@ BasisBsplineScale::~BasisBsplineScale()
 
 void
 BasisBsplineScale::
-synthesis(Matrix& f, const Matrix& c, bool accumulate) const
+synthesis(Matrix& f, const Matrix& x, bool accumulate) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
 #endif
 
-	f.mul(a, c, accumulate, false);
+	f.mul(a_, x, accumulate, false);
 }
 
 
 void
 BasisBsplineScale::
-analysis(Matrix& cE, const Matrix& fE, bool sqrA) const
+analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::analysis" << endl;
@@ -119,11 +119,12 @@ analysis(Matrix& cE, const Matrix& fE, bool sqrA) const
 
 	if (sqrA)
 	{
-		MatrixSparse aT_sqrd; aT_sqrd.elementwiseSqr(aT);
-		cE.mul(aT_sqrd, fE, false, false);
+		MatrixSparse aTSqrd;
+		aTSqrd.elementwiseSqr(aT_);
+		xE.mul(aTSqrd, fE, false, false);
 	}
 	else
 	{
-		cE.mul(aT, fE, false, false);
+		xE.mul(aT_, fE, false, false);
 	}
 }

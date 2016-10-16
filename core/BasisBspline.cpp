@@ -1,4 +1,4 @@
-//
+//mesh
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -25,7 +25,7 @@ using namespace std;
 
 
 BasisBspline::BasisBspline(std::vector<Basis*>& bases, ii dims, bool isTransient, ii parentIndex)
-	: Basis(bases, isTransient, parentIndex), meshInfo_(dims)
+	: Basis(bases, isTransient, parentIndex), gridInfo_(dims)
 {
 }
 
@@ -35,13 +35,13 @@ BasisBspline::~BasisBspline()
 }
 
 
-BasisBspline::MeshInfo::MeshInfo(ii dimensions_)
+BasisBspline::GridInfo::GridInfo(ii dimensions_)
 	: dimensions(dimensions_), scale(dimensions_), offset(dimensions_), extent(dimensions_), n(0)
 {
 }
 
 
-void BasisBspline::MeshInfo::operator=(const BasisBspline::MeshInfo& mi)
+void BasisBspline::GridInfo::operator=(const BasisBspline::GridInfo& mi)
 {
 	dimensions = mi.dimensions;
 	scale = mi.scale;
@@ -51,12 +51,12 @@ void BasisBspline::MeshInfo::operator=(const BasisBspline::MeshInfo& mi)
 }
 
 
-BasisBspline::MeshInfo::~MeshInfo()
+BasisBspline::GridInfo::~GridInfo()
 {
 }
 
 
-ii BasisBspline::MeshInfo::m() const
+ii BasisBspline::GridInfo::m() const
 {
 	ii m = 1;
 	for (ii i = 0; i < dimensions; i++)
@@ -67,7 +67,7 @@ ii BasisBspline::MeshInfo::m() const
 }
 
 
-li BasisBspline::MeshInfo::size() const
+li BasisBspline::GridInfo::size() const
 {
 	li size = n;
 	for (ii i = 0; i < dimensions; i++)
@@ -80,54 +80,54 @@ li BasisBspline::MeshInfo::size() const
 
 ii BasisBspline::getM() const
 {
-	return meshInfo_.m();
+	return gridInfo_.m();
 }
 
 
 ii BasisBspline::getN() const
 {
-	return meshInfo_.n;
+	return gridInfo_.n;
 }
 
 
-const BasisBspline::MeshInfo& BasisBspline::getMeshInfo() const
+const BasisBspline::GridInfo& BasisBspline::getGridInfo() const
 {
-	return meshInfo_;
+	return gridInfo_;
 }
 
 
-BasisBspline::MeshInfo& BasisBspline::meshInfo()
+BasisBspline::GridInfo& BasisBspline::gridInfo()
 {
-	return meshInfo_;
+	return gridInfo_;
 }
 
 
 ostream&
-operator<<(ostream& os, const BasisBspline::MeshInfo& meshInfo)
+operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
 {
-	os << "meshInfo=(n=" << meshInfo.n;
+	os << "gridInfo=(n=" << gridInfo.n;
 
 	os << ",scale=[";
-	for (ii i = 0; i < meshInfo.dimensions; i++)
+	for (ii i = 0; i < gridInfo.dimensions; i++)
 	{
-		os << meshInfo.scale[i];
-		if (i < meshInfo.dimensions - 1) os << ",";
+		os << gridInfo.scale[i];
+		if (i < gridInfo.dimensions - 1) os << ",";
 	}
 	os << "]";
 
 	os << ",offset=[";
-	for (ii i = 0; i < meshInfo.dimensions; i++)
+	for (ii i = 0; i < gridInfo.dimensions; i++)
 	{
-		os << meshInfo.offset[i];
-		if (i < meshInfo.dimensions - 1) os << ",";
+		os << gridInfo.offset[i];
+		if (i < gridInfo.dimensions - 1) os << ",";
 	}
 	os << "]";
 
 	os << ",extent=[";
-	for (ii i = 0; i < meshInfo.dimensions; i++)
+	for (ii i = 0; i < gridInfo.dimensions; i++)
 	{
-		os << meshInfo.extent[i];
-		if (i < meshInfo.dimensions - 1) os << ",";
+		os << gridInfo.extent[i];
+		if (i < gridInfo.dimensions - 1) os << ",";
 	}
 	os << "])";
 

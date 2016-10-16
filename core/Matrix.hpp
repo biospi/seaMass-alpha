@@ -45,16 +45,17 @@ public:
 	li size() const;
 
 	void copy(const Matrix& a);
+	void prune(const Matrix& a, fp threshold);
+
 	void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA);
+
+	void elementwiseAdd(const Matrix& a, fp beta);
+	void elementwiseMul(const Matrix& a, fp beta);
 	void elementwiseMul(const Matrix& a, const Matrix& b);
-	void elementwiseMul(fp scale, const Matrix& a);
 	void elementwiseDiv(const Matrix& n, const Matrix& d);
 	void elementwiseSqrt(const Matrix& a);
 	void elementwiseLn(const Matrix& a);
 	void elementwisePow(const Matrix& a, fp power);
-	void shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda);
-
-	void prune(fp threshold);
 
 	double sum() const;
 	double sumSqrs() const;

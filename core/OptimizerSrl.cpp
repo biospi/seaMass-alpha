@@ -30,7 +30,7 @@
 using namespace std;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& g, fp pruneThreshold) : bases_(bases), g_(g), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& b, ii debugLevel, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0)
 {
 #ifndef NDEBUG
 	cout << "Init Optimizer SRL..." << endl;
@@ -45,7 +45,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& g, fp prun
 	{
 		if (i == 0)
 		{
-			Matrix t; t.init(g_.m(), g_.n(), 1.0);
+			Matrix t; t.init(b_.m(), b_.n(), 1.0);
 			bases_[i]->analysis(l2s_[0], t, true);
 		}
 		else
@@ -74,7 +74,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& g, fp prun
 	{
 		if (i == 0)
 		{
-			Matrix t; t.init(g_.m(), g_.n(), 1.0);
+			Matrix t; t.init(b_.m(), b_.n(), 1.0);
 			bases_[i]->analysis(l1l2s_[0], t, false);
 		}
 		else
@@ -94,47 +94,49 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& g, fp prun
 		}
 	}
 
-	// initialise starting estimate of 'c' from analysis of 'g'
+	// initialise starting estimate of 'x' from analysis of 'b'
 #ifndef NDEBUG
 	cout << " Init Cs from G" << endl;
 #endif
-	double sumC = 0.0;
-	cs_.resize(bases_.size());
+	double sumX = 0.0;
+	xs_.resize(bases_.size());
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
 		{
-			bases_[i]->analysis(cs_[0], g_, false);
+			bases_[i]->analysis(xs_[0], b_, false);
 		}
 		else
 		{
-			bases_[i]->analysis(cs_[i], cs_[bases_[i]->getParentIndex()], false);
+			bases_[i]->analysis(xs_[i], xs_[bases_[i]->getParentIndex()], false);
 		}
-		sumC += cs_[i].sum();
+		sumX += xs_[i].sum();
 	}
-	double sumG = g_.sum();
+	double sumB = b_.sum();
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (!bases_[i]->isTransient())
 		{
 			Matrix l1; l1.elementwiseMul(l1l2s_[i], l2s_[i]);
-			cs_[i].elementwiseDiv(cs_[i], l1);
-			cs_[i].elementwiseMul((fp)(sumG / sumC), cs_[i]);
-			cs_[i].elementwiseMul(cs_[i], l2s_[i]);
-			cs_[i].prune(pruneThreshold);
+			xs_[i].elementwiseDiv(xs_[i], l1);
+			xs_[i].elementwiseMul(xs_[i], (fp)(sumB / sumX));
+			xs_[i].elementwiseMul(xs_[i], l2s_[i]);
+			xs_[i].prune(xs_[i], pruneThreshold);
 		}
 		else
 		{
-			cs_[i].free();
+			xs_[i].free();
 		}
 	}
 
+#ifndef NDEBUG
 	// how much memory are we using?
 	li mem = 0;
-	for (ii i = 0; i < cs_.size(); i++) mem += cs_[i].mem();
+	for (ii i = 0; i < xs_.size(); i++) mem += xs_[i].mem();
 	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
 	for (ii i = 0; i < l1l2s_.size(); i++) mem += l1l2s_[i].mem();
 	cout << "Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+#endif
 }
 
 
@@ -156,7 +158,7 @@ double OptimizerSrl::step()
 
 	// temporary variables
 	Matrix f;
-	vector<Matrix> cEs(bases_.size());
+	vector<Matrix> xEs(bases_.size());
 	double sumSqrs = 0.0;
 	double sumSqrDiffs = 0.0;
 
@@ -170,9 +172,9 @@ double OptimizerSrl::step()
 	}
 	double synthesisDuration = omp_get_wtime() - synthesisStart;
 
-	double volG = g_.sum() / g_.size();
-	double volF = f.sum() / f.size();
-	cout << "  volF=" << volF << " volG=" << volG << " vol=" << volF / volG << endl;
+	//double volB = b_.sum() / b_.size();
+	//double volF = f.sum() / f.size();
+	//cout << "  volF=" << volF << " volB=" << volB << " vol=" << volF / volB << endl;
 
     // ERROR
 #ifndef NDEBUG
@@ -180,7 +182,7 @@ double OptimizerSrl::step()
 #endif
 	double errorStart = omp_get_wtime();
 	{
-		f.elementwiseDiv(g_, f);
+		f.elementwiseDiv(b_, f);
 	}
 	double errorDuration = omp_get_wtime() - errorStart;
 
@@ -194,12 +196,12 @@ double OptimizerSrl::step()
 		{
 			if (i == 0)
 			{
-				bases_.front()->analysis(cEs[0], f, false);
+				bases_.front()->analysis(xEs[0], f, false);
 				f.free();
 			}
 			else
 			{
-				bases_[i]->analysis(cEs[i], cEs[bases_[i]->getParentIndex()], false);
+				bases_[i]->analysis(xEs[i], xEs[bases_[i]->getParentIndex()], false);
 			}
 		}
 	}
@@ -207,7 +209,7 @@ double OptimizerSrl::step()
 	{
 		if (!bases_[i]->isTransient())
 		{
-			cEs[i].elementwiseDiv(cEs[i], l2s_[i]);
+			xEs[i].elementwiseDiv(xEs[i], l2s_[i]);
 		}
 	}
 	double analysisDuration = omp_get_wtime() - analysisStart;
@@ -222,11 +224,11 @@ double OptimizerSrl::step()
 		{
 			if (!bases_[i]->isTransient())
 			{
-				bases_[i]->shrinkage(cEs[i], cEs[i], cs_[i], l1l2s_[i], lambda_);
+				bases_[i]->shrinkage(xEs[i], xEs[i], xs_[i], l1l2s_[i], lambda_);
 			}
 			else
 			{
-				cEs[i].free();
+				xEs[i].free();
 			}
 		}
 	}
@@ -234,58 +236,42 @@ double OptimizerSrl::step()
    
     // UPDATE
 #ifndef NDEBUG
-	cout << iteration_ << " acceleration" << endl;
+	cout << iteration_ << " termination check" << endl;
 #endif
-	double accelerationStart = omp_get_wtime();
+	double updateStart = omp_get_wtime();
 	{
-		// gradient calculation is based on unaccelerated update so we can terminate at the same point regardless 
+		// termination check
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (!bases_[i]->isTransient())
 			{
-				sumSqrs += cs_[i].sumSqrs();
-				sumSqrDiffs += cEs[i].sumSqrDiffs(cs_[i]);
+				sumSqrs += xs_[i].sumSqrs();
+				sumSqrDiffs += xEs[i].sumSqrDiffs(xs_[i]);
 			}
 		}
 
-		// possible accelerated update
-		update(cs_, cEs, iteration_);
-
-		// prune small coefficients
+		// copy into cs_, pruning small coefficients
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (!bases_[i]->isTransient())
 			{
-				cs_[i].prune(pruneThreshold_);
+				xs_[i].prune(xEs[i], pruneThreshold_);
+				xEs[i].free();
 			}
 		}
 	}
-	double accelerationDuration = omp_get_wtime() - accelerationStart;
+	double updateDuration = omp_get_wtime() - updateStart;
 
 #ifndef NDEBUG
 	cout << "Durations: synthesis=" << defaultfloat << setprecision(3) << synthesisDuration;
 	cout << " error=" << errorDuration;
 	cout << " analysis=" << analysisDuration;
 	cout << " shrinkage=" << shrinkageDuration;
-	cout << " acceleration=" << accelerationDuration;
-	cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + accelerationDuration << endl;
+	cout << " update=" << updateDuration;
+	cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
 #endif
 
 	return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
-}
-
-
-// unaccelerated update
-void OptimizerSrl::update(std::vector<Matrix>& cs, std::vector<Matrix>& c1s, ii iteration)
-{
-	for (ii i = 0; i < (ii)bases_.size(); i++)
-	{
-		if (!bases_[i]->isTransient())
-		{
-			cs[i].copy(c1s[i]);
-			c1s[i].free();
-		}
-	}
 }
 
 
@@ -296,7 +282,7 @@ void OptimizerSrl::synthesis(Matrix& f, ii basis) const
 	{
 		if (!ts[i] && !bases_[i]->isTransient())
 		{
-			ts[i].elementwiseDiv(cs_[i], l2s_[i]);
+			ts[i].elementwiseDiv(xs_[i], l2s_[i]);
 		}
 
 		if (basis == i) // return with B-spline control points
@@ -311,7 +297,7 @@ void OptimizerSrl::synthesis(Matrix& f, ii basis) const
 			ii pi = bases_[i]->getParentIndex();
 			if (!ts[pi] && !bases_[pi]->isTransient())
 			{
-				ts[pi].elementwiseDiv(cs_[pi], l2s_[pi]);
+				ts[pi].elementwiseDiv(xs_[pi], l2s_[pi]);
 			}
 
 			bases_[i]->synthesis(ts[pi], ts[i], true);
@@ -326,8 +312,18 @@ void OptimizerSrl::synthesis(Matrix& f, ii basis) const
 }
 
 
-const std::vector<Matrix>& OptimizerSrl::getCs() const
-{ 
-	return cs_;
+ii OptimizerSrl::getIteration() const
+{
+	return iteration_;
 }
 
+
+const std::vector<Basis*>& OptimizerSrl::getBases() const
+{
+	return bases_;
+}
+
+std::vector<Matrix>& OptimizerSrl::xs()
+{
+	return xs_;
+}

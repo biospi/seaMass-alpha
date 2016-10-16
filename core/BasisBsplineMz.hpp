@@ -34,15 +34,12 @@ public:
 		           const std::vector<double>& binEdges, short resolution, ii order = 3, bool isTransient = false);
 	virtual ~BasisBsplineMz();
 
-	void synthesis(Matrix& f, const Matrix& c, bool accumulate) const;
-	void analysis(Matrix& cE, const Matrix& fE, bool sqrA = false) const;
+	void synthesis(Matrix& f, const Matrix& x, bool accumulate) const;
+	void analysis(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
 
 private:
-	std::vector<MatrixSparse> as; // CSR sparse 'A' basis matrices
-	std::vector<li> is; // spectrum_index into 'g'
-
-	double mzMin;
-	double mzMax;
+	std::vector<MatrixSparse> as_; // CSR sparse 'A' basis matrices
+	std::vector<li> is_; // spectrum_index into 'g'
 };
 
 

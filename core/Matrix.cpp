@@ -151,13 +151,13 @@ void Matrix::mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool t
 		accumulate = false;
 	}
 
-	static fp alpha = 1.0;
-	fp beta = (fp)(accumulate ? 1.0 : 0.0);
-	mkl_scsrmm(transposeA ? "T" : "N", &a.m_, &x.n_, &a.n_, &alpha, "G**C", a.vs_, a.js_, a.is_, &a.is_[1], x.vs_, &x.n_, &beta, vs_, &x.n_);
-
 #ifndef NDEBUG
 	cout << "  Y" << *this << (accumulate ? " += A" : " = A") << (transposeA ? "t" : "") << a << " . X" << x << endl;
 #endif
+
+	static fp alpha = 1.0;
+	fp beta = (fp)(accumulate ? 1.0 : 0.0);
+	mkl_scsrmm(transposeA ? "T" : "N", &a.m_, &x.n_, &a.n_, &alpha, "G**C", a.vs_, a.js_, a.is_, &a.is_[1], x.vs_, &x.n_, &beta, vs_, &x.n_);
 }
 
 
@@ -166,15 +166,49 @@ void Matrix::copy(const Matrix& a)
 	// initialise output matrix if not already done
 	if (!*this) init(a.m_, a.n_);
 
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = A" << a << endl;
+#endif
+
 	#pragma omp parallel for
 	for (ii i = 0; i < a.size(); i++)
 	{
 		vs_[i] = a.vs_[i];
 	}
+}
+
+
+void Matrix::elementwiseAdd(const Matrix& a, fp beta)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = A" << a << endl;
+	cout << "  Y" << *this << " = A" << a << " + " << beta << endl;
 #endif
+
+	#pragma omp parallel for
+	for (ii i = 0; i < a.size(); i++)
+	{
+		vs_[i] = a.vs_[i] + beta;
+	}
+}
+
+
+void Matrix::elementwiseMul(const Matrix& a, fp beta)
+{
+	// initialise output matrix if not already done
+	if (!*this) init(a.m_, a.n_);
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = A" << a << " * " << beta << endl;
+#endif
+
+	#pragma omp parallel for
+	for (ii i = 0; i < a.size(); i++)
+	{
+		vs_[i] = a.vs_[i] * beta;
+	}
 }
 
 
@@ -182,6 +216,10 @@ void Matrix::elementwiseMul(const Matrix& a, const Matrix& b)
 {
 	// initialise output matrix if not already done
 	if (!*this) init(a.m_, a.n_);
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = A" << a << " ./ B" << b << endl;
+#endif
 
 	// split into tasty chunks for openmp and when using 32bit MKL_INT
 	static ii chunk_size = 0x10000;
@@ -198,27 +236,6 @@ void Matrix::elementwiseMul(const Matrix& a, const Matrix& b)
 	{
 		vsMul((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], &b.vs_[k * chunk_size], &vs_[k * chunk_size]);
 	}
-
-#ifndef NDEBUG
-	cout << "  Y" << *this << " = A" << a << " ./ B" << b << endl;
-#endif
-}
-
-
-void Matrix::elementwiseMul(fp scale, const Matrix& a)
-{
-	// initialise output matrix if not already done
-	if (!*this) init(a.m_, a.n_);
-
-	#pragma omp parallel for
-	for (ii i = 0; i < a.size(); i++)
-	{
-		vs_[i] = scale * a.vs_[i];
-	}
-
-#ifndef NDEBUG
-	cout << "  Y" << *this << " = " << scale << " * A" << a << endl;
-#endif
 }
 
 
@@ -226,6 +243,10 @@ void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d)
 {
 	// initialise output matrix if not already done
 	if (!*this) init(d.m_, d.n_);
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = N" << n << " ./ D" << d << endl;
+#endif
 
 	#pragma omp parallel for
 	for (li i = 0; i < d.size(); i++)
@@ -239,10 +260,6 @@ void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d)
 			vs_[i] = 0.0;
 		}
 	}
-
-#ifndef NDEBUG
-	cout << "  Y" << *this << " = N" << n << " ./ D" << d << endl;
-#endif
 }
 
 
@@ -250,6 +267,10 @@ void Matrix::elementwiseSqrt(const Matrix& a)
 {
 	// initialise output matrix if not already done
 	if (!*this) init(a.m_, a.n_);
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = sqrt(A" << a << ")" << endl;
+#endif
 
 	// split into tasty chunks for openmp and when 32bit using MKL_INT
 	static ii chunk_size = 0x10000;
@@ -266,10 +287,6 @@ void Matrix::elementwiseSqrt(const Matrix& a)
 	{
 		vsSqrt((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], &vs_[k * chunk_size]);
 	}
-
-#ifndef NDEBUG
-	cout << "  Y" << *this << " = sqrt(A" << a << ")" << endl;
-#endif
 }
 
 
@@ -277,6 +294,10 @@ void Matrix::elementwisePow(const Matrix& a, fp power)
 {
 	// initialise output matrix if not already done
 	if (!*this) init(a.m_, a.n_);
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = (A" << a << ")^" << power << endl;
+#endif
 
 	// split into tasty chunks for openmp and when 32bit using MKL_INT
 	static ii chunk_size = 0x10000;
@@ -288,15 +309,11 @@ void Matrix::elementwisePow(const Matrix& a, fp power)
 		last_chunk = chunk_size;
 	}
 
-#pragma omp parallel for
+	#pragma omp parallel for
 	for (ii k = 0; k < chunks; k++)
 	{
 		vsPowx((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], power, &vs_[k * chunk_size]);
 	}
-
-#ifndef NDEBUG
-	cout << "  Y" << *this << " = (A" << a << ")^" << power << endl;
-#endif
 }
 
 
@@ -304,6 +321,10 @@ void Matrix::elementwiseLn(const Matrix& a)
 {
 	// initialise output matrix if not already done
 	if (!*this) init(a.m_, a.n_);
+
+#ifndef NDEBUG
+	cout << "  Y" << *this << " = ln(A" << a << ")" << endl;
+#endif
 
 	#pragma omp parallel for
 	for (li i = 0; i < a.size(); i++)
@@ -317,39 +338,22 @@ void Matrix::elementwiseLn(const Matrix& a)
 			vs_[i] = 0.0;
 		}
 	}
-
-#ifndef NDEBUG
-	cout << "  Y" << *this << " = ln(A" << a << ")" << endl;
-#endif
 }
 
 
-void Matrix::shrinkage(const Matrix& cE, const Matrix& c0, const Matrix& l1, fp lambda)
+void Matrix::prune(const Matrix& a, fp threshold)
 {
 	// initialise output matrix if not already done
-	if (!*this) init(c0.m_, c0.n_);
-
-	#pragma omp parallel for
-	for (li i = 0; i < size(); i++)
-	{
-		if (l1.vs_[i] != 0.0)
-		{
-			vs_[i] = cE.vs_[i] * c0.vs_[i] / (l1.vs_[i] + lambda);
-		}
-	}
+	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = shrinkage(cE, c0" << c0 << ", l1, l2, " << lambda << ")" << endl;
+	cout << "  Y" << *this << " = (A" << a << " >= " << defaultfloat << setprecision(8) << threshold << ") ? A : 0.0" << endl;
 #endif
-}
 
-
-void Matrix::prune(fp threshold)
-{
 	#pragma omp parallel for
 	for (li i = 0; i < size(); i++)
 	{
-		if (vs_[i] < threshold) vs_[i] = 0.0;
+		vs_[i] = (a.vs_[i] >= threshold) ? a.vs_[i] : (fp)0.0;
 	}
 }
 

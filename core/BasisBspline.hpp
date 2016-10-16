@@ -30,21 +30,21 @@
 class BasisBspline : public Basis
 {
 public:
-	struct MeshInfo
+	struct GridInfo
 	{
-		ii dimensions;  	    // dimension of each b-spline coefficients mesh
+		ii dimensions;  	    // dimension of each b-spline coefficients grid
 		std::vector<ii> scale;  // dyadic scale for each dimension
 		std::vector<ii> offset; // coefficient offset for each dimension
 		std::vector<ii> extent; // number of coefficients for each dimension (make up the columns)
-		ii n;                   // number of meshes (columns in resulting matrix)
+		ii n;                   // number of grides (columns in resulting matrix)
 
-		MeshInfo(ii dims);
-		~MeshInfo();
+		GridInfo(ii dims);
+		~GridInfo();
 
-		ii m() const;           // number of coefficients in a mesh (rows in resulting matrix)
-		li size() const;        // number of coefficients across all meshes
+		ii m() const;           // number of coefficients in a grid (rows in resulting matrix)
+		li size() const;        // number of coefficients across all grides
 
-		void operator=(const MeshInfo& meshInfo);
+		void operator=(const GridInfo& gridInfo);
 	};
 
 	BasisBspline(std::vector<Basis*>& bases, ii dims, bool isTransient = false, ii parentIndex = -1);
@@ -52,16 +52,16 @@ public:
 
 	ii getM() const;
 	ii getN() const;
-	const MeshInfo& getMeshInfo() const;
+	const GridInfo& getGridInfo() const;
 
 protected:
-	MeshInfo& meshInfo();
+	GridInfo& gridInfo();
 
 private:
-	MeshInfo meshInfo_;
+	GridInfo gridInfo_;
 };
 
-std::ostream& operator<<(std::ostream& os, const BasisBspline::MeshInfo& meshInfo);
+std::ostream& operator<<(std::ostream& os, const BasisBspline::GridInfo& gridInfo);
 
 #endif
 

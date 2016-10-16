@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 	ii shrinkageExponent;
 	ii toleranceExponent;
 	ii threads;
+	ii debugLevel;
 
 	// *******************************************************************
 
@@ -77,7 +78,11 @@ int main(int argc, char *argv[])
 			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
 			"guidelines: around -10, "
 			"default: -10")
-		("threads",po::value<ii>(&threads)->default_value(4),
+		("debug_level,d", po::value<ii>(&debugLevel)->default_value(0),
+			"Debug level, "
+			"guidelines: set to 1 for debugging information, "
+			"default: 0")
+		("threads", po::value<ii>(&threads)->default_value(4),
 			"Number of OpenMP threads to use, "
 			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
 			"default: 4");
@@ -105,7 +110,7 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-			threads=omp_get_max_threads();
+			threads = omp_get_max_threads();
 		}
 		if(vm.count("file"))
 		{
@@ -140,36 +145,40 @@ int main(int argc, char *argv[])
 	double shrinkage = pow(2.0, shrinkageExponent);
 	while (msFile.next(input, id))
 	{
-		cout << "Processing id=" << id << endl;
-		SeaMass sm(input, scales, shrinkage, tolerance);
+		cout << endl << "Processing " << id << ":" << endl;
+
+		SeaMass sm(input, scales, shrinkage, tolerance, debugLevel);
 
 		do
 		{
-			// create SMV file
-			ostringstream oss;
-			oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
-			HDF5Writer smv(oss.str());
+			if (debugLevel > 0)
+			{
+				// create SMV file
+				ostringstream oss;
+				oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
+				HDF5Writer smv(oss.str());
 
-			// save back input but with bin_counts now containing the residuals
-			vector<fp> originalBinCounts = input.binCounts;
-			sm.getOutputBinCounts(input.binCounts);
-			for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
-			smv.write_input(input);
-			input.binCounts = originalBinCounts;
+				// save back input but with bin_counts now containing the residuals
+				vector<fp> originalBinCounts = input.binCounts;
+				sm.getOutputBinCounts(input.binCounts);
+				for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
+				smv.write_input(input);
+				input.binCounts = originalBinCounts;
 
-			// write RTree
-			SeaMass::Output output;
-			sm.getOutput(output);
-			smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+				// write RTree
+				SeaMass::Output output;
+				sm.getOutput(output);
+				smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
 
-			// for now, lets also write out an smo
-			ostringstream oss2;
-			oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
-			HDF5Writer smo(oss2.str());
+				// for now, lets also write out an smo
+				ostringstream oss2;
+				oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
+				HDF5Writer smo(oss2.str());
 
-			SeaMass::ControlPoints controlPoints;
-			sm.getOutputControlPoints(controlPoints);
-			smo.write_output_control_points(controlPoints);
+				SeaMass::ControlPoints controlPoints;
+				sm.getOutputControlPoints(controlPoints);
+				smo.write_output_control_points(controlPoints);
+			}
 		}
 		while (sm.step());
 

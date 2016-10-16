@@ -71,8 +71,8 @@ public:
 		std::vector<ii> offsets;
 	};
 
-	SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance);
-	SeaMass(Input& input, const Output& seed);
+	SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance, ii debugLevel = 0);
+	SeaMass(Input& input, const Output& seed, ii debugLevel = 0);
 	virtual ~SeaMass();
 
 	bool step();
@@ -86,13 +86,15 @@ public:
 private:
 	void init(Input& input, const std::vector<ii>& scales);
 
-	Matrix g_;
+	Matrix b_;
 	ii dimensions_;
 	std::vector<Basis*> bases_;
-	OptimizerSrl* optimizer_;
+	Optimizer* inner_optimizer_;
+	Optimizer* optimizer_;
 	double shrinkage_;
 	double tolerance_;
 	ii iteration_;
+	ii debugLevel_;
 };
 
 

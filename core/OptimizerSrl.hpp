@@ -24,35 +24,34 @@
 #define _SEAMASS_CORE_OPTIMIZERSRL_HPP_
 
 
-#include "Basis.hpp"
+#include "Optimizer.hpp"
 
 
-class OptimizerSrl
+class OptimizerSrl : public Optimizer
 {
 public:    
-	OptimizerSrl(const std::vector<Basis*>& bases, const Matrix& g, fp pruneThreshold);
+	OptimizerSrl(const std::vector<Basis*>& bases, const Matrix& b, ii debugLevel, fp pruneThreshold = (fp)0.001);
 	virtual ~OptimizerSrl();
     
 	void init(fp lamba);
 	double step();
-
 	void synthesis(Matrix& f, ii basis = -1) const;
-	const std::vector<Matrix>& getCs() const;
 
-protected:
-	virtual void update(std::vector<Matrix>& c, std::vector<Matrix>& c1, ii iteration);
+	ii getIteration() const;
+	const std::vector<Basis*>& getBases() const;
+	std::vector<Matrix>& xs();
 
 private:
 	const std::vector<Basis*>& bases_;
-	const Matrix& g_;
+	const Matrix& b_;
 	fp pruneThreshold_;
-
-	std::vector<Matrix> cs_;
-	std::vector<Matrix> l2s_;
-	std::vector<Matrix> l1l2s_;
 
 	fp lambda_;
 	ii iteration_;
+
+	std::vector<Matrix> xs_;
+	std::vector<Matrix> l2s_;
+	std::vector<Matrix> l1l2s_;
 };
 
 

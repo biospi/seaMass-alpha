@@ -22,10 +22,12 @@
 
 #include "SeaMass.hpp"
 
-#include "OptimizerSrlBiggs.hpp"
+#include "OptimizerSrl.hpp"
+#include "OptimizerAccelerationEve1.hpp"
 
 #include "BasisBsplineMz.hpp"
 #include "BasisBsplineScale.hpp"
+#include "BasisBsplineScantime.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -34,13 +36,13 @@
 using namespace std;
 
 
-SeaMass::SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0)
+SeaMass::SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance, ii debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
 {
 	init(input, scales);
 }
 
 
-SeaMass::SeaMass(Input& input, const Output& seed) : iteration_(0)
+SeaMass::SeaMass(Input& input, const Output& seed, ii debugLevel) : iteration_(0), debugLevel_(debugLevel)
 {
 	vector<ii> scales(seed.scales.size());
 	init(input, scales);
@@ -56,6 +58,13 @@ SeaMass::SeaMass(Input& input, const Output& seed) : iteration_(0)
 
 SeaMass::~SeaMass()
 {
+	delete optimizer_;
+	delete inner_optimizer_;
+
+	for (ii i = 0; i < (ii)bases_.size(); i++)
+	{
+		delete bases_[i];
+	}
 }
 
 
@@ -80,85 +89,98 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 
 	// Create our tree of bases
 	ii order = 3; // B-spline order
-
 	if (input.spectrumIndex.size() <= 2)
 	{
 		dimensions_ = 1;
 
 		BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], order);
-		while (static_cast<BasisBspline*>(bases_.back())->getMeshInfo().extent[0] > order + 1)
+		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > order + 1)
 		{
-			new BasisBsplineScale(bases_, static_cast<BasisBspline*>(bases_.back())->getIndex(), 0, order);
+			new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
 		}
 	}
 	else
 	{
-		/*dimensions_ = 2;
+		dimensions_ = 2;
 
-		BasisResampleMZ* bResampleMZ = new BasisResampleMZ(bases_, input.bin_counts, input.spectrum_index, input.bin_edges, scales[0], order, true);
-		BasisResampleRT* bResampleRT = new BasisResampleRT(bases_, bResampleMZ, input.start_times, input.finish_times, input.exposures, scales[1], order);
-		Basis* last = bResampleRT;
-		while (last->get_cm().n[1] > order + 1)
+		BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], order, true);
+		BasisBsplineScantime* basisScantime = new BasisBsplineScantime(bases_, basisMz->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], order);
+
+		/*Basis* previousBasis = basisScantime;
+		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > order + 1)
 		{
-			last = new BasisDyadicScale(bases_, last, 1, order);
-			while (bases_.back()->get_cm().n[0] > order + 1)
+			previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, order);
+			while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > order + 1)
 			{
-				new BasisDyadicScale(bases_, bases_.back(), 0, order);
+				new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
 			}
 		}*/
 	}
 
+	// Initialize the optimizer
 	//for (li i = 0; i < (li)input.binCounts.size(); i++) input.binCounts[i] += 100.0;
-	g_.init((li)input.binCounts.size(), 1, 1, input.binCounts.data());
-	//optimizer_ = new OptimizerSrl(bases_, g_);
-	optimizer_ = new OptimizerSrlBiggs(bases_, g_);
-	optimizer_->init(shrinkage_);
+	b_.init((li)input.binCounts.size(), 1, 1, input.binCounts.data());
+	inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
+	//optimizer_ = new OptimizerSrl(bases_, b_);
+	optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
+	optimizer_->init((fp)shrinkage_);
 }
 
 
 bool SeaMass::step()
 {
-	if (iteration_ == 0)
+	if (iteration_ == 0 && debugLevel_ > 0)
 	{
-		double volG = g_.sum() / g_.size();
+		li nnz = 0;
+		li nx = 0;
+		for (ii j = 0; j < (ii)bases_.size(); j++)
+		{
+			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
+			{
+				nnz += optimizer_->xs()[j].nnz();
+				nx += optimizer_->xs()[j].size();
+			}
+		}
 
-		li nc = 0;
+		cout << " it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_ << endl;
+	}
+
+	iteration_++;
+	double grad = optimizer_->step();
+
+	if (debugLevel_ > 0)
+	{
 		li nnz = 0;
 		for (ii j = 0; j < (ii)bases_.size(); j++)
 		{
 			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
 			{
-				nc += optimizer_->getCs()[j].size();
-				nnz += optimizer_->getCs()[j].nnz();
+				nnz += optimizer_->xs()[j].nnz();
 			}
 		}
-
-		cout << endl << "L1 nc=" << nc << " nnz=" << nnz << " shrinkage=" << setprecision(3) << fixed << setprecision(8) << shrinkage_ << " tolerance=" << tolerance_ << endl;
+		cout << " it: " << setw(5) << iteration_;
+		cout << " shrink: " << defaultfloat << setprecision(4) << setw(6) << shrinkage_;
+		cout << " nnz: " << setw(10) << nnz;
+		cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 	}
-	iteration_++;
-
-	double grad = optimizer_->step();
-
-	li nnz = 0;
-	for (ii j = 0; j < (ii)bases_.size(); j++)
-	{
-		if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
-		{
-			nnz += optimizer_->getCs()[j].nnz();
-		}
-	}
-
-	cout << "f: " << setw(5) << iteration_;
-	cout << " shrinkage: " << defaultfloat << setprecision(4) << setw(6) << shrinkage_;
-	cout << " nnz: " << setw(10) << nnz;
-	cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 
 	if (grad <= tolerance_)
 	{
-		if (shrinkage_ == 0) return false;
-
-		shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
-		optimizer_->init(shrinkage_);
+		if (shrinkage_ == 0)
+		{
+			if (debugLevel_ == 0) cout << "o" << endl;
+			return false;
+		}
+		else
+		{
+			if (debugLevel_ == 0) cout << "o" << flush;
+			shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
+			optimizer_->init((fp)shrinkage_);
+		}
+	}
+	else
+	{
+		if (debugLevel_ == 0) cout << "." << flush;
 	}
 
 	return true;
@@ -185,7 +207,7 @@ void SeaMass::getOutput(Output& output) const
 
 	for (ii i = 0; i < dimensions_; i++)
 	{
-		const BasisBspline::MeshInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getMeshInfo();
+		const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 
 		output.baselineScale[i] = meshInfo.scale[i];
 		output.baselineOffset[i] = meshInfo.offset[i];
@@ -196,14 +218,14 @@ void SeaMass::getOutput(Output& output) const
 	{
 		if (!bases_[j]->isTransient())
 		{
-			const BasisBspline::MeshInfo& meshInfo = static_cast<BasisBspline*>(bases_[j])->getMeshInfo();
+			const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[j])->getGridInfo();
 
-			for (ii i = 0; i < optimizer_->getCs()[j].size(); i++)
+			for (ii i = 0; i < optimizer_->xs()[j].size(); i++)
 			{
-				fp c = optimizer_->getCs()[j].getVs()[i];
-				if (c > 0.0)
+				fp x = optimizer_->xs()[j].getVs()[i];
+				if (x > 0.0)
 				{
-					output.weights.push_back(c);
+					output.weights.push_back(x);
 
 					ii index = i;
 					for (ii d = 0; d < dimensions_; d++)
@@ -225,8 +247,8 @@ void SeaMass::getOutputBinCounts(std::vector<fp>& binCounts) const
 	cout << iteration_ << " getOutputBinCounts" << endl;
 #endif
 
-	binCounts.assign(g_.size(), 0.0);
-	Matrix f; f.init(g_.m(), g_.n(), g_.n(), binCounts.data());
+	binCounts.assign(b_.size(), 0.0);
+	Matrix f; f.init(b_.m(), b_.n(), b_.n(), binCounts.data());
 	optimizer_->synthesis(f);
 }
 
@@ -237,7 +259,7 @@ void SeaMass::getOutputControlPoints(ControlPoints& controlPoints) const
 	cout << iteration_ << " getOutputControlPoints" << endl;
 #endif
 
-	const BasisBspline::MeshInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getMeshInfo();
+	const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 
 	controlPoints.coeffs.assign(meshInfo.size(), 0.0);
 	Matrix c; c.init(meshInfo.m(), meshInfo.n, meshInfo.n, controlPoints.coeffs.data());
