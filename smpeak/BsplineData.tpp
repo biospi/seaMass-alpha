@@ -25,6 +25,7 @@
 #ifndef SMPEAK_BSPLINEDATA_TPP_
 #define SMPEAK_BSPLINEDATA_TPP_
 
+#include "BsplineData.hpp"
 
 template<typename T>
 BasisPatch<T>::BasisPatch()

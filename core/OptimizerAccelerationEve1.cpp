@@ -57,7 +57,9 @@ OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer, ii de
 	for (ii i = 0; i < y0s_.size(); i++) mem += y0s_[i].mem();
 	for (ii i = 0; i < u0s_.size(); i++) mem += u0s_[i].mem();
 
-	cout << "Eve1-Andrews Acceleration mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout << "Eve1-Andrews Acceleration mem=";
+	cout.unsetf(ios::floatfield); 
+	cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
 #endif
 }
 
@@ -158,7 +160,9 @@ double OptimizerAccelerationEve1::step()
 	double duration = omp_get_wtime() - start;
 
 #ifndef NDEBUG
-	//cout << "Acceleration: a=" << defaultfloat << setprecision(3) << aDebug << " duration=" << duration << endl;
+	cout << "Acceleration: a=";
+	cout.unsetf(ios::floatfield); 
+	cout << setprecision(3) << aDebug << " duration=" << duration << endl;
 #endif
 
 	// now perform the optimizer iteration on the extrapolated 'xs'

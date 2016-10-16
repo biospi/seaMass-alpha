@@ -135,7 +135,9 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& b, ii debu
 	for (ii i = 0; i < xs_.size(); i++) mem += xs_[i].mem();
 	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
 	for (ii i = 0; i < l1l2s_.size(); i++) mem += l1l2s_[i].mem();
-	cout << "Sparse Richardson-Lucy mem=" << defaultfloat << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout << "Sparse Richardson-Lucy mem="; 
+	cout.unsetf(ios::floatfield);
+	cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
 #endif
 }
 
@@ -176,7 +178,7 @@ double OptimizerSrl::step()
 	//double volF = f.sum() / f.size();
 	//cout << "  volF=" << volF << " volB=" << volB << " vol=" << volF / volB << endl;
 
-    // ERROR
+	// ERROR
 #ifndef NDEBUG
 	cout << iteration_ << " error" << endl;
 #endif
@@ -186,7 +188,7 @@ double OptimizerSrl::step()
 	}
 	double errorDuration = omp_get_wtime() - errorStart;
 
-    // ANALYSIS
+	// ANALYSIS
 #ifndef NDEBUG
 	cout << iteration_ << " analysis" << endl;
 #endif
@@ -232,9 +234,9 @@ double OptimizerSrl::step()
 			}
 		}
 	}
-    double shrinkageDuration = omp_get_wtime() - shrinkageStart;
-   
-    // UPDATE
+	double shrinkageDuration = omp_get_wtime() - shrinkageStart;
+
+	// UPDATE
 #ifndef NDEBUG
 	cout << iteration_ << " termination check" << endl;
 #endif
@@ -263,7 +265,9 @@ double OptimizerSrl::step()
 	double updateDuration = omp_get_wtime() - updateStart;
 
 #ifndef NDEBUG
-	cout << "Durations: synthesis=" << defaultfloat << setprecision(3) << synthesisDuration;
+	cout << "Durations: synthesis=";
+	cout.unsetf(ios::floatfield);
+	cout << setprecision(3) << synthesisDuration;
 	cout << " error=" << errorDuration;
 	cout << " analysis=" << analysisDuration;
 	cout << " shrinkage=" << shrinkageDuration;

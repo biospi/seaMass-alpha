@@ -105,10 +105,14 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 	cout << " " << getIndex() << " BasisBsplineScantime";
 	if (isTransient()) cout << " (t)";
 	cout << " parent=" << getParentIndex();
-	cout << " range=" << setprecision(3) << fixed << scantimeMin << ":" << defaultfloat << scantimeDiff << ":" << fixed << scantimeMax << "s";
+	cout << " range=" << setprecision(3) << fixed << scantimeMin << ":";
+	cout.unsetf(ios::floatfield); 
+	cout << scantimeDiff << ":" << fixed << scantimeMax << "s";
 	cout << " resolution=" << fixed << setprecision(1) << resolution << " (" << bpi << " bases per second)";
 	cout << " " << gridInfo() << endl;
-	cout << "  A" << a_ << " (" << defaultfloat << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
+	cout << "  A" << a_ << " (";
+	cout.unsetf(ios::floatfield); 
+	cout << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
 #endif
 	
 	if (resolutionAuto != resolution)

@@ -25,6 +25,8 @@
 #ifndef SMPEAK_MATHOPERATOR_TPP_
 #define SMPEAK_MATHOPERATOR_TPP_
 
+#include "MathOperator.hpp"
+
 template<class T>
 void OpUnitS<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt)
 {

@@ -26,6 +26,7 @@
 
 #include <limits>
 #include <iomanip>
+#include <cmath>
 
 
 using namespace std;
@@ -87,7 +88,9 @@ BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii dimension, ii order,
 	cout << " " << getIndex() << " BasisBsplineScale";
 	if (isTransient()) cout << " (t)";
 	cout << " parent=" << getParentIndex() << " dimension=" << dimension << " " << gridInfo() << endl;
-	cout << "  A" << a_ << " (" << defaultfloat << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
+	cout << "  A" << a_ << " (";
+	cout.unsetf(ios::floatfield); 
+	cout << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
 #endif
 }
 

@@ -25,6 +25,8 @@
 #ifndef SMPEAK_PEAKOPERATOR_TPP_
 #define SMPEAK_PEAKOPERATOR_TPP_
 
+#include "PeakOperator.hpp"
+
 template<typename T, typename R>
 void MathOp<T,R>::calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
 		const vector<double> &mza, double &mz1, double &a1)

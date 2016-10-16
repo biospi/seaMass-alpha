@@ -63,8 +63,9 @@ public:
 		}
 		low[dimensions] = -i;
 		high[dimensions] = -i;
-
-		return new RTree::Data(0, 0, Region(low.data(), high.data(), dimensions + 1), index++);
+        Region tmpRegion(low.data(), high.data(), dimensions + 1);
+		//return new RTree::Data(0, 0, Region(low.data(), high.data(), dimensions + 1), index++);
+        return new RTree::Data(0, 0, tmpRegion, index++);
 	}
 
 	virtual bool hasNext()

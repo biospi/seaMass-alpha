@@ -25,6 +25,7 @@
 #ifndef SMPEAK_SMDATA_TPP_
 #define SMPEAK_SMDATA_TPP_
 
+#include "SMData.hpp"
 
 template<template<class Operator> class MathOp, typename T, typename R>
 SMData1D<MathOp,T,R>::SMData1D(uli dims[], int offset[],

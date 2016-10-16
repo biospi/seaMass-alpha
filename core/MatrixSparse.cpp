@@ -23,6 +23,7 @@
 #include "MatrixSparse.hpp"
 
 #include <iomanip>
+#include <iostream>
 
 
 using namespace std;
@@ -157,7 +158,9 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
 	}
 	else
 	{
-		os << "{" << a.m() << "," << a.n() << "}:" << a.nnz() << "/" << a.size() << ":" << defaultfloat << setprecision(3) << 100.0 * a.nnz() / (double)a.size() << "%";
+		os << "{" << a.m() << "," << a.n() << "}:" << a.nnz() << "/" << a.size() << ":";
+        os.unsetf(ios::floatfield);
+        os << setprecision(3) << 100.0 * a.nnz() / (double)a.size() << "%";
 	}
 
 	return  os;

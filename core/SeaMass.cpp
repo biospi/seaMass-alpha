@@ -159,7 +159,9 @@ bool SeaMass::step()
 			}
 		}
 		cout << " it: " << setw(5) << iteration_;
-		cout << " shrink: " << defaultfloat << setprecision(4) << setw(6) << shrinkage_;
+		cout << " shrink: ";
+		cout.unsetf(ios::floatfield); 
+		cout << setprecision(4) << setw(6) << shrinkage_;
 		cout << " nnz: " << setw(10) << nnz;
 		cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 	}

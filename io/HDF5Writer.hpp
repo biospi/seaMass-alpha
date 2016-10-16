@@ -29,7 +29,7 @@
 
 #include <hdf5.h>
 #include <iostream>
-#include "../core/seaMass.hpp"
+#include "../core/SeaMass.hpp"
 
 class HDF5Writer
 {

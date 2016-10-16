@@ -27,7 +27,7 @@
 #define _SEAMASSRESTORATION_SMVWRITER_HPP_
 
 
-#include "../core/seaMass.hpp"
+#include "../core/SeaMass.hpp"
 #include <SpatialIndex.h>
 
 
