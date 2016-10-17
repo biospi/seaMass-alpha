@@ -20,19 +20,12 @@ set(SOURCE_FILES
 	MatrixSparse.cpp
 	Bspline.cpp
 	Basis.cpp
-<<<<<<< HEAD
-	BasisBSpline.cpp
-	BasisBSplineMz.cpp
-	BasisBSplineScantime.cpp
-	BasisBSplineScale.cpp
-	Optimizer.cpp 
-=======
 	BasisBspline.cpp
 	BasisBsplineMz.cpp
 	BasisBsplineScantime.cpp
 	BasisBsplineScale.cpp
->>>>>>> 96e1d438f4bcc9188d0dac6ba36c9e753bedcc6e
-	OptimizerSrl.cpp 
+	Optimizer.cpp
+	OptimizerSrl.cpp
 	OptimizerAccelerationEve1.cpp
 	SeaMass.cpp
 )
