@@ -38,7 +38,7 @@ using namespace std;
 namespace po = boost::program_options;
 
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	SeaMass::notice();
 
@@ -200,6 +200,7 @@ int main(int argc, char *argv[])
 		sm.getOutput(output);
 		smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
 
+        vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();
         outmzMLb.writeData(originalBinCounts);
 
         // for now, lets also write out an smo

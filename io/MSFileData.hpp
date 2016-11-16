@@ -129,7 +129,7 @@ class mzMLbInputFile : public InputFile
 public:
 	mzMLbInputFile(string fileName);
 	~mzMLbInputFile();
-
+    vector<spectrumMetaData>* getSpectrumMetaData();
 	virtual bool next(SeaMass::Input& output, std::string& id);
 
 protected:

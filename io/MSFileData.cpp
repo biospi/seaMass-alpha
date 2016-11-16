@@ -489,6 +489,10 @@ mzMLbInputFile::~mzMLbInputFile()
 	delete msFile;
 }
 
+vector<spectrumMetaData>* mzMLbInputFile::getSpectrumMetaData()
+{
+    return &this->spectraMetaData;
+}
 
 bool mzMLbInputFile::next(SeaMass::Input& out, std::string& id)
 {
