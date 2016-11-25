@@ -23,13 +23,17 @@
 //
 
 #include "MzMLb.hpp"
+#include "mzMLxml.hpp"
 
-OutmzMLb::OutmzMLb(string _filename) : filename(_filename)
+OutmzMLb::OutmzMLb(string _filename, mzMLbInputFile& inputFile) : filename(_filename)
 {
-    NetCDFile input(filename);
+    idxOffSet=0;
+    msInputFile = &inputFile;
+    specFile = msInputFile->getGeometry();
+    //NetCDFile input(filename);
+    input.open(filename);
     vector<InfoGrpVar> dataSet;
-    vector<char> versionID;
-    input.read_VecNC("mzML",mzMLBuff);
+    //input.read_VecNC("mzML",mzMLBuff);
     input.read_VecNC("mzML_spectrumIndex",specIdx);
     input.read_VecNC("mzML_chromatogramIndex",chroIdx);
     input.read_VecNC("chromatogram_MS_1000595_double",chroMz);
@@ -39,30 +43,129 @@ OutmzMLb::OutmzMLb(string _filename) : filename(_filename)
     input.search_Group("mzML");
     dataSet = input.get_Info();
     input.read_AttNC("version",dataSet[0].varid,versionID,dataSet[0].grpid);
-    input.close();
+    size_t loc[1]={0};
+    size_t len[1]={specIdx[0]};
+    input.read_HypVecNC("mzML",mzMLBuff,loc,len);
+    //input.close();
 
-    size_t xmlSize=sizeof(char)*mzMLBuff.size();
-    xml::xml_parse_result result = mzMLXML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
+
+    //size_t xmlSize=sizeof(char)*mzMLBuff.size();
+    //xml::xml_parse_result result = mzMLXML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
 
     size_t lastdot = filename.find_last_of(".");
     string outFileName=filename.substr(0,lastdot)+"_new.mzMLb";
     mzMLbFileOut.open(outFileName,NC_NETCDF4);
-    mzMLbFileOut.write_VecNC("mzML_spectrumIndex",specIdx,NC_UINT64);
-    mzMLbFileOut.write_VecNC("spectrum_MS_1000514_double",mz,NC_DOUBLE);
-    mzMLbFileOut.write_VecNC("mzML",mzMLBuff,NC_CHAR);
-    mzMLbFileOut.write_AttNC("mzML","version",versionID,NC_CHAR);
-    mzMLbFileOut.write_VecNC("mzML_chromatogramIndex",chroIdx,NC_UINT64);
+    //mzMLbFileOut.write_VecNC("mzML_spectrumIndex",specIdx,NC_UINT64);
+    //mzMLbFileOut.write_VecNC("spectrum_MS_1000514_double",mz,NC_DOUBLE);
+    //mzMLbFileOut.write_VecNC("mzML",mzMLBuff,NC_CHAR);
+    //mzMLbFileOut.write_AttNC("mzML","version",versionID,NC_CHAR);
+    //mzMLbFileOut.write_VecNC("mzML_chromatogramIndex",chroIdx,NC_UINT64);
     mzMLbFileOut.write_VecNC("chromatogram_MS_1000595_double",chroMz,NC_DOUBLE);
     mzMLbFileOut.write_VecNC("chromatogram_MS_1000515_float",chroBinCounts,NC_FLOAT);
+    mzMLbFileOut.write_DefHypVecNC<char>("mzML",NC_CHAR);
+    mzMLbFileOut.write_DefHypVecNC<double>("spectrum_MS_1000514_double",NC_DOUBLE);
     mzMLbFileOut.write_DefHypVecNC<float>("spectrum_MS_1000515_float",NC_FLOAT);
+
+    mzMLbFileOut.write_CatHypVecNC("mzML",mzMLBuff);
+    newSpecIdx.push_back(mzMLBuff.size());
+    mzMLBuff.clear();
 }
 
 OutmzMLb::~OutmzMLb()
 {
+    input.close();
     mzMLbFileOut.close();
 }
 
-void OutmzMLb::writeData(vector<float>& _data)
+void OutmzMLb::writeVecData(vector<float>& _data)
 {
     mzMLbFileOut.write_CatHypVecNC("spectrum_MS_1000515_float",_data);
+}
+
+void OutmzMLb::writeXmlData(vector<spectrumMetaData> *spec)
+{
+    //vector<size_t> mzMLSize;
+    for(size_t i = 0; i < spec->size(); ++i)
+    {
+        if(mzMLBuff.size() > 0) vector<char>().swap(mzMLBuff);
+
+        xml::xml_document mzMLScan;
+        vector<double> mzScan;
+
+        size_t idx=(*spec)[i].index;
+        size_t loc[1] = {specIdx[idx]};
+        size_t len[1] = {specIdx[idx+1]-specIdx[idx]};
+        input.read_HypVecNC("mzML", mzMLBuff, loc, len);
+
+        size_t xmlSize=sizeof(char)*mzMLBuff.size();
+        xml::xml_parse_result result = mzMLScan.load_buffer_inplace(&mzMLBuff[0],xmlSize);
+
+        size_t index=getXmlValue<size_t>(mzMLScan,"spectrum","index");
+        size_t arrayLen=getXmlValue<size_t>(mzMLScan,"spectrum","defaultArrayLength");
+
+        size_t mzOffSet=getXmlValue<size_t>(mzMLScan,"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']","offset");
+        size_t intenOffSet=getXmlValue<size_t>(mzMLScan,"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']","offset");
+
+        input.read_HypVecNC("spectrum_MS_1000514_double",mzScan,&mzOffSet,&arrayLen);
+
+        arrayLen=mzScan.size();
+
+        mzScan.erase(mzScan.begin());
+        mzScan.erase(mzScan.end()-1);
+
+        arrayLen=mzScan.size();
+
+        setXmlValue<size_t>(mzMLScan,"spectrum","index",i);
+        setXmlValue<size_t>(mzMLScan,"spectrum","defaultArrayLength",arrayLen);
+
+        setXmlValue<size_t>(mzMLScan,"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']","offset",idxOffSet);
+        setXmlValue<size_t>(mzMLScan,"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']","offset",idxOffSet);
+        idxOffSet+=arrayLen;
+
+        stringstream newmzML;
+        mzMLScan.print(newmzML);
+        //mzMLScan.save(newmzML);
+        //mzMLScan.save(newmzML,"",pugi::format_raw);
+        string output = newmzML.str();
+        vector<char>().swap(mzMLBuff);
+        mzMLBuff.assign(output.begin(),output.end());
+
+        //mzMLSize.clear();
+        //mzMLSize = mzMLbFileOut.read_DimNC("mzML");
+        //newSpecIdx.push_back(mzMLSize[0]);
+        newSpecIdx.push_back(newSpecIdx[i]+mzMLBuff.size());
+        mzMLbFileOut.write_CatHypVecNC("mzML",mzMLBuff);
+        mzMLbFileOut.write_CatHypVecNC("spectrum_MS_1000514_double",mzScan);
+    }
+    string subxml("</spectrumList>\n");
+
+    if(mzMLBuff.size() > 0) vector<char>().swap(mzMLBuff);
+    mzMLBuff.assign(subxml.begin(),subxml.end());
+    mzMLbFileOut.write_CatHypVecNC("mzML",mzMLBuff);
+
+    vector<size_t> lenTotal=input.read_DimNC("mzML");
+    size_t loc = specIdx.back();
+    size_t len = lenTotal[0]-loc;
+    input.read_HypVecNC("mzML", mzMLBuff, &loc, &len);
+
+    subxml.clear();
+    subxml.assign(mzMLBuff.begin(),mzMLBuff.end());
+    subxml = subxml.substr(subxml.find("<chromatogramList"));
+
+    mzMLBuff.clear();
+    mzMLBuff.assign(subxml.begin(),subxml.end());
+
+    vector<size_t > pos;
+    findVecString(mzMLBuff,pos,"<chromatogram ","</chromatogram>");
+    lenTotal.clear();
+    lenTotal = mzMLbFileOut.read_DimNC("mzML");
+    newChroIdx.push_back(lenTotal[0]+pos[0]);
+    newChroIdx.push_back(lenTotal[0]+pos[1]);
+
+    mzMLbFileOut.write_CatHypVecNC("mzML",mzMLBuff);
+    mzMLbFileOut.write_AttNC("mzML","version",versionID,NC_CHAR);
+
+    mzMLbFileOut.write_VecNC("mzML_spectrumIndex",newSpecIdx,NC_UINT64);
+    mzMLbFileOut.write_VecNC("mzML_chromatogramIndex",newChroIdx,NC_UINT64);
+
 }
