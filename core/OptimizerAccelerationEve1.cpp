@@ -79,7 +79,7 @@ double OptimizerAccelerationEve1::step()
 {
 #ifndef NDEBUG
 	cout << getIteration() << " acceleration" << endl;
-	fp aDebug;
+	fp aDebug = 0.0;
 #endif
 	double start = omp_get_wtime();
 

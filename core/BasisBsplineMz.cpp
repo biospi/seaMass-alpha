@@ -182,13 +182,13 @@ void BasisBsplineMz::synthesis(Matrix& f, const Matrix& x, bool accumulate) cons
 	for (ii k = 0; k < (ii)as_.size(); k++)
 	{
 		Matrix fSub; fSub.init(f, is_[k], 0, as_[k].m(), 1);
-		Matrix xSub; xSub.init(x, k * as_[k].n(), 0, as_[k].n(), 1, 1);
+		Matrix xSub; xSub.init(x, k * as_[k].n(), 0, as_[k].n(), 1);
 
 #ifndef NDEBUG
 		cout << " " << getIndex() << " BasisBsplineMz::synthesis[" << k << "]" << endl;
 #endif
 
-		fSub.mul(as_[k], xSub, accumulate, false);
+		fSub.mul(as_[k], xSub, accumulate, false, false);
 	}
 }
 
@@ -197,15 +197,7 @@ void BasisBsplineMz::analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 {
 	if (!xE)
 	{
-		// this if statement is a hack because if this a 1D reconstruction we need an m by 1 matrix, and if a 2D we need an n by m matrix - will revisit very soon!
-		if (getGridInfo().n == 1)
-		{
-			xE.init(getGridInfo().m(), 1);
-		}
-		else
-		{
-			xE.init(getGridInfo().n, getGridInfo().m());
-		}
+		xE.init(getGridInfo().n, getGridInfo().m());
 	}
 
 #ifdef NDEBUG
@@ -213,7 +205,7 @@ void BasisBsplineMz::analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 #endif
 	for (ii k = 0; k < (ii)as_.size(); k++)
 	{
-		Matrix xESub; xESub.init(xE, k * as_[k].n(), 0, as_[k].n(), 1, 1);
+		Matrix xESub; xESub.init(xE, k * as_[k].n(), 0, as_[k].n(), 1);
 		Matrix fESub; fESub.init(fE, is_[k], 0, as_[k].m(), 1);
 
 #ifndef NDEBUG
@@ -224,11 +216,11 @@ void BasisBsplineMz::analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 		{
 			MatrixSparse aSqrd;
 			aSqrd.elementwiseSqr(as_[k]);
-			xESub.mul(aSqrd, fESub, false, true);
+			xESub.mul(aSqrd, fESub, false, true, false);
 		}
 		else
 		{
-			xESub.mul(as_[k], fESub, false, true);
+			xESub.mul(as_[k], fESub, false, true, false);
 		}
 	}
 }

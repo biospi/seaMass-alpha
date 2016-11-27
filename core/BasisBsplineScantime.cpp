@@ -136,7 +136,7 @@ synthesis(Matrix& f, const Matrix& x, bool accumulate) const
 	cout << " " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
 #endif
 
-	f.mul(a_, x, accumulate, false);
+	f.mul(a_, x, accumulate, false, false);
 }
 
 
@@ -152,10 +152,10 @@ analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 	{
 		MatrixSparse aTSqrd;
 		aTSqrd.elementwiseSqr(aT_);
-		xE.mul(aTSqrd, fE, false, false);
+		xE.mul(aTSqrd, fE, false, false, false);
 	}
 	else
 	{
-		xE.mul(aT_, fE, false, false);
+		xE.mul(aT_, fE, false, false, false);
 	}
 }

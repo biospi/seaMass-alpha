@@ -104,9 +104,12 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 		dimensions_ = 2;
 
 		BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], order, true);
-		BasisBsplineScantime* basisScantime = new BasisBsplineScantime(bases_, basisMz->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], order);
+		Basis* previousBasis = new BasisBsplineScantime(bases_, basisMz->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], order);
+		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > order + 1)
+		{
+			new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
+		}
 
-		/*Basis* previousBasis = basisScantime;
 		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > order + 1)
 		{
 			previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, order);
@@ -114,12 +117,12 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 			{
 				new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
 			}
-		}*/
+		}
 	}
 
 	// Initialize the optimizer
 	//for (li i = 0; i < (li)input.binCounts.size(); i++) input.binCounts[i] += 100.0;
-	b_.init((li)input.binCounts.size(), 1, 1, input.binCounts.data());
+	b_.init((li)input.binCounts.size(), 1, input.binCounts.data());
 	inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
 	//optimizer_ = new OptimizerSrl(bases_, b_);
 	optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
@@ -250,7 +253,7 @@ void SeaMass::getOutputBinCounts(std::vector<fp>& binCounts) const
 #endif
 
 	binCounts.assign(b_.size(), 0.0);
-	Matrix f; f.init(b_.m(), b_.n(), b_.n(), binCounts.data());
+	Matrix f; f.init(b_.m(), b_.n(), binCounts.data());
 	optimizer_->synthesis(f);
 }
 
@@ -264,7 +267,7 @@ void SeaMass::getOutputControlPoints(ControlPoints& controlPoints) const
 	const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 
 	controlPoints.coeffs.assign(meshInfo.size(), 0.0);
-	Matrix c; c.init(meshInfo.m(), meshInfo.n, meshInfo.n, controlPoints.coeffs.data());
+	Matrix c; c.init(meshInfo.m(), meshInfo.n,  controlPoints.coeffs.data());
 	optimizer_->synthesis(c, dimensions_ - 1);
 
 	controlPoints.scale = meshInfo.scale;

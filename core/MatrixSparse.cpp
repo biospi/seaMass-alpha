@@ -30,7 +30,7 @@ using namespace std;
 
 
 MatrixSparse::MatrixSparse()
-	: m_(0), n_(0), nnz_(0), vs_(0), is_(0), js_(0), isIsJsOwned_(false), isVsOwned_(false)
+	: m_(0), n_(0), nnz_(0), vs_(0), is_(0), js_(0), isIsJsOwned_(false), isVsOwned_(false), mat_(0)
 {
 }
 
@@ -53,6 +53,8 @@ void MatrixSparse::init(ii m, ii n, ii nnz)
 	isIsJsOwned_ = true;
 	vs_ = new fp[nnz_];
 	isVsOwned_ = true;
+
+	mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is_, &(is_[1]), js_, vs_);
 }
 
 
@@ -68,6 +70,8 @@ void MatrixSparse::init(const MatrixSparse& a)
 	isIsJsOwned_ = false;
 	vs_ = new fp[nnz_];
 	isVsOwned_ = true;
+
+	mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is_, &(is_[1]), js_, vs_);
 }
 
 
@@ -80,6 +84,8 @@ void MatrixSparse::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, co
 	ii* c_colind = const_cast<ii*>(colind);
 	ii job[] = { 2, 0, 0, 0, nnz_, 0 }; ii info;
 	mkl_scsrcoo(job, &m_, vs_, js_, is_, &nnz, c_acoo, c_rowind, c_colind, &info);
+
+	mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is_, &(is_[1]), js_, vs_);
 }
 
 
@@ -100,6 +106,8 @@ void MatrixSparse::free()
 		delete[] vs_;
 		isVsOwned_ = false;
 	}
+
+	if (mat_) mkl_sparse_destroy(mat_);
 }
 
 
@@ -140,13 +148,17 @@ li MatrixSparse::mem() const
 
 void MatrixSparse::elementwiseSqr(const MatrixSparse& a)
 {
-	if (!*this) init(a);
-
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = (A" << a << ")^2" << endl;
+	cout << "  (A" << a << ")^2 = " << flush;
 #endif
 
+	if (!*this) init(a);
+
 	vsSqr(nnz_, a.vs_, vs_);
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 

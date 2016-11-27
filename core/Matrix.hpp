@@ -35,8 +35,8 @@ public:
 
 	void init(li m, ii n); // create matrix with storage but do not initialise
 	void init(li m, ii n, fp v); // create matrix with data all set to 'v'  
-	void init(li m, ii n, ii s, fp* vs); // create matrix using external data 'vs'
-	void init(const Matrix& a, li i, ii j, li m, ii n, ii s = 0); // define submatrix of 'a' 
+	void init(li m, ii n, fp* vs); // create matrix using external data 'vs'
+	void init(const Matrix& a, li i, ii j, li m, ii n); // define submatrix of 'a' 
 	void free();
 
 	li m() const;
@@ -47,7 +47,7 @@ public:
 	void copy(const Matrix& a);
 	void prune(const Matrix& a, fp threshold);
 
-	void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA);
+	void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA, bool transposeX);
 
 	void elementwiseAdd(const Matrix& a, fp beta);
 	void elementwiseMul(const Matrix& a, fp beta);
@@ -69,7 +69,6 @@ public:
 private:
 	li m_; // rows
 	ii n_; // columns
-	ii s_; // stride
 	fp* vs_; // data
 	bool isOwned_; // does this object own its data?
 };

@@ -49,7 +49,6 @@ void Matrix::init(li m, ii n)
 
 	m_ = m;
 	n_ = n;
-	s_ = n;
 	vs_ = new fp[m_ * n_];
 	isOwned_ = true;
 }
@@ -66,25 +65,23 @@ void Matrix::init(li m, ii n, fp v)
 }
 
 
-void Matrix::init(li m, ii n, ii s, fp* vs)
+void Matrix::init(li m, ii n,fp* vs)
 {
 	free();
 
 	m_ = m;
 	n_ = n;
-	s_ = s;
 	vs_ = vs;
 }
 
 
-void Matrix::init(const Matrix& a, li i, ii j, li m, ii n, ii s)
+void Matrix::init(const Matrix& a, li i, ii j, li m, ii n)
 {
 	free();
 
 	m_ = m;
 	n_ = n;
-	s_ = (s == 0) ? a.s_ : s;
-	vs_ = &a.vs_[i * s_ + j];
+	vs_ = &a.vs_[i * n_ + j];
 	isOwned_ = false;
 }
 
@@ -143,22 +140,42 @@ bool Matrix::operator!() const
 }
 
 
-void Matrix::mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA)
+void Matrix::mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA, bool transposeXY)
 {
+#ifndef NDEBUG
+	cout << "  " << (transposeXY ? "(A" : "A") << (transposeA ? "t" : "") << a << " . X" << (transposeXY ? "t" : "") << x << (transposeXY ? ")t" : "") << (accumulate ? " =+ " : " = ") << flush;
+#endif
+
 	if (!*this)
 	{
 		// initialise output matrix if not already done
-		init(transposeA ? a.n_ : a.m_, x.n_);
+		li m = transposeA ? a.n_ : a.m_;
+		li n = transposeXY ? x.m_ : x.n_;
+		init(transposeXY ? n : m, transposeXY ? m : n);
 		accumulate = false;
 	}
 
-#ifndef NDEBUG
-	cout << "  Y" << *this << (accumulate ? " += A" : " = A") << (transposeA ? "t" : "") << a << " . X" << x << endl;
-#endif
-
 	static fp alpha = 1.0;
 	fp beta = (fp)(accumulate ? 1.0 : 0.0);
-	mkl_scsrmm(transposeA ? "T" : "N", &a.m_, &x.n_, &a.n_, &alpha, "G**C", a.vs_, a.js_, a.is_, &a.is_[1], x.vs_, &x.n_, &beta, vs_, &x.n_);
+	matrix_descr descr;
+	descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+	mkl_sparse_s_mm(
+		transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE,
+		alpha,
+		a.mat_,
+		descr,
+		transposeXY ? SPARSE_LAYOUT_COLUMN_MAJOR : SPARSE_LAYOUT_ROW_MAJOR,
+		x.vs_,
+		transposeXY ? x.m_ : x.n_,
+		x.n_,
+		beta,
+		vs_,
+		transposeXY ? (transposeA ? a.n_ : a.m_) : x.n_
+	);
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -168,7 +185,7 @@ void Matrix::copy(const Matrix& a)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = A" << a << endl;
+	cout << "  A" << a << " = " << flush;
 #endif
 
 	#pragma omp parallel for
@@ -176,6 +193,10 @@ void Matrix::copy(const Matrix& a)
 	{
 		vs_[i] = a.vs_[i];
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -185,7 +206,7 @@ void Matrix::elementwiseAdd(const Matrix& a, fp beta)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = A" << a << " + " << beta << endl;
+	cout << "  A" << a << " + " << beta << " = " << flush;
 #endif
 
 	#pragma omp parallel for
@@ -193,6 +214,10 @@ void Matrix::elementwiseAdd(const Matrix& a, fp beta)
 	{
 		vs_[i] = a.vs_[i] + beta;
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -202,7 +227,7 @@ void Matrix::elementwiseMul(const Matrix& a, fp beta)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = A" << a << " * " << beta << endl;
+	cout << "  A" << a << " * " << beta << " = " << flush;
 #endif
 
 	#pragma omp parallel for
@@ -210,6 +235,10 @@ void Matrix::elementwiseMul(const Matrix& a, fp beta)
 	{
 		vs_[i] = a.vs_[i] * beta;
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -219,7 +248,7 @@ void Matrix::elementwiseMul(const Matrix& a, const Matrix& b)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = A" << a << " ./ B" << b << endl;
+	cout << "  A" << a << " ./ B" << b << " = " << flush;
 #endif
 
 	// split into tasty chunks for openmp and when using 32bit MKL_INT
@@ -237,6 +266,10 @@ void Matrix::elementwiseMul(const Matrix& a, const Matrix& b)
 	{
 		vsMul((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], &b.vs_[k * chunk_size], &vs_[k * chunk_size]);
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -246,7 +279,7 @@ void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d)
 	if (!*this) init(d.m_, d.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = N" << n << " ./ D" << d << endl;
+	cout << "  N" << n << " ./ D" << d << " = " << flush;
 #endif
 
 	#pragma omp parallel for
@@ -261,6 +294,10 @@ void Matrix::elementwiseDiv(const Matrix& n, const Matrix& d)
 			vs_[i] = 0.0;
 		}
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -270,7 +307,7 @@ void Matrix::elementwiseSqrt(const Matrix& a)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = sqrt(A" << a << ")" << endl;
+	cout << "  sqrt(A" << a << ") = " << flush;
 #endif
 
 	// split into tasty chunks for openmp and when 32bit using MKL_INT
@@ -288,6 +325,10 @@ void Matrix::elementwiseSqrt(const Matrix& a)
 	{
 		vsSqrt((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], &vs_[k * chunk_size]);
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -297,7 +338,7 @@ void Matrix::elementwisePow(const Matrix& a, fp power)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = (A" << a << ")^" << power << endl;
+	cout << "  (A" << a << ")^" << power << " = " << flush;
 #endif
 
 	// split into tasty chunks for openmp and when 32bit using MKL_INT
@@ -315,6 +356,10 @@ void Matrix::elementwisePow(const Matrix& a, fp power)
 	{
 		vsPowx((k == chunks - 1) ? last_chunk : chunk_size, &a.vs_[k * chunk_size], power, &vs_[k * chunk_size]);
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -324,7 +369,7 @@ void Matrix::elementwiseLn(const Matrix& a)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = ln(A" << a << ")" << endl;
+	cout << "  ln(A" << a << ") = " << flush;
 #endif
 
 	#pragma omp parallel for
@@ -339,6 +384,10 @@ void Matrix::elementwiseLn(const Matrix& a)
 			vs_[i] = 0.0;
 		}
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
@@ -348,9 +397,9 @@ void Matrix::prune(const Matrix& a, fp threshold)
 	if (!*this) init(a.m_, a.n_);
 
 #ifndef NDEBUG
-	cout << "  Y" << *this << " = (A" << a << " >= ";
+	cout << "  (A" << a << " >= ";
 	cout.unsetf(ios::floatfield); 
-	cout << setprecision(8) << threshold << ") ? A : 0.0" << endl;
+	cout << setprecision(8) << threshold << ") ? A : 0.0 = " << flush;
 #endif
 
 	#pragma omp parallel for
@@ -358,12 +407,20 @@ void Matrix::prune(const Matrix& a, fp threshold)
 	{
 		vs_[i] = (a.vs_[i] >= threshold) ? a.vs_[i] : (fp)0.0;
 	}
+
+#ifndef NDEBUG
+	cout << "Y" << *this << endl;
+#endif
 }
 
 
 double Matrix::sum() const
 {
 	double sum = 0.0;
+
+#ifndef NDEBUG
+	cout << "  sum(Y" << *this << ") = " << flush;
+#endif
 
 	#pragma omp parallel for reduction(+:sum)
 	for (li i = 0; i < size(); i++)
@@ -372,9 +429,8 @@ double Matrix::sum() const
 	}
 
 #ifndef NDEBUG
-	cout << "  ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << sum << " = sum(Y" << *this << ")" << endl;
+	cout << setprecision(8) << sum << endl;
 #endif
 
 	return sum;
@@ -385,6 +441,10 @@ double Matrix::sumSqrs() const
 {
 	double sum = 0.0;
 
+#ifndef NDEBUG
+	cout << "  sum((Y" << *this << ")^2) = " << flush;
+#endif
+
 	#pragma omp parallel for reduction(+:sum)
 	for (li i = 0; i < size(); i++)
 	{
@@ -392,9 +452,8 @@ double Matrix::sumSqrs() const
 	}
 
 #ifndef NDEBUG
-	cout << "  ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << sum << " = sum((Y" << *this << ")^2)" << endl;
+	cout << setprecision(8) << sum << endl;
 #endif
 
 	return sum;
@@ -405,6 +464,10 @@ double Matrix::sumSqrDiffs(const Matrix& a) const
 {
 	double sum = 0.0;
 
+#ifndef NDEBUG
+	cout << "  sum((Y" << *this << " - A" << a << ")^2) = " << flush;
+#endif
+
 	#pragma omp parallel for reduction(+:sum)
 	for (li i = 0; i < size(); i++)
 	{
@@ -412,9 +475,8 @@ double Matrix::sumSqrDiffs(const Matrix& a) const
 	}
 
 #ifndef NDEBUG
-	cout << "  ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << sum << " = sum((Y" << *this << " - A" << a << ")^2)" << endl;
+	cout << setprecision(8) << sum << endl;
 #endif
 
 	return sum;

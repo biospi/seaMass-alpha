@@ -108,7 +108,7 @@ synthesis(Matrix& f, const Matrix& x, bool accumulate) const
 	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
 #endif
 
-	f.mul(a_, x, accumulate, false);
+	f.mul(a_, x, accumulate, false, (dimension_ == 0) ? true : false);
 }
 
 
@@ -124,10 +124,10 @@ analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 	{
 		MatrixSparse aTSqrd;
 		aTSqrd.elementwiseSqr(aT_);
-		xE.mul(aTSqrd, fE, false, false);
+		xE.mul(aTSqrd, fE, false, false, (dimension_ == 0) ? true : false);
 	}
 	else
 	{
-		xE.mul(aT_, fE, false, false);
+		xE.mul(aT_, fE, false, false, (dimension_ == 0) ? true : false);
 	}
 }

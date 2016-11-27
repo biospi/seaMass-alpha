@@ -28,6 +28,7 @@
 #include <vector>
 
 #include <mkl.h>
+#include <mkl_spblas.h>
 
 
 typedef float fp; // fp is the selected floating point precision (float or double)
@@ -56,7 +57,7 @@ public:
 
 	void elementwiseSqr(const MatrixSparse& a);
 
-public:
+private:
 	ii m_;
 	ii n_;
 	ii nnz_;
@@ -65,6 +66,8 @@ public:
 	fp* vs_;
 	bool isIsJsOwned_;
 	bool isVsOwned_;
+
+	sparse_matrix_t mat_;
 
 	friend class Matrix;
 };

@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 
 		do
 		{
-			if (debugLevel > 0)
+			if (debugLevel > 1)
 			{
 				// create SMV file
 				ostringstream oss;
