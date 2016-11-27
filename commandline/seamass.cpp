@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 			"default: -10")
 		("debug_level,d", po::value<ii>(&debugLevel)->default_value(0),
 			"Debug level, "
-			"guidelines: set to 1 for debugging information, "
+			"guidelines: set to 1 for debugging information, 2 to additionally write intermediate iterations to disk, "
 			"default: 0")
 		("threads", po::value<ii>(&threads)->default_value(4),
 			"Number of OpenMP threads to use, "
