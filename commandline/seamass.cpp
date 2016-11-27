@@ -38,7 +38,7 @@ using namespace std;
 namespace po = boost::program_options;
 
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 	SeaMass::notice();
 
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 	}
 
 	mzMLbInputFile msFile(in_file);
-    OutmzMLb outmzMLb(in_file);
+    OutmzMLb outmzMLb(in_file,msFile);
 	SeaMass::Input input;
 	string id;
 	double tolerance = pow(2.0, toleranceExponent);
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
 		sm.getOutput(output);
 		smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
 
-        outmzMLb.writeData(originalBinCounts);
+        outmzMLb.writeVecData(originalBinCounts);
 
         // for now, lets also write out an smo
 		ostringstream oss2;
@@ -223,6 +223,9 @@ int main(int argc, char *argv[])
 		cout << "Number of saved bases: " << output.weights.size() << endl;
 		cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
 	}
+
+    vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();
+    outmzMLb.writeXmlData(spcPtr);
 
 	return 0;
 }

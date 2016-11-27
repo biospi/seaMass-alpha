@@ -27,25 +27,70 @@
 
 #include <pugixml.hpp>
 #include "NetCDFile.hpp"
+#include "MSFileData.hpp"
+#include <sstream>
 
 namespace xml = pugi;
 
 class OutmzMLb
 {
 public:
-    OutmzMLb(string _filename);
+    OutmzMLb(string _filename, mzMLbInputFile& inputFile);
     ~OutmzMLb();
-    void writeData(vector<float>& _data);
+    void writeVecData(vector<float>& _data);
+    void writeXmlData(vector<spectrumMetaData>* spec);
 private:
+    //size_t getIndex(xml::xml_document &scan);
+    //void setIndex(size_t idx);
+    //size_t getArrayLen(xml::xml_document &scan);
+    //void setArrrayLen(size_t length);
+
+    template<typename T>
+    T getXmlValue(xml::xml_document &scan, string xpath, string attrib);
+
+    template<typename T>
+    void setXmlValue(xml::xml_document &scan, string xpath, string attrib,T value);
+
+
     string filename;
     vector<char> mzMLBuff;
     vector<double> mz;
     vector<unsigned long long int> specIdx;
     vector<unsigned long long int> chroIdx;
+    vector<unsigned long long int> newSpecIdx;
+    vector<unsigned long long int> newChroIdx;
     vector<float> chroBinCounts;
     vector<double> chroMz;
+    NetCDFile input;
     NetCDFile mzMLbFileOut;
-    xml::xml_document mzMLXML;
+    mzMLbInputFile *msInputFile;
+    MassSpecFile *specFile;
+    size_t idxOffSet;
+    vector<char> versionID;
+    //xml::xml_document mzMLXML;
 };
+
+
+template<typename T>
+T OutmzMLb::getXmlValue(xml::xml_document &scan, string xpath, string attrib)
+{
+    T value;
+    xml::xpath_node_set tool;
+    tool = scan.select_nodes(xpath.c_str());
+    istringstream(tool.first().node().attribute(attrib.c_str()).value())>>value;
+    return value;
+}
+
+template<typename T>
+void OutmzMLb::setXmlValue(xml::xml_document &scan, string xpath, string attrib, T value)
+{
+    xml::xpath_node_set tool;
+    tool = scan.select_nodes(xpath.c_str());
+
+    ostringstream buff;
+    buff << value;
+    string newVal(buff.str());
+    tool.first().node().attribute(attrib.c_str()).set_value(newVal.c_str());
+}
 
 #endif //SEAMASS_MZMLB_HPP

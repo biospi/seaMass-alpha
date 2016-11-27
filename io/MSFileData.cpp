@@ -489,7 +489,6 @@ mzMLbInputFile::~mzMLbInputFile()
 	delete msFile;
 }
 
-
 bool mzMLbInputFile::next(SeaMass::Input& out, std::string& id)
 {
 	if (i >= spectraMetaData.size()) return false;
@@ -601,4 +600,14 @@ bool mzMLbInputFile::next(SeaMass::Input& out, std::string& id)
 	if (intensities.size() > 1) out.spectrumIndex.back() = out.binCounts.size();
 
 	return true;
+}
+
+vector<spectrumMetaData>* mzMLbInputFile::getSpectrumMetaData()
+{
+    return &this->spectraMetaData;
+}
+
+MassSpecFile* mzMLbInputFile::getGeometry()
+{
+    return msFile;
 }

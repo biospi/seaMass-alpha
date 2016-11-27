@@ -588,7 +588,7 @@ int NetCDFile::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 		ERR(retval);
 
 	// No need to explicitly end define mode for netCDF-4 files. Write
-	// the pretend data to the file.
+	// the data to the file.
 
 	if(unlim == true)
 	{
@@ -687,7 +687,7 @@ int NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 		ERR(retval);
 
 	// No need to explicitly end define mode for netCDF-4 files. Write
-	// the pretend data to the file.
+	// the data to the file.
 	if((retval = nc_put_var(grpid, varid, &vm.v[0])))
 	   ERR(retval);
 
@@ -712,6 +712,101 @@ void NetCDFile::write_AttNC(const string dataSet, const string attName,
 	if((retval = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
 		ERR(retval);
 }
+
+
+template<typename T>
+void NetCDFile::write_DefHypVecNC(const string dataSet, nc_type xtype, int grpid,
+                       size_t chunk, int deflate_level, int shuffle)
+{
+	if(grpid == 0) grpid = ncid;
+
+    int dimid;
+	int varid;
+	int ndim = 1;
+	int deflate = 0;
+	size_t N = NC_UNLIMITED;;
+
+	// Set chunking, shuffle, and deflate.
+	shuffle = NC_SHUFFLE;
+	if(deflate_level > 0 && deflate_level < 10)
+		deflate = 1;
+
+	// Define the dimensions.
+	if((retval = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
+		ERR(retval);
+
+	// Define the variable.
+	if((retval = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+	                         &dimid, &varid)))
+		ERR(retval);
+
+	if((retval = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunk)))
+		ERR(retval);
+	if((retval = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+	                                 deflate_level)))
+		ERR(retval);
+
+    T attVal[1] = {0};
+    if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+        ERR(retval);
+
+	if((retval = nc_enddef(grpid)))
+		ERR(retval);
+}
+
+template<typename T>
+void NetCDFile::write_PutHypVecNC(const string dataSet, vector<T> &vec,
+                       size_t idx, size_t len, int grpid)
+{
+    if(grpid == 0) grpid = ncid;
+
+    int varid;
+
+    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        ERR(retval);
+
+    if ((retval = nc_put_vara(grpid, varid, idx, len, &vec[0]) ))
+        ERR(retval);
+}
+
+template<typename T>
+void NetCDFile::write_PutHypVecNC(const string dataSet, T *vec,
+                       size_t idx, size_t len, int grpid)
+{
+    if(grpid == 0) grpid = ncid;
+
+    int varid;
+
+    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        ERR(retval);
+
+    if ((retval = nc_put_vara(grpid, varid, idx, len, vec) ))
+        ERR(retval);
+}
+
+template<typename T>
+void NetCDFile::write_CatHypVecNC(const string dataSet, vector<T> &vec, int grpid)
+{
+    if(grpid == 0) grpid = ncid;
+
+    size_t len = vec.size();
+    int dimid;
+    int varid;
+    size_t idx;
+
+    if((retval = nc_inq_dimid(grpid, dataSet.c_str(), &dimid) ))
+        ERR(retval);
+
+    if((retval = nc_inq_dim(grpid, dimid, NULL, &idx) ))
+        ERR(retval);
+
+    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        ERR(retval);
+
+    if ((retval = nc_put_vara(grpid, varid, &idx, &len, &vec[0]) ))
+        ERR(retval);
+}
+
 
 
 template<typename T>
@@ -833,7 +928,6 @@ void NetCDFile::write_DefHypMatNC(const string dataSet, const string rowY, const
 	if((retval = nc_enddef(grpid)))
 		ERR(retval);
 }
-
 
 template<typename T>
 void NetCDFile::write_PutHypMatNC(const string dataSet, VecMat<T> &vm,

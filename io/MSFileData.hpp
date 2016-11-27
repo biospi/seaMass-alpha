@@ -129,8 +129,9 @@ class mzMLbInputFile : public InputFile
 public:
 	mzMLbInputFile(string fileName);
 	~mzMLbInputFile();
-
 	virtual bool next(SeaMass::Input& output, std::string& id);
+    vector<spectrumMetaData>* getSpectrumMetaData();
+    MassSpecFile* getGeometry();
 
 protected:
 	MassSpecFile* msFile;

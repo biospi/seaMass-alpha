@@ -108,6 +108,18 @@ public:
 			vector<T> &attVal, nc_type xtype, int grpid = 0);
 
 	template<typename T>
+	void write_DefHypVecNC(const string dataSet, nc_type xtype, int grpid = 0,
+			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
+	template<typename T>
+	void write_PutHypVecNC(const string dataSet, vector<T> &vec,
+		size_t idx, size_t len, int grpid = 0);
+	template<typename T>
+	void write_PutHypVecNC(const string dataSet, T *vec,
+		size_t idx, size_t len, int grpid = 0);
+    template<typename T>
+    void write_CatHypVecNC(const string dataSet, vector<T> &vec, int grpid = 0);
+
+	template<typename T>
 	void write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,
 			int grpid = 0,
 			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
