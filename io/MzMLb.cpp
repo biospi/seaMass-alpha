@@ -62,7 +62,8 @@ OutmzMLb::OutmzMLb(string _filename, mzMLbInputFile& inputFile) : filename(_file
     //mzMLbFileOut.write_VecNC("mzML_chromatogramIndex",chroIdx,NC_UINT64);
     mzMLbFileOut.write_VecNC("chromatogram_MS_1000595_double",chroMz,NC_DOUBLE);
     mzMLbFileOut.write_VecNC("chromatogram_MS_1000515_float",chroBinCounts,NC_FLOAT);
-    mzMLbFileOut.write_DefHypVecNC<char>("mzML",NC_CHAR);
+    //mzMLbFileOut.write_DefHypVecNC<char>("mzML",NC_CHAR);
+    mzMLbFileOut.write_DefHypVecNC<char>("mzML",NC_UBYTE);
     mzMLbFileOut.write_DefHypVecNC<double>("spectrum_MS_1000514_double",NC_DOUBLE);
     mzMLbFileOut.write_DefHypVecNC<float>("spectrum_MS_1000515_float",NC_FLOAT);
 
