@@ -121,7 +121,14 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 	}
 
 	// Initialize the optimizer
-	//for (li i = 0; i < (li)input.binCounts.size(); i++) input.binCounts[i] += 100.0;
+	/*vector<fp>* binCounts = new vector<fp>(input.binCounts.size(), 0.0);
+	for (li i = 1; i < (li)input.binCounts.size() - 1; i++)
+	{
+		(*binCounts)[i - 1] += 0.25 * input.binCounts[i];
+		(*binCounts)[i] += 0.5 * input.binCounts[i];
+		(*binCounts)[i + 1] += 0.25 * input.binCounts[i];
+	}
+	b_.init((li)binCounts->size(), 1, binCounts->data());*/
 	b_.init((li)input.binCounts.size(), 1, input.binCounts.data());
 	inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
 	//optimizer_ = new OptimizerSrl(bases_, b_);

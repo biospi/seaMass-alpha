@@ -183,30 +183,51 @@ int main(int argc, char **argv)
 		}
 		while (sm.step());
 
-		// create SMV file
+		// write seaMass outputBinCounts to new mzMLb file 
+		vector<fp> outputBinCounts; 
+		sm.getOutputBinCounts(outputBinCounts); // retrieve seaMass processed outputBinCounts 
+		// convert ion counts into ion density (counts per Th) and scale by exposures
+		if (input.exposures.size() > 0)
+		{
+			if (input.spectrumIndex.size() > 0)
+			{
+				// 2D data
+				for (li j = 0; j < (li)input.spectrumIndex.size() - 1; j++)
+				{
+					for (li i = input.spectrumIndex[j]; i < input.spectrumIndex[j + 1]; i++)
+					{
+						outputBinCounts[i] /= (fp) (input.binEdges[i + j + 1] - input.binEdges[i + j]) * input.exposures[j];
+					}
+				}
+			}
+			else
+			{
+				// 1D data
+				for (li i = 0; i < (li)input.binCounts.size(); i++)
+				{
+					outputBinCounts[i] /= (fp) (input.binEdges[i + 1] - input.binEdges[i]) * input.exposures[0];
+				}
+			}
+		}
+		outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
+
+		// write SMV file
 		ostringstream oss;
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
 		HDF5Writer smv(oss.str());
-
-		// save back input but with bin_counts now containing the residuals
-		vector<fp> originalBinCounts = input.binCounts;
-		sm.getOutputBinCounts(input.binCounts);
-		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
-		smv.write_input(input);
-		input.binCounts = originalBinCounts;
-
+		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
+		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts 
+		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
+		smv.write_input(input); // write residuals to smv
 		// write RTree
-		SeaMass::Output output;
-		sm.getOutput(output);
-		smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+		//SeaMass::Output output;
+		//sm.getOutput(output);
+		//smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
 
-        outmzMLb.writeVecData(originalBinCounts);
-
-        // for now, lets also write out an smo
+        // write SMO file
 		ostringstream oss2;
 		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
 		HDF5Writer smo(oss2.str());
-
 		SeaMass::ControlPoints controlPoints;
 		sm.getOutputControlPoints(controlPoints);
 		smo.write_output_control_points(controlPoints);
