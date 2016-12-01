@@ -1,4 +1,4 @@
-# - Find the Intel OpenMP library
+# - Find the Intel OpenMP library (for version 2017)
 # Modified from Armadillo's ARMA_FindIntelOpenMP.cmake
 # This module defines
 #  IntelOpenMP_INCLUDE_DIR, the directory for the IntelOpenMP headers
@@ -23,7 +23,7 @@ else ( WIN32 )
   if (DEFINED ENV{IntelOpenMPROOT_PATH})
     set(IntelOpenMPROOT_PATH "$ENV{IntelOpenMPROOT_PATH}" CACHE PATH "Where the IntelOpenMP are stored")
   else (DEFINED ENV{IntelOpenMPROOT_PATH})
-    set(IntelOpenMPROOT_PATH "/opt/intel/composerxe" CACHE PATH "Where the IntelOpenMP are stored")
+    set(IntelOpenMPROOT_PATH "/opt/intel/compilers_and_libraries/linux" CACHE PATH "Where the IntelOpenMP are stored")
   endif (DEFINED ENV{IntelOpenMPROOT_PATH})
 endif ( WIN32 )
 
