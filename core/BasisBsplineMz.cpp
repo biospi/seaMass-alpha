@@ -74,6 +74,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	if (resolution == numeric_limits<short>::max())
 	{
 		resolution = resolutionAuto;
+		cout << "Autodetected mz_resolution=" << resolution << endl;
 	}
 
 	// Bases per 1.0033548378Th (difference between carbon12 and carbon13)

@@ -53,7 +53,7 @@ OutmzMLb::OutmzMLb(string _filename, mzMLbInputFile& inputFile) : filename(_file
     //xml::xml_parse_result result = mzMLXML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
 
     size_t lastdot = filename.find_last_of(".");
-    string outFileName=filename.substr(0,lastdot)+"_new.mzMLb";
+    string outFileName=filename.substr(0,lastdot)+".out.mzMLb";
     mzMLbFileOut.open(outFileName,NC_NETCDF4);
     //mzMLbFileOut.write_VecNC("mzML_spectrumIndex",specIdx,NC_UINT64);
     //mzMLbFileOut.write_VecNC("spectrum_MS_1000514_double",mz,NC_DOUBLE);
@@ -166,7 +166,7 @@ void OutmzMLb::writeXmlData(vector<spectrumMetaData> *spec)
     mzMLbFileOut.write_CatHypVecNC("mzML",mzMLBuff);
     mzMLbFileOut.write_AttNC("mzML","version",versionID,NC_CHAR);
 
-    mzMLbFileOut.write_VecNC("mzML_spectrumIndex",newSpecIdx,NC_UINT64);
-    mzMLbFileOut.write_VecNC("mzML_chromatogramIndex",newChroIdx,NC_UINT64);
+    mzMLbFileOut.write_VecNC("mzML_spectrumIndex",newSpecIdx,NC_INT64);
+    mzMLbFileOut.write_VecNC("mzML_chromatogramIndex",newChroIdx,NC_INT64);
 
 }

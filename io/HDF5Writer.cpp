@@ -179,6 +179,7 @@ write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_
 	H5Sclose(fspace);
 	H5Dclose(dataset2);
 
+	/* commented out because not currently needed
 	// Create a new storage manager with the provided base name and page size.
 	string _filename = filename;
 	SpatialIndex::IStorageManager* diskfile = StorageManager::createNewDiskStorageManager(_filename, page_size);
@@ -190,6 +191,7 @@ write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_
 	MyDataStream stream(output);
 	id_type indexIdentifier;
 	ISpatialIndex* tree = RTree::createAndBulkLoadNewRTree(RTree::BLM_STR, stream, *file, 0.7, 100, 100, output.baselineExtent.size() + 1, SpatialIndex::RTree::RV_RSTAR, indexIdentifier);
+	
 
 #ifndef NDEBUG
 	cout << "RTREE OUTPUT" << endl;
@@ -204,6 +206,7 @@ write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_
 	delete tree;
 	delete file;
 	delete diskfile;
+	*/
 }
 
 

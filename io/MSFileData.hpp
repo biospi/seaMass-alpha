@@ -38,6 +38,7 @@ struct spectrumMetaData
 	double start_time;
 	double finish_time;
 	size_t preset_config;
+	bool profile_mode;
 	bool positive_polarity;
     double precursor_mz;
 };

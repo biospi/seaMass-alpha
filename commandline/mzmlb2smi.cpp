@@ -105,6 +105,7 @@ int main(int argc, char *argv[])
 		ostringstream oss;
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smi";
 		HDF5Writer smi(oss.str());
+		cout << "Writing file: " << oss.str() << endl;
 		smi.write_input(input);
 	}
 

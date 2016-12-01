@@ -49,6 +49,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 	if (resolution == numeric_limits<short>::max())
 	{
 		resolution = resolutionAuto;
+		cout << "Autodetected st_resolution=" << resolution << endl;
 	}
 
 	// Bases per second

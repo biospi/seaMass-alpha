@@ -273,6 +273,19 @@ void MSmzMLb::extractData(void)
 		}
 	}
 
+	// capture if profile or centroid
+	vector<bool> profile_mode(ns, false);
+	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/cvParam[@accession='MS:1000128']");
+	if (!tools.empty())
+	{
+		for (xml::xpath_node_set::const_iterator itr = tools.begin(); itr != tools.end(); ++itr)
+		{
+			size_t idx;
+			istringstream(itr->node().parent().attribute("index").value()) >> idx;
+			profile_mode[idx] = true;
+		}
+	}
+
 	// capture polarity
 	vector<bool> positive_polarity(ns, true);
 	tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/cvParam[@accession='MS:1000129']");
@@ -381,6 +394,7 @@ void MSmzMLb::extractData(void)
     {
 		spectraMetaData[i].index = i;
 		spectraMetaData[i].positive_polarity = positive_polarity[i];
+		spectraMetaData[i].profile_mode = profile_mode[i];
 		spectraMetaData[i].preset_config = config_indices[i];
 		spectraMetaData[i].precursor_mz = precursor_mzs[i];
 		spectraMetaData[i].start_time = start_times[i];
@@ -467,16 +481,31 @@ mzMLbInputFile::mzMLbInputFile(string in_file) :
 	int lastdot = in_file.find_last_of(".");
 	string id = (lastdot == string::npos) ? in_file : in_file.substr(0, lastdot);
 
-	// determine start_scan_time order of spectra
-	// set finish time as start time of next spectrum, must discard last spectrum as no finish time
 	if (spectraMetaData.size() > 1)
 	{
+		// determine start_scan_time order of spectra
+		// set finish time as start time of next spectrum, must discard last spectrum as no finish time
 		sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::scan_start_time_order);
 		for (size_t i = 0; i < spectraMetaData.size() - 1; i++)
 		{
 			spectraMetaData[i].finish_time = spectraMetaData[i + 1].start_time;
 		}
 		spectraMetaData.resize(spectraMetaData.size() - 1);
+
+		// remove centroided spectra as we do not process these
+		vector<spectrumMetaData>::iterator iter = spectraMetaData.begin();
+		while (iter != spectraMetaData.end())
+		{
+			if (iter->profile_mode)
+			{
+				++iter;
+			}
+			else
+			{
+				// erase returns the new iterator
+				iter = spectraMetaData.erase(iter);
+			}
+		}
 
 		// finally sort into contiguous blocks for seaMass
 		sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::seamass_order);
@@ -506,8 +535,8 @@ bool mzMLbInputFile::next(SeaMass::Input& out, std::string& id)
 	bool done = false;
 	for (; !done; i++)
 	{
-		mzs.resize(loaded+1);
-		intensities.resize(loaded+1);
+		mzs.resize(loaded + 1);
+		intensities.resize(loaded + 1);
 		start_times.resize(loaded + 1);
 		finish_times.resize(loaded + 1);
 
