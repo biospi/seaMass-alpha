@@ -9,7 +9,6 @@ target_include_directories(mzmlb2smi PUBLIC
 target_link_libraries (mzmlb2smi LINK_PUBLIC
 	seamass_io
 	seamass_core	
-	${IntelOpenMP_LIBRARIES}
 	${Boost_LIBRARIES}
 )
 
@@ -22,7 +21,6 @@ target_include_directories(seamass PUBLIC
 target_link_libraries (seamass LINK_PUBLIC
 	seamass_io
 	seamass_core	
-	${IntelOpenMP_LIBRARIES}
 	${Boost_LIBRARIES}
 )
 
@@ -35,6 +33,18 @@ target_include_directories(seamass2controlpoints PUBLIC
 target_link_libraries (seamass2controlpoints LINK_PUBLIC
 	seamass_io
 	seamass_core	
-	${IntelOpenMP_LIBRARIES}
+	${Boost_LIBRARIES}
+)
+
+add_executable(seamass-td
+	seamass-td.cpp
+)
+target_include_directories(seamass-td PUBLIC
+	${Boost_INCLUDE_DIRS}
+)
+target_link_libraries (seamass-td LINK_PUBLIC
+	seamass_io
+	seamass_core	
+	seamass_topdown
 	${Boost_LIBRARIES}
 )

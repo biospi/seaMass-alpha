@@ -20,33 +20,26 @@
 //
 
 
-#ifndef _SEAMASS_CORE_SEAMASS_HPP_
-#define _SEAMASS_CORE_SEAMASS_HPP_
+#ifndef _SEAMASS_CORE_SEAMASSTOPDOWN_HPP_
+#define _SEAMASS_CORE_SEAMASSTOPDOWN_HPP_
 
 
-#include "Basis.hpp"
-#include "OptimizerSrl.hpp"
-
-
-//void remove_zeros(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities);
-//void merge_bins(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities, double width);
+#include "../core/Basis.hpp"
+#include "../core/Optimizer.hpp"
 
 
 /**
-* SeaMass fitting of a 1-d curve or multi-dimensional surface to the input spectr(um|a).
+* SeamassTopdown deconvolution of the input spectrum.
 */
-class SeaMass
+class SeamassTopdown
 {
 public:
 	static void notice();
 
 	struct Input {
 		std::vector<fp> binCounts;
-		std::vector<li> spectrumIndex;
-		std::vector<double> binEdges;
-		std::vector<double> startTimes;
-		std::vector<double> finishTimes;
-		std::vector<fp> exposures;
+		ii scale;
+		ii offset;
 	};
 
 	struct Output {
@@ -58,33 +51,14 @@ public:
 		std::vector<ii> baselineExtent;
 	};
 
-	struct ControlPoints {
-		std::vector<fp> coeffs;
-		std::vector<ii> scale;
-		std::vector<ii> offset;
-		std::vector<ii> extent;
-	};
-
-	struct ControlPoints1D {
-		std::vector< std::vector<fp> > coeffs;
-		ii scale;
-		std::vector<ii> offsets;
-	};
-
-	SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance, ii debugLevel = 0);
-	SeaMass(Input& input, const Output& seed, ii debugLevel = 0);
-	virtual ~SeaMass();
+	SeamassTopdown(Input& input, ii maxMass, ii binsPerDalton, double shrinkage, double tolerance, ii debugLevel = 0);
+	virtual ~SeamassTopdown();
 
 	bool step();
 	ii getIteration() const;
 
-	void getOutput(Output& output) const;
-	void getOutputBinCounts(std::vector<fp>& binCounts) const;
-	void getOutputControlPoints(ControlPoints& controlPoints) const;
-	void getOutputControlPoints1d(ControlPoints1D& controlPoints) const;
-
 private:
-	void init(Input& input, const std::vector<ii>& scales);
+	void init(Input& input, ii maxMass, ii binsPerDalton);
 
 	Matrix b_;
 	ii dimensions_;

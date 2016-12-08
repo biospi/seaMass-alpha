@@ -518,7 +518,7 @@ mzMLbInputFile::~mzMLbInputFile()
 	delete msFile;
 }
 
-bool mzMLbInputFile::next(SeaMass::Input& out, std::string& id)
+bool mzMLbInputFile::next(SeamassCore::Input& out, std::string& id)
 {
 	if (i >= spectraMetaData.size()) return false;
 
@@ -618,9 +618,11 @@ bool mzMLbInputFile::next(SeaMass::Input& out, std::string& id)
 		{
 			if (mzs[j].size() >= 2)
 			{
+				out.binCounts.resize(out.binCounts.size() + intensities[j].size() - 1);
+				out.binEdges.resize(out.binEdges.size() + mzs[j].size());
 				for (size_t k = 0; k < mzs[j].size(); k++)
 				{
-					if (k > 0) out.binCounts[bck++] = (mzs[j][i] - mzs[j][i - 1]) * 0.5 * (intensities[j][i] + intensities[j][i - 1]);
+					if (k > 0) out.binCounts[bck++] = (mzs[j][k] - mzs[j][k - 1]) * 0.5 * (intensities[j][k] + intensities[j][k - 1]);
 					out.binEdges[blk++] = mzs[j][k];
 				}
 			}

@@ -28,7 +28,7 @@
 #include <vector>
 #include <string>
 #include "NetCDFile.hpp"
-#include "../core/SeaMass.hpp"
+#include "../core/SeamassCore.hpp"
 
 
 struct spectrumMetaData
@@ -120,7 +120,7 @@ protected:
 class InputFile
 {
 public:
-	virtual bool next(SeaMass::Input& output, std::string& id) = 0;
+	virtual bool next(SeamassCore::Input& output, std::string& id) = 0;
 	virtual ~InputFile(){};
 };
 
@@ -130,7 +130,7 @@ class mzMLbInputFile : public InputFile
 public:
 	mzMLbInputFile(string fileName);
 	~mzMLbInputFile();
-	virtual bool next(SeaMass::Input& output, std::string& id);
+	virtual bool next(SeamassCore::Input& output, std::string& id);
     vector<spectrumMetaData>* getSpectrumMetaData();
     MassSpecFile* getGeometry();
 
@@ -150,7 +150,7 @@ class SMIInputFile : public InputFile
 public:
 	SMIInputFile(string fileName) {}
 
-	virtual bool next(SeaMass::Input& output, std::string& id) { return false; }
+	virtual bool next(SeamassCore::Input& output, std::string& id) { return false; }
 };
 
 

@@ -24,7 +24,7 @@
 #define _SEAMASS_CORE_BSPLINE_HPP_
 
 
-#include "Matrix.hpp"
+#include "../math/Matrix.hpp"
 
 
 class Bspline

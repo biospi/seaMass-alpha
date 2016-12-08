@@ -30,7 +30,7 @@
 
 #include "../io/HDF5Writer.hpp"
 #include "../io/MSFileData.hpp"
-#include "../core/SeaMass.hpp"
+#include "../core/SeamassCore.hpp"
 
 
 using namespace std;
@@ -39,7 +39,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
-	SeaMass::notice();
+	SeamassCore::notice();
 
 	string in_file;
 	vector<ii> scales(2);

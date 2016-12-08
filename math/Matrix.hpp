@@ -20,8 +20,8 @@
 //
 
 
-#ifndef _SEAMASS_CORE_MATRIX_HPP_
-#define _SEAMASS_CORE_MATRIX_HPP_
+#ifndef _SEAMASS_MATH_MATRIX_HPP_
+#define _SEAMASS_MATH_MATRIX_HPP_
 
 
 #include "MatrixSparse.hpp"

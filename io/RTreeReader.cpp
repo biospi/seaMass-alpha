@@ -69,10 +69,10 @@ private:
 	priority_queue<MyPair> node_q;
 	priority_queue<MyPair> data_q;
 
-	SeaMass::Output& output;
+	SeamassCore::Output& output;
 
 public:
-	MyQueryStrategy(const IShape& _query, SeaMass::Output& _output) :
+	MyQueryStrategy(const IShape& _query, SeamassCore::Output& _output) :
 		query(_query),
 		output(_output)
 	{
@@ -174,7 +174,7 @@ RTreeReader::
 // only supports cm with dimension 2 at present
 void
 RTreeReader::
-read(SeaMass::Output& output)
+read(SeamassCore::Output& output)
 {
 	ii dimensions = output.baselineExtent.size();
 	output.scales.resize(dimensions);

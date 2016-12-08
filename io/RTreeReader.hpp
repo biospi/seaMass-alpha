@@ -27,7 +27,7 @@
 #define _SEAMASSRESTORATION_SMVWRITER_HPP_
 
 
-#include "../core/SeaMass.hpp"
+#include "../core/SeamassCore.hpp"
 #include <SpatialIndex.h>
 
 
@@ -86,7 +86,7 @@ public:
 	RTreeReader(const std::string& filename);
 	~RTreeReader();
 
-	void read(SeaMass::Output& output);
+	void read(SeamassCore::Output& output);
 };
 
 

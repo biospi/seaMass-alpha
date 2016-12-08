@@ -20,7 +20,7 @@
 //
 
 
-#include "SeaMass.hpp"
+#include "SeamassCore.hpp"
 
 #include "OptimizerSrl.hpp"
 #include "OptimizerAccelerationEve1.hpp"
@@ -36,13 +36,13 @@
 using namespace std;
 
 
-SeaMass::SeaMass(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance, ii debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
+SeamassCore::SeamassCore(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance, ii debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
 {
 	init(input, scales);
 }
 
 
-SeaMass::SeaMass(Input& input, const Output& seed, ii debugLevel) : iteration_(0), debugLevel_(debugLevel)
+SeamassCore::SeamassCore(Input& input, const Output& seed, ii debugLevel) : iteration_(0), debugLevel_(debugLevel)
 {
 	vector<ii> scales(seed.scales.size());
 	init(input, scales);
@@ -56,7 +56,7 @@ SeaMass::SeaMass(Input& input, const Output& seed, ii debugLevel) : iteration_(0
 }
 
 
-SeaMass::~SeaMass()
+SeamassCore::~SeamassCore()
 {
 	delete optimizer_;
 	delete inner_optimizer_;
@@ -68,7 +68,7 @@ SeaMass::~SeaMass()
 }
 
 
-void SeaMass::notice()
+void SeamassCore::notice()
 {
 	cout << endl;
 	cout << "seaMass - Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
@@ -78,7 +78,7 @@ void SeaMass::notice()
 }
 
 
-void SeaMass::init(Input& input, const std::vector<ii>& scales)
+void SeamassCore::init(Input& input, const std::vector<ii>& scales)
 {
 	// for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
 	// this is conservative, 4 times might be ok, but 2 times isn't enough
@@ -137,7 +137,7 @@ void SeaMass::init(Input& input, const std::vector<ii>& scales)
 }
 
 
-bool SeaMass::step()
+bool SeamassCore::step()
 {
 	if (iteration_ == 0 && debugLevel_ > 0)
 	{
@@ -199,13 +199,13 @@ bool SeaMass::step()
 }
 
 
-ii SeaMass::getIteration() const
+ii SeamassCore::getIteration() const
 {
 	return iteration_;
 }
 
 
-void SeaMass::getOutput(Output& output) const
+void SeamassCore::getOutput(Output& output) const
 {
 #ifndef NDEBUG
 	cout << iteration_ << " getOutput" << endl;
@@ -253,7 +253,7 @@ void SeaMass::getOutput(Output& output) const
 }
 
 
-void SeaMass::getOutputBinCounts(std::vector<fp>& binCounts) const
+void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 {
 #ifndef NDEBUG
 	cout << iteration_ << " getOutputBinCounts" << endl;
@@ -265,7 +265,7 @@ void SeaMass::getOutputBinCounts(std::vector<fp>& binCounts) const
 }
 
 
-void SeaMass::getOutputControlPoints(ControlPoints& controlPoints) const
+void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 {
 #ifndef NDEBUG
 	cout << iteration_ << " getOutputControlPoints" << endl;

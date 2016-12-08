@@ -35,13 +35,13 @@ using namespace boost;
 class MyDataStream : public IDataStream
 {
 public:
-	const SeaMass::Output& output;
+	const SeamassCore::Output& output;
 	ii index;
 	ii dimensions;
 	vector<double> low;
 	vector<double> high;
 
-	MyDataStream(const SeaMass::Output& _output) :
+	MyDataStream(const SeamassCore::Output& _output) :
 		output(_output),
 		index(0),
 		dimensions(output.baselineExtent.size()),
@@ -114,7 +114,7 @@ HDF5Writer::
 
 void
 HDF5Writer::
-write_input(const SeaMass::Input& input) const
+write_input(const SeamassCore::Input& input) const
 {
 	write("binEdges", input.binEdges);
 	write("binCounts", input.binCounts);
@@ -126,7 +126,7 @@ write_input(const SeaMass::Input& input) const
 
 void
 HDF5Writer::
-write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_size) const
+write_output(const SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size) const
 {
 	// placeholder idx and dat datasets
 	hsize_t dims = 1;
@@ -212,7 +212,7 @@ write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_
 
 void
 HDF5Writer::
-write_output_control_points(const SeaMass::ControlPoints& controlPoints) const
+write_output_control_points(const SeamassCore::ControlPoints& controlPoints) const
 {
 	vector<hsize_t> dims(controlPoints.extent.size());
 	vector<hsize_t> cdims(controlPoints.extent.size());

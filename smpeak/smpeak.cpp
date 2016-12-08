@@ -30,7 +30,7 @@
 
 #include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
-#include "../core/SeaMass.hpp"
+#include "../core/SeamassCore.hpp"
 #include "../core/Bspline.hpp"
 #include "../io/mzMLxml.hpp"
 

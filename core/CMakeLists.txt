@@ -1,9 +1,4 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-find_package(MKL REQUIRED)
-
 set(HEADER_FILES
-	Matrix.hpp
-	MatrixSparse.hpp
 	Bspline.hpp
 	Basis.hpp
 	BasisBspline.hpp
@@ -13,11 +8,9 @@ set(HEADER_FILES
 	Optimizer.hpp
 	OptimizerSrl.hpp
 	OptimizerAccelerationEve1.hpp
-	SeaMass.hpp
+	SeamassCore.hpp
 )
 set(SOURCE_FILES
-	Matrix.cpp
-	MatrixSparse.cpp
 	Bspline.cpp
 	Basis.cpp
 	BasisBspline.cpp
@@ -27,14 +20,10 @@ set(SOURCE_FILES
 	Optimizer.cpp
 	OptimizerSrl.cpp
 	OptimizerAccelerationEve1.cpp
-	SeaMass.cpp
+	SeamassCore.cpp
 )
 
 add_library(seamass_core ${HEADER_FILES} ${SOURCE_FILES})
-target_include_directories(seamass_core PUBLIC
-  ${MKL_INCLUDE_DIR}
-)
 target_link_libraries(seamass_core
-  ${IntelOpenMP_LIBRARIES}
-  ${MKL_LIBRARIES}
+  seamass_math
 )

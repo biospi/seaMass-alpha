@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	}
 
 	mzMLbInputFile msFile(in_file);
-	SeaMass::Input input;
+	SeamassCore::Input input;
 	string id;
 	for (int i = 0; msFile.next(input, id); i++)
 	{

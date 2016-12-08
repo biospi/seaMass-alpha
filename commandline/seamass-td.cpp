@@ -28,11 +28,10 @@
 #include <boost/filesystem/convenience.hpp>
 #include <omp.h>
 
-#include "../io/HDF5Writer.hpp"
-#include "../io/RTreeReader.hpp"
-#include "../io/MSFileData.hpp"
-#include "../core/SeamassCore.hpp"
-#include "../io/MzMLb.hpp"
+#include "../math/MatrixSparse.hpp"
+#include "../io/iomath.hpp"
+#include "../io/NetCDFile.hpp"
+#include "../topdown/SeamassTopdown.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
@@ -40,10 +39,11 @@ namespace po = boost::program_options;
 
 int main(int argc, char **argv)
 {
-	SeamassCore::notice();
+	//SeaMass::notice();
 
 	string in_file;
-	vector<ii> scales(2);
+	ii maxMass;
+	ii binsPerDalton;
 	ii shrinkageExponent;
 	ii toleranceExponent;
 	ii threads;
@@ -52,40 +52,40 @@ int main(int argc, char **argv)
 	// *******************************************************************
 
 	po::options_description general("Usage\n"
-			"-----\n"
-			"seamass [OPTIONS...] [MZMLB]\n"
-			"seamass <-f in_file> <-m mz_scale> <-r st_scale> <-s shrinkage> <-l tol> <-t threads> <-o out_type>\n"
-			"seamass -m 1 -r 4 -s -4 -l -9 -t 4 -o 0");
+		"-----\n"
+		"seamass-td [OPTIONS...] [MZMLB]\n"
+		"seamass-td <-f in_file> <-m mz_scale> <-r st_scale> <-s shrinkage> <-l tol> <-t threads> <-o out_type>\n"
+		"seamass-td -m 1 -r 4 -s -4 -l -9 -t 4 -o 0");
 
 	general.add_options()
 		("help,h", "Produce help message")
 		("file,f", po::value<string>(&in_file),
-			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
-			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
-		("mz_scale,m",po::value<ii>(&scales[0])->default_value(numeric_limits<short>::max()),
-			"m/z resolution given as: \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\" "
-			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
-			"default: auto")
-		("st_scale,r", po::value<ii>(&scales[1])->default_value(numeric_limits<short>::max()),
-			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
-			"guidelines: around 4, "
-			"default: auto")
-		("shrinkage,s",po::value<ii>(&shrinkageExponent)->default_value(0),""
-			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
-			"guidelines: around 0, "
-			"default: 0")
-		("tolerance,t",po::value<ii>(&toleranceExponent)->default_value(-10),
-			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
-			"guidelines: around -10, "
-			"default: -10")
+		"Raw input file in seaMass Input format (mzMLb, csv etc.) "
+		"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
+		("max_mass,m", po::value<ii>(&maxMass)->default_value(100000),
+		"Maximum output mass in Daltons, "
+		"guidelines: depends on what you expect to see in the spectrum, "
+		"default: 100000")
+		("bpd,b", po::value<ii>(&binsPerDalton)->default_value(100),
+		"guidelines: Number of output bins per Dalton,"
+		"guidelines: this determines the precision of the result, "
+		"default: 100")
+		("shrinkage,s", po::value<ii>(&shrinkageExponent)->default_value(0), ""
+		"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
+		"guidelines: around 0, "
+		"default: 0")
+		("tolerance,t", po::value<ii>(&toleranceExponent)->default_value(-10),
+		"Convergence tolerance, given as: \"gradient <= 2^tol\" "
+		"guidelines: around -10, "
+		"default: -10")
 		("debug_level,d", po::value<ii>(&debugLevel)->default_value(0),
-			"Debug level, "
-			"guidelines: set to 1 for debugging information, 2 to additionally write intermediate iterations to disk, "
-			"default: 0")
+		"Debug level, "
+		"guidelines: set to 1 for debugging information, 2 to additionally write intermediate iterations to disk, "
+		"default: 0")
 		("threads", po::value<ii>(&threads)->default_value(4),
-			"Number of OpenMP threads to use, "
-			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
-			"default: 4");
+		"Number of OpenMP threads to use, "
+		"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
+		"default: 4");
 
 	po::options_description desc;
 	desc.add(general);
@@ -99,56 +99,93 @@ int main(int argc, char **argv)
 		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
 		po::notify(vm);
 
-		if(vm.count("help"))
+		if (vm.count("help"))
 		{
-			cout<<desc<<endl;
+			cout << desc << endl;
 			return 0;
 		}
-			if(vm.count("threads"))
+		if (vm.count("threads"))
 		{
-			threads=vm["threads"].as<int>();
+			threads = vm["threads"].as<int>();
 		}
 		else
 		{
 			threads = omp_get_max_threads();
 		}
-		if(vm.count("file"))
+		if (vm.count("file"))
 		{
-			cout<<"Opening file: "<<vm["file"].as<string>()<<endl;
+			cout << "Opening file: " << vm["file"].as<string>() << endl;
 		}
 		else
 		{
 			throw "Valid seamass input file was not given...";
 		}
 	}
-	catch(exception& e)
+	catch (exception& e)
 	{
-		cerr<<"error: " << e.what() <<endl;
-		cout<<desc<<endl;
+		cerr << "error: " << e.what() << endl;
+		cout << desc << endl;
 		return 1;
 	}
-	catch(const char* msg)
+	catch (const char* msg)
 	{
-		cerr<<"error: "<<msg<<endl;
-		cout<<desc<<endl;
+		cerr << "error: " << msg << endl;
+		cout << desc << endl;
 		return 1;
 	}
-	catch(...)
-		{
-		cerr<<"Exception of unknown type!\n";
+	catch (...)
+	{
+		cerr << "Exception of unknown type!\n";
 	}
 
-	mzMLbInputFile msFile(in_file);
-    OutmzMLb outmzMLb(in_file,msFile);
-	SeamassCore::Input input;
-	string id;
 	double tolerance = pow(2.0, toleranceExponent);
 	double shrinkage = pow(2.0, shrinkageExponent);
-	while (msFile.next(input, id))
+
+	NetCDFile inFile(in_file);
+	VecMat<> in;
+	inFile.read_MatNC("controlPoints", in);
+	uli extent[2];
+	in.getDims(extent);
+	vector<int> offset, scale;
+	int varid = inFile.read_VarIDNC("controlPoints");
+	inFile.read_AttNC("scale", varid, scale);
+	inFile.read_AttNC("offset", varid, offset);
+
+	vector<fp> coeffs(extent[0], 0.0);
+	for (li j = 0; j < extent[1]; j++)
+	{
+		for (li i = 0; i < extent[0]; i++)
+		{
+			coeffs[i] += (*in.m)[j + i * extent[1]];
+		}
+	}
+
+	SeamassTopdown::Input input;
+	input.binCounts.resize(extent[0] - 3, 0.0);
+	for (li i = 0; i < input.binCounts.size(); i++)
+	{
+		input.binCounts[i]  = 0.04 * coeffs[i] + 0.46 * coeffs[i + 1] + 0.46 * coeffs[i + 2] + 0.04 * coeffs[i + 3];
+	}
+	input.scale = scale[0];
+	input.offset = offset[0];
+
+	NetCDFile outFile("input.smr", NC_NETCDF4);
+	outFile.write_VecNC("binCounts", input.binCounts, NC_FLOAT);
+
+	SeamassTopdown sm(input, maxMass, binsPerDalton, shrinkage, tolerance, debugLevel);
+	do
+	{
+	}
+	while (sm.step());
+
+
+
+
+	/*while (msFile.next(input, id))
 	{
 		cout << endl << "Processing " << id << ":" << endl;
 
-		SeamassCore sm(input, scales, shrinkage, tolerance, debugLevel);
+		SeaMass sm(input, scales, shrinkage, tolerance, debugLevel);
 
 		do
 		{
@@ -167,7 +204,7 @@ int main(int argc, char **argv)
 				input.binCounts = originalBinCounts;
 
 				// write RTree
-				SeamassCore::Output output;
+				SeaMass::Output output;
 				sm.getOutput(output);
 				smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
 
@@ -176,7 +213,7 @@ int main(int argc, char **argv)
 				oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
 				HDF5Writer smo(oss2.str());
 
-				SeamassCore::ControlPoints controlPoints;
+				SeaMass::ControlPoints controlPoints;
 				sm.getOutputControlPoints(controlPoints);
 				smo.write_output_control_points(controlPoints);
 			}
@@ -228,25 +265,13 @@ int main(int argc, char **argv)
 		ostringstream oss2;
 		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
 		HDF5Writer smo(oss2.str());
-		SeamassCore::ControlPoints controlPoints;
+		SeaMass::ControlPoints controlPoints;
 		sm.getOutputControlPoints(controlPoints);
 		smo.write_output_control_points(controlPoints);
-
-		// demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
-		// lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)
-		// therefore we just need to load from the RTree ito Output::weights,scales,offsets
-		/*SeaMass::Output loaded;
-		loaded.baselineOffset = output.baselineOffset;
-		loaded.baselineScale = output.baselineScale;
-		loaded.baselineExtent = output.baselineExtent;
-		RTreeReader rtree(oss.str());
-		rtree.read(loaded);
-		cout << "Number of saved bases: " << output.weights.size() << endl;
-		cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
 	}
 
     vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();
-    outmzMLb.writeXmlData(spcPtr);
+    outmzMLb.writeXmlData(spcPtr);*/
 
 	return 0;
 }

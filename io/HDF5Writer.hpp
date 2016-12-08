@@ -29,7 +29,7 @@
 
 #include <hdf5.h>
 #include <iostream>
-#include "../core/SeaMass.hpp"
+#include "../core/SeamassCore.hpp"
 
 class HDF5Writer
 {
@@ -43,9 +43,9 @@ public:
 	HDF5Writer(const std::string& filename);
 	~HDF5Writer();
     
-	void write_input(const SeaMass::Input& input) const;
-	void write_output(const SeaMass::Output& output, ii shrinkage, ii tolerance, ii page_size) const;
-	void write_output_control_points(const SeaMass::ControlPoints& control_points) const;
+	void write_input(const SeamassCore::Input& input) const;
+	void write_output(const SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size) const;
+	void write_output_control_points(const SeamassCore::ControlPoints& control_points) const;
    
 	void write(const std::string& objectname, const std::vector<unsigned char>& cdata) const;
 	void write(const std::string& objectname, const std::vector<float>& cdata) const;
