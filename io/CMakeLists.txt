@@ -1,6 +1,4 @@
 find_package(Boost 1.54 COMPONENTS filesystem REQUIRED)
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(PugiXML REQUIRED)
 find_package(SpatialIndex 1.8.5 REQUIRED)
 

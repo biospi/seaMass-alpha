@@ -1,6 +1,4 @@
 find_package(Boost 1.54 COMPONENTS program_options REQUIRED)
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 find_package(PugiXML REQUIRED)
 
 set(HEADER_FILES

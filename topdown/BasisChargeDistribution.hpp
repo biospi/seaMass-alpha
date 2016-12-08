@@ -25,7 +25,7 @@
 
 
 #include "../core/Basis.hpp"
-#include "../core/BSpline.hpp"
+#include "../core/Bspline.hpp"
 
 
 class BasisChargeDistribution : public Basis

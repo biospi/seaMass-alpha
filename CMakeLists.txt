@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 2.8.12)
-project(seamass C CXX)
+cmake_minimum_required(VERSION 3.1.0 FATAL_ERROR)
+project(seamass CXX)
+set (CMAKE_CXX_STANDARD 11)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
 add_subdirectory(math)

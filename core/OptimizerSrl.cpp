@@ -25,6 +25,7 @@
 #include <iostream>
 #include <iomanip>
 #include <omp.h>
+#include <math.h>
 
 
 using namespace std;

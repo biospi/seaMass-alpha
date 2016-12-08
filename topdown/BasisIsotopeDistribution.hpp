@@ -24,7 +24,7 @@
 #define _SEAMASS_BASISISOTOPEDISTRIBUTION_HPP_
 
 
-#include "../core/BSpline.hpp"
+#include "../core/Bspline.hpp"
 #include "BasisChargeDistribution.hpp"
 
 
