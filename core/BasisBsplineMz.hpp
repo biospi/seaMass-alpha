@@ -34,8 +34,8 @@ public:
 		           const std::vector<double>& binEdges, short resolution, ii order = 3, bool isTransient = false);
 	virtual ~BasisBsplineMz();
 
-	void synthesis(Matrix& f, const Matrix& x, bool accumulate) const;
-	void analysis(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
+	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
+	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
 
 private:
 	std::vector<MatrixSparse> as_; // CSR sparse 'A' basis matrices

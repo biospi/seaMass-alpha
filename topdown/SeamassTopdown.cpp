@@ -64,12 +64,12 @@ void SeamassTopdown::notice()
 
 void SeamassTopdown::init(Input& input, ii maxMass, ii binsPerDalton)
 {
-	BasisChargeDistribution* basisCharge = new BasisChargeDistribution(bases_, input.binCounts, input.scale, input.offset, maxMass, binsPerDalton);
+	/*BasisChargeDistribution* basisCharge = new BasisChargeDistribution(bases_, input.binCounts, input.scale, input.offset, maxMass, binsPerDalton);
 
 	b_.init((li)input.binCounts.size(), 1, input.binCounts.data());
 	inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
 	optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
-	optimizer_->init((fp)shrinkage_);
+	optimizer_->init((fp)shrinkage_);*/
 }
 
 

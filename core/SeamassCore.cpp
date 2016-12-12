@@ -59,7 +59,7 @@ SeamassCore::SeamassCore(Input& input, const Output& seed, ii debugLevel) : iter
 SeamassCore::~SeamassCore()
 {
 	delete optimizer_;
-	delete inner_optimizer_;
+	//delete inner_optimizer_;
 
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
@@ -99,7 +99,7 @@ void SeamassCore::init(Input& input, const std::vector<ii>& scales)
 			new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
 		}
 	}
-	else
+	/*else
 	{
 		dimensions_ = 2;
 
@@ -118,21 +118,14 @@ void SeamassCore::init(Input& input, const std::vector<ii>& scales)
 				new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
 			}
 		}
-	}
+	}*/
 
 	// Initialize the optimizer
-	/*vector<fp>* binCounts = new vector<fp>(input.binCounts.size(), 0.0);
-	for (li i = 1; i < (li)input.binCounts.size() - 1; i++)
-	{
-		(*binCounts)[i - 1] += 0.25 * input.binCounts[i];
-		(*binCounts)[i] += 0.5 * input.binCounts[i];
-		(*binCounts)[i + 1] += 0.25 * input.binCounts[i];
-	}
-	b_.init((li)binCounts->size(), 1, binCounts->data());*/
-	b_.init((li)input.binCounts.size(), 1, input.binCounts.data());
-	inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
-	//optimizer_ = new OptimizerSrl(bases_, b_);
-	optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
+	b_.convertFromDense((ii)input.binCounts.size(), 1, input.binCounts.data());
+	
+	//inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
+	optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
+	//optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
 	optimizer_->init((fp)shrinkage_);
 }
 
@@ -147,7 +140,7 @@ bool SeamassCore::step()
 		{
 			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
 			{
-				nnz += optimizer_->xs()[j].nnz();
+				nnz += optimizer_->xs()[j].nnz(true);
 				nx += optimizer_->xs()[j].size();
 			}
 		}
@@ -165,7 +158,7 @@ bool SeamassCore::step()
 		{
 			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
 			{
-				nnz += optimizer_->xs()[j].nnz();
+				nnz += optimizer_->xs()[j].nnz(true);
 			}
 		}
 		cout << " it: " << setw(5) << iteration_;
@@ -178,7 +171,8 @@ bool SeamassCore::step()
 
 	if (grad <= tolerance_)
 	{
-		if (shrinkage_ == 0)
+		return false;
+		/*if (shrinkage_ == 0)
 		{
 			if (debugLevel_ == 0) cout << "o" << endl;
 			return false;
@@ -188,7 +182,7 @@ bool SeamassCore::step()
 			if (debugLevel_ == 0) cout << "o" << flush;
 			shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
 			optimizer_->init((fp)shrinkage_);
-		}
+		}*/
 	}
 	else
 	{
@@ -232,14 +226,14 @@ void SeamassCore::getOutput(Output& output) const
 		{
 			const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[j])->getGridInfo();
 
-			for (ii i = 0; i < optimizer_->xs()[j].size(); i++)
+			for (ii nz = 0; nz < optimizer_->xs()[j].nnz(); nz++)
 			{
-				fp x = optimizer_->xs()[j].getVs()[i];
-				if (x > 0.0)
+				fp v = optimizer_->xs()[j].getVs()[nz];
+				if (v != 0.0)
 				{
-					output.weights.push_back(x);
+					output.weights.push_back(v);
 
-					ii index = i;
+					ii index = 0;
 					for (ii d = 0; d < dimensions_; d++)
 					{
 						output.scales[d].push_back(meshInfo.scale[d]);
@@ -259,9 +253,10 @@ void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 	cout << iteration_ << " getOutputBinCounts" << endl;
 #endif
 
-	binCounts.assign(b_.size(), 0.0);
-	Matrix f; f.init(b_.m(), b_.n(), binCounts.data());
+	MatrixSparse f;
 	optimizer_->synthesis(f);
+	binCounts.resize(b_.size());
+	f.convertToDense(binCounts.data());
 }
 
 
@@ -273,9 +268,10 @@ void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 
 	const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 
-	controlPoints.coeffs.assign(meshInfo.size(), 0.0);
-	Matrix c; c.init(meshInfo.m(), meshInfo.n,  controlPoints.coeffs.data());
+	MatrixSparse c;
 	optimizer_->synthesis(c, dimensions_ - 1);
+	controlPoints.coeffs.resize(meshInfo.size());
+	c.convertToDense(controlPoints.coeffs.data());
 
 	controlPoints.scale = meshInfo.scale;
 	controlPoints.offset = meshInfo.offset;

@@ -31,7 +31,7 @@
 using namespace std;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& b, ii debugLevel, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, ii debugLevel, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0)
 {
 #ifndef NDEBUG
 	cout << "Init Optimizer SRL..." << endl;
@@ -46,7 +46,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& b, ii debu
 	{
 		if (i == 0)
 		{
-			Matrix t; t.init(b_.m(), b_.n(), 1.0);
+			MatrixSparse t;
+			t.init(b_.m(), b_.n(), (fp)1.0);
 			bases_[i]->analysis(l2s_[0], t, true);
 		}
 		else
@@ -62,20 +63,21 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& b, ii debu
 		}
 		else
 		{
-			l2s_[i].elementwiseSqrt(l2s_[i]);
+			l2s_[i].elementwiseSqrt();
 		}
 	}
 
 	// compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
 #ifndef NDEBUG
-	cout << " Init L1s..." << endl;
+	cout << " Init L2L1s..." << endl;
 #endif
 	l1l2s_.resize(bases_.size());
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
 		{
-			Matrix t; t.init(b_.m(), b_.n(), 1.0);
+			MatrixSparse t;
+			t.init(b_.m(), b_.n(), (fp)1.0);
 			bases_[i]->analysis(l1l2s_[0], t, false);
 		}
 		else
@@ -85,13 +87,13 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& b, ii debu
 	}
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
-		if (!bases_[i]->isTransient())
+		if (bases_[i]->isTransient())
 		{
-			l1l2s_[i].elementwiseDiv(l1l2s_[i], l2s_[i]);
+			l1l2s_[i].free();
 		}
 		else
 		{
-			l1l2s_[i].free();
+			l1l2s_[i].elementwiseDiv(l2s_[i]);
 		}
 	}
 
@@ -116,17 +118,21 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const Matrix& b, ii debu
 	double sumB = b_.sum();
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
-		if (!bases_[i]->isTransient())
+		if (bases_[i]->isTransient())
 		{
-			Matrix l1; l1.elementwiseMul(l1l2s_[i], l2s_[i]);
-			xs_[i].elementwiseDiv(xs_[i], l1);
-			xs_[i].elementwiseMul(xs_[i], (fp)(sumB / sumX));
-			xs_[i].elementwiseMul(xs_[i], l2s_[i]);
-			xs_[i].prune(xs_[i], pruneThreshold);
+			xs_[i].free();
 		}
 		else
 		{
-			xs_[i].free();
+			MatrixSparse l1;
+			l1.init(l1l2s_[i]);
+			l1.elementwiseMul(l2s_[i]);
+			MatrixSparse x;
+			x.init(xs_[i]);
+			x.elementwiseDiv(l1);
+			x.elementwiseMul((fp)(sumB / sumX));
+			x.elementwiseMul(l2s_[i]);
+			xs_[i].init(x, pruneThreshold);
 		}
 	}
 
@@ -160,8 +166,8 @@ double OptimizerSrl::step()
 	iteration_++;
 
 	// temporary variables
-	Matrix f;
-	vector<Matrix> xEs(bases_.size());
+	MatrixSparse f, e;
+	vector<MatrixSparse> xEs(bases_.size());
 	double sumSqrs = 0.0;
 	double sumSqrDiffs = 0.0;
 
@@ -185,7 +191,9 @@ double OptimizerSrl::step()
 #endif
 	double errorStart = omp_get_wtime();
 	{
-		f.elementwiseDiv(b_, f);
+		e.init(b_);
+		e.elementwiseDiv(f);
+		f.free();
 	}
 	double errorDuration = omp_get_wtime() - errorStart;
 
@@ -199,8 +207,8 @@ double OptimizerSrl::step()
 		{
 			if (i == 0)
 			{
-				bases_.front()->analysis(xEs[0], f, false);
-				f.free();
+				bases_.front()->analysis(xEs[0], e, false);
+				e.free();
 			}
 			else
 			{
@@ -212,7 +220,7 @@ double OptimizerSrl::step()
 	{
 		if (!bases_[i]->isTransient())
 		{
-			xEs[i].elementwiseDiv(xEs[i], l2s_[i]);
+			xEs[i].elementwiseDiv(l2s_[i]);
 		}
 	}
 	double analysisDuration = omp_get_wtime() - analysisStart;
@@ -227,7 +235,7 @@ double OptimizerSrl::step()
 		{
 			if (!bases_[i]->isTransient())
 			{
-				bases_[i]->shrinkage(xEs[i], xEs[i], xs_[i], l1l2s_[i], lambda_);
+				bases_[i]->shrinkage(xEs[i], xs_[i], l1l2s_[i], lambda_);
 			}
 			else
 			{
@@ -249,16 +257,16 @@ double OptimizerSrl::step()
 			if (!bases_[i]->isTransient())
 			{
 				sumSqrs += xs_[i].sumSqrs();
-				sumSqrDiffs += xEs[i].sumSqrDiffs(xs_[i]);
+				sumSqrDiffs += xs_[i].sumSqrDiffs(xEs[i]);
 			}
 		}
 
-		// copy into cs_, pruning small coefficients
+		// copy into xs_, pruning small coefficients
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (!bases_[i]->isTransient())
 			{
-				xs_[i].prune(xEs[i], pruneThreshold_);
+				xs_[i].init(xEs[i], pruneThreshold_);
 				xEs[i].free();
 			}
 		}
@@ -280,19 +288,20 @@ double OptimizerSrl::step()
 }
 
 
-void OptimizerSrl::synthesis(Matrix& f, ii basis) const
+void OptimizerSrl::synthesis(MatrixSparse& f, ii basis) const
 {
-	vector<Matrix> ts(bases_.size());
+	vector<MatrixSparse> ts(bases_.size());
 	for (ii i = (ii)bases_.size() - 1; i >= 0; i--)
 	{
 		if (!ts[i] && !bases_[i]->isTransient())
 		{
-			ts[i].elementwiseDiv(xs_[i], l2s_[i]);
+			ts[i].init(xs_[i]);
+			ts[i].elementwiseDiv(l2s_[i]);
 		}
 
 		if (basis == i) // return with B-spline control points
 		{
-			f.copy(ts[i]);
+			f.init(ts[i]);
 
 			break;
 		}
@@ -302,7 +311,8 @@ void OptimizerSrl::synthesis(Matrix& f, ii basis) const
 			ii pi = bases_[i]->getParentIndex();
 			if (!ts[pi] && !bases_[pi]->isTransient())
 			{
-				ts[pi].elementwiseDiv(xs_[pi], l2s_[pi]);
+				ts[pi].init(xs_[pi]);
+				ts[pi].elementwiseDiv(l2s_[pi]);
 			}
 
 			bases_[i]->synthesis(ts[pi], ts[i], true);
@@ -328,7 +338,7 @@ const std::vector<Basis*>& OptimizerSrl::getBases() const
 	return bases_;
 }
 
-std::vector<Matrix>& OptimizerSrl::xs()
+std::vector<MatrixSparse>& OptimizerSrl::xs()
 {
 	return xs_;
 }

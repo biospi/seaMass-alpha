@@ -30,7 +30,7 @@
 using namespace std;
 
 
-OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer, ii debugLevel) : optimizer_(optimizer)
+/*OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer, ii debugLevel) : optimizer_(optimizer)
 {
 #ifndef NDEBUG
 	cout << "Init Optimizer Biggs-Andrews Acceleration (EVE1)..." << endl;

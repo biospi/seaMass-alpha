@@ -32,7 +32,7 @@
 using namespace std;
 
 
-BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
+/*BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
 	const std::vector<fp>& exposures, short resolution, ii order, bool transient) : BasisBspline(bases, 2, transient, parentIndex)
 {
 	double scantimeMin = startTimes.front();
@@ -159,4 +159,4 @@ analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 	{
 		xE.mul(aT_, fE, false, false, false);
 	}
-}
+}*/

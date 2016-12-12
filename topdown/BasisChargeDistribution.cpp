@@ -30,7 +30,7 @@
 using namespace std;
 
 
-double
+/*double
 BasisChargeDistribution::
 protonMass_ = 1.007276466879; // in Daltons
 
@@ -80,12 +80,12 @@ BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCo
 
 	// groupXOffsets_ contains start indices to each group of coefficients, followed by total number of coefficients
 	// groupZOffsets_ contains the first charge state z in each group (the last value can be ignored)
-	groupXOffsets_.resize(groupZOffsets_.size());
+	/*groupXOffsets_.resize(groupZOffsets_.size());
 	groupXOffsets_[0] = 0;
 	for (li y = 1; y < (li)groupXOffsets_.size(); y++)
 	{
 		groupXOffsets_[y] = (groupZOffsets1[y] - groupZOffsets_[y - 1] + 1) + groupXOffsets_[y - 1];
-	}
+	}*/
 
 	/*cout << endl;
 	for (li y = 0; y < 5; y++)
@@ -99,7 +99,7 @@ BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCo
 	}*/
 
 	// populate coo matrix
-	vector<fp> acoo;
+	/*vector<fp> acoo;
 	vector<ii> rowind;
 	vector<ii> colind;
 	//Bspline bspline(order, 65536); // bspline basis function lookup table
@@ -182,7 +182,7 @@ analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 	{
 		xE.mul(a_, fE, false, true, false);
 	}
-}
+}*/
 
 
 /*void

@@ -39,16 +39,20 @@ Basis::~Basis()
 }
 
 
-void Basis::shrinkage(Matrix& x, const Matrix& xE, const Matrix& x0, const Matrix& l1, fp lambda) const
+void Basis::shrinkage(MatrixSparse& xE_x, const MatrixSparse& x0, const MatrixSparse& l1l2, fp lambda) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScale::shrinkage" << endl;
+	cout << " " << getIndex() << " Basis::shrinkage" << endl;
 #endif
 
-	Matrix t;
-	t.elementwiseAdd(l1, lambda);
-	t.elementwiseDiv(x0, t);
-	x.elementwiseMul(xE, t);
+	MatrixSparse t;
+	t.init(l1l2);
+	t.elementwiseAdd(lambda);
+	MatrixSparse t2;
+	t2.init(x0);
+	t2.elementwiseDiv(t);
+	t2.elementwiseMul(xE_x);
+	xE_x.init(t2);
 }
 
 

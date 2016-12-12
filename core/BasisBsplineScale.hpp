@@ -33,8 +33,8 @@ public:
 	BasisBsplineScale(std::vector<Basis*>& bases, ii parentIndex, ii dimension, ii order = 3, bool isTransient = false);
 	virtual ~BasisBsplineScale();
 
-	void synthesis(Matrix& f, const Matrix& x, bool accumulate) const;
-	void analysis(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
+	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
+	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
 
 private:
 	MatrixSparse a_;

@@ -28,7 +28,7 @@
 #include "../core/Bspline.hpp"
 
 
-class BasisChargeDistribution : public Basis
+/*class BasisChargeDistribution : public Basis
 {
 public:
 	BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, ii scale, ii offset, ii maxMass, ii binsPerDalton, bool isTransient = false);
@@ -48,7 +48,7 @@ private:
 	std::vector<short> groupZOffsets_;
 
 	static double protonMass_; // mass of a proton (positive charge) in Daltons
-};
+};*/
 
 
 #endif

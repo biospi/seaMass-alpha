@@ -60,7 +60,7 @@ public:
 private:
 	void init(Input& input, ii maxMass, ii binsPerDalton);
 
-	Matrix b_;
+	MatrixSparse b_;
 	ii dimensions_;
 	std::vector<Basis*> bases_;
 	Optimizer* inner_optimizer_;

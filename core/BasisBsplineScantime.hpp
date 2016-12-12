@@ -27,7 +27,7 @@
 #include "BasisBspline.hpp"
 
 
-class BasisBsplineScantime : public BasisBspline
+/*class BasisBsplineScantime : public BasisBspline
 {
 public:
 	BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
@@ -40,7 +40,7 @@ public:
 private:
 	MatrixSparse a_;
 	MatrixSparse aT_;
-};
+};*/
 
 
 #endif

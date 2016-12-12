@@ -35,9 +35,9 @@ public:
     
 	virtual void init(fp lamba) = 0;
 	virtual double step() = 0;
-	virtual void synthesis(Matrix& f, ii basis = -1) const = 0;
+	virtual void synthesis(MatrixSparse& f, ii basis = -1) const = 0;
 
-	virtual std::vector<Matrix>& xs() = 0;
+	virtual std::vector<MatrixSparse>& xs() = 0;
 	virtual const std::vector<Basis*>& getBases() const = 0;
 	virtual ii getIteration() const = 0;
 };

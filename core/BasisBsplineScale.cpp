@@ -36,6 +36,12 @@ BasisBsplineScale::
 BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii dimension, ii order, bool transient)
 	: BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
 {
+#ifndef NDEBUG
+	cout << " " << getIndex() << " BasisBsplineScale";
+	if (isTransient()) cout << " (t)";
+	cout << endl;
+#endif
+
 	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
 	gridInfo() = parentGridInfo;
 	gridInfo().scale[dimension] = parentGridInfo.scale[dimension] - 1;
@@ -85,12 +91,9 @@ BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii dimension, ii order,
 	aT_.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
 
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScale";
-	if (isTransient()) cout << " (t)";
-	cout << " parent=" << getParentIndex() << " dimension=" << dimension << " " << gridInfo() << endl;
-	cout << "  A" << a_ << " (";
+	cout << "  parent=" << getParentIndex() << " dimension=" << dimension << " " << gridInfo() << " mem=";
 	cout.unsetf(ios::floatfield); 
-	cout << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
+	cout << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
 #endif
 }
 
@@ -102,25 +105,39 @@ BasisBsplineScale::~BasisBsplineScale()
 
 void
 BasisBsplineScale::
-synthesis(Matrix& f, const Matrix& x, bool accumulate) const
+synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
 #endif
 
-	f.mul(a_, x, accumulate, false, (dimension_ == 0) ? true : false);
+	f.mul(a_, MatrixSparse::Transpose::NO, x, accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
+
+	//f.mul(a_, x, accumulate, false, (dimension_ == 0) ? true : false);
 }
 
 
 void
 BasisBsplineScale::
-analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
+analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::analysis" << endl;
 #endif
 
 	if (sqrA)
+	{
+		MatrixSparse t;
+		t.init(a_);
+		t.elementwiseSqr();
+		xE.mul(t, MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+	}
+	else
+	{
+		xE.mul(a_, MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+	}
+
+	/*if (sqrA)
 	{
 		MatrixSparse aTSqrd;
 		aTSqrd.elementwiseSqr(aT_);
@@ -129,5 +146,5 @@ analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 	else
 	{
 		xE.mul(aT_, fE, false, false, (dimension_ == 0) ? true : false);
-	}
+	}*/
 }

@@ -36,6 +36,12 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	                           const std::vector<double>& binEdges, short resolution, ii order, bool transient)
 	: BasisBspline(bases, 1, transient)
 {
+#ifndef NDEBUG
+	cout << " " << getIndex() << " BasisBsplineMz";
+	if (isTransient()) cout << " (t)";
+	cout << endl;
+#endif
+
 	if (spectrumIndex.size() > 0)
 	{
 		is_ = spectrumIndex;
@@ -147,18 +153,17 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	li n = 0; for (ii k = 0; k < (ii)as_.size(); k++) n += as_[k].n();
 	li nnz = 0; for (ii k = 0; k < (ii)as_.size(); k++) nnz += as_[k].nnz();
 	li mem = 0; for (ii k = 0; k < (ii)as_.size(); k++) mem += as_[k].mem();
-	cout << " " << getIndex() << " BasisBsplineMz";
-	if (isTransient()) cout << " (t)";
-	cout << " range=" << setprecision(3) << mzMin << ":";
+	cout << "  range=" << setprecision(3) << mzMin << ":";
     cout.unsetf(std::ios::floatfield);
     cout << mzDiff << ":" << fixed << mzMax << "Th";
 	cout << " resolution=" << fixed << setprecision(1) << resolution << " (" << bpi << " bases per 1.0033548378Th)";
-	cout << " " << gridInfo() << endl;
-	cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=";
+	cout << " " << gridInfo() << " mem=";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(2) << nnz / (double)(m * n) << "% (";
+	cout << "mem=" << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb" << endl;
+	cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=";
+	cout << setprecision(2) << nnz / (double)(m * n) << "%";
 	cout.unsetf(ios::floatfield); 
-	cout << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb)" << endl;
+	cout << endl;
 #endif
 
 	if (resolutionAuto != resolution)
@@ -173,9 +178,15 @@ BasisBsplineMz::~BasisBsplineMz()
 }
 
 
-void BasisBsplineMz::synthesis(Matrix& f, const Matrix& x, bool accumulate) const
+void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
-	if (!f) f.init(is_.back(), 1);
+#ifndef NDEBUG
+	cout << " " << getIndex() << " BasisBsplineMz::synthesis[" << 0 << "]" << endl;
+#endif
+
+	f.mul(as_[0], MatrixSparse::Transpose::NO, x, accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
+
+	/*if (!f) f.init(is_.back(), 1);
 
 #ifdef NDEBUG
 	# pragma omp parallel for
@@ -190,13 +201,30 @@ void BasisBsplineMz::synthesis(Matrix& f, const Matrix& x, bool accumulate) cons
 #endif
 
 		fSub.mul(as_[k], xSub, accumulate, false, false);
-	}
+	}*/
 }
 
 
-void BasisBsplineMz::analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
+void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
-	if (!xE)
+#ifndef NDEBUG
+	cout << " " << getIndex() << " BasisBsplineMz::analysis[" << 0 << "]" << endl;
+#endif
+
+	if (sqrA)
+	{
+		MatrixSparse t;
+		t.init(as_[0]);
+		t.elementwiseSqr();
+		xE.mul(t, MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+	}
+	else
+	{
+		xE.mul(as_[0], MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+	}
+
+
+	/*if (!xE)
 	{
 		xE.init(getGridInfo().n, getGridInfo().m());
 	}
@@ -223,7 +251,7 @@ void BasisBsplineMz::analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
 		{
 			xESub.mul(as_[k], fESub, false, true, false);
 		}
-	}
+	}*/
 }
 
 

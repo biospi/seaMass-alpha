@@ -27,7 +27,7 @@
 #include "MatrixSparse.hpp"
 
 
-class Matrix
+/*class Matrix
 {
 public:
 	Matrix();
@@ -44,22 +44,22 @@ public:
 	li nnz() const;
 	li size() const;
 
-	void copy(const Matrix& a);
-	void prune(const Matrix& a, fp threshold);
+	//void copy(const Matrix& a);
+	//void prune(const Matrix& a, fp threshold);
 
-	void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA, bool transposeX);
+	//void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA, bool transposeX);
 
-	void elementwiseAdd(const Matrix& a, fp beta);
-	void elementwiseMul(const Matrix& a, fp beta);
-	void elementwiseMul(const Matrix& a, const Matrix& b);
-	void elementwiseDiv(const Matrix& n, const Matrix& d);
-	void elementwiseSqrt(const Matrix& a);
-	void elementwiseLn(const Matrix& a);
-	void elementwisePow(const Matrix& a, fp power);
+	//void elementwiseAdd(const Matrix& a, fp beta);
+	//void elementwiseMul(const Matrix& a, fp beta);
+	//void elementwiseMul(const Matrix& a, const Matrix& b);
+	//void elementwiseDiv(const Matrix& n, const Matrix& d);
+	//void elementwiseSqrt(const Matrix& a);
+	//void elementwiseLn(const Matrix& a);
+	//void elementwisePow(const Matrix& a, fp power);
 
-	double sum() const;
-	double sumSqrs() const;
-	double sumSqrDiffs(const Matrix& a) const;
+	//double sum() const;
+	//double sumSqrs() const;
+	//double sumSqrDiffs(const Matrix& a) const;
 
 	bool operator!() const;
 	li mem() const;
@@ -73,7 +73,7 @@ private:
 	bool isOwned_; // does this object own its data?
 };
 
-std::ostream& operator<<(std::ostream& os, const Matrix& mat);
+std::ostream& operator<<(std::ostream& os, const Matrix& mat);*/
 
 
 #endif

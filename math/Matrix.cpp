@@ -31,7 +31,7 @@
 using namespace std;
 
 
-Matrix::Matrix()
+/*Matrix::Matrix()
 	: m_(0), n_(0), vs_(0), isOwned_(false)
 {
 }
@@ -503,4 +503,4 @@ ostream& operator<<(ostream& os, const Matrix& a)
 	}
 
 	return  os;
-}
+}*/

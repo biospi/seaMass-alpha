@@ -33,9 +33,9 @@ public:
 	Basis(std::vector<Basis*>& bases, bool isTransient = false, ii parentIndex = -1);
 	virtual ~Basis();
 
-	virtual void synthesis(Matrix& f, const Matrix& x, bool accumulate) const = 0;
-	virtual void analysis(Matrix& xE, const Matrix& fE, bool sqrA) const = 0;
-	virtual void shrinkage(Matrix& x, const Matrix& xE, const Matrix& x0, const Matrix& l1, fp lambda) const;
+	virtual void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const = 0;
+	virtual void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const = 0;
+	virtual void shrinkage(MatrixSparse& xE_x, const MatrixSparse& x0, const MatrixSparse& l1l2, fp lambda) const;
 
 	virtual ii getM() const = 0;
 	virtual ii getN() const = 0;
