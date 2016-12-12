@@ -140,7 +140,7 @@ bool SeamassCore::step()
 		{
 			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
 			{
-				nnz += optimizer_->xs()[j].nnz(true);
+				nnz += optimizer_->xs()[j].nnz();
 				nx += optimizer_->xs()[j].size();
 			}
 		}
@@ -158,7 +158,11 @@ bool SeamassCore::step()
 		{
 			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
 			{
-				nnz += optimizer_->xs()[j].nnz(true);
+				nnz += optimizer_->xs()[j].nnz();
+
+				//vector<fp> ts(optimizer_->xs()[j].m() * optimizer_->xs()[j].n());
+				//optimizer_->xs()[j].convertToDense(ts.data());
+				//for (ii i = 0; i < ts.size(); i++) cout << j << ":" << i << ":" << ts[i] << endl;
 			}
 		}
 		cout << " it: " << setw(5) << iteration_;
@@ -171,8 +175,7 @@ bool SeamassCore::step()
 
 	if (grad <= tolerance_)
 	{
-		return false;
-		/*if (shrinkage_ == 0)
+		if (shrinkage_ == 0)
 		{
 			if (debugLevel_ == 0) cout << "o" << endl;
 			return false;
@@ -182,7 +185,7 @@ bool SeamassCore::step()
 			if (debugLevel_ == 0) cout << "o" << flush;
 			shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
 			optimizer_->init((fp)shrinkage_);
-		}*/
+		}
 	}
 	else
 	{

@@ -76,19 +76,6 @@ void MatrixSparse::init(const MatrixSparse& a, fp pruneThreshold)
 	cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 = " << flush;
 #endif
 
-	/*{
-		cout << endl << endl;
-		ii i = 0;
-		for (ii nz = 0; nz < a.nnz(); nz++)
-		{
-			while (nz >= a.is1_[i]) i++; // row of nz'th non-zero 
-			ii j = a.js_[nz]; // column of nz'th non-zero 
-			fp v = a.vs_[nz];
-
-			cout << i << "," << j << "=" << v << endl;
-		}
-	}*/
-
 	m_ = a.m_;
 	n_ = a.n_;
 	is0_ = new ii[m_ + 1];
@@ -125,55 +112,6 @@ void MatrixSparse::init(const MatrixSparse& a, fp pruneThreshold)
 	{
 		is0_[i + 1] += is0_[i];
 	}
-
-	/*{
-		cout << endl << endl;
-		ii i = 0;
-		for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
-		{
-			while (nz >= is1_[i]) i++; // row of nz'th non-zero 
-			ii j = js_[nz]; // column of nz'th non-zero 
-			fp v = vs_[nz];
-
-			cout << i << "," << j << "=" << v << endl;
-		}
-	}*/
-
-
-	/*// fill is
-
-	ii ia = 0;
-	for (ii nza = 0; nza < a.nnz(); nza++)
-	{
-		while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero in a 
-
-		if (a.vs_[nza] >= pruneThreshold)
-		{
-			is1_[ia]++;
-		}
-	}
-	for (ii i = 0; i < m_; i++)
-	{
-		is0_[i + 1] += is0_[i];
-	}
-
-	// fill js and vs
-	js_ = new ii[is1_[m_ - 1]];
-	vs_ = new fp[is1_[m_ - 1]];
-
-	ia = 0;
-	ii nz = 0;
-	for (ii nza = 0; nza < a.nnz(); nza++)
-	{
-		while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero in a 
-
-		if (a.vs_[nza] >= pruneThreshold)
-		{
-			js_[nz] = a.js_[nza];
-			vs_[nz] = a.vs_[nza];
-			nz++;
-		}
-	}*/
 
 	isOwned_ = true;
 
@@ -275,7 +213,7 @@ void MatrixSparse::convertFromDense(ii m, ii n, const fp* vs)
 }
 
 
-void MatrixSparse::convertToDense(fp* vs)
+void MatrixSparse::convertToDense(fp* vs) const
 {
 	for (ii x = 0; x < m_ * n_; x++)
 	{
@@ -478,23 +416,21 @@ void MatrixSparse::elementwiseMul(const MatrixSparse& a)
 #endif
 
 	ii i = 0;
-	ii nza = 0;
 	ii ia = 0;
+	ii nza = 0;
 	for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
 	{
 		while (nz >= is1_[i]) i++; // row of nz'th non-zero
 
-		while (a.js_[nza] == js_[nz] && ia < i)
+		for (; nza < a.is1_[m_ - 1]; nza++)
 		{
 			while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero
-			ii ja = a.js_[nza]; // column of nz'th non-zero
 
 			if (a.js_[nza] == js_[nz] && ia == i)
 			{
 				vs_[nz] *= a.vs_[nza];
+				break;
 			}
-
-			nza++;
 		}
 	}
 
@@ -511,23 +447,21 @@ void MatrixSparse::elementwiseDiv(const MatrixSparse& a)
 #endif
 
 	ii i = 0;
-	ii nza = 0;
 	ii ia = 0;
+	ii nza = 0;
 	for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
 	{
 		while (nz >= is1_[i]) i++; // row of nz'th non-zero
 
-		while (a.js_[nza] == js_[nz] && ia < i)
+		for (; nza < a.is1_[m_ - 1]; nza++)
 		{
 			while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero
-			ii ja = a.js_[nza]; // column of nz'th non-zero
 
 			if (a.js_[nza] == js_[nz] && ia == i)
 			{
 				vs_[nz] /= a.vs_[nza];
+				break;
 			}
-
-			nza++;
 		}
 	}
 
@@ -592,27 +526,21 @@ double MatrixSparse::sumSqrDiffs(const MatrixSparse& a) const
 #endif
 
 	ii i = 0;
-	ii nza = 0;
 	ii ia = 0;
+	ii nza = 0;
 	for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
 	{
 		while (nz >= is1_[i]) i++; // row of nz'th non-zero
 
-		while (a.js_[nza] == js_[nz] && ia < i)
+		for (; nza < a.is1_[m_ - 1]; nza++)
 		{
 			while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero
-			ii ja = a.js_[nza]; // column of nz'th non-zero
 
 			if (a.js_[nza] == js_[nz] && ia == i)
 			{
 				sum += (vs_[nz] - a.vs_[nza]) * (vs_[nz] - a.vs_[nza]);
+				break;
 			}
-			else
-			{
-				sum += vs_[nz] * vs_[nz];
-			}
-
-			nza++;
 		}
 	}
 

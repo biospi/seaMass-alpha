@@ -47,7 +47,7 @@ public:
 	void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind);
 	void init(ii m, ii n, fp v);
 	void convertFromDense(ii m, ii n, const fp* vs);
-	void convertToDense(fp* vs);
+	void convertToDense(fp* vs) const;
 	void free();
 
 	ii m() const;
