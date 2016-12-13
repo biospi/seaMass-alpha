@@ -332,14 +332,14 @@ void MatrixSparse::mul(const MatrixSparse& a, Transpose transpose, const MatrixS
 			ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs2;
 			mkl_sparse_s_export_csr(t, &indexing, &m, &n, &is0, &is1, &js, &vs2);
 
-			for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
+			/*for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
 			{
 				if (vs_[nz] != vs2[nz])
 				{
 					cout << "ARGHHHH " << vs_[nz] << " != " << vs2[nz] << endl;
 					exit(1);
 				}
-			}
+			}*/
 
 		}
 		else

@@ -170,9 +170,8 @@ double OptimizerSrl::step()
 	vector<MatrixSparse> xEs(bases_.size());
 	double sumSqrs = 0.0;
 	double sumSqrDiffs = 0.0;
-	double sumSqrs2 = 0.0;
 
-/*	// SYNTHESIS
+	// SYNTHESIS
 #ifndef NDEBUG
 	cout << iteration_ << " synthesis" << endl;
 #endif
@@ -181,8 +180,8 @@ double OptimizerSrl::step()
 		synthesis(f);
 	}
 	double synthesisDuration = omp_get_wtime() - synthesisStart;
-	*/
-/*	// ERROR
+	
+	// ERROR
 #ifndef NDEBUG
 	cout << iteration_ << " error" << endl;
 #endif
@@ -193,12 +192,8 @@ double OptimizerSrl::step()
 		f.free();
 	}
 	double errorDuration = omp_get_wtime() - errorStart;
-	*/
-	// ANALYSIS
-
 	
-	e.init(b_.m(), b_.n(), 1.0);
-
+	// ANALYSIS
 
 #ifndef NDEBUG
 	cout << iteration_ << " analysis" << endl;
@@ -215,26 +210,7 @@ double OptimizerSrl::step()
 			else
 			{
 				bases_[i]->analysis(xEs[i], xEs[bases_[i]->getParentIndex()], false);
-				/*double sum1 = xEs[i].sum();
-				double sum1b = 0.0;
-				for (ii nz = 0; nz < xEs[i].nnz(); nz++)
-				{
-					cout << xEs[i].js_[nz] << "," << xEs[i].vs_[nz] << endl;
-					sum1b += xEs[i].vs_[nz];
-				}
-				bases_[i]->analysis(xEs[i], xEs[bases_[i]->getParentIndex()], false);
-				double sum2 = xEs[i].sum();
-				double sum2b = 0.0;
-				for (ii nz = 0; nz < xEs[i].nnz(); nz++)
-				{
-					cout << xEs[i].js_[nz] << "," << xEs[i].vs_[nz] << endl;
-					sum2b += xEs[i].vs_[nz];
-				}
-				cout << sum1 << "," << sum2 << endl;
-				cout << sum1b << "," << sum2b << endl;
-				if (sum1 != sum2) exit(0);*/
 			}
-			cout << i << ":" << (xEs[i].sum()) << endl;
 		}
 	}
 	for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -246,7 +222,7 @@ double OptimizerSrl::step()
 	}
 	double analysisDuration = omp_get_wtime() - analysisStart;
 
-/*	// SHRINKAGE
+	// SHRINKAGE
 #ifndef NDEBUG
 	cout << iteration_ << " shrinkage" << endl;
 #endif
@@ -265,7 +241,7 @@ double OptimizerSrl::step()
 		}
 	}
 	double shrinkageDuration = omp_get_wtime() - shrinkageStart;
-	*/
+	
 	// UPDATE
 #ifndef NDEBUG
 	cout << iteration_ << " termination check" << endl;
@@ -279,7 +255,6 @@ double OptimizerSrl::step()
 			{
 				sumSqrs += xs_[i].sumSqrs();
 				sumSqrDiffs += xs_[i].sumSqrDiffs(xEs[i]);
-				sumSqrs2 += xEs[i].sumSqrs();
 			}
 		}
 
@@ -288,15 +263,14 @@ double OptimizerSrl::step()
 		{
 			if (!bases_[i]->isTransient())
 			{
-				//xs_[i].init(xEs[i], pruneThreshold_);
-				xs_[i].init(xEs[i]);
+				xs_[i].init(xEs[i], pruneThreshold_);
 				xEs[i].free();
 			}
 		}
 	}
 	double updateDuration = omp_get_wtime() - updateStart;
 
-/*#ifndef NDEBUG
+#ifndef NDEBUG
 	cout << "Durations: synthesis=";
 	cout.unsetf(ios::floatfield);
 	cout << setprecision(3) << synthesisDuration;
@@ -305,9 +279,8 @@ double OptimizerSrl::step()
 	cout << " shrinkage=" << shrinkageDuration;
 	cout << " update=" << updateDuration;
 	cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
-#endif*/
+#endif
 
-	cout << sumSqrs << "," << sumSqrs2 << "," << sumSqrDiffs << endl;
 	return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
 }
 
