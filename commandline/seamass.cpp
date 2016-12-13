@@ -43,11 +43,11 @@ int main(int argc, char **argv)
 	SeamassCore::notice();
 
 	string in_file;
-	vector<ii> scales(2);
-	ii shrinkageExponent;
-	ii toleranceExponent;
-	ii threads;
-	ii debugLevel;
+	vector<int> scales(2);
+	int shrinkageExponent;
+	int toleranceExponent;
+	int threads;
+	int debugLevel;
 
 	// *******************************************************************
 
@@ -62,27 +62,27 @@ int main(int argc, char **argv)
 		("file,f", po::value<string>(&in_file),
 			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
 			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
-		("mz_scale,m",po::value<ii>(&scales[0])->default_value(numeric_limits<short>::max()),
+		("mz_scale,m", po::value<int>(&scales[0])->default_value(numeric_limits<short>::max()),
 			"m/z resolution given as: \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\" "
 			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
 			"default: auto")
-		("st_scale,r", po::value<ii>(&scales[1])->default_value(numeric_limits<short>::max()),
+		("st_scale,r", po::value<int>(&scales[1])->default_value(numeric_limits<short>::max()),
 			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
 			"guidelines: around 4, "
 			"default: auto")
-		("shrinkage,s",po::value<ii>(&shrinkageExponent)->default_value(0),""
+		("shrinkage,s", po::value<int>(&shrinkageExponent)->default_value(0), ""
 			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
 			"guidelines: around 0, "
 			"default: 0")
-		("tolerance,t",po::value<ii>(&toleranceExponent)->default_value(-10),
+		("tolerance,t", po::value<int>(&toleranceExponent)->default_value(-10),
 			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
 			"guidelines: around -10, "
 			"default: -10")
-		("debug_level,d", po::value<ii>(&debugLevel)->default_value(0),
+		("debug_level,d", po::value<int>(&debugLevel)->default_value(0),
 			"Debug level, "
 			"guidelines: set to 1 for debugging information, 2 to additionally write intermediate iterations to disk, "
 			"default: 0")
-		("threads", po::value<ii>(&threads)->default_value(4),
+		("threads", po::value<int>(&threads)->default_value(4),
 			"Number of OpenMP threads to use, "
 			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
 			"default: 4");
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 				// save back input but with bin_counts now containing the residuals
 				vector<fp> originalBinCounts = input.binCounts;
 				sm.getOutputBinCounts(input.binCounts);
-				for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
+				for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
 				smv.write_input(input);
 				input.binCounts = originalBinCounts;
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
 		HDF5Writer smv(oss.str());
 		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
 		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts 
-		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
+		for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
 		smv.write_input(input); // write residuals to smv
 		// write RTree
 		//SeaMass::Output output;

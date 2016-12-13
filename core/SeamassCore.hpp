@@ -71,7 +71,7 @@ public:
 		std::vector<ii> offsets;
 	};
 
-	SeamassCore(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance, ii debugLevel = 0);
+	SeamassCore(Input& input, const std::vector<int>& scales, double shrinkage, double tolerance, int debugLevel = 0);
 	SeamassCore(Input& input, const Output& seed, ii debugLevel = 0);
 	virtual ~SeamassCore();
 
@@ -84,7 +84,7 @@ public:
 	void getOutputControlPoints1d(ControlPoints1D& controlPoints) const;
 
 private:
-	void init(Input& input, const std::vector<ii>& scales);
+	void init(Input& input, const std::vector<int>& scales);
 
 	MatrixSparse b_;
 	ii dimensions_;

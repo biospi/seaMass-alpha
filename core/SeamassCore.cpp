@@ -36,7 +36,7 @@
 using namespace std;
 
 
-SeamassCore::SeamassCore(Input& input, const std::vector<ii>& scales, double shrinkage, double tolerance, ii debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
+SeamassCore::SeamassCore(Input& input, const std::vector<int>& scales, double shrinkage, double tolerance, int debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
 {
 	init(input, scales);
 }
@@ -44,7 +44,7 @@ SeamassCore::SeamassCore(Input& input, const std::vector<ii>& scales, double shr
 
 SeamassCore::SeamassCore(Input& input, const Output& seed, ii debugLevel) : iteration_(0), debugLevel_(debugLevel)
 {
-	vector<ii> scales(seed.scales.size());
+	vector<int> scales(seed.scales.size());
 	init(input, scales);
 
 	// todo
@@ -71,14 +71,14 @@ SeamassCore::~SeamassCore()
 void SeamassCore::notice()
 {
 	cout << endl;
-	cout << "seaMass - Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+	cout << "seaMass (" << 8 * sizeof(ii) << "bit) - Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
 	cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
 	cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
 	cout << endl;
 }
 
 
-void SeamassCore::init(Input& input, const std::vector<ii>& scales)
+void SeamassCore::init(Input& input, const std::vector<int>& scales)
 {
 	// for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
 	// this is conservative, 4 times might be ok, but 2 times isn't enough
