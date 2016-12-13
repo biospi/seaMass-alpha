@@ -223,7 +223,6 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 		xE.mul(as_[0], MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
 	}
 
-
 	/*if (!xE)
 	{
 		xE.init(getGridInfo().n, getGridInfo().m());

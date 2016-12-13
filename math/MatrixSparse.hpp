@@ -30,7 +30,7 @@
 #include <mkl.h>
 #include <mkl_spblas.h>
 
-
+#define NDEBUG
 typedef float fp; // fp is the selected floating point precision (float or double)
 typedef MKL_INT ii; // ii is the selected indexing integer size (32 or 64 bit)
 typedef long long li;
@@ -60,7 +60,7 @@ public:
 
 	enum class Transpose { NO, YES };
 	enum class Accumulate { NO, YES };
-	void mul(const MatrixSparse& a, const Transpose transpose, const MatrixSparse& x, const Accumulate accumulate);
+	void mul(const MatrixSparse& a, Transpose transpose, const MatrixSparse& x, Accumulate accumulate);
 
 	void elementwiseAdd(fp beta);
 	void elementwiseMul(fp beta);
@@ -77,7 +77,7 @@ public:
 
 	const fp* getVs() const;
 
-private:
+public:
 	ii m_;
 	ii n_;
 	ii* is0_;

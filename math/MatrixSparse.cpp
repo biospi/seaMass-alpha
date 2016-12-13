@@ -297,11 +297,13 @@ li MatrixSparse::mem() const
 }
 
 
-void MatrixSparse::mul(const MatrixSparse& a, const Transpose transpose, const MatrixSparse& x, const Accumulate accumulate)
+void MatrixSparse::mul(const MatrixSparse& a, Transpose transpose, const MatrixSparse& x, Accumulate accumulate)
 {
 #ifndef NDEBUG
 	cout << "  A" << (transpose == Transpose::NO ? "" : "t") << a << " %*% X" << x << (accumulate == Accumulate::NO ? " = " : " =+ ") << flush;
 #endif
+
+	if (!*this) accumulate = Accumulate::NO;
 
 	// mkl can't handle completely empty csr matrix...
 	if (x.nnz() == 0 || a.nnz() == 0)
@@ -320,7 +322,25 @@ void MatrixSparse::mul(const MatrixSparse& a, const Transpose transpose, const M
 		if (accumulate == Accumulate::NO)
 		{
 			free();
+
 			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &mat_);
+			sparse_index_base_t indexing;
+			mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
+
+			sparse_matrix_t t;
+			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &t);
+			ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs2;
+			mkl_sparse_s_export_csr(t, &indexing, &m, &n, &is0, &is1, &js, &vs2);
+
+			for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
+			{
+				if (vs_[nz] != vs2[nz])
+				{
+					cout << "ARGHHHH " << vs_[nz] << " != " << vs2[nz] << endl;
+					exit(1);
+				}
+			}
+
 		}
 		else
 		{
@@ -330,9 +350,10 @@ void MatrixSparse::mul(const MatrixSparse& a, const Transpose transpose, const M
 			free();
 			mkl_sparse_destroy(t);
 			mat_ = y;
+
+			sparse_index_base_t indexing;
+			mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
 		}
-		sparse_index_base_t indexing;
-		mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
 	}
 
 #ifndef NDEBUG
@@ -378,9 +399,9 @@ void MatrixSparse::elementwiseAdd(fp beta)
 #endif
 
 	#pragma omp parallel for
-	for (ii i = 0; i < nnz(); i++)
+	for (ii nz = 0; nz < nnz(); nz++)
 	{
-		vs_[i] += beta;
+		vs_[nz] += beta;
 	}
 
 #ifndef NDEBUG
@@ -398,9 +419,9 @@ void MatrixSparse::elementwiseMul(fp beta)
 #endif
 
 	#pragma omp parallel for
-	for (ii i = 0; i < nnz(); i++)
+	for (ii nz = 0; nz < nnz(); nz++)
 	{
-		vs_[i] *= beta;
+		vs_[nz] *= beta;
 	}
 
 #ifndef NDEBUG
