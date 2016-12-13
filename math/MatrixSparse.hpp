@@ -27,13 +27,16 @@
 #include <iostream>
 #include <vector>
 
-#define MKL_ILP64
+
+#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
 #include <mkl.h>
 #include <mkl_spblas.h>
 
+
 typedef float fp; // fp is the selected floating point precision (float or double)
-typedef MKL_INT ii; // ii is the selected indexing integer size (32 or 64 bit)
-typedef long long li;
+typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
+typedef MKL_INT64 li; // li is always 64 bit
+
 
 class MatrixSparse
 {

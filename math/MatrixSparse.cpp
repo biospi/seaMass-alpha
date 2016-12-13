@@ -324,34 +324,54 @@ void MatrixSparse::mul(const MatrixSparse& a, Transpose transpose, const MatrixS
 			free();
 
 			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &mat_);
-			sparse_index_base_t indexing;
+			sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
 			mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
 
-			sparse_matrix_t t;
-			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &t);
-			ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs2;
-			mkl_sparse_s_export_csr(t, &indexing, &m, &n, &is0, &is1, &js, &vs2);
+			sparse_matrix_t t2;
+			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &t2);
+			ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+			indexing = SPARSE_INDEX_BASE_ZERO;
+			mkl_sparse_s_export_csr(t2, &indexing, &m, &n, &is0, &is1, &js, &vs);
 
-			/*for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
+			for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
 			{
-				if (vs_[nz] != vs2[nz])
+				if (vs_[nz] != vs[nz])
 				{
-					cout << "ARGHHHH " << vs_[nz] << " != " << vs2[nz] << endl;
+					cout << "assert " << nz << ": " << vs_[nz] << " != " << vs[nz] << " transpose:" << (int)transpose << " accumulate:" << (int)accumulate << endl;
 					exit(1);
 				}
-			}*/
+			}
 
 		}
 		else
 		{
 			sparse_matrix_t t, y;
 			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &t);
+			ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+			sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+			mkl_sparse_s_export_csr(t, &indexing, &m, &n, &is0, &is1, &js, &vs);
+
+			sparse_matrix_t t2;
+			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &t2);
+			fp* vs2;
+			indexing = SPARSE_INDEX_BASE_ZERO;
+			mkl_sparse_s_export_csr(t2, &indexing, &m, &n, &is0, &is1, &js, &vs2);
+
+			for (ii nz = 0; nz < is1[m - 1]; nz++)
+			{
+				if (vs[nz] != vs2[nz])
+				{
+					cout << "assert " << nz << ": " << vs[nz] << " != " << vs2[nz] << " transpose:" << (int)transpose << " accumulate:" << (int)accumulate << endl;
+					exit(1);
+				}
+			}
+
 			mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
 			free();
 			mkl_sparse_destroy(t);
 			mat_ = y;
 
-			sparse_index_base_t indexing;
+			indexing = SPARSE_INDEX_BASE_ZERO;
 			mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
 		}
 	}
