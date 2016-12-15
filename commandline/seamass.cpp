@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 			"guidelines: around 4, "
 			"default: auto")
 		("shrinkage,s", po::value<int>(&shrinkageExponent)->default_value(0), ""
-			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
+			"Amount of denoising given as: \"L1 lambda = 2^shrinkage\" "
 			"guidelines: around 0, "
 			"default: 0")
 		("tolerance,t", po::value<int>(&toleranceExponent)->default_value(-10),
@@ -80,11 +80,11 @@ int main(int argc, char **argv)
 			"default: -10")
 		("debug_level,d", po::value<int>(&debugLevel)->default_value(0),
 			"Debug level, "
-			"guidelines: set to 1 for debugging information, 2 to additionally write intermediate iterations to disk, "
+			"guidelines: set to 1+ for convergence stats, 2+ for performance stats, 3+ to write intermediate iterations to disk, "
 			"default: 0")
 		("threads", po::value<int>(&threads)->default_value(0),
 			"Number of OpenMP threads to use, "
-			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
+			"guidelines: will automatically be set to amount of CPU cores, "
 			"default: auto");
 
 	po::options_description desc;
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
 		do
 		{
-			if (debugLevel > 1)
+			if (debugLevel >= 3)
 			{
 				// create SMV file
 				ostringstream oss;

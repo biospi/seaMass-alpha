@@ -30,7 +30,7 @@
 class OptimizerSrl : public Optimizer
 {
 public:    
-	OptimizerSrl(const std::vector<Basis*>& bases, const MatrixSparse& b, ii debugLevel, fp pruneThreshold = (fp)0.001);
+	OptimizerSrl(const std::vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold = (fp)0.001);
 	virtual ~OptimizerSrl();
     
 	void init(fp lamba);
@@ -47,11 +47,18 @@ private:
 	fp pruneThreshold_;
 
 	fp lambda_;
-	ii iteration_;
+	int iteration_;
+    int debugLevel_;
 
 	std::vector<MatrixSparse> xs_;
 	std::vector<MatrixSparse> l2s_;
 	std::vector<MatrixSparse> l1l2s_;
+    
+    double synthesisDuration_;
+    double errorDuration_;
+    double analysisDuration_;
+    double shrinkageDuration_;
+    double updateDuration_;
 };
 
 

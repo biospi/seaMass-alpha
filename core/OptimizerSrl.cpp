@@ -30,7 +30,7 @@
 using namespace std;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, ii debugLevel, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), debugLevel_(debugLevel), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
 #ifndef NDEBUG
 	cout << "Init Optimizer SRL..." << endl;
@@ -174,30 +174,30 @@ double OptimizerSrl::step()
 #ifndef NDEBUG
 	cout << iteration_ << " synthesis" << endl;
 #endif
-	//double synthesisStart = omp_get_wtime();
+	double synthesisStart = getWallTime();
 	{
 		synthesis(f);
 	}
-	//double synthesisDuration = omp_get_wtime() - synthesisStart;
+	double synthesisDuration = getWallTime() - synthesisStart;
 	
 	// ERROR
 #ifndef NDEBUG
 	cout << iteration_ << " error" << endl;
 #endif
-	//double errorStart = omp_get_wtime();
+	double errorStart = getWallTime();
 	{
 		e.init(b_);
 		e.elementwiseDiv(f);
 		f.free();
 	}
-	//double errorDuration = omp_get_wtime() - errorStart;
+	double errorDuration = getWallTime() - errorStart;
 	
 	// ANALYSIS
 
 #ifndef NDEBUG
 	cout << iteration_ << " analysis" << endl;
 #endif
-	//double analysisStart = omp_get_wtime();
+	double analysisStart = getWallTime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
@@ -219,13 +219,13 @@ double OptimizerSrl::step()
 			xEs[i].elementwiseDiv(l2s_[i]);
 		}
 	}
-	//double analysisDuration = omp_get_wtime() - analysisStart;
+	double analysisDuration = getWallTime() - analysisStart;
 
 	// SHRINKAGE
 #ifndef NDEBUG
 	cout << iteration_ << " shrinkage" << endl;
 #endif
-	//double shrinkageStart = omp_get_wtime();
+	double shrinkageStart = getWallTime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
@@ -239,13 +239,13 @@ double OptimizerSrl::step()
 			}
 		}
 	}
-	//double shrinkageDuration = omp_get_wtime() - shrinkageStart;
+	double shrinkageDuration = getWallTime() - shrinkageStart;
 	
 	// UPDATE
 #ifndef NDEBUG
 	cout << iteration_ << " termination check" << endl;
 #endif
-	//double updateStart = omp_get_wtime();
+	double updateStart = getWallTime();
 	{
 		// termination check
 		for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -267,18 +267,34 @@ double OptimizerSrl::step()
 			}
 		}
 	}
-	//double updateDuration = omp_get_wtime() - updateStart;
+	double updateDuration = getWallTime() - updateStart;
 
-#ifndef NDEBUG
-	//cout << "Durations: synthesis=";
-	//cout.unsetf(ios::floatfield);
-	//cout << setprecision(3) << synthesisDuration;
-	//cout << " error=" << errorDuration;
-	//cout << " analysis=" << analysisDuration;
-	//cout << " shrinkage=" << shrinkageDuration;
-	//cout << " update=" << updateDuration;
-	//cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
-#endif
+    if (debugLevel_ >= 2 && getWallTime() != 0.0)
+    {
+        cout << "  Durations: synthesis=";
+        cout.unsetf(ios::floatfield);
+        cout << setprecision(3) << synthesisDuration;
+        cout << " error=" << errorDuration;
+        cout << " analysis=" << analysisDuration;
+        cout << " shrinkage=" << shrinkageDuration;
+        cout << " update=" << updateDuration;
+        cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
+        
+        synthesisDuration_ += synthesisDuration;
+        errorDuration_ += errorDuration;
+        analysisDuration_ += analysisDuration;
+        shrinkageDuration_ += shrinkageDuration;
+        updateDuration_ += updateDuration;
+        
+        cout << "  Total Durations: synthesis=";
+        cout.unsetf(ios::floatfield);
+        cout << setprecision(3) << synthesisDuration_;
+        cout << " error=" << errorDuration_;
+        cout << " analysis=" << analysisDuration_;
+        cout << " shrinkage=" << shrinkageDuration_;
+        cout << " update=" << updateDuration_;
+        cout << " all=" << synthesisDuration_ + errorDuration_ + analysisDuration_ + shrinkageDuration_ + updateDuration_ << endl;
+    }
 
 	return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
 }

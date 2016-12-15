@@ -39,6 +39,7 @@ typedef MKL_INT64 li; // li is always 64 bit
 
 
 void setNumThreads(int threads);
+double getWallTime();
 
 
 class MatrixSparse
