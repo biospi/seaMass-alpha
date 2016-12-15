@@ -82,10 +82,10 @@ int main(int argc, char **argv)
 			"Debug level, "
 			"guidelines: set to 1 for debugging information, 2 to additionally write intermediate iterations to disk, "
 			"default: 0")
-		("threads", po::value<int>(&threads)->default_value(4),
+		("threads", po::value<int>(&threads)->default_value(0),
 			"Number of OpenMP threads to use, "
 			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
-			"default: 4");
+			"default: auto");
 
 	po::options_description desc;
 	desc.add(general);
@@ -98,25 +98,17 @@ int main(int argc, char **argv)
 		po::variables_map vm;
 		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
 		po::notify(vm);
+        
+        setNumThreads(threads);
 
 		if(vm.count("help"))
 		{
-			cout<<desc<<endl;
+			cout << desc << endl;
 			return 0;
-		}
-        if(vm.count("threads"))
-		{
-			threads=vm["threads"].as<int>();
-		}
-		else
-		{
-#if defined(_OPENMP)
-			threads = omp_get_max_threads();
-#endif
 		}
 		if(vm.count("file"))
 		{
-			cout<<"Opening file: "<<vm["file"].as<string>()<<endl;
+			cout << "Opening file: " << vm["file"].as<string>() << endl;
 		}
 		else
 		{
@@ -125,21 +117,21 @@ int main(int argc, char **argv)
 	}
 	catch(exception& e)
 	{
-		cerr<<"error: " << e.what() <<endl;
-		cout<<desc<<endl;
+		cerr << "error: " << e.what() <<endl;
+		cout << desc << endl;
 		return 1;
 	}
 	catch(const char* msg)
 	{
-		cerr<<"error: "<<msg<<endl;
-		cout<<desc<<endl;
+		cerr << "error: "<< msg <<endl;
+		cout << desc << endl;
 		return 1;
 	}
 	catch(...)
-		{
+    {
 		cerr<<"Exception of unknown type!\n";
 	}
-
+    
 	mzMLbInputFile msFile(in_file);
     OutmzMLb outmzMLb(in_file,msFile);
 	SeamassCore::Input input;

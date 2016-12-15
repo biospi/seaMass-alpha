@@ -34,6 +34,27 @@
 using namespace std;
 
 
+void setNumThreads(int threads)
+{
+    if (threads == 0)
+    {
+        threads = mkl_get_max_threads();
+    }
+    else
+    {
+        mkl_set_num_threads(threads);
+    }
+    
+    cout << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, " << threads << " MKL threads, ";
+#if defined(_OPENMP)
+    omp_set_num_threads(threads);
+    cout << threads << " OpenMP threads" << endl;
+#else
+    cout << "No OpenMP" << endl;
+#endif
+}
+
+
 MatrixSparse::MatrixSparse()
 	: isOwned_(false), mat_(0)
 {
