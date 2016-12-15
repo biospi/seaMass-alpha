@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
-#include <omp.h>
 
 
 using namespace std;
@@ -195,7 +194,7 @@ std::vector<Matrix>& OptimizerAccelerationEve1::xs()
 
 
 // quadratic vector extrapolation below (todo)
-/*
+
 		else if (iteration_ == 1) // linear vector extrapolation this time, but save the qs
 		{
 			for (ii j = 0; j < (ii)bases_.size(); j++)

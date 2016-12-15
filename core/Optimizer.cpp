@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
-#include <omp.h>
 
 
 using namespace std;

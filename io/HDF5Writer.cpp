@@ -24,6 +24,7 @@
 
 #include "HDF5Writer.hpp"
 #include <iostream>
+#include <cmath>
 #include <boost/filesystem.hpp>
 #include <SpatialIndex.h>
 

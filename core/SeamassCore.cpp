@@ -93,7 +93,7 @@ void SeamassCore::init(Input& input, const std::vector<int>& scales)
 	{
 		dimensions_ = 1;
 
-		BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], order);
+		new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], order);
 		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > order + 1)
 		{
 			new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);

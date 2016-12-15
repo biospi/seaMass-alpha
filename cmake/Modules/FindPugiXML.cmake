@@ -6,12 +6,14 @@
 # PUGIXML_LIBRARIES - library to link against
 # PUGIXML_FOUND - true if pugixml was found.
 
-find_path (PugiXML_INCLUDE_DIR
-           NAMES pugixml.hpp
-           PATHS ${PugiXML_DIR}/../../../include)
-find_library (PugiXML_LIBRARY
-              NAMES pugixml
-              PATHS ${PugiXML_DIR}/../..)
+find_path (PugiXML_INCLUDE_DIR NAMES pugixml.hpp PATHS
+    ${PugiXML_DIR}/../../../include
+    /usr/local/include/pugixml-1.8
+)
+find_library (PugiXML_LIBRARY NAMES pugixml PATHS
+    ${PugiXML_DIR}/../..
+    /usr/local/lib/pugixml-1.8
+)
 
 # Support the REQUIRED and QUIET arguments, and set PUGIXML_FOUND if found.
 include (FindPackageHandleStandardArgs)

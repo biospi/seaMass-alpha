@@ -26,12 +26,12 @@
 #include <limits>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <omp.h>
 
 #include "../math/MatrixSparse.hpp"
 #include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
 #include "../topdown/SeamassTopdown.hpp"
+
 
 using namespace std;
 namespace po = boost::program_options;
@@ -110,7 +110,9 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-			threads = omp_get_max_threads();
+#if defined(_OPENMP)
+            threads = omp_get_max_threads();
+#endif
 		}
 		if (vm.count("file"))
 		{

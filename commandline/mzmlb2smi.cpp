@@ -26,7 +26,7 @@
 #include <limits>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <omp.h>
+//#include <omp.h>
 
 #include "../io/HDF5Writer.hpp"
 #include "../io/MSFileData.hpp"

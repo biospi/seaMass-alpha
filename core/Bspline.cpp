@@ -21,9 +21,12 @@
 
 
 #include "Bspline.hpp"
-using namespace std;
 
 #include <iomanip>
+
+
+using namespace std;
+
 
 Bspline::Bspline(ii order, ii n)
 	: order_(order), n_(n), lookup_(n)

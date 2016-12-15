@@ -24,7 +24,6 @@
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
-#include <omp.h>
 #include <math.h>
 
 
@@ -175,30 +174,30 @@ double OptimizerSrl::step()
 #ifndef NDEBUG
 	cout << iteration_ << " synthesis" << endl;
 #endif
-	double synthesisStart = omp_get_wtime();
+	//double synthesisStart = omp_get_wtime();
 	{
 		synthesis(f);
 	}
-	double synthesisDuration = omp_get_wtime() - synthesisStart;
+	//double synthesisDuration = omp_get_wtime() - synthesisStart;
 	
 	// ERROR
 #ifndef NDEBUG
 	cout << iteration_ << " error" << endl;
 #endif
-	double errorStart = omp_get_wtime();
+	//double errorStart = omp_get_wtime();
 	{
 		e.init(b_);
 		e.elementwiseDiv(f);
 		f.free();
 	}
-	double errorDuration = omp_get_wtime() - errorStart;
+	//double errorDuration = omp_get_wtime() - errorStart;
 	
 	// ANALYSIS
 
 #ifndef NDEBUG
 	cout << iteration_ << " analysis" << endl;
 #endif
-	double analysisStart = omp_get_wtime();
+	//double analysisStart = omp_get_wtime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
@@ -220,13 +219,13 @@ double OptimizerSrl::step()
 			xEs[i].elementwiseDiv(l2s_[i]);
 		}
 	}
-	double analysisDuration = omp_get_wtime() - analysisStart;
+	//double analysisDuration = omp_get_wtime() - analysisStart;
 
 	// SHRINKAGE
 #ifndef NDEBUG
 	cout << iteration_ << " shrinkage" << endl;
 #endif
-	double shrinkageStart = omp_get_wtime();
+	//double shrinkageStart = omp_get_wtime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
@@ -240,13 +239,13 @@ double OptimizerSrl::step()
 			}
 		}
 	}
-	double shrinkageDuration = omp_get_wtime() - shrinkageStart;
+	//double shrinkageDuration = omp_get_wtime() - shrinkageStart;
 	
 	// UPDATE
 #ifndef NDEBUG
 	cout << iteration_ << " termination check" << endl;
 #endif
-	double updateStart = omp_get_wtime();
+	//double updateStart = omp_get_wtime();
 	{
 		// termination check
 		for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -268,17 +267,17 @@ double OptimizerSrl::step()
 			}
 		}
 	}
-	double updateDuration = omp_get_wtime() - updateStart;
+	//double updateDuration = omp_get_wtime() - updateStart;
 
 #ifndef NDEBUG
-	cout << "Durations: synthesis=";
-	cout.unsetf(ios::floatfield);
-	cout << setprecision(3) << synthesisDuration;
-	cout << " error=" << errorDuration;
-	cout << " analysis=" << analysisDuration;
-	cout << " shrinkage=" << shrinkageDuration;
-	cout << " update=" << updateDuration;
-	cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
+	//cout << "Durations: synthesis=";
+	//cout.unsetf(ios::floatfield);
+	//cout << setprecision(3) << synthesisDuration;
+	//cout << " error=" << errorDuration;
+	//cout << " analysis=" << analysisDuration;
+	//cout << " shrinkage=" << shrinkageDuration;
+	//cout << " update=" << updateDuration;
+	//cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
 #endif
 
 	return sqrt(sumSqrDiffs) / sqrt(sumSqrs);

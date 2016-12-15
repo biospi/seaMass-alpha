@@ -26,13 +26,13 @@
 #include <limits>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <omp.h>
 
 #include "../io/HDF5Writer.hpp"
 #include "../io/RTreeReader.hpp"
 #include "../io/MSFileData.hpp"
 #include "../core/SeamassCore.hpp"
 #include "../io/MzMLb.hpp"
+
 
 using namespace std;
 namespace po = boost::program_options;
@@ -104,13 +104,15 @@ int main(int argc, char **argv)
 			cout<<desc<<endl;
 			return 0;
 		}
-			if(vm.count("threads"))
+        if(vm.count("threads"))
 		{
 			threads=vm["threads"].as<int>();
 		}
 		else
 		{
+#if defined(_OPENMP)
 			threads = omp_get_max_threads();
+#endif
 		}
 		if(vm.count("file"))
 		{

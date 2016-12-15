@@ -26,7 +26,7 @@
 #include <iterator>
 #include <boost/program_options.hpp>
 #include <pugixml.hpp>
-#include <omp.h>
+//#include <omp.h>
 
 #include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-			threads=omp_get_max_threads();
+			//threads=omp_get_max_threads();
 		}
 		if(vm.count("smo"))
 		{
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
 		cerr<<"Exception of unknown type!\n";
 	}
 
-	omp_set_num_threads(threads);
+    //omp_set_num_threads(threads);
 	cout<<"Number of threads: "<<threads<<endl;
 
 	//---------------------------------------------------------------------
@@ -340,16 +340,19 @@ int main(int argc, char **argv)
 		hypIdx[1]=0; // = Always read from first Column;
 
 		PeakData<> totalPeaks;
-		vector<PeakData<> *> peakThreads(omp_get_max_threads());
+		//vector<PeakData<> *> peakThreads(omp_get_max_threads());
+        vector<PeakData<> *> peakThreads(1);
 
 		cout<<"Extract Peaks from Mass Spec Data"<<endl;
 		// Manual reduction of STL container as STLs are not thread safe...
 		int run=0;
 		#pragma omp parallel
 		{
-			int nthrd=omp_get_num_threads();
+			//int nthrd=omp_get_num_threads();
+            int nthrd=1;
 			PeakData<> localPeaks;
-			int thrdid=omp_get_thread_num();
+			//int thrdid=omp_get_thread_num();
+            int thrdid=0;
 			peakThreads[thrdid] = &localPeaks;
 			run=0;
 

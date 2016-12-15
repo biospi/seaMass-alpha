@@ -26,6 +26,9 @@
 #define SMPEAK_NETCDFILE_TPP_
 
 #include "NetCDFile.hpp"
+#include <string>
+#include <sstream>
+#include <iostream>
 
 template<typename T>
 void NetCDFile::read_VecNC(const string dataSet, vector<T> &vecData, int grpid)

@@ -26,12 +26,16 @@
 #include <iostream>
 #include <cassert>
 
+#if defined(_OPENMP)
+  #include <omp.h>
+#endif
+
 
 using namespace std;
 
 
 MatrixSparse::MatrixSparse()
-	: mat_(0), isOwned_(false)
+	: isOwned_(false), mat_(0)
 {
 }
 

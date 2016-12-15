@@ -385,11 +385,13 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 	// Find Peaks and exact MZ values.
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
 
-	int nthrd=omp_get_num_threads();
+	//int nthrd=omp_get_num_threads();
+    int nthrd=1;
 	int run;
 	#pragma omp parallel
 	{
-		int thrdid=omp_get_thread_num();
+		//int thrdid=omp_get_thread_num();
+        int thrdid=0;
 
 		VecMat<T> csPat(7,7);
 		vector<int> offset(2,0);
