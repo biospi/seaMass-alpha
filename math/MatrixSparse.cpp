@@ -331,20 +331,20 @@ li MatrixSparse::mem() const
 }
 
 
-void MatrixSparse::mul(const MatrixSparse& a, Transpose transpose, const MatrixSparse& x, Accumulate accumulate)
+void MatrixSparse::mul(const MatrixSparse& x, Transpose transpose, const MatrixSparse& a, Accumulate accumulate)
 {
 #ifndef NDEBUG
-	cout << "  A" << (transpose == Transpose::NO ? "" : "t") << a << " %*% X" << x << (accumulate == Accumulate::NO ? " = " : " =+ ") << flush;
+	cout << "  X" << (transpose == Transpose::NO ? "" : "t") << x << " %*% A" << a << (accumulate == Accumulate::NO ? " = " : " =+ ") << flush;
 #endif
 
 	if (!*this) accumulate = Accumulate::NO;
 
 	// mkl can't handle completely empty csr matrix...
-	if (x.nnz() == 0 || a.nnz() == 0)
+	if (a.nnz() == 0 || x.nnz() == 0)
 	{
 		if (accumulate == Accumulate::NO)
 		{
-			init(transpose == Transpose::NO ? a.m_ : a.n_, x.n_);
+			init(transpose == Transpose::NO ? x.m_ : x.n_, a.n_);
 		}
 		else
 		{
@@ -357,12 +357,12 @@ void MatrixSparse::mul(const MatrixSparse& a, Transpose transpose, const MatrixS
 		{
 			free();
 
-			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &mat_);
+			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, x.mat_, a.mat_, &mat_);
 		}
 		else
 		{
 			sparse_matrix_t t, y;
-			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, a.mat_, x.mat_, &t);
+			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, x.mat_, a.mat_, &t);
 			mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
 			free();
 			mkl_sparse_destroy(t);

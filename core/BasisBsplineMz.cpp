@@ -58,6 +58,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 
 	// init As
 	as_.resize(is_.size() - 1);
+    aTs_.resize(is_.size() - 1);
 
 	// find min and max m/z across spectra, and m for each A
 	double mzMin = numeric_limits<double>::max();
@@ -135,6 +136,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 
 		// create A
 		as_[k].init(ms[k], gridInfo().extent[0], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+        aTs_[k].init(gridInfo().extent[0], ms[k], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
 
 		// display progress update
 		#pragma omp critical
@@ -185,7 +187,7 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
 	cout << " " << getIndex() << " BasisBsplineMz::synthesis[" << 0 << "]" << endl;
 #endif
 
-	f.mul(as_[0], MatrixSparse::Transpose::NO, x, accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
+	f.mul(x, MatrixSparse::Transpose::NO, aTs_[0], accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
 
 	/*if (!f) f.init(is_.back(), 1);
 
@@ -217,11 +219,11 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 		MatrixSparse t;
 		t.init(as_[0]);
 		t.elementwiseSqr();
-		xE.mul(t, MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+		xE.mul(fE, MatrixSparse::Transpose::NO, t, MatrixSparse::Accumulate::NO);
 	}
 	else
 	{
-		xE.mul(as_[0], MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+		xE.mul(fE, MatrixSparse::Transpose::NO, as_[0], MatrixSparse::Accumulate::NO);
 	}
 
 	/*if (!xE)

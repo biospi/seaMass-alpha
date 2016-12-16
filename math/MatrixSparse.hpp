@@ -67,7 +67,7 @@ public:
 
 	enum class Transpose { NO, YES };
 	enum class Accumulate { NO, YES };
-	void mul(const MatrixSparse& a, Transpose transpose, const MatrixSparse& x, Accumulate accumulate);
+	void mul(const MatrixSparse& x, Transpose transpose, const MatrixSparse& a, Accumulate accumulate);
 
 	void elementwiseAdd(fp beta);
 	void elementwiseMul(fp beta);

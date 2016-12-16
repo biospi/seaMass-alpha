@@ -39,6 +39,7 @@ public:
 
 private:
 	std::vector<MatrixSparse> as_; // CSR sparse 'A' basis matrices
+    std::vector<MatrixSparse> aTs_; // CSR sparse 'A' basis matrices
 	std::vector<li> is_; // spectrum_index into 'g'
 };
 

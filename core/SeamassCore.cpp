@@ -121,7 +121,7 @@ void SeamassCore::init(Input& input, const std::vector<int>& scales)
 	}*/
 
 	// Initialize the optimizer
-	b_.convertFromDense((ii)input.binCounts.size(), 1, input.binCounts.data());
+	b_.convertFromDense(1, (ii)input.binCounts.size(), input.binCounts.data());
 	
 	//inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
 	optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);

@@ -111,9 +111,7 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
 #endif
 
-	f.mul(a_, MatrixSparse::Transpose::NO, x, accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
-
-	//f.mul(a_, x, accumulate, false, (dimension_ == 0) ? true : false);
+	f.mul(x, MatrixSparse::Transpose::NO, aT_, accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
 }
 
 
@@ -130,21 +128,10 @@ analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 		MatrixSparse t;
 		t.init(a_);
 		t.elementwiseSqr();
-		xE.mul(t, MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+		xE.mul(fE, MatrixSparse::Transpose::NO, t, MatrixSparse::Accumulate::NO);
 	}
 	else
 	{
-		xE.mul(a_, MatrixSparse::Transpose::YES, fE, MatrixSparse::Accumulate::NO);
+		xE.mul(fE, MatrixSparse::Transpose::NO, a_, MatrixSparse::Accumulate::NO);
 	}
-
-	/*if (sqrA)
-	{
-		MatrixSparse aTSqrd;
-		aTSqrd.elementwiseSqr(aT_);
-		xE.mul(aTSqrd, fE, false, false, (dimension_ == 0) ? true : false);
-	}
-	else
-	{
-		xE.mul(aT_, fE, false, false, (dimension_ == 0) ? true : false);
-	}*/
 }
