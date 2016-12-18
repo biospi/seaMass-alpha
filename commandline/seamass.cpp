@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 	SeamassCore::notice();
 
 	string in_file;
-	vector<int> scales(2);
+	vector<short> scales(2);
 	int shrinkageExponent;
 	int toleranceExponent;
 	int threads;
@@ -62,11 +62,11 @@ int main(int argc, char **argv)
 		("file,f", po::value<string>(&in_file),
 			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
 			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
-		("mz_scale,m", po::value<int>(&scales[0])->default_value(numeric_limits<short>::max()),
+		("mz_scale,m", po::value<short>(&scales[0])->default_value(numeric_limits<short>::max()),
 			"m/z resolution given as: \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\" "
 			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
 			"default: auto")
-		("st_scale,r", po::value<int>(&scales[1])->default_value(numeric_limits<short>::max()),
+		("st_scale,r", po::value<short>(&scales[1])->default_value(numeric_limits<short>::max()),
 			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
 			"guidelines: around 4, "
 			"default: auto")

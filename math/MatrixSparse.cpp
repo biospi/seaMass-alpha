@@ -30,12 +30,18 @@
   #include <omp.h>
 #endif
 
+#include <ippcore.h>
+#include <ipps.h>
+
 
 using namespace std;
 
 
 void setNumThreads(int threads)
 {
+    cout << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, ";
+
+#if defined(_OPENMP)
     if (threads == 0)
     {
         threads = mkl_get_max_threads();
@@ -44,28 +50,24 @@ void setNumThreads(int threads)
     {
         mkl_set_num_threads(threads);
     }
-    
-    cout << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, " << threads << " MKL threads, ";
-#if defined(_OPENMP)
+
+    ippSetNumThreads(threads);
     omp_set_num_threads(threads);
-    cout << threads << " OpenMP threads" << endl;
+    
+    cout << threads << " MKL/IPP threads, " << threads << " OpenMP threads" << endl;
 #else
-    cout << "No OpenMP" << endl;
+    cout << "non-OpenMP build (hence no thread control)" << endl;
 #endif
 }
 
 
 double getWallTime()
 {
-#if defined(_OPENMP)
-    return omp_get_wtime();
-#else
-    return 0.0;
-#endif
+    return dsecnd();
 }
 
-MatrixSparse::MatrixSparse()
-	: isOwned_(false), mat_(0)
+
+MatrixSparse::MatrixSparse() : nnz_(-1), data_(Data::NONE)
 {
 }
 
@@ -76,275 +78,418 @@ MatrixSparse::~MatrixSparse()
 }
 
 
-void MatrixSparse::init(const MatrixSparse& a)
+void MatrixSparse::free()
 {
-	free();
-
-	m_ = a.m_;
-	n_ = a.n_;
-	is0_ = new ii[m_ + 1];
-	is1_ = is0_ + 1;
-	for (ii i = 0; i < m_; i++) is0_[i] = a.is0_[i];
-	is1_[m_ - 1] = a.is1_[m_ - 1];
-	js_ = new ii[is1_[m_ - 1]];
-	for (ii nz = 0; nz < is1_[m_ - 1]; nz++) js_[nz] = a.js_[nz];
-	vs_ = new fp[is1_[m_ - 1]];
-	for (ii nz = 0; nz < is1_[m_ - 1]; nz++) vs_[nz] = a.vs_[nz];
-	isOwned_ = true;
-
-	mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-
-#ifndef NDEBUG
-	cout << "  A" << a << " = Y" << *this << endl;
-#endif
+    if (data_ != Data::NONE)
+    {
+        mkl_sparse_destroy(*mat_);
+        delete mat_;
+        
+        if (data_ == Data::EXTERNAL)
+        {
+            mkl_free(is_);
+            mkl_free(js_);
+            mkl_free(vs_);
+        }
+        else if (data_ == Data::EXTERNAL_MKL)
+        {
+            mkl_sparse_destroy(*mkl_);
+            delete mkl_;
+        }
+        
+        data_ = Data::NONE;
+    }
 }
 
 
-void MatrixSparse::init(const MatrixSparse& a, fp pruneThreshold)
+bool MatrixSparse::operator!() const
 {
-	free();
+    return data_ == Data::NONE;
+}
 
-#ifndef NDEBUG
-	cout << "  (A" << a << " >= ";
-	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 = " << flush;
-#endif
 
-	m_ = a.m_;
-	n_ = a.n_;
-	is0_ = new ii[m_ + 1];
-	is0_[0] = 0;
-	is1_ = is0_ + 1;
-	for (ii i = 0; i < m_; i++) is1_[i] = 0;
+ii MatrixSparse::m() const
+{
+    return m_;
+}
 
-	ii nnz = 0;
-	for (ii nza = 0; nza < a.nnz(); nza++)
-	{
-		if (a.vs_[nza] >= pruneThreshold)
-		{
-			nnz++;
-		}
-	}
-	js_ = new ii[nnz];
-	vs_ = new fp[nnz];
 
-	ii nz = 0;
-	ii ia = 0;
-	for (ii nza = 0; nza < a.nnz(); nza++)
-	{
-		while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero in a 
+ii MatrixSparse::n() const
+{
+    return n_;
+}
 
-		if (a.vs_[nza] >= pruneThreshold)
-		{
-			is1_[ia]++;
-			js_[nz] = a.js_[nza];
-			vs_[nz] = a.vs_[nza];
-			nz++;
-		}
-	}
-	for (ii i = 0; i < m_; i++)
-	{
-		is0_[i + 1] += is0_[i];
-	}
 
-	isOwned_ = true;
+li MatrixSparse::size() const
+{
+    return (li)m_ * n_;
+}
 
-	mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
 
-#ifndef NDEBUG
-	cout << "Y" << *this << endl;
-#endif
+ii MatrixSparse::nnz() const
+{
+    if (nnz_ == -1)
+    {
+        sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+        mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+        return is1[m - 1];
+    }
+    else
+    {
+        return nnz_;
+    }
+}
+
+
+li MatrixSparse::mem() const
+{
+    return sizeof(*this) + sizeof(fp) * (li)nnz() + (li)sizeof(ii) * ((li)nnz() + m_ + 1);
 }
 
 
 void MatrixSparse::init(ii m, ii n)
 {
-	free();
-
-	m_ = m;
-	n_ = n;
-	is0_ = new ii[m_ + 1];
-	is0_[0] = 0;
-	is1_ = is0_ + 1;
-	for (ii i = 0; i < m_; i++) is1_[i] = 0;
-	js_ = 0;
-	vs_ = 0;
-	isOwned_ = true;
-
-	mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-
 #ifndef NDEBUG
-	cout << "  = Y" << *this << endl;
+    cout << "  0 := " << flush;
 #endif
-}
-
-
-void MatrixSparse::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind)
-{
-	free();
-
-	m_ = m;
-	n_ = n;
-	is0_ = new ii[m_ + 1];
-	is1_ = is0_ + 1;
-	js_ = new ii[nnz];
-	vs_ = new fp[nnz];
-	isOwned_ = true;
-
-	ii job[] = { 2, 0, 0, 0, nnz, 0 };
-	ii info;
-	fp* c_acoo = const_cast<fp*>(acoo);
-	ii* c_rowind = const_cast<ii*>(rowind);
-	ii* c_colind = const_cast<ii*>(colind);
-	mkl_scsrcoo(job, &m_, vs_, js_, is0_, &nnz, c_acoo, c_rowind, c_colind, &info);
-
-	mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-
+    
+    free();
+    
+    m_ = m;
+    n_ = n;
+    nnz_ = 0; // HAVE TO SPECIFY THIS TO AVOID MKL PROCESSING EMPTY MATRICES
+    is_ = static_cast<ii*>(mkl_calloc(m_ + 1, sizeof(ii), 64));
+    js_ = static_cast<ii*>(mkl_malloc(sizeof(ii), 64)); // MKL doesn't like the pointer being null
+    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp), 64)); // MKL doesn't like the pointer being null
+    
+    mat_ = new sparse_matrix_t;
+    mkl_sparse_s_create_csr(mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is_, &is_[1], js_, vs_);
+    data_ = Data::EXTERNAL;
+    
 #ifndef NDEBUG
-	cout << "  = Y" << *this << endl;
+    cout << "X" << *this << endl;
 #endif
 }
 
 
 void MatrixSparse::init(ii m, ii n, fp v)
 {
-	vector<fp> acoo;
-	vector<ii> rowind;
-	vector<ii> colind;
-	for (ii i = 0; i < m; i++)
-	{
-		for (ii j = 0; j < n; j++)
-		{
-			acoo.push_back(v);
-			rowind.push_back(i);
-			colind.push_back(j);
-		}
-	}
-
-	init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+#ifndef NDEBUG
+    cout << "  " << v << " := " << flush;
+#endif
+    
+    free();
+    
+    m_ = m;
+    n_ = n;
+    is_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+    for (ii i = 0; i <= m_; i++) is_[i] = i * n;
+    js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is_[m_], 64));
+    for (ii i = 0; i < m; i++) for (ii j = 0; j < n; j++) js_[j + i * n] = j;
+    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is_[m_], 64));
+    for (ii nz = 0; nz < is_[m_]; nz++) vs_[nz] = v;
+    
+    mat_ = new sparse_matrix_t;
+    mkl_sparse_s_create_csr(mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is_, &is_[1], js_, vs_);
+    data_ = Data::EXTERNAL;
+    
+#ifndef NDEBUG
+    cout << "X" << *this << endl;
+#endif
 }
 
 
-void MatrixSparse::convertFromDense(ii m, ii n, const fp* vs)
+void MatrixSparse::init(ii m, ii n, const fp* vs)
 {
-	vector<fp> acoo;
-	vector<ii> rowind;
-	vector<ii> colind;
-	for (ii i = 0; i < m; i++)
-	{
-		for (ii j = 0; j < n; j++)
-		{
-			if (vs[j + i*n] != 0.0)
-			{
-				acoo.push_back(vs[j + i*n]);
-				rowind.push_back(i);
-				colind.push_back(j);
-			}
-		}
-	}
-
-	init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+    vector<fp> acoo;
+    vector<ii> rowind;
+    vector<ii> colind;
+    for (ii i = 0; i < m; i++)
+    {
+        for (ii j = 0; j < n; j++)
+        {
+            if (vs[j + i*n] != 0.0)
+            {
+                acoo.push_back(vs[j + i*n]);
+                rowind.push_back(i);
+                colind.push_back(j);
+            }
+        }
+    }
+    
+    init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
 }
 
 
-void MatrixSparse::convertToDense(fp* vs) const
-{
-	for (ii x = 0; x < m_ * n_; x++)
-	{
-		vs[x] = 0.0;
-	}
-
-	ii i = 0;
-	for (ii nz = 0; nz < nnz(); nz++)
-	{
-		while (nz >= is1_[i]) i++; // row of nz'th non-zero 
-		ii j = js_[nz]; // column of nz'th non-zero 
-
-		vs[j + i * n_] = vs_[nz];
-	}
-}
-
-
-void MatrixSparse::free()
-{
-	if (mat_)
-	{
-		mkl_sparse_destroy(mat_);
-		mat_ = 0;
-
-		if (isOwned_)
-		{
-			delete[] is0_;
-			delete[] js_;
-			delete[] vs_;
-			isOwned_ = false;
-		}
-	}
-}
-
-
-ii MatrixSparse::m() const 
-{ 
-	return m_; 
-}
-
-
-ii MatrixSparse::n() const 
-{ 
-	return n_; 
-}
-
-
-li MatrixSparse::size() const
-{
-	return (li)m_ * n_;
-}
-
-
-bool MatrixSparse::operator!() const 
-{ 
-	return mat_ == 0; 
-}
-
-
-ii MatrixSparse::nnz(bool actual) const
-{	
-	if (actual)
-	{
-		ii nnz = 0;
-		for (ii x = 0; x < is1_[m_ - 1]; x++)
-		{
-			if (vs_[x] != 0.0) nnz++;
-		}
-		return nnz;
-	}
-	else
-	{
-		return is1_[m_ - 1];
-	}
-}
-
-
-li MatrixSparse::mem() const
-{
-	return sizeof(*this) + (li)nnz() * sizeof(fp) + (li)(m_ + 1) * sizeof(ii) + (li)nnz() * sizeof(ii);
-}
-
-
-void MatrixSparse::mul(const MatrixSparse& x, Transpose transpose, const MatrixSparse& a, Accumulate accumulate)
+void MatrixSparse::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind)
 {
 #ifndef NDEBUG
-	cout << "  X" << (transpose == Transpose::NO ? "" : "t") << x << " %*% A" << a << (accumulate == Accumulate::NO ? " = " : " =+ ") << flush;
+    cout << "  COO := " << flush;
+#endif
+    
+    free();
+    
+    m_ = m;
+    n_ = n;
+    fp* c_acoo = const_cast<fp*>(acoo);
+    ii* c_rowind = const_cast<ii*>(rowind);
+    ii* c_colind = const_cast<ii*>(colind);
+    
+    sparse_matrix_t t;
+    mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, nnz, c_rowind, c_colind, c_acoo);
+    mat_ = new sparse_matrix_t;
+    mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, mat_);
+    data_ = Data::MKL;
+    
+#ifndef NDEBUG
+    cout << "X" << *this << endl;
+#endif
+}
+
+
+void MatrixSparse::copy(const MatrixSparse& a, Transpose transpose)
+{
+#ifndef NDEBUG
+    cout << "  A" << (transpose == Transpose::NO ? "" : "t") << a << " := " << flush;
+#endif
+    
+    free();
+
+    if (transpose == Transpose::NO)
+    {
+        if (a.nnz_ == 0)
+        {
+            init(a.m_, a.n_);
+        }
+        else
+        {
+            sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+            mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+            
+            m_ = a.m_;
+            n_ = a.n_;
+            is_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+            memcpy(is_, a_is0, sizeof(ii) * (m_ + 1));
+            js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is_[m_], 64));
+            memcpy(js_, a_js, sizeof(ii) * is_[m_]);
+            vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is_[m_], 64));
+            memcpy(vs_, a_vs, sizeof(fp) * is_[m_]);
+            
+            mat_ = new sparse_matrix_t;
+            mkl_sparse_s_create_csr(mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is_, &is_[1], js_, vs_);
+            data_ = Data::EXTERNAL;
+        }
+    }
+    else
+    {
+        if (a.nnz_ == 0)
+        {
+            init(a.n_, a.m_);
+        }
+        else
+        {
+            mat_ = new sparse_matrix_t;
+            mkl_sparse_convert_csr(*a.mat_, SPARSE_OPERATION_TRANSPOSE, mat_);
+            data_ = Data::MKL;
+        }
+    }
+
+#ifndef NDEBUG
+	cout << "X" << *this << endl;
+#endif
+}
+
+
+// todo: optimise
+void MatrixSparse::copy(const MatrixSparse& a, fp pruneThreshold)
+{
+#ifndef NDEBUG
+	cout << "  (A" << a << " >= ";
+	cout.unsetf(ios::floatfield);
+	cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 := " << flush;
+#endif
+    
+    free();
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+
+	m_ = a.m_;
+	n_ = a.n_;
+    is_ = static_cast<ii*>(mkl_calloc(m_ + 1, sizeof(ii), 64));
+
+	ii nnz = 0;
+	for (ii a_nz = 0; a_nz < a_is1[a_m - 1]; a_nz++)
+	{
+		if (a_vs[a_nz] >= pruneThreshold)
+		{
+			nnz++;
+		}
+	}
+    nnz_ = nnz; // important if zero
+    js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (nnz > 0 ? nnz : 1), 64));
+    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * (nnz > 0 ? nnz : 1), 64));
+
+	ii nz = 0;
+	ii a_i = 0;
+	for (ii a_nz = 0; a_nz < a_is1[a_m - 1]; a_nz++)
+	{
+		while (a_nz >= a_is1[a_i]) a_i++; // row of nz'th non-zero in a
+
+		if (a_vs[a_nz] >= pruneThreshold)
+		{
+			is_[a_i + 1]++;
+			js_[nz] = a_js[a_nz];
+			vs_[nz] = a_vs[a_nz];
+			nz++;
+		}
+	}
+	for (ii i = 0; i < m_; i++)
+	{
+		is_[i + 1] += is_[i];
+	}
+
+    mat_ = new sparse_matrix_t;
+	mkl_sparse_s_create_csr(mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is_, &is_[1], js_, vs_);
+    data_ = Data::EXTERNAL;
+
+#ifndef NDEBUG
+	cout << "X" << *this << endl;
+#endif
+}
+
+
+void MatrixSparse::output(fp* vs) const
+{
+#ifndef NDEBUG
+    cout << "  X" << *this << " := " << flush;
+#endif
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vsIn;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vsIn);
+    
+    for (ii x = 0; x < m_ * n_; x++) vs[x] = 0.0;
+    
+    ii i = 0;
+    for (ii nz = 0; nz < is1[m - 1]; nz++)
+    {
+        while (nz >= is1[i]) i++; // row of nz'th non-zero
+        ii j = js[nz]; // column of nz'th non-zero
+        
+        vs[j + i * n_] = vsIn[nz];
+    }
+    
+#ifndef NDEBUG
+    cout << "out" << flush;
+#endif
+}
+
+
+void MatrixSparse::deleteRows(const MatrixSparse& a)
+{
+#ifndef NDEBUG
+    cout << "  X" << *this << ":deleteRows(A" << a << ") := " << flush;
 #endif
 
-	if (!*this) accumulate = Accumulate::NO;
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+
+    if (a.nnz() == 0)
+    {
+        // delete all of a
+        init(m_, n_);
+    }
+    else
+    {
+        ii cellsDeleted = 0;
+        ii a_nz = 0;
+        for (ii i = 0; i < m_; i++)
+        {
+            // is this row to be deleted?
+            bool del = (is1[i] - is0[i]) > 0;
+            if (del)
+            {
+                //cout << "in" << endl;
+                for (; a_nz < a_is1[a_m - 1] && a_js[a_nz] <= i; a_nz++)
+                {
+                    if (a_js[a_nz] == i)
+                    {
+                        del = false;
+                        break;
+                    }
+                }
+                //cout << "out" << endl;
+            }
+            
+            ii cellsDeleted0 = cellsDeleted;
+            
+            if (del)
+            {
+                cellsDeleted += is1[i] - is0[i];
+            }
+            else if (cellsDeleted0 > 0)
+            {
+                // this row not deleted but has to be shifted
+                for (ii nz = is0[i]; nz < is1[i]; nz++)
+                {
+                    js[nz - cellsDeleted0] = js[nz];
+                    vs[nz - cellsDeleted0] = vs[nz];
+                }
+            }
+            
+            // ensure row index up to date
+            if (cellsDeleted0 > 0) is0[i] -= cellsDeleted0;
+        }
+        if (cellsDeleted > 0) is1[m_ - 1] -= cellsDeleted;
+        
+        mkl_realloc(js, sizeof(ii) * is1[m_ - 1]); // not sure this does anything
+        mkl_realloc(vs, sizeof(fp) * is1[m_ - 1]); // not sure this does anything
+        
+        if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+        {
+            mkl_sparse_destroy(*mat_);
+            mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        }
+        else // data_ = MKL
+        {
+            mkl_ = mat_;
+            mat_ = new sparse_matrix_t;
+            mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+            data_= Data::EXTERNAL_MKL;
+        }
+        
+        nnz_ = is1[m_ - 1]; // incase it is ZERO
+    }
+ 
+#ifndef NDEBUG
+    cout << "X" << *this << endl;
+#endif
+}
+
+
+void MatrixSparse::mul(Accumulate accumulate, const MatrixSparse& a, Transpose transposeX, const MatrixSparse& b)
+{
+#ifndef NDEBUG
+    cout << "  A" << (transposeX== Transpose::NO ? "" : "t") << a << " %*% B" << b;
+    if (accumulate == Accumulate::YES) cout << " + X" << *this;
+    cout << " := " << flush;
+#endif
+
+	if (!*this)
+    {
+        accumulate = Accumulate::NO;
+    }
 
 	// mkl can't handle completely empty csr matrix...
-	if (a.nnz() == 0 || x.nnz() == 0)
+	if (b.nnz() == 0 || a.nnz() == 0)
 	{
 		if (accumulate == Accumulate::NO)
 		{
-			init(transpose == Transpose::NO ? x.m_ : x.n_, a.n_);
+			init(transposeX == Transpose::NO ? a.m_ : a.n_, b.n_);
 		}
 		else
 		{
@@ -356,24 +501,29 @@ void MatrixSparse::mul(const MatrixSparse& x, Transpose transpose, const MatrixS
 		if (accumulate == Accumulate::NO)
 		{
 			free();
-
-			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, x.mat_, a.mat_, &mat_);
+            mat_ = new sparse_matrix_t;
+            mkl_sparse_spmm(transposeX == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, *a.mat_, *b.mat_, mat_);
 		}
 		else
 		{
-			sparse_matrix_t t, y;
-			mkl_sparse_spmm(transpose == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, x.mat_, a.mat_, &t);
-			mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
+            sparse_matrix_t t;
+            mkl_sparse_spmm(transposeX == Transpose::NO ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, *a.mat_, *b.mat_, &t);
+            
+            sparse_matrix_t* y = new sparse_matrix_t;
+			mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, *mat_, 1.0, t, y);
+            mkl_sparse_destroy(t);
 			free();
-			mkl_sparse_destroy(t);
+            
 			mat_ = y;
 		}
-        sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
-        mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
+        
+        data_ = Data::MKL;
+        m_ = transposeX == Transpose::NO ? a.m_ : a.n_;
+        n_ = b.n_;
 	}
 
 #ifndef NDEBUG
-	cout << "Y" << *this << endl;
+	cout << "X" << *this << endl;
 #endif
 }
 
@@ -381,13 +531,29 @@ void MatrixSparse::mul(const MatrixSparse& x, Transpose transpose, const MatrixS
 void MatrixSparse::elementwiseSqr()
 {
 #ifndef NDEBUG
-	cout << "  (Y" << *this << ")^2 = " << flush;
+	cout << "  (X" << *this << ")^2 := " << flush;
 #endif
 
-	vsSqr(nnz(), vs_, vs_);
-
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+	vsSqr(is1[m - 1], vs, vs);
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
+    
 #ifndef NDEBUG
-	cout << "Y" << *this << endl;
+	cout << "X" << *this << endl;
 #endif
 }
 
@@ -395,13 +561,29 @@ void MatrixSparse::elementwiseSqr()
 void MatrixSparse::elementwiseSqrt()
 {
 #ifndef NDEBUG
-	cout << "  sqrt(Y" << *this << ") = " << flush;
+	cout << "  sqrt(X" << *this << ") := " << flush;
 #endif
 
-	vsSqrt(nnz(), vs_, vs_);
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+
+	vsSqrt(is1[m - 1], vs, vs);
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
 
 #ifndef NDEBUG
-	cout << "Y" << *this << endl;
+	cout << "X" << *this << endl;
 #endif
 }
 
@@ -409,70 +591,97 @@ void MatrixSparse::elementwiseSqrt()
 void MatrixSparse::elementwiseAdd(fp beta)
 {
 #ifndef NDEBUG
-	cout << "  Y" << *this << " + ";
+	cout << "  X" << *this << " + ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << beta << " = " << flush;
+	cout << setprecision(8) << beta << " := " << flush;
 #endif
 
-	#pragma omp parallel for
-	for (ii nz = 0; nz < nnz(); nz++)
-	{
-		vs_[nz] += beta;
-	}
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    ippsAddC_32f_I(beta, vs, is1[m - 1]);
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
 
 #ifndef NDEBUG
-	cout << "Y" << *this << endl;
+	cout << "X" << *this << endl;
 #endif
 }
 
 
+// todo: use IPP library
 void MatrixSparse::elementwiseMul(fp beta)
 {
 #ifndef NDEBUG
-	cout << "  Y" << *this << " * ";
+	cout << "  X" << *this << " * ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << beta << " = " << flush;
+	cout << setprecision(8) << beta << " := " << flush;
 #endif
 
-	#pragma omp parallel for
-	for (ii nz = 0; nz < nnz(); nz++)
-	{
-		vs_[nz] *= beta;
-	}
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+
+    ippsMulC_32f_I(beta, vs, is1[m - 1]);
+
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
 
 #ifndef NDEBUG
-	cout << "Y" << *this << endl;
+	cout << "X" << *this << endl;
 #endif
-} 
+}
 
 
 void MatrixSparse::elementwiseMul(const MatrixSparse& a)
 {
 #ifndef NDEBUG
-	cout << "  A" << a << " =* " << flush;
+    cout << "  X" << *this << " / A" << a << " := " << flush;
 #endif
-
-	ii i = 0;
-	ii ia = 0;
-	ii nza = 0;
-	for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
-	{
-		while (nz >= is1_[i]) i++; // row of nz'th non-zero
-
-		for (; nza < a.is1_[m_ - 1]; nza++)
-		{
-			while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero
-
-			if (a.js_[nza] == js_[nz] && ia == i)
-			{
-				vs_[nz] *= a.vs_[nza];
-				break;
-			}
-		}
-	}
-
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+    
+    vsMul(is1[m - 1], vs, a_vs, vs);
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
+    
 #ifndef NDEBUG
-	cout << "Y" << *this << endl;
+    cout << "X" << *this << endl;
 #endif
 }
 
@@ -480,47 +689,47 @@ void MatrixSparse::elementwiseMul(const MatrixSparse& a)
 void MatrixSparse::elementwiseDiv(const MatrixSparse& a)
 {
 #ifndef NDEBUG
-	cout << "  A" << a << " =/ " << flush;
+    cout << "  X" << *this << " / A" << a << " := " << flush;
 #endif
-
-	ii i = 0;
-	ii ia = 0;
-	ii nza = 0;
-	for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
-	{
-		while (nz >= is1_[i]) i++; // row of nz'th non-zero
-
-		for (; nza < a.is1_[m_ - 1]; nza++)
-		{
-			while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero
-
-			if (a.js_[nza] == js_[nz] && ia == i)
-			{
-				vs_[nz] /= a.vs_[nza];
-				break;
-			}
-		}
-	}
-
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+    
+    vsDiv(is1[m - 1], vs, a_vs, vs);
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
+    
 #ifndef NDEBUG
-	cout << "Y" << *this << endl;
+    cout << "X" << *this << endl;
 #endif
 }
 
 
-double MatrixSparse::sum() const
+fp MatrixSparse::sum() const
 {
-	double sum = 0.0;
-
 #ifndef NDEBUG
-	cout << "  sum(Y" << *this << ") = " << flush;
+	cout << "  sum(X" << *this << ") := " << flush;
 #endif
 
-	#pragma omp parallel for reduction(+:sum)
-	for (ii nz = 0; nz < nnz(); nz++)
-	{
-		sum += vs_[nz];
-	}
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    fp sum = 0.0;
+    ippsSum_32f(vs, is1[m - 1], &sum, ippAlgHintFast);
 
 #ifndef NDEBUG
 	cout.unsetf(ios::floatfield);
@@ -531,19 +740,18 @@ double MatrixSparse::sum() const
 }
 
 
-double MatrixSparse::sumSqrs() const
+fp MatrixSparse::sumSqrs() const
 {
-	double sum = 0.0;
-
 #ifndef NDEBUG
-	cout << "  sum((Y" << *this << ")^2) = " << flush;
+	cout << "  sum((X" << *this << ")^2) := " << flush;
 #endif
 
-	#pragma omp parallel for reduction(+:sum)
-	for (ii nz = 0; nz < nnz(); nz++)
-	{
-		sum += vs_[nz] * vs_[nz];
-	}
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    fp sum = 0.0;
+	ippsNorm_L2_32f(vs, is1[m - 1], &sum);
+    sum *= sum;
 
 #ifndef NDEBUG
 	cout.unsetf(ios::floatfield);
@@ -554,32 +762,218 @@ double MatrixSparse::sumSqrs() const
 }
 
 
-double MatrixSparse::sumSqrDiffs(const MatrixSparse& a) const
+fp MatrixSparse::sumSqrDiffs(const MatrixSparse& a) const
+{
+    
+#ifndef NDEBUG
+    cout << "  sum((X" << *this << " - A" << a << ")^2) = " << flush;
+#endif
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+ 
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+
+    fp sum = 0.0;
+    ippsNormDiff_L2_32f(vs, a_vs, is1[m - 1], &sum);
+    sum *= sum;
+    
+#ifndef NDEBUG
+    cout.unsetf(ios::floatfield);
+    cout << setprecision(8) << sum << endl;
+#endif
+    
+    return sum;
+}
+
+
+// todo: use OpenMP
+void MatrixSparse::subsetElementwiseCopy(const MatrixSparse& a)
+{
+#ifndef NDEBUG
+    cout << "  subset(A" << a << ") := " << flush;
+#endif
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+    
+    ii i = 0;
+    ii a_i = 0;
+    ii a_nz = 0;
+    for (ii nz = 0; nz < is1[m_ - 1]; nz++)
+    {
+        while (nz >= is1[i]) i++; // row of nz'th non-zero
+        
+        for (; a_nz < a_is1[m - 1]; a_nz++)
+        {
+            while (a_nz >= a_is1[a_i]) a_i++; // row of nz'th non-zero of a
+            
+            if (a_js[a_nz] == js[nz] && a_i == i)
+            {
+                vs[nz] = a_vs[a_nz];
+                break;
+            }
+        }
+    }
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
+    
+#ifndef NDEBUG
+    cout << "X" << *this << endl;
+#endif
+}
+
+
+// todo: use OpenMP
+/*void MatrixSparse::subsetElementwiseMul(const MatrixSparse& a)
+{
+#ifndef NDEBUG
+    cout << "  X" << *this << " * subset(" << a << ") := " << flush;
+#endif
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+    
+    ii i = 0;
+    ii a_i = 0;
+    ii a_nz = 0;
+    for (ii nz = 0; nz < is1[m_ - 1]; nz++)
+    {
+        while (nz >= is1[i]) i++; // row of nz'th non-zero
+        
+        for (; a_nz < a_is1[m - 1]; a_nz++)
+        {
+            while (a_nz >= a_is1[a_i]) a_i++; // row of nz'th non-zero of a
+            
+            if (a_js[a_nz] == js[nz] && a_i == i)
+            {
+                vs[nz] *= a_vs[a_nz];
+                break;
+            }
+        }
+    }
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
+    
+#ifndef NDEBUG
+    cout << "X" << *this << endl;
+#endif
+}*/
+
+
+// todo: use OpenMP
+void MatrixSparse::subsetElementwiseDiv(const MatrixSparse& a)
+{
+#ifndef NDEBUG
+    cout << "  X" << *this << " / subset(" << a << ") := " << flush;
+#endif
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+    
+    ii i = 0;
+    ii a_i = 0;
+    ii a_nz = 0;
+    for (ii nz = 0; nz < is1[m_ - 1]; nz++)
+    {
+        while (nz >= is1[i]) i++; // row of nz'th non-zero
+        
+        for (; a_nz < a_is1[m - 1]; a_nz++)
+        {
+            while (a_nz >= a_is1[a_i]) a_i++; // row of nz'th non-zero of a
+            
+            if (a_js[a_nz] == js[nz] && a_i == i)
+            {
+                vs[nz] /= a_vs[a_nz];
+                break;
+            }
+        }
+    }
+    
+    if (data_ == Data::EXTERNAL || data_ == Data::EXTERNAL_MKL)
+    {
+        mkl_sparse_destroy(*mat_);
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+    }
+    else // data_ = MKL
+    {
+        mkl_ = mat_;
+        mat_ = new sparse_matrix_t;
+        mkl_sparse_s_create_csr(mat_, indexing, m, n, is0, is1, js, vs);
+        data_= Data::EXTERNAL_MKL;
+    }
+    
+#ifndef NDEBUG
+    cout << "X" << *this << endl;
+#endif
+}
+
+
+// todo: use OpenMP
+/*double MatrixSparse::subsetSumSqrDiffs(const MatrixSparse& a) const
 {
 	double sum = 0.0;
 
 #ifndef NDEBUG
-	cout << "  sum((Y" << *this << " - A" << a << ")^2) = " << flush;
+	cout << "  sum((X" << *this << " - subset(A" << a << "))^2) = " << flush;
 #endif
-
-	ii i = 0;
-	ii ia = 0;
-	ii nza = 0;
-	for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
-	{
-		while (nz >= is1_[i]) i++; // row of nz'th non-zero
-
-		for (; nza < a.is1_[m_ - 1]; nza++)
-		{
-			while (nza >= a.is1_[ia]) ia++; // row of nz'th non-zero
-
-			if (a.js_[nza] == js_[nz] && ia == i)
-			{
-				sum += (vs_[nz] - a.vs_[nza]) * (vs_[nz] - a.vs_[nza]);
-				break;
-			}
-		}
-	}
+    
+    sparse_index_base_t indexing; ii m; ii n; ii* is0; ii* is1; ii* js; fp* vs;
+    mkl_sparse_s_export_csr(*mat_, &indexing, &m, &n, &is0, &is1, &js, &vs);
+    
+    sparse_index_base_t a_indexing; ii a_m; ii a_n; ii* a_is0; ii* a_is1; ii* a_js; fp* a_vs;
+    mkl_sparse_s_export_csr(*a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+    
+    ii i = 0;
+    ii a_i = 0;
+    ii a_nz = 0;
+    for (ii nz = 0; nz < is1[m_ - 1]; nz++)
+    {
+        while (nz >= is1[i]) i++; // row of nz'th non-zero
+        
+        for (; a_nz < a_is1[m - 1]; a_nz++)
+        {
+            while (a_nz >= a_is1[a_i]) a_i++; // row of nz'th non-zero of a
+            
+            if (a_js[a_nz] == js[nz] && a_i == i)
+            {
+                sum += (vs[nz] - a.vs_[a_nz]) * (vs[nz] - a.vs_[a_nz]);
+                break;
+            }
+        }
+    }
 
 #ifndef NDEBUG
 	cout.unsetf(ios::floatfield);
@@ -587,13 +981,7 @@ double MatrixSparse::sumSqrDiffs(const MatrixSparse& a) const
 #endif
 
 	return sum;
-}
-
-
-const fp* MatrixSparse::getVs() const
-{
-	return vs_;
-}
+}*/
 
 
 ostream& operator<<(ostream& os, const MatrixSparse& a)
@@ -604,7 +992,7 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
 	}
 	else
 	{
-		os << "{" << a.m() << "," << a.n() << "}:(" << a.nnz(true) << "," << a.nnz() << ")/" << a.size() << ":";
+		os << "{" << a.m() << "," << a.n() << "}:" << a.nnz() << "/" << a.size() << ":";
         os.unsetf(ios::floatfield);
         os << setprecision(3) << 100.0 * a.nnz() / (double)a.size() << "%";
 	}

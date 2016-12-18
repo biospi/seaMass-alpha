@@ -30,24 +30,26 @@
 class Basis
 {
 public:
-	Basis(std::vector<Basis*>& bases, bool isTransient = false, ii parentIndex = -1);
+    enum class Transient { NO, YES };
+	Basis(std::vector<Basis*>& bases, Transient transient, int parentIndex = -1);
 	virtual ~Basis();
 
 	virtual void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const = 0;
 	virtual void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const = 0;
-	virtual void shrinkage(MatrixSparse& xE_x, const MatrixSparse& x0, const MatrixSparse& l1l2, fp lambda) const;
+	virtual void shrinkage(MatrixSparse& y, MatrixSparse& x, const MatrixSparse& xE, const MatrixSparse& l1l2PlusLambda) const;
+    virtual void deleteRows(const MatrixSparse& x, ii threshold) = 0;
 
 	virtual ii getM() const = 0;
 	virtual ii getN() const = 0;
 
-	ii getIndex() const;
-	ii getParentIndex() const;
-	bool isTransient() const;
+	int getIndex() const;
+	int getParentIndex() const;
+	Transient getTransient() const;
 
 private:
-	ii index_;       // index of this basis in the serialised tree
-	ii parentIndex_; // parent node
-	bool isTransient_; // if transient, coefficients not part of fitting
+	int index_;       // index of this basis in the serialised tree
+	int parentIndex_; // parent node
+	Transient transient_; // if transient, coefficients not part of fitting
 };
 
 

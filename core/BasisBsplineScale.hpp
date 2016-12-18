@@ -30,17 +30,19 @@
 class BasisBsplineScale : public BasisBspline
 { 
 public:
-	BasisBsplineScale(std::vector<Basis*>& bases, ii parentIndex, ii dimension, ii order = 3, bool isTransient = false);
+	BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, short dimension, Transient transient, int order = 3);
 	virtual ~BasisBsplineScale();
 
 	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
 	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
+    virtual void deleteRows(const MatrixSparse& x, ii threshold);
 
 private:
 	MatrixSparse a_;
 	MatrixSparse aT_;
 
-	ii dimension_;
+	short dimension_;
+    ii nnzRows_;
 };
 
 

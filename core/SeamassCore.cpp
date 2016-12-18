@@ -36,15 +36,15 @@
 using namespace std;
 
 
-SeamassCore::SeamassCore(Input& input, const std::vector<int>& scales, double shrinkage, double tolerance, int debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
+SeamassCore::SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance, int debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
 {
 	init(input, scales);
 }
 
 
-SeamassCore::SeamassCore(Input& input, const Output& seed, ii debugLevel) : iteration_(0), debugLevel_(debugLevel)
+SeamassCore::SeamassCore(Input& input, const Output& seed, int debugLevel) : iteration_(0), debugLevel_(debugLevel)
 {
-	vector<int> scales(seed.scales.size());
+	vector<short> scales(seed.scales.size());
 	init(input, scales);
 
 	// todo
@@ -78,7 +78,7 @@ void SeamassCore::notice()
 }
 
 
-void SeamassCore::init(Input& input, const std::vector<int>& scales)
+void SeamassCore::init(Input& input, const std::vector<short>& scales)
 {
 	// for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
 	// this is conservative, 4 times might be ok, but 2 times isn't enough
@@ -88,15 +88,14 @@ void SeamassCore::init(Input& input, const std::vector<int>& scales)
 	// INIT BASIS FUNCTIONS
 
 	// Create our tree of bases
-	ii order = 3; // B-spline order
 	if (input.spectrumIndex.size() <= 2)
 	{
 		dimensions_ = 1;
 
-		new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], order);
-		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > order + 1)
+		new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::NO);
+		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
 		{
-			new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
+            new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
 		}
 	}
 	/*else
@@ -121,7 +120,7 @@ void SeamassCore::init(Input& input, const std::vector<int>& scales)
 	}*/
 
 	// Initialize the optimizer
-	b_.convertFromDense(1, (ii)input.binCounts.size(), input.binCounts.data());
+	b_.init(1, (ii)input.binCounts.size(), input.binCounts.data());
 	
 	//inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
 	optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
@@ -138,7 +137,7 @@ bool SeamassCore::step()
 		li nx = 0;
 		for (ii j = 0; j < (ii)bases_.size(); j++)
 		{
-			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
+            if (static_cast<BasisBspline*>(bases_[j])->getTransient() == Basis::Transient::NO)
 			{
 				nnz += optimizer_->xs()[j].nnz();
 				nx += optimizer_->xs()[j].size();
@@ -156,7 +155,7 @@ bool SeamassCore::step()
 		li nnz = 0;
 		for (ii j = 0; j < (ii)bases_.size(); j++)
 		{
-			if (!static_cast<BasisBspline*>(bases_[j])->isTransient())
+			if (static_cast<BasisBspline*>(bases_[j])->getTransient() == Basis::Transient::NO)
 			{
 				nnz += optimizer_->xs()[j].nnz();
 
@@ -191,7 +190,7 @@ bool SeamassCore::step()
 	{
 		if (debugLevel_ == 0) cout << "." << flush;
 	}
-
+    
 	return true;
 }
 
@@ -225,13 +224,13 @@ void SeamassCore::getOutput(Output& output) const
 
 	for (ii j = 0; j < (ii)bases_.size(); j++)
 	{
-		if (!bases_[j]->isTransient())
+        if (bases_[j]->getTransient() == Basis::Transient::NO)
 		{
 			const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[j])->getGridInfo();
 
 			for (ii nz = 0; nz < optimizer_->xs()[j].nnz(); nz++)
 			{
-				fp v = optimizer_->xs()[j].getVs()[nz];
+                fp v = 0.0;//optimizer_->xs()[j].getVs()[nz];
 				if (v != 0.0)
 				{
 					output.weights.push_back(v);
@@ -259,7 +258,7 @@ void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 	MatrixSparse f;
 	optimizer_->synthesis(f);
 	binCounts.resize(b_.size());
-	f.convertToDense(binCounts.data());
+	f.output(binCounts.data());
 }
 
 
@@ -274,7 +273,7 @@ void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 	MatrixSparse c;
 	optimizer_->synthesis(c, dimensions_ - 1);
 	controlPoints.coeffs.resize(meshInfo.size());
-	c.convertToDense(controlPoints.coeffs.data());
+	c.output(controlPoints.coeffs.data());
 
 	controlPoints.scale = meshInfo.scale;
 	controlPoints.offset = meshInfo.offset;

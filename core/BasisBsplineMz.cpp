@@ -34,12 +34,13 @@ using namespace std;
 
 
 BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
-	                           const std::vector<double>& binEdges, short resolution, ii order, bool transient)
-	: BasisBspline(bases, 1, transient)
+	                           const std::vector<
+                               double>& binEdges, short scale, Transient transient, int order)
+	: BasisBspline(bases, 1, transient), nnzRows_(0)
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineMz";
-	if (isTransient()) cout << " (t)";
+    if (getTransient() == Transient::YES) cout << " (t)";
 	cout << endl;
 #endif
 
@@ -78,19 +79,19 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 		}
 	}
 
-	ii resolutionAuto = (ii) floor(log2(1.0 / mzDiff / 60.0 / 1.0033548378));
-	if (resolution == numeric_limits<short>::max())
+	ii scaleAuto = (ii) floor(log2(1.0 / mzDiff / 60.0 / 1.0033548378));
+	if (scale == numeric_limits<short>::max())
 	{
-		resolution = resolutionAuto;
-		cout << "Autodetected mz_resolution=" << resolution << endl;
+		scale = scaleAuto;
+		cout << "Autodetected mz_scale=" << scale << endl;
 	}
 
 	// Bases per 1.0033548378Th (difference between carbon12 and carbon13)
-	double bpi = pow(2.0, (double)resolution) * 60 / 1.0033548378;
+	double bpi = pow(2.0, (double)scale) * 60 / 1.0033548378;
 
 	// fill in b-spline grid info
 	gridInfo().n = (ii)as_.size();
-	gridInfo().scale[0] = resolution;
+	gridInfo().scale[0] = scale;
 	gridInfo().offset[0] = (ii)floor(mzMin * bpi);
 	gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
 
@@ -150,6 +151,8 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 		}
 	}
 	for (int i = 0; i < 256; ++i) cout << '\b';
+    
+    for (ii k = 0; k < (ii)as_.size(); k++) nnzRows_ += as_[k].n();
 
 #ifndef NDEBUG
 	li m = 0; for (ii k = 0; k < (ii)as_.size(); k++) m += as_[k].m();
@@ -159,19 +162,19 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	cout << "  range=" << setprecision(3) << mzMin << ":";
     cout.unsetf(std::ios::floatfield);
     cout << mzDiff << ":" << fixed << mzMax << "Th";
-	cout << " resolution=" << fixed << setprecision(1) << resolution << " (" << bpi << " bases per 1.0033548378Th)";
-	cout << " " << gridInfo() << " mem=";
-	cout.unsetf(ios::floatfield);
-	cout << "mem=" << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb" << endl;
+	cout << " scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)";
+    cout.unsetf(ios::floatfield);
+	cout << " " << gridInfo();
+	cout << " mem=" << fixed << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb" << endl;
 	cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=";
 	cout << setprecision(2) << nnz / (double)(m * n) << "%";
 	cout.unsetf(ios::floatfield); 
 	cout << endl;
 #endif
 
-	if (resolutionAuto != resolution)
+	if (scaleAuto != scale)
 	{
-		cerr << endl << "WARNING: resolution is not the suggested value of " << resolutionAuto << ". Continue at your own risk!" << endl << endl;
+		cerr << endl << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
 	}
 }
 
@@ -186,9 +189,9 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineMz::synthesis[" << 0 << "]" << endl;
 #endif
-
-	f.mul(x, MatrixSparse::Transpose::NO, aTs_[0], accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
-
+    
+	f.mul(accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO, x, MatrixSparse::Transpose::NO, aTs_[0]);
+    
 	/*if (!f) f.init(is_.back(), 1);
 
 #ifdef NDEBUG
@@ -217,13 +220,13 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 	if (sqrA)
 	{
 		MatrixSparse t;
-		t.init(as_[0]);
+		t.copy(as_[0]);
 		t.elementwiseSqr();
-		xE.mul(fE, MatrixSparse::Transpose::NO, t, MatrixSparse::Accumulate::NO);
+		xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, t);
 	}
 	else
 	{
-		xE.mul(fE, MatrixSparse::Transpose::NO, as_[0], MatrixSparse::Accumulate::NO);
+		xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, as_[0]);
 	}
 
 	/*if (!xE)
@@ -254,6 +257,19 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 			xESub.mul(as_[k], fESub, false, true, false);
 		}
 	}*/
+}
+
+
+void BasisBsplineMz::deleteRows(const MatrixSparse& x, ii threshold)
+{
+    if(nnzRows_ - x.nnz() >= threshold)
+    {
+        // delete rows in aTs we don't need anymore
+        aTs_[0].deleteRows(x);
+        as_[0].copy(aTs_[0], MatrixSparse::Transpose::YES);
+        
+        nnzRows_ = x.nnz();
+    }
 }
 
 

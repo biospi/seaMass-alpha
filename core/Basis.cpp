@@ -26,8 +26,8 @@
 using namespace std;
 
 
-Basis::Basis(vector<Basis*>& bases, bool isTransient, ii parentIndex)
-	: parentIndex_(parentIndex), isTransient_(isTransient)
+Basis::Basis(vector<Basis*>& bases, Transient transient, int parentIndex)
+	: parentIndex_(parentIndex), transient_(transient)
 {
 	index_ = (ii) bases.size();
 	bases.push_back(this);
@@ -39,36 +39,31 @@ Basis::~Basis()
 }
 
 
-void Basis::shrinkage(MatrixSparse& xE_x, const MatrixSparse& x0, const MatrixSparse& l1l2, fp lambda) const
+void Basis::shrinkage(MatrixSparse& y, MatrixSparse& x, const MatrixSparse& xE, const MatrixSparse& l1l2PlusLambda) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " Basis::shrinkage" << endl;
 #endif
-
-	MatrixSparse t;
-	t.init(l1l2);
-	t.elementwiseAdd(lambda);
-	MatrixSparse t2;
-	t2.init(x0);
-	t2.elementwiseDiv(t);
-	t2.elementwiseMul(xE_x);
-	xE_x.init(t2);
+    
+	y.copy(x);
+	y.elementwiseDiv(l1l2PlusLambda);
+	y.elementwiseMul(xE);
 }
 
 
-ii Basis::getIndex() const
+int Basis::getIndex() const
 {
 	return index_;
 }
 
 
-ii Basis::getParentIndex() const
+int Basis::getParentIndex() const
 {
 	return parentIndex_;
 }
 
 
-bool Basis::isTransient() const
+Basis::Transient Basis::getTransient() const
 {
-	return isTransient_;
+	return transient_;
 }

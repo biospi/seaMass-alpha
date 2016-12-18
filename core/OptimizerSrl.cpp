@@ -56,13 +56,13 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 	}
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
-		if (bases_[i]->isTransient())
+        if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-			l2s_[i].free();
+            l2s_[i].elementwiseSqrt();
 		}
 		else
 		{
-			l2s_[i].elementwiseSqrt();
+            l2s_[i].free();
 		}
 	}
 
@@ -70,35 +70,35 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 #ifndef NDEBUG
 	cout << " Init L2L1s..." << endl;
 #endif
-	l1l2s_.resize(bases_.size());
+	l1l2sPlusLambda_.resize(bases_.size());
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
 		{
 			MatrixSparse t;
 			t.init(b_.m(), b_.n(), (fp)1.0);
-			bases_[i]->analysis(l1l2s_[0], t, false);
+			bases_[i]->analysis(l1l2sPlusLambda_[0], t, false);
 		}
 		else
 		{
-			bases_[i]->analysis(l1l2s_[i], l1l2s_[bases_[i]->getParentIndex()], false);
+			bases_[i]->analysis(l1l2sPlusLambda_[i], l1l2sPlusLambda_[bases_[i]->getParentIndex()], false);
 		}
 	}
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
-		if (bases_[i]->isTransient())
+		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-			l1l2s_[i].free();
+            l1l2sPlusLambda_[i].elementwiseDiv(l2s_[i]);
 		}
 		else
 		{
-			l1l2s_[i].elementwiseDiv(l2s_[i]);
+            l1l2sPlusLambda_[i].free();
 		}
 	}
 
 	// initialise starting estimate of 'x' from analysis of 'b'
 #ifndef NDEBUG
-	cout << " Init Cs from G" << endl;
+	cout << " Init xs from G" << endl;
 #endif
 	double sumX = 0.0;
 	xs_.resize(bases_.size());
@@ -117,30 +117,43 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 	double sumB = b_.sum();
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
-		if (bases_[i]->isTransient())
+		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-			xs_[i].free();
+            // remove unneeded l12sPlusLambda
+            MatrixSparse l1l2PlusLambda;
+            l1l2PlusLambda.copy(xs_[i]);
+            l1l2PlusLambda.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
+            
+            // normalise and prune xs
+            MatrixSparse x;
+            x.copy(xs_[i]);
+            x.elementwiseDiv(l1l2PlusLambda);
+            x.elementwiseMul((fp)(sumB / sumX));
+            xs_[i].copy(x, pruneThreshold);
+            
+            // remove unneeded l12sPlusLambda again (after pruning)
+            MatrixSparse t;
+            t.copy(xs_[i]);
+            t.subsetElementwiseCopy(l1l2PlusLambda);
+            l1l2sPlusLambda_[i].copy(t);
+            
+            // remove unneeded l2s
+            t.copy(xs_[i]);
+            t.subsetElementwiseCopy(l2s_[i]);
+            l2s_[i].copy(t);
 		}
 		else
 		{
-			MatrixSparse l1;
-			l1.init(l1l2s_[i]);
-			l1.elementwiseMul(l2s_[i]);
-			MatrixSparse x;
-			x.init(xs_[i]);
-			x.elementwiseDiv(l1);
-			x.elementwiseMul((fp)(sumB / sumX));
-			x.elementwiseMul(l2s_[i]);
-			xs_[i].init(x, pruneThreshold);
+            xs_[i].free();
 		}
 	}
-
+    
 #ifndef NDEBUG
 	// how much memory are we using?
 	li mem = 0;
 	for (ii i = 0; i < xs_.size(); i++) mem += xs_[i].mem();
 	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
-	for (ii i = 0; i < l1l2s_.size(); i++) mem += l1l2s_[i].mem();
+	for (ii i = 0; i < l1l2sPlusLambda_.size(); i++) mem += l1l2sPlusLambda_[i].mem();
 	cout << "Sparse Richardson-Lucy mem="; 
 	cout.unsetf(ios::floatfield);
 	cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
@@ -155,25 +168,32 @@ OptimizerSrl::~OptimizerSrl()
 
 void OptimizerSrl::init(fp lambda)
 {
+#ifndef NDEBUG
+    cout << iteration_ << " lambda=" << lambda << endl;
+#endif
+
+    for (ii i = 0; i < (ii)bases_.size(); i++)
+    {
+        if (bases_[i]->getTransient() == Basis::Transient::NO)
+        {
+            l1l2sPlusLambda_[i].elementwiseAdd(lambda - lambda_);
+        }
+    }
+    
 	lambda_ = lambda;
 	iteration_ = 0;
 }
 
 
-double OptimizerSrl::step()
+fp OptimizerSrl::step()
 {
 	iteration_++;
-
-	// temporary variables
-	MatrixSparse f, e;
-	vector<MatrixSparse> xEs(bases_.size());
-	double sumSqrs = 0.0;
-	double sumSqrDiffs = 0.0;
 
 	// SYNTHESIS
 #ifndef NDEBUG
 	cout << iteration_ << " synthesis" << endl;
 #endif
+    MatrixSparse f;
 	double synthesisStart = getWallTime();
 	{
 		synthesis(f);
@@ -184,27 +204,28 @@ double OptimizerSrl::step()
 #ifndef NDEBUG
 	cout << iteration_ << " error" << endl;
 #endif
+    MatrixSparse fE;
 	double errorStart = getWallTime();
 	{
-		e.init(b_);
-		e.elementwiseDiv(f);
+		fE.copy(b_);
+		fE.subsetElementwiseDiv(f); // make this dense mm
 		f.free();
 	}
 	double errorDuration = getWallTime() - errorStart;
 	
 	// ANALYSIS
-
 #ifndef NDEBUG
 	cout << iteration_ << " analysis" << endl;
 #endif
+    vector<MatrixSparse> xEs(bases_.size());
 	double analysisStart = getWallTime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (i == 0)
 			{
-				bases_.front()->analysis(xEs[0], e, false);
-				e.free();
+				bases_.front()->analysis(xEs[0], fE, false);
+				fE.free();
 			}
 			else
 			{
@@ -214,8 +235,13 @@ double OptimizerSrl::step()
 	}
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
-		if (!bases_[i]->isTransient())
+		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
+            MatrixSparse t;
+            t.copy(xs_[i]);
+            t.subsetElementwiseCopy(xEs[i]);
+            xEs[i].copy(t);
+            
 			xEs[i].elementwiseDiv(l2s_[i]);
 		}
 	}
@@ -225,18 +251,17 @@ double OptimizerSrl::step()
 #ifndef NDEBUG
 	cout << iteration_ << " shrinkage" << endl;
 #endif
+    vector<MatrixSparse> ys(bases_.size());
 	double shrinkageStart = getWallTime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
-			if (!bases_[i]->isTransient())
+			if (bases_[i]->getTransient() == Basis::Transient::NO)
 			{
-				bases_[i]->shrinkage(xEs[i], xs_[i], l1l2s_[i], lambda_);
+				bases_[i]->shrinkage(ys[i], xs_[i], xEs[i], l1l2sPlusLambda_[i]);
 			}
-			else
-			{
-				xEs[i].free();
-			}
+			
+            xEs[i].free();
 		}
 	}
 	double shrinkageDuration = getWallTime() - shrinkageStart;
@@ -245,30 +270,41 @@ double OptimizerSrl::step()
 #ifndef NDEBUG
 	cout << iteration_ << " termination check" << endl;
 #endif
+    fp sumSqrs = 0.0;
+    fp sumSqrDiffs = 0.0;
 	double updateStart = getWallTime();
 	{
 		// termination check
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
-			if (!bases_[i]->isTransient())
+			if (bases_[i]->getTransient() == Basis::Transient::NO)
 			{
 				sumSqrs += xs_[i].sumSqrs();
-				sumSqrDiffs += xs_[i].sumSqrDiffs(xEs[i]);
+				sumSqrDiffs += xs_[i].sumSqrDiffs(ys[i]);
 			}
 		}
 
 		// copy into xs_, pruning small coefficients
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
-			if (!bases_[i]->isTransient())
+			if (bases_[i]->getTransient() == Basis::Transient::NO)
 			{
-				xs_[i].init(xEs[i], pruneThreshold_);
-				xEs[i].free();
+				xs_[i].copy(ys[i], pruneThreshold_);
+                ys[i].free();
+                
+                MatrixSparse t;
+                t.copy(xs_[i]);
+                t.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
+                l1l2sPlusLambda_[i].copy(t);
+                
+                t.copy(xs_[i]);
+                t.subsetElementwiseCopy(l2s_[i]);
+                l2s_[i].copy(t);
 			}
 		}
 	}
 	double updateDuration = getWallTime() - updateStart;
-
+    
     if (debugLevel_ >= 2 && getWallTime() != 0.0)
     {
         cout << "  Durations: synthesis=";
@@ -300,20 +336,20 @@ double OptimizerSrl::step()
 }
 
 
-void OptimizerSrl::synthesis(MatrixSparse& f, ii basis) const
+void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 {
 	vector<MatrixSparse> ts(bases_.size());
 	for (ii i = (ii)bases_.size() - 1; i >= 0; i--)
 	{
-		if (!ts[i] && !bases_[i]->isTransient())
+		if (!ts[i] && bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-			ts[i].init(xs_[i]);
+            ts[i].copy(xs_[i]);
 			ts[i].elementwiseDiv(l2s_[i]);
 		}
 
 		if (basis == i) // return with B-spline control points
 		{
-			f.init(ts[i]);
+			f.copy(ts[i]);
 
 			break;
 		}
@@ -321,16 +357,18 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis) const
 		if (i > 0)
 		{
 			ii pi = bases_[i]->getParentIndex();
-			if (!ts[pi] && !bases_[pi]->isTransient())
+			if (!ts[pi] && bases_[i]->getTransient() == Basis::Transient::NO)
 			{
-				ts[pi].init(xs_[pi]);
+                ts[pi].copy(xs_[pi]);
 				ts[pi].elementwiseDiv(l2s_[pi]);
 			}
 
+            bases_[i]->deleteRows(ts[i], 100000);
 			bases_[i]->synthesis(ts[pi], ts[i], true);
 		}
 		else
 		{
+            bases_[0]->deleteRows(ts[0], 100000);
 			bases_[0]->synthesis(f, ts[0], false);
 		}
 

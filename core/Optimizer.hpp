@@ -34,8 +34,8 @@ public:
 	virtual ~Optimizer();
     
 	virtual void init(fp lamba) = 0;
-	virtual double step() = 0;
-	virtual void synthesis(MatrixSparse& f, ii basis = -1) const = 0;
+	virtual fp step() = 0;
+	virtual void synthesis(MatrixSparse& f, ii basis = -1) = 0;
 
 	virtual std::vector<MatrixSparse>& xs() = 0;
 	virtual const std::vector<Basis*>& getBases() const = 0;

@@ -5,7 +5,7 @@ if (OPENMP_FOUND)
 endif ()
 
 set(USE_MKL_64BIT_LIB On)
-find_package(MKL REQUIRED)
+find_package(Intel REQUIRED)
 
 set(HEADER_FILES
 	Matrix.hpp
@@ -19,7 +19,8 @@ set(SOURCE_FILES
 add_library(seamass_math ${HEADER_FILES} ${SOURCE_FILES})
 target_include_directories(seamass_math PUBLIC
   ${MKL_INCLUDE_DIR}
+  ${IPP_INCLUDE_DIR}
 )
 target_link_libraries(seamass_math
-  ${MKL_LIBRARIES}
+  ${INTEL_LIBRARIES}
 )

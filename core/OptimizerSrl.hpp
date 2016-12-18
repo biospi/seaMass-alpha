@@ -34,8 +34,8 @@ public:
 	virtual ~OptimizerSrl();
     
 	void init(fp lamba);
-	double step();
-	void synthesis(MatrixSparse& f, ii basis = -1) const;
+	fp step();
+	void synthesis(MatrixSparse& f, ii basis = -1);
 
 	ii getIteration() const;
 	const std::vector<Basis*>& getBases() const;
@@ -52,7 +52,7 @@ private:
 
 	std::vector<MatrixSparse> xs_;
 	std::vector<MatrixSparse> l2s_;
-	std::vector<MatrixSparse> l1l2s_;
+	std::vector<MatrixSparse> l1l2sPlusLambda_;
     
     double synthesisDuration_;
     double errorDuration_;

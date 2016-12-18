@@ -31,16 +31,19 @@ class BasisBsplineMz : public BasisBspline
 {
 public:
 	BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
-		           const std::vector<double>& binEdges, short resolution, ii order = 3, bool isTransient = false);
+		           const std::vector<double>& binEdges, short scale, Transient transient, int order = 3);
 	virtual ~BasisBsplineMz();
 
 	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
 	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
+    virtual void deleteRows(const MatrixSparse& x, ii threshold);
 
 private:
 	std::vector<MatrixSparse> as_; // CSR sparse 'A' basis matrices
     std::vector<MatrixSparse> aTs_; // CSR sparse 'A' basis matrices
 	std::vector<li> is_; // spectrum_index into 'g'
+    
+    ii nnzRows_;
 };
 
 

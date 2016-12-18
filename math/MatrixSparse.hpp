@@ -47,53 +47,66 @@ class MatrixSparse
 public:
 	MatrixSparse();
 	~MatrixSparse();
+    
+    void free();
+    bool operator!() const;
 
-	void init(const MatrixSparse& a);
-	void init(const MatrixSparse& a, fp pruneThreshold);
-	void init(ii m, ii n); // create empty csr
-	void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind);
-	void init(ii m, ii n, fp v);
-	void convertFromDense(ii m, ii n, const fp* vs);
-	void convertToDense(fp* vs) const;
-	void free();
+	void init(ii m, ii n); // create empty matrix
+    void init(ii m, ii n, fp v); // create dense matrix of constant 'v'
+    void init(ii m, ii n, const fp* vs); // create dense matrix from 'vs'
+	void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind); // create from COO matrix
+    
+    ii m() const;
+    ii n() const;
+    li size() const;
+    ii nnz() const;
+    li mem() const;
+  
+    enum class Transpose { NO, YES };
+    void copy(const MatrixSparse& a, Transpose transpose = Transpose::NO);
+    void copy(const MatrixSparse& a, fp pruneThreshold);
+    void output(fp* vs) const;
 
-	ii m() const;
-	ii n() const;
-	li size() const;
+    void deleteRows(const MatrixSparse& a);
 
-	bool operator!() const;
-	ii nnz(bool actual = false) const;
-	li mem() const;
-
-	enum class Transpose { NO, YES };
+    // generalised sparse matrix multiplication
 	enum class Accumulate { NO, YES };
-	void mul(const MatrixSparse& x, Transpose transpose, const MatrixSparse& a, Accumulate accumulate);
+	void mul(Accumulate accumulate, const MatrixSparse& a, Transpose transposeX, const MatrixSparse& b);
 
+    // elementwise operations
 	void elementwiseAdd(fp beta);
 	void elementwiseMul(fp beta);
-	void elementwiseMul(const MatrixSparse& a);
-	void elementwiseDiv(const MatrixSparse& a);
+    void elementwiseMul(const MatrixSparse& a);
+    void elementwiseDiv(const MatrixSparse& a);
 	void elementwiseSqr();
 	void elementwiseSqrt();
 	void elementwiseLn();
 	void elementwisePow(fp power);
 
-	double sum() const;
-	double sumSqrs() const;
-	double sumSqrDiffs(const MatrixSparse& a) const;
-
-	const fp* getVs() const;
+    // aggregate operations
+	fp sum() const;
+	fp sumSqrs() const;
+    fp sumSqrDiffs(const MatrixSparse& a) const;
+    
+    // note: these elementwise operations ONLY considers the non-zero elements of THIS matrix
+    void subsetElementwiseCopy(const MatrixSparse& a);
+    //void subsetElementwiseMul(const MatrixSparse& a);
+    void subsetElementwiseDiv(const MatrixSparse& a); // needed for error calculation atm
+    
+    // note: this aggregate operation ONLY considers the non-zero elements of THIS matrix
+	//double subsetSumSqrDiffs(const MatrixSparse& a) const;
 
 public:
-	ii m_;
-	ii n_;
-	ii* is0_;
-	ii* is1_;
-	ii* js_;
-	fp* vs_;
-	bool isOwned_;
-
-	sparse_matrix_t mat_;
+	ii m_;   // number of rows
+	ii n_;   // number of columns
+    ii nnz_; // number of non-zeros
+    
+    enum class Data { NONE, EXTERNAL, MKL, EXTERNAL_MKL };
+    Data data_;
+    
+    sparse_matrix_t* mat_;     // matrix header and data as well if data = MKL
+    sparse_matrix_t* mkl_;     // pointer if data = EXTERNAL_MKL
+    ii* is_; ii* js_; fp* vs_; // pointers if data = EXTERNAL
 
 	friend class Matrix;
 };

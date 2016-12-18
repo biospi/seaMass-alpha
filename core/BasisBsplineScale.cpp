@@ -33,12 +33,12 @@ using namespace std;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii dimension, ii order, bool transient)
+BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Transient transient, int order)
 	: BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale";
-	if (isTransient()) cout << " (t)";
+    if (getTransient() == Basis::Transient::YES) cout << " (t)";
 	cout << endl;
 #endif
 
@@ -87,13 +87,14 @@ BasisBsplineScale(vector<Basis*>& bases, ii parentIndex, ii dimension, ii order,
 		}
 	}
 
+    aT_.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
 	a_.init(m, n, nnz, acoo.data(), rowind.data(), colind.data());
-	aT_.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
+    
+    nnzRows_ = n;
 
 #ifndef NDEBUG
 	cout << "  parent=" << getParentIndex() << " dimension=" << dimension << " " << gridInfo() << " mem=";
-	cout.unsetf(ios::floatfield); 
-	cout << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
+	cout << fixed << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
 #endif
 }
 
@@ -111,7 +112,7 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
 #endif
 
-	f.mul(x, MatrixSparse::Transpose::NO, aT_, accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO);
+	f.mul(accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO, x, MatrixSparse::Transpose::NO, aT_);
 }
 
 
@@ -126,12 +127,25 @@ analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 	if (sqrA)
 	{
 		MatrixSparse t;
-		t.init(a_);
+		t.copy(a_);
 		t.elementwiseSqr();
-		xE.mul(fE, MatrixSparse::Transpose::NO, t, MatrixSparse::Accumulate::NO);
+		xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, t);
 	}
 	else
 	{
-		xE.mul(fE, MatrixSparse::Transpose::NO, a_, MatrixSparse::Accumulate::NO);
+		xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, a_);
 	}
 }
+
+void BasisBsplineScale::deleteRows(const MatrixSparse& x, ii threshold)
+{
+    if(nnzRows_ - x.nnz() >= threshold)
+    {
+        // delete rows in aTs we don't need anymore
+        aT_.deleteRows(x);
+        a_.copy(aT_, MatrixSparse::Transpose::YES);
+        
+        nnzRows_ = x.nnz();
+    }
+}
+

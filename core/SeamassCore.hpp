@@ -51,28 +51,28 @@ public:
 
 	struct Output {
 		std::vector<fp> weights;
-		std::vector< std::vector<ii> > scales;
+		std::vector< std::vector<short> > scales;
 		std::vector< std::vector<li> > offsets;
-		std::vector<ii> baselineScale;
+		std::vector<short> baselineScale;
 		std::vector<ii> baselineOffset;
 		std::vector<ii> baselineExtent;
 	};
 
 	struct ControlPoints {
 		std::vector<fp> coeffs;
-		std::vector<ii> scale;
+		std::vector<short> scale;
 		std::vector<ii> offset;
 		std::vector<ii> extent;
 	};
 
 	struct ControlPoints1D {
 		std::vector< std::vector<fp> > coeffs;
-		ii scale;
+		short scale;
 		std::vector<ii> offsets;
 	};
 
-	SeamassCore(Input& input, const std::vector<int>& scales, double shrinkage, double tolerance, int debugLevel = 0);
-	SeamassCore(Input& input, const Output& seed, ii debugLevel = 0);
+	SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance, int debugLevel = 0);
+	SeamassCore(Input& input, const Output& seed, int debugLevel = 0);
 	virtual ~SeamassCore();
 
 	bool step();
@@ -84,17 +84,17 @@ public:
 	void getOutputControlPoints1d(ControlPoints1D& controlPoints) const;
 
 private:
-	void init(Input& input, const std::vector<int>& scales);
+	void init(Input& input, const std::vector<short>& scales);
 
 	MatrixSparse b_;
-	ii dimensions_;
+	short dimensions_;
 	std::vector<Basis*> bases_;
 	Optimizer* inner_optimizer_;
 	Optimizer* optimizer_;
 	double shrinkage_;
 	double tolerance_;
-	ii iteration_;
-	ii debugLevel_;
+	int iteration_;
+	int debugLevel_;
 };
 
 

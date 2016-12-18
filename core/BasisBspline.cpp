@@ -24,8 +24,8 @@
 using namespace std;
 
 
-BasisBspline::BasisBspline(std::vector<Basis*>& bases, ii dims, bool isTransient, ii parentIndex)
-	: Basis(bases, isTransient, parentIndex), gridInfo_(dims)
+BasisBspline::BasisBspline(std::vector<Basis*>& bases, short dimensions, Transient transient, int parentIndex)
+	: Basis(bases, transient, parentIndex), gridInfo_(dimensions)
 {
 }
 
@@ -35,7 +35,7 @@ BasisBspline::~BasisBspline()
 }
 
 
-BasisBspline::GridInfo::GridInfo(ii dimensions_)
+BasisBspline::GridInfo::GridInfo(short dimensions_)
 	: dimensions(dimensions_), scale(dimensions_), offset(dimensions_), extent(dimensions_), n(0)
 {
 }
