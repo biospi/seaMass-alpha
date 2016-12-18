@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <iostream>
 #include <cassert>
+#include <cstring>
 
 #if defined(_OPENMP)
   #include <omp.h>
