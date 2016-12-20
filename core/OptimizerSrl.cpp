@@ -261,7 +261,7 @@ fp OptimizerSrl::step()
 				bases_[i]->shrinkage(ys[i], xs_[i], xEs[i], l1l2sPlusLambda_[i]);
 			}
 			
-            xEs[i].free();
+             xEs[i].free();
 		}
 	}
 	double shrinkageDuration = getWallTime() - shrinkageStart;
@@ -341,7 +341,7 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 	vector<MatrixSparse> ts(bases_.size());
 	for (ii i = (ii)bases_.size() - 1; i >= 0; i--)
 	{
-		if (!ts[i] && bases_[i]->getTransient() == Basis::Transient::NO)
+		if (!ts[i].m() && bases_[i]->getTransient() == Basis::Transient::NO)
 		{
             ts[i].copy(xs_[i]);
 			ts[i].elementwiseDiv(l2s_[i]);
@@ -357,7 +357,7 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 		if (i > 0)
 		{
 			ii pi = bases_[i]->getParentIndex();
-			if (!ts[pi] && bases_[i]->getTransient() == Basis::Transient::NO)
+			if (!ts[pi].m() && bases_[i]->getTransient() == Basis::Transient::NO)
 			{
                 ts[pi].copy(xs_[pi]);
 				ts[pi].elementwiseDiv(l2s_[pi]);

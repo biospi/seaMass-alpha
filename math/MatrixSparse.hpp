@@ -49,7 +49,6 @@ public:
 	~MatrixSparse();
     
     void free();
-    bool operator!() const;
 
 	void init(ii m, ii n); // create empty matrix
     void init(ii m, ii n, fp v); // create dense matrix of constant 'v'
@@ -99,14 +98,11 @@ public:
 public:
 	ii m_;   // number of rows
 	ii n_;   // number of columns
-    ii nnz_; // number of non-zeros
+    bool isEmpty_; // MKL doesn't like empty sparse matrices
     
-    enum class Data { NONE, EXTERNAL, MKL, EXTERNAL_MKL };
-    Data data_;
-    
-    sparse_matrix_t* mat_;     // matrix header and data as well if data = MKL
-    sparse_matrix_t* mkl_;     // pointer if data = EXTERNAL_MKL
-    ii* is_; ii* js_; fp* vs_; // pointers if data = EXTERNAL
+    ii* is0_; ii* is1_; ii* js_; fp* vs_; // pointers to CSR array
+    sparse_matrix_t mat_;
+    bool isMklData_; // true if CSR arrays owned by mat_, false is owned by this object
 
 	friend class Matrix;
 };
