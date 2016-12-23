@@ -41,26 +41,25 @@ namespace po = boost::program_options;
 int main(int argc, char **argv)
 {
 	SeamassCore::notice();
+    printNumThreads();
 
 	string in_file;
 	vector<short> scales(2);
 	int shrinkageExponent;
 	int toleranceExponent;
-	int threads;
 	int debugLevel;
 
 	// *******************************************************************
 
-	po::options_description general("Usage\n"
-			"-----\n"
-			"seamass [OPTIONS...] [MZMLB]\n"
-			"seamass <-f in_file> <-m mz_scale> <-r st_scale> <-s shrinkage> <-l tol> <-t threads> <-o out_type>\n"
-			"seamass -m 1 -r 4 -s -4 -l -9 -t 4 -o 0");
+	po::options_description general("Usage"
+			"-----"
+			"seamass [OPTIONS...] [MZMLB]"
+			"seamass <-m mz_scale> <-s st_scale> <-l lambda> <-t tol> <file>");
 
 	general.add_options()
 		("help,h", "Produce help message")
 		("file,f", po::value<string>(&in_file),
-			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
+			"Raw input file in mzMLb format"
 			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
 		("mz_scale,m", po::value<short>(&scales[0])->default_value(numeric_limits<short>::max()),
 			"m/z resolution given as: \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\" "
@@ -81,11 +80,7 @@ int main(int argc, char **argv)
 		("debug_level,d", po::value<int>(&debugLevel)->default_value(0),
 			"Debug level, "
 			"guidelines: set to 1+ for convergence stats, 2+ for performance stats, 3+ to write intermediate iterations to disk, "
-			"default: 0")
-		("threads", po::value<int>(&threads)->default_value(0),
-			"Number of OpenMP threads to use, "
-			"guidelines: will automatically be set to amount of CPU cores, "
-			"default: auto");
+			"default: 0");
 
 	po::options_description desc;
 	desc.add(general);
@@ -99,8 +94,6 @@ int main(int argc, char **argv)
 		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
 		po::notify(vm);
         
-        setNumThreads(threads);
-
 		if(vm.count("help"))
 		{
 			cout << desc << endl;

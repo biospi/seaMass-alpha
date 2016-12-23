@@ -110,9 +110,6 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-#if defined(_OPENMP)
-            threads = omp_get_max_threads();
-#endif
 		}
 		if (vm.count("file"))
 		{

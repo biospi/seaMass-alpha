@@ -38,26 +38,13 @@
 using namespace std;
 
 
-void setNumThreads(int threads)
+void printNumThreads()
 {
-    cout << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, ";
-
+    cout << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, " << mkl_get_max_threads() << " MKL threads, ";
 #if defined(_OPENMP)
-    if (threads == 0)
-    {
-        threads = mkl_get_max_threads();
-    }
-    else
-    {
-        mkl_set_num_threads(threads);
-    }
-
-    ippSetNumThreads(threads);
-    omp_set_num_threads(threads);
-    
-    cout << threads << " MKL/IPP threads, " << threads << " OpenMP threads" << endl;
+    cout << omp_get_max_threads() << " OpenMP threads" << endl;
 #else
-    cout << "non-OpenMP build (hence no thread control)" << endl;
+    cout << "non-OpenMP build" << endl;
 #endif
 }
 

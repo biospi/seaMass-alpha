@@ -38,7 +38,7 @@ typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
 typedef MKL_INT64 li; // li is always 64 bit
 
 
-void setNumThreads(int threads);
+void printNumThreads();
 double getWallTime();
 
 
