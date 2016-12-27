@@ -27,20 +27,21 @@
 #include "BasisBspline.hpp"
 
 
-/*class BasisBsplineScantime : public BasisBspline
+class BasisBsplineScantime : public BasisBspline
 {
 public:
 	BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-		const std::vector<fp>& exposures, short resolution, ii order = 3, bool isTransient = false);
+		const std::vector<fp>& exposures, short scale, Transient transient, ii order = 3);
 	virtual ~BasisBsplineScantime();
 
-	void synthesis(Matrix& f, const Matrix& x, bool accumulate) const;
-	void analysis(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
+    void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
+    void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
+    void deleteRows(const MatrixSparse& x, ii threshold);
 
 private:
 	MatrixSparse a_;
 	MatrixSparse aT_;
-};*/
+};
 
 
 #endif

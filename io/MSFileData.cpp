@@ -440,7 +440,7 @@ vector<double> MSmzMLb::getScanStartTimes(void)
 
 bool mzMLbInputFile::scan_start_time_order(const spectrumMetaData& lhs, const spectrumMetaData& rhs)
 {
-	return lhs.start_time <= rhs.start_time;
+	return lhs.start_time < rhs.start_time;
 }
 
 
@@ -452,7 +452,7 @@ bool mzMLbInputFile::seamass_order(const spectrumMetaData& lhs, const spectrumMe
 		{
 			if (lhs.positive_polarity == rhs.positive_polarity)
 			{
-				return lhs.start_time <= rhs.start_time;
+				return lhs.start_time < rhs.start_time;
 			}
 			else
 			{
@@ -506,7 +506,7 @@ mzMLbInputFile::mzMLbInputFile(string in_file) :
 				iter = spectraMetaData.erase(iter);
 			}
 		}
-
+        
 		// finally sort into contiguous blocks for seaMass
 		sort(spectraMetaData.begin(), spectraMetaData.end(), &mzMLbInputFile::seamass_order);
 	}

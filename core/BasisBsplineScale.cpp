@@ -116,9 +116,7 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 }
 
 
-void
-BasisBsplineScale::
-analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
+void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::analysis" << endl;
@@ -137,15 +135,16 @@ analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 	}
 }
 
+
 void BasisBsplineScale::deleteRows(const MatrixSparse& x, ii threshold)
 {
-    if(nnzRows_ - x.nnz() >= threshold)
+    /*if(nnzRows_ - x.nnz() >= threshold)
     {
         // delete rows in aTs we don't need anymore
         aT_.deleteRows(x);
-        a_.copy(aT_, MatrixSparse::Transpose::YES);
+        a_.copy(aT_, MatrixSparse::Operation::TRANSPOSE);
         
         nnzRows_ = x.nnz();
-    }
+    }*/
 }
 

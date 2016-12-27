@@ -46,35 +46,29 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 
 	if (spectrumIndex.size() > 0)
 	{
-		is_ = spectrumIndex;
+		js_ = spectrumIndex;
 	}
 	else
 	{
-		is_.push_back(0);
-		is_.push_back(binCounts.size());
+		js_.push_back(0);
+		js_.push_back(binCounts.size());
 	}
 
 	///////////////////////////////////////////////////////////////////////
 	// create A as a temporary COO matrix
 
-	// init As
-	as_.resize(is_.size() - 1);
-    aTs_.resize(is_.size() - 1);
-
 	// find min and max m/z across spectra, and m for each A
 	double mzMin = numeric_limits<double>::max();
 	double mzMax = 0.0;
 	double mzDiff = numeric_limits<double>::max();
-	vector<ii> ms(as_.size());
-	for (ii k = 0; k < (ii)as_.size(); k++)
+	for (ii j = 0; j < (ii)js_.size() - 1; j++)
 	{
-		ms[k] = (ii)(is_[k + 1] - is_[k]);
-		mzMin = binEdges[is_[k] + k] < mzMin ? binEdges[is_[k] + k] : mzMin;
-		mzMax = binEdges[is_[k + 1] + k] > mzMax ? binEdges[is_[k + 1] + k] : mzMax;
+		mzMin = binEdges[js_[j] + j] < mzMin ? binEdges[js_[j] + j] : mzMin;
+		mzMax = binEdges[js_[j + 1] + j] > mzMax ? binEdges[js_[j + 1] + j] : mzMax;
 
-		for (ii i = 0; i < ms[k]; i++)
+		for (ii i = js_[j]; i < js_[j + 1]; i++)
 		{
-			double diff = binEdges[is_[k] + k + i + 1] - binEdges[is_[k] + k + i];
+			double diff = binEdges[i + j + 1] - binEdges[i + j];
 			mzDiff = diff < mzDiff ? diff : mzDiff;
 		}
 	}
@@ -90,27 +84,26 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	double bpi = pow(2.0, (double)scale) * 60 / 1.0033548378;
 
 	// fill in b-spline grid info
-	gridInfo().n = (ii)as_.size();
+	gridInfo().n = (ii)js_.size() - 1;
 	gridInfo().scale[0] = scale;
 	gridInfo().offset[0] = (ii)floor(mzMin * bpi);
 	gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
 
 	// populate coo matrix
+    vector<fp> acoo;
+    vector<ii> rowind;
+    vector<ii> colind;
+    
 	ii done = 0;
 	Bspline bspline(order, 65536); // bspline basis function lookup table
-	#pragma omp parallel for
-	for (ii k = 0; k < (ii)as_.size(); k++)
+	for (ii j = 0; j < (ii)js_.size() - 1; j++)
 	{
-		vector<fp> acoo;
-		vector<ii> rowind;
-		vector<ii> colind;
-
-		for (ii i = 0; i < ms[k]; i++)
+        for (ii i = js_[j]; i < js_[j + 1]; i++)
 		{
-			if (binCounts[is_[k] + i] >= 0.0)
+			if (binCounts[i] >= 0.0)
 			{
-				double xfMin = binEdges[is_[k] + k + i] * bpi;
-				double xfMax = binEdges[is_[k] + k + i + 1] * bpi;
+				double xfMin = binEdges[i + j] * bpi;
+				double xfMax = binEdges[i + j + 1] * bpi;
 
 				ii xMin = (ii)floor(xfMin);
 				ii xMax = ((ii)ceil(xfMax)) + order;
@@ -130,48 +123,37 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 
 					acoo.push_back(b);
 					rowind.push_back(i);
-					colind.push_back(x - gridInfo().offset[0]);
+					colind.push_back(j * gridInfo().extent[0] + (x - gridInfo().offset[0]));
 				}
+                
+                nnzRows_++;
 			}
 		}
-
-		// create A
-		as_[k].init(ms[k], gridInfo().extent[0], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-        aTs_[k].init(gridInfo().extent[0], ms[k], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
 
 		// display progress update
-		#pragma omp critical
-		{
-			done++;
-			if (done % 100 == 0)
-			{
-				for (int i = 0; i < 256; ++i) cout << '\b';
-				cout << getIndex() << " BasisBsplineMz " << setw(1 + (int)(log10((float)as_.size()))) << done << "/" << as_.size() << " " << flush;
-			}
-		}
+        done++;
+        if (done % 100 == 0)
+        {
+            for (int i = 0; i < 256; ++i) cout << '\b';
+            cout << getIndex() << " BasisBsplineMz " << setw(1 + (int)(log10((float)js_.size() - 1))) << done << "/" << (js_.size() - 1) << " " << flush;
+        }
 	}
 	for (int i = 0; i < 256; ++i) cout << '\b';
     
-    for (ii k = 0; k < (ii)as_.size(); k++) nnzRows_ += as_[k].n();
-
+    // create A
+    aT_.init((js_.size() - 1) * gridInfo().extent[0], js_[js_.size() - 1], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+    a_.init(js_[js_.size() - 1], (js_.size() - 1) * gridInfo().extent[0], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+    
 #ifndef NDEBUG
-	li m = 0; for (ii k = 0; k < (ii)as_.size(); k++) m += as_[k].m();
-	li n = 0; for (ii k = 0; k < (ii)as_.size(); k++) n += as_[k].n();
-	li nnz = 0; for (ii k = 0; k < (ii)as_.size(); k++) nnz += as_[k].nnz();
-	li mem = 0; for (ii k = 0; k < (ii)as_.size(); k++) mem += as_[k].mem();
-	cout << "  range=" << setprecision(3) << mzMin << ":";
+	cout << "  range=" << fixed << setprecision(3) << mzMin << ":";
     cout.unsetf(std::ios::floatfield);
     cout << mzDiff << ":" << fixed << mzMax << "Th";
 	cout << " scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)";
     cout.unsetf(ios::floatfield);
 	cout << " " << gridInfo();
-	cout << " mem=" << fixed << setprecision(2) << (2 * mem) / 1024.0 / 1024.0 << "Mb" << endl;
-	cout << "  A{" << m << "," << n << "}:" << nnz << "/" << m * n << "=";
-	cout << setprecision(2) << nnz / (double)(m * n) << "%";
-	cout.unsetf(ios::floatfield); 
 	cout << endl;
 #endif
-
+    
 	if (scaleAuto != scale)
 	{
 		cerr << endl << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
@@ -187,89 +169,50 @@ BasisBsplineMz::~BasisBsplineMz()
 void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineMz::synthesis[" << 0 << "]" << endl;
+	cout << " " << getIndex() << " BasisBsplineMz::synthesis" << endl;
 #endif
     
-	f.mul(accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO, x, MatrixSparse::Transpose::NO, aTs_[0]);
+    MatrixSparse t;
+    t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
     
-	/*if (!f) f.init(is_.back(), 1);
-
-#ifdef NDEBUG
-	# pragma omp parallel for
-#endif
-	for (ii k = 0; k < (ii)as_.size(); k++)
-	{
-		Matrix fSub; fSub.init(f, is_[k], 0, as_[k].m(), 1);
-		Matrix xSub; xSub.init(x, k * as_[k].n(), 0, as_[k].n(), 1);
-
-#ifndef NDEBUG
-		cout << " " << getIndex() << " BasisBsplineMz::synthesis[" << k << "]" << endl;
-#endif
-
-		fSub.mul(as_[k], xSub, accumulate, false, false);
-	}*/
+	f.mul(accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO, t, MatrixSparse::Transpose::NO, aT_);
 }
 
 
 void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineMz::analysis[" << 0 << "]" << endl;
+	cout << " " << getIndex() << " BasisBsplineMz::analysis" << endl;
 #endif
 
+    MatrixSparse t;
+    
 	if (sqrA)
 	{
-		MatrixSparse t;
-		t.copy(as_[0]);
-		t.elementwiseSqr();
-		xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, t);
+		MatrixSparse aSqr;
+		aSqr.copy(a_);
+		aSqr.elementwiseSqr();
+		t.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, aSqr);
 	}
 	else
 	{
-		xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, as_[0]);
+		t.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, a_);
 	}
-
-	/*if (!xE)
-	{
-		xE.init(getGridInfo().n, getGridInfo().m());
-	}
-
-#ifdef NDEBUG
-	# pragma omp parallel for
-#endif
-	for (ii k = 0; k < (ii)as_.size(); k++)
-	{
-		Matrix xESub; xESub.init(xE, k * as_[k].n(), 0, as_[k].n(), 1);
-		Matrix fESub; fESub.init(fE, is_[k], 0, as_[k].m(), 1);
-
-#ifndef NDEBUG
-		cout << " " << getIndex() << " BasisBsplineMz::analysis[" << k << "]" << endl;
-#endif
-
-		if (sqrA)
-		{
-			MatrixSparse aSqrd;
-			aSqrd.elementwiseSqr(as_[k]);
-			xESub.mul(aSqrd, fESub, false, true, false);
-		}
-		else
-		{
-			xESub.mul(as_[k], fESub, false, true, false);
-		}
-	}*/
+    
+    xE.copy(t, MatrixSparse::Operation::PACK_ROWS);
 }
 
 
 void BasisBsplineMz::deleteRows(const MatrixSparse& x, ii threshold)
 {
-    if(nnzRows_ - x.nnz() >= threshold)
+    /*if(nnzRows_ - x.nnz() >= threshold)
     {
         // delete rows in aTs we don't need anymore
-        aTs_[0].deleteRows(x);
-        as_[0].copy(aTs_[0], MatrixSparse::Transpose::YES);
+        aT_.deleteRows(x);
+        a_.copy(aT_, MatrixSparse::Operation::TRANSPOSE);
         
         nnzRows_ = x.nnz();
-    }
+    }*/
 }
 
 

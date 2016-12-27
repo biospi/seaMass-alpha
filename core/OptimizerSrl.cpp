@@ -30,7 +30,7 @@
 using namespace std;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), debugLevel_(debugLevel), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), debugLevel_(debugLevel), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
 #ifndef NDEBUG
 	cout << "Init Optimizer SRL..." << endl;
@@ -46,7 +46,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 		if (i == 0)
 		{
 			MatrixSparse t;
-			t.init(b_.m(), b_.n(), (fp)1.0);
+            t.copy(b);
+            t.set((fp)1.0);
 			bases_[i]->analysis(l2s_[0], t, true);
 		}
 		else
@@ -76,7 +77,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 		if (i == 0)
 		{
 			MatrixSparse t;
-			t.init(b_.m(), b_.n(), (fp)1.0);
+            t.copy(b);
+            t.set((fp)1.0);
 			bases_[i]->analysis(l1l2sPlusLambda_[0], t, false);
 		}
 		else
@@ -95,10 +97,13 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             l1l2sPlusLambda_[i].free();
 		}
 	}
+    
+    // now make 'b_' 'b' but with zeros removed
+    b_.copy(b, 0.0);
 
 	// initialise starting estimate of 'x' from analysis of 'b'
 #ifndef NDEBUG
-	cout << " Init xs from G" << endl;
+	cout << " Init xs from B" << endl;
 #endif
 	double sumX = 0.0;
 	xs_.resize(bases_.size());

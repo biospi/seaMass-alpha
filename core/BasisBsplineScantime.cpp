@@ -32,9 +32,15 @@
 using namespace std;
 
 
-/*BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-	const std::vector<fp>& exposures, short resolution, ii order, bool transient) : BasisBspline(bases, 2, transient, parentIndex)
+BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
+                                           const std::vector<fp>& exposures, short scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
 {
+#ifndef NDEBUG
+    cout << " " << getIndex() << " BasisBsplineScantime";
+    if (getTransient() == Basis::Transient::YES) cout << " (t)";
+    cout << endl;
+#endif
+    
 	double scantimeMin = startTimes.front();
 	double scantimeMax = finishTimes.back();
 
@@ -43,17 +49,18 @@ using namespace std;
 	{
 		double diff = 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
 		scantimeDiff = diff < scantimeDiff ? diff : scantimeDiff;
+        cout << setprecision(20) << startTimes[j] << ":" << finishTimes[j] << ":" << diff << endl;
 	}
 
-	ii resolutionAuto = (ii)floor(log2(1.0 / scantimeDiff));
-	if (resolution == numeric_limits<short>::max())
+	ii scaleAuto = (ii)floor(log2(1.0 / scantimeDiff));
+	if (scale == numeric_limits<short>::max())
 	{
-		resolution = resolutionAuto;
-		cout << "Autodetected st_resolution=" << resolution << endl;
+		scale = scaleAuto;
+		cout << "Autodetected st_scale=" << scale << endl;
 	}
 
 	// Bases per second
-	double bpi = pow(2.0, (double)resolution);
+	double bpi = pow(2.0, (double)scale);
 
 	// fill in b-spline grid info
 	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
@@ -61,7 +68,7 @@ using namespace std;
 	gridInfo().scale[0] = parentGridInfo.scale[0];
 	gridInfo().offset[0] = parentGridInfo.offset[0];
 	gridInfo().extent[0] = parentGridInfo.extent[0];
-	gridInfo().scale[1] = resolution;
+	gridInfo().scale[1] = scale;
 	gridInfo().offset[1] = (ii)floor(scantimeMin * bpi);
 	gridInfo().extent[1] = ((ii)ceil(scantimeMax * bpi)) + order - gridInfo().offset[1];
 	ii m = parentGridInfo.n;
@@ -102,24 +109,20 @@ using namespace std;
 	// create 'a' and 'aT'
 	a_.init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
 	aT_.init(n, m, (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
-
+ 
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScantime";
-	if (isTransient()) cout << " (t)";
-	cout << " parent=" << getParentIndex();
-	cout << " range=" << setprecision(3) << fixed << scantimeMin << ":";
-	cout.unsetf(ios::floatfield); 
-	cout << scantimeDiff << ":" << fixed << scantimeMax << "s";
-	cout << " resolution=" << fixed << setprecision(1) << resolution << " (" << bpi << " bases per second)";
-	cout << " " << gridInfo() << endl;
-	cout << "  A" << a_ << " (";
-	cout.unsetf(ios::floatfield); 
-	cout << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
+    cout << "  parent=" << getParentIndex() << " range=" << fixed << setprecision(3) << scantimeMin << ":";
+    cout.unsetf(std::ios::floatfield);
+    cout << scantimeDiff << ":" << fixed << scantimeMax << "Th";
+    cout << " scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second) ";
+    cout.unsetf(ios::floatfield);
+    cout << gridInfo() << " mem=";
+    cout << fixed << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
 #endif
-	
-	if (resolutionAuto != resolution)
+
+	if (scaleAuto != scale)
 	{
-		cerr << endl << "WARNING: resolution is not the suggested value of " << resolutionAuto << ". Continue at your own risk!" << endl << endl;
+		cerr << endl << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
 	}
 }
 
@@ -129,34 +132,44 @@ BasisBsplineScantime::~BasisBsplineScantime()
 }
 
 
-void
-BasisBsplineScantime::
-synthesis(Matrix& f, const Matrix& x, bool accumulate) const
+void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
 #endif
 
-	f.mul(a_, x, accumulate, false, false);
+    f.mul(accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO, x, MatrixSparse::Transpose::YES, aT_);
 }
 
 
-void
-BasisBsplineScantime::
-analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
+void BasisBsplineScantime::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScantime::analysis" << endl;
 #endif
+    
+    if (sqrA)
+    {
+        MatrixSparse t;
+        t.copy(a_);
+        t.elementwiseSqr();
+        xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::YES, t);
+    }
+    else
+    {
+        xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::YES, a_);
+    }
+}
 
-	if (sqrA)
-	{
-		MatrixSparse aTSqrd;
-		aTSqrd.elementwiseSqr(aT_);
-		xE.mul(aTSqrd, fE, false, false, false);
-	}
-	else
-	{
-		xE.mul(aT_, fE, false, false, false);
-	}
-}*/
+
+void BasisBsplineScantime::deleteRows(const MatrixSparse& x, ii threshold)
+{
+    /*if(nnzRows_ - x.nnz() >= threshold)
+     {
+     // delete rows in aTs we don't need anymore
+     aT_.deleteRows(x);
+     a_.copy(aT_, MatrixSparse::Operation::TRANSPOSE);
+     
+     nnzRows_ = x.nnz();
+     }*/
+}

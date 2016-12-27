@@ -137,59 +137,6 @@ void MatrixSparse::init(ii m, ii n)
 }
 
 
-void MatrixSparse::init(ii m, ii n, fp v)
-{
-#ifndef NDEBUG
-    cout << "  " << v << " := " << flush;
-#endif
-    
-    free();
-    
-    m_ = m;
-    n_ = n;
-    isEmpty_ = false;
-    
-    is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
-    is1_ = is0_ + 1;
-    js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * size(), 64));
-    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * size(), 64));
-    assert(size() > 0);
-    
-    for (ii i = 0; i <= m_; i++) is0_[i] = i * n_;
-    for (ii i = 0; i < m_; i++) for (ii j = 0; j < n_; j++) js_[j + i * n_] = j;
-    for (ii nz = 0; nz < size(); nz++) vs_[nz] = v;
-    
-    mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-    isMklData_ = false;
-    
-#ifndef NDEBUG
-    cout << "X" << *this << endl;
-#endif
-}
-
-
-void MatrixSparse::init(ii m, ii n, const fp* vs)
-{
-    vector<fp> acoo;
-    vector<ii> rowind;
-    vector<ii> colind;
-    for (ii i = 0; i < m; i++)
-    {
-        for (ii j = 0; j < n; j++)
-        {
-            if (vs[j + i*n] != 0.0)
-            {
-                acoo.push_back(vs[j + i*n]);
-                rowind.push_back(i);
-                colind.push_back(j);
-            }
-        }
-    }
-    
-    init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-}
-
-
 void MatrixSparse::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind)
 {
 #ifndef NDEBUG
@@ -220,41 +167,34 @@ void MatrixSparse::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, co
 }
 
 
-void MatrixSparse::copy(const MatrixSparse& a, Transpose transpose)
+void MatrixSparse::set(fp v)
 {
 #ifndef NDEBUG
-    cout << "  A" << (transpose == Transpose::NO ? "" : "t") << a << " := " << flush;
+    cout << "  (X" << *this << " != 0.0) ? " << v << " : 0.0 := " << flush;
+#endif
+    
+    for (ii nz = 0; nz < nnz(); nz++)
+    {
+        vs_[nz] = v;
+    }
+    
+#ifndef NDEBUG
+    cout << "X" << *this << endl;
+#endif
+}
+
+
+void MatrixSparse::copy(const MatrixSparse& a, Operation operation)
+{
+#ifndef NDEBUG
+    cout << "  " << (operation == Operation::PACK_ROWS ? "pack(" : "") << (operation == Operation::UNPACK_ROWS ? "unpack(" : "");
+    cout << "A" << (operation == Operation::TRANSPOSE ? "t" : "") << a;
+    cout << (operation == Operation::PACK_ROWS || operation == Operation::UNPACK_ROWS ? ")" : "") << " := " << flush;
 #endif
     
     free();
-
-    if (transpose == Transpose::NO)
-    {
-        if (a.isEmpty_)
-        {
-            init(a.m_, a.n_);
-        }
-        else
-        {
-            m_ = a.m_;
-            n_ = a.n_;
-            isEmpty_ = false;
-            
-            is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a.m_ + 1), 64));
-            is1_ = is0_ + 1;
-            js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * a.is0_[m_], 64));
-            vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * a.is0_[m_], 64));
-            assert(a.is0_[m_] > 0);
-            
-            memcpy(is0_, a.is0_, sizeof(ii) * (a.m_ + 1));
-            memcpy(js_, a.js_, sizeof(ii) * a.is0_[m_]);
-            memcpy(vs_, a.vs_, sizeof(fp) * a.is0_[m_]);
-            
-            mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-            isMklData_ = false;
-        }
-    }
-    else
+    
+    if (operation == Operation::TRANSPOSE)
     {
         if (a.isEmpty_)
         {
@@ -270,6 +210,60 @@ void MatrixSparse::copy(const MatrixSparse& a, Transpose transpose)
             isMklData_ = true;
         }
     }
+    else
+    {
+        if (a.isEmpty_)
+        {
+            init(a.m_, a.n_);
+        }
+        else
+        {
+            m_ = a.m_;
+            isEmpty_ = false;
+            
+            is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a.m_ + 1), 64));
+            is1_ = is0_ + 1;
+            js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * a.is0_[m_], 64));
+            vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * a.is0_[m_], 64));
+            
+            memcpy(is0_, a.is0_, sizeof(ii) * (a.m_ + 1));
+            memcpy(vs_, a.vs_, sizeof(fp) * a.is0_[m_]);
+
+            if (operation == Operation::PACK_ROWS)
+            {
+                n_ = a.n_ / a.m_;
+                for (ii i = 0; i < a.m_; i++)
+                {
+                    for (ii nnz = a.is0_[i]; nnz < a.is1_[i]; nnz++)
+                    {
+                        js_[nnz] = a.js_[nnz] % n_;
+                    }
+                }
+            }
+            else if (operation == Operation::UNPACK_ROWS)
+            {
+                n_ = a.n_ * a.m_;
+                for (ii i = 0; i < a.m_; i++)
+                {
+                    for (ii nnz = a.is0_[i]; nnz < a.is1_[i]; nnz++)
+                    {
+                        //cout << i << "," << a.js_[nnz] << ":" << a.vs_[nnz] << " -> " << flush;
+                        js_[nnz] = a.js_[nnz] + i * a.n_;
+                        //cout << i << "," << js_[nnz] << ":" << vs_[nnz] << endl;
+                    }
+                }
+            }
+            else
+            {
+                n_ = a.n_;
+                memcpy(js_, a.js_, sizeof(ii) * a.is0_[m_]);
+            }
+
+            mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
+            isMklData_ = false;
+        }
+        
+    }
 
 #ifndef NDEBUG
 	cout << "X" << *this << endl;
@@ -281,7 +275,7 @@ void MatrixSparse::copy(const MatrixSparse& a, Transpose transpose)
 void MatrixSparse::copy(const MatrixSparse& a, fp pruneThreshold)
 {
 #ifndef NDEBUG
-	cout << "  (A" << a << " >= ";
+	cout << "  (A" << a << " > ";
 	cout.unsetf(ios::floatfield);
 	cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 := " << flush;
 #endif
@@ -318,7 +312,7 @@ void MatrixSparse::copy(const MatrixSparse& a, fp pruneThreshold)
         {
             while (a_nz >= a.is1_[a_i]) a_i++; // row of nz'th non-zero in a
             
-            if (a.vs_[a_nz] >= pruneThreshold)
+            if (a.vs_[a_nz] > pruneThreshold)
             {
                 is1_[a_i]++;
                 js_[nz] = a.js_[a_nz];
@@ -362,7 +356,7 @@ void MatrixSparse::output(fp* vs) const
     }
     
 #ifndef NDEBUG
-    cout << "out" << flush;
+    cout << "out" << endl;
 #endif
 }
 
@@ -699,10 +693,10 @@ void MatrixSparse::subsetElementwiseCopy(const MatrixSparse& a)
 void MatrixSparse::subsetElementwiseDiv(const MatrixSparse& a)
 {
 #ifndef NDEBUG
-    cout << "  X" << *this << " / subset(" << a << ") := " << flush;
+    cout << "  X" << *this << " / subset(A" << a << ") := " << flush;
 #endif
     
-    if (!isEmpty_)
+    if (!isEmpty_ && !a.isEmpty_)
     {
         ii i = 0;
         ii a_i = 0;

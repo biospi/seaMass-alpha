@@ -51,9 +51,8 @@ public:
     void free();
 
 	void init(ii m, ii n); // create empty matrix
-    void init(ii m, ii n, fp v); // create dense matrix of constant 'v'
-    void init(ii m, ii n, const fp* vs); // create dense matrix from 'vs'
 	void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind); // create from COO matrix
+    void set(fp v); // set all non-zeros to constant 'v'
     
     ii m() const;
     ii n() const;
@@ -61,8 +60,8 @@ public:
     ii nnz() const;
     li mem() const;
   
-    enum class Transpose { NO, YES };
-    void copy(const MatrixSparse& a, Transpose transpose = Transpose::NO);
+    enum class Operation { NONE, TRANSPOSE, PACK_ROWS, UNPACK_ROWS };
+    void copy(const MatrixSparse& a, Operation operation = Operation::NONE);
     void copy(const MatrixSparse& a, fp pruneThreshold);
     void output(fp* vs) const;
 
@@ -70,6 +69,7 @@ public:
 
     // generalised sparse matrix multiplication
 	enum class Accumulate { NO, YES };
+    enum class Transpose { NO, YES };
 	void mul(Accumulate accumulate, const MatrixSparse& a, Transpose transposeX, const MatrixSparse& b);
 
     // elementwise operations

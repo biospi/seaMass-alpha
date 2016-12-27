@@ -86,7 +86,6 @@ public:
 private:
 	void init(Input& input, const std::vector<short>& scales);
 
-	MatrixSparse b_;
 	short dimensions_;
 	std::vector<Basis*> bases_;
 	Optimizer* inner_optimizer_;

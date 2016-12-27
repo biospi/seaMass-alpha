@@ -43,7 +43,7 @@ public:
 
 private:
 	const std::vector<Basis*>& bases_;
-	const MatrixSparse& b_;
+	MatrixSparse b_;
 	fp pruneThreshold_;
 
 	fp lambda_;

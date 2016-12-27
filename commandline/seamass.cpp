@@ -171,8 +171,9 @@ int main(int argc, char **argv)
 		while (sm.step());
 
 		// write seaMass outputBinCounts to new mzMLb file 
-		vector<fp> outputBinCounts; 
-		sm.getOutputBinCounts(outputBinCounts); // retrieve seaMass processed outputBinCounts 
+		vector<fp> outputBinCounts(input.binCounts.size());
+        cout << outputBinCounts.size() << endl;
+		sm.getOutputBinCounts(outputBinCounts); // retrieve seaMass processed outputBinCounts
 		// convert ion counts into ion density (counts per Th) and scale by exposures
 		if (input.exposures.size() > 0)
 		{
@@ -197,13 +198,13 @@ int main(int argc, char **argv)
 			}
 		}
 		outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
-
+        
 		// write SMV file
 		ostringstream oss;
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
 		HDF5Writer smv(oss.str());
 		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
-		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts 
+		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts
 		for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
 		smv.write_input(input); // write residuals to smv
 		// write RTree
@@ -230,6 +231,8 @@ int main(int argc, char **argv)
 		rtree.read(loaded);
 		cout << "Number of saved bases: " << output.weights.size() << endl;
 		cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
+        
+        exit(0);
 	}
 
     vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();

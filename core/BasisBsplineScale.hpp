@@ -35,7 +35,7 @@ public:
 
 	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
 	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
-    virtual void deleteRows(const MatrixSparse& x, ii threshold);
+    void deleteRows(const MatrixSparse& x, ii threshold);
 
 private:
 	MatrixSparse a_;

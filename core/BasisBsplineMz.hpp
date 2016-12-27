@@ -36,12 +36,13 @@ public:
 
 	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
 	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
-    virtual void deleteRows(const MatrixSparse& x, ii threshold);
+    void deleteRows(const MatrixSparse& x, ii threshold);
 
 private:
-	std::vector<MatrixSparse> as_; // CSR sparse 'A' basis matrices
-    std::vector<MatrixSparse> aTs_; // CSR sparse 'A' basis matrices
-	std::vector<li> is_; // spectrum_index into 'g'
+	MatrixSparse a_;
+    MatrixSparse aT_;
+    
+	std::vector<li> js_; // indicies to start of each spectrum
     
     ii nnzRows_;
 };

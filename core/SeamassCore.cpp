@@ -98,32 +98,63 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
 		}
 	}
-	/*else
+	else
 	{
 		dimensions_ = 2;
 
-		BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], order, true);
-		Basis* previousBasis = new BasisBsplineScantime(bases_, basisMz->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], order);
-		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > order + 1)
+        Basis* basisMz = new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::YES);
+		Basis* previousBasis = new BasisBsplineScantime(bases_, basisMz->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], Basis::Transient::NO);
+		/*while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
 		{
 			new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
 		}
 
-		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > order + 1)
+		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4)
 		{
 			previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, order);
-			while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > order + 1)
+			while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
 			{
 				new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
 			}
-		}
-	}*/
+		}*/
+	}
 
-	// Initialize the optimizer
-	b_.init(1, (ii)input.binCounts.size(), input.binCounts.data());
-	
-	//inner_optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
-	optimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
+	// Initialize input data
+#ifndef NDEBUG
+    cout << "Init B..." << endl;
+#endif
+    MatrixSparse b;
+    {
+        vector<fp> acoo;
+        vector<ii> rowind;
+        vector<ii> colind;
+        if (input.spectrumIndex.size() == 0)
+        {
+            for (ii j = 0; j < input.binCounts.size(); j++)
+            {
+                acoo.push_back(input.binCounts[j]);
+                rowind.push_back(0);
+                colind.push_back(j);
+            }
+            b.init(1, input.binCounts.size(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+        }
+        else
+        {
+            for (ii i = 0; i < input.spectrumIndex.size() - 1; i++)
+            {
+                for (ii j = input.spectrumIndex[i]; j < input.spectrumIndex[i + 1]; j++)
+                {
+                    acoo.push_back(input.binCounts[j]);
+                    rowind.push_back(i);
+                    colind.push_back(j);
+                }
+            }
+            b.init(input.spectrumIndex.size() - 1, input.binCounts.size(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+        }
+    }
+    
+	//inner_optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
+	optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
 	//optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
 	optimizer_->init((fp)shrinkage_);
 }
@@ -257,8 +288,7 @@ void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 
 	MatrixSparse f;
 	optimizer_->synthesis(f);
-	binCounts.resize(b_.size());
-	f.output(binCounts.data());
+	//f.output(binCounts.data());
 }
 
 
@@ -272,12 +302,12 @@ void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 
 	MatrixSparse c;
 	optimizer_->synthesis(c, dimensions_ - 1);
-	controlPoints.coeffs.resize(meshInfo.size());
+	/*controlPoints.coeffs.resize(meshInfo.size());
 	c.output(controlPoints.coeffs.data());
 
 	controlPoints.scale = meshInfo.scale;
 	controlPoints.offset = meshInfo.offset;
-	controlPoints.extent = meshInfo.extent;
+	controlPoints.extent = meshInfo.extent;*/
 }
 
 
