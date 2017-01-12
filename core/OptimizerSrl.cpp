@@ -346,7 +346,7 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 	vector<MatrixSparse> ts(bases_.size());
 	for (ii i = (ii)bases_.size() - 1; i >= 0; i--)
 	{
-		if (!ts[i].m() && bases_[i]->getTransient() == Basis::Transient::NO)
+		if (/*!ts[i].m() && */bases_[i]->getTransient() == Basis::Transient::NO)
 		{
             ts[i].copy(xs_[i]);
 			ts[i].elementwiseDiv(l2s_[i]);
@@ -362,14 +362,14 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 		if (i > 0)
 		{
 			ii pi = bases_[i]->getParentIndex();
-			if (!ts[pi].m() && bases_[i]->getTransient() == Basis::Transient::NO)
+			if (/*!ts[pi].m() && */bases_[pi]->getTransient() == Basis::Transient::NO)
 			{
                 ts[pi].copy(xs_[pi]);
 				ts[pi].elementwiseDiv(l2s_[pi]);
 			}
 
             bases_[i]->deleteRows(ts[i], 100000);
-			bases_[i]->synthesis(ts[pi], ts[i], true);
+			bases_[i]->synthesis(ts[pi], ts[i], bases_[pi]->getTransient() == Basis::Transient::NO);
 		}
 		else
 		{

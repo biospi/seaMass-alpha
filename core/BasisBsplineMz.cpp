@@ -34,13 +34,12 @@ using namespace std;
 
 
 BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
-	                           const std::vector<
-                               double>& binEdges, short scale, Transient transient, int order)
+                               const std::vector<double>& binEdges, short scale, Transient transient, int order)
 	: BasisBspline(bases, 1, transient), nnzRows_(0)
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineMz";
-    if (getTransient() == Transient::YES) cout << " (t)";
+    if (getTransient() == Transient::YES) cout << " (transient)";
 	cout << endl;
 #endif
 
@@ -84,7 +83,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	double bpi = pow(2.0, (double)scale) * 60 / 1.0033548378;
 
 	// fill in b-spline grid info
-	gridInfo().n = (ii)js_.size() - 1;
+	gridInfo().count = (ii)js_.size() - 1;
 	gridInfo().scale[0] = scale;
 	gridInfo().offset[0] = (ii)floor(mzMin * bpi);
 	gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
@@ -141,8 +140,8 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	for (int i = 0; i < 256; ++i) cout << '\b';
     
     // create A
-    aT_.init((js_.size() - 1) * gridInfo().extent[0], js_[js_.size() - 1], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
-    a_.init(js_[js_.size() - 1], (js_.size() - 1) * gridInfo().extent[0], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+    a_.init(js_[js_.size() - 1], getGridInfo().n() * getGridInfo().count, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+    aT_.init(getGridInfo().n() * getGridInfo().count, js_[js_.size() - 1], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
     
 #ifndef NDEBUG
 	cout << "  range=" << fixed << setprecision(3) << mzMin << ":";
@@ -173,9 +172,18 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
 #endif
     
     MatrixSparse t;
-    t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
+    if (x.isTransposed())
+    {
+        MatrixSparse t2;
+        t2.copy(x, MatrixSparse::Operation::TRANSPOSE);
+        t.copy(t2, MatrixSparse::Operation::UNPACK_ROWS);
+    }
+    else
+    {
+        t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
+    }
     
-	f.mul(accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO, t, MatrixSparse::Transpose::NO, aT_);
+	f.mul(false, t, aT_, accumulate, false);
 }
 
 
@@ -192,11 +200,11 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 		MatrixSparse aSqr;
 		aSqr.copy(a_);
 		aSqr.elementwiseSqr();
-		t.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, aSqr);
+		t.mul(false, fE, aSqr, false, false);
 	}
 	else
 	{
-		t.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::NO, a_);
+		t.mul(false, fE, a_, false, false);
 	}
     
     xE.copy(t, MatrixSparse::Operation::PACK_ROWS);

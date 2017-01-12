@@ -65,11 +65,11 @@ int main(int argc, char **argv)
 			"m/z resolution given as: \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\" "
 			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
 			"default: auto")
-		("st_scale,r", po::value<short>(&scales[1])->default_value(numeric_limits<short>::max()),
+		("st_scale,s", po::value<short>(&scales[1])->default_value(numeric_limits<short>::max()),
 			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
 			"guidelines: around 4, "
 			"default: auto")
-		("shrinkage,s", po::value<int>(&shrinkageExponent)->default_value(0), ""
+		("lambda,l", po::value<int>(&shrinkageExponent)->default_value(0), ""
 			"Amount of denoising given as: \"L1 lambda = 2^shrinkage\" "
 			"guidelines: around 0, "
 			"default: 0")

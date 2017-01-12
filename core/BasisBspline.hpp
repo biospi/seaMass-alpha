@@ -36,13 +36,14 @@ public:
 		std::vector<short> scale; // dyadic scale for each dimension
 		std::vector<ii> offset;   // coefficient offset for each dimension
 		std::vector<ii> extent;   // number of coefficients for each dimension (make up the columns)
-		ii n;                     // number of grids (columns in resulting matrix)
+		ii count;                 // number of grids
 
 		GridInfo(short dimensions_);
 		~GridInfo();
 
-		ii m() const;           // number of coefficients in a grid (rows in resulting matrix)
-		li size() const;        // number of coefficients across all grides
+		ii m() const;           // number of rows in resulting matrix
+        ii n() const;           // number of columns in resulting matrix
+		li size() const;        // number of coefficients across all grids
 
 		void operator=(const GridInfo& gridInfo);
 	};

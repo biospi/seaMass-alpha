@@ -83,43 +83,9 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	// for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
 	// this is conservative, 4 times might be ok, but 2 times isn't enough
 	//merge_bins(mzs, intensities, 0.125 / rc_mz);
-
-	////////////////////////////////////////////////////////////////////////////////////
-	// INIT BASIS FUNCTIONS
-
-	// Create our tree of bases
-	if (input.spectrumIndex.size() <= 2)
-	{
-		dimensions_ = 1;
-
-		new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::NO);
-		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
-		{
-            new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
-		}
-	}
-	else
-	{
-		dimensions_ = 2;
-
-        Basis* basisMz = new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::YES);
-		Basis* previousBasis = new BasisBsplineScantime(bases_, basisMz->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], Basis::Transient::NO);
-		/*while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
-		{
-			new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
-		}
-
-		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4)
-		{
-			previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, order);
-			while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
-			{
-				new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, order);
-			}
-		}*/
-	}
-
-	// Initialize input data
+    
+    
+    // Initialize input data
 #ifndef NDEBUG
     cout << "Init B..." << endl;
 #endif
@@ -132,9 +98,12 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
         {
             for (ii j = 0; j < input.binCounts.size(); j++)
             {
-                acoo.push_back(input.binCounts[j]);
-                rowind.push_back(0);
-                colind.push_back(j);
+                if (input.binCounts[j] != 0.0)
+                {
+                    acoo.push_back(input.binCounts[j]);
+                    rowind.push_back(0);
+                    colind.push_back(j);
+                }
             }
             b.init(1, input.binCounts.size(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
         }
@@ -144,14 +113,59 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             {
                 for (ii j = input.spectrumIndex[i]; j < input.spectrumIndex[i + 1]; j++)
                 {
-                    acoo.push_back(input.binCounts[j]);
-                    rowind.push_back(i);
-                    colind.push_back(j);
+                    if (input.binCounts[j] != 0.0)
+                    {
+                        acoo.push_back(input.binCounts[j]);
+                        rowind.push_back(i);
+                        colind.push_back(j);
+                    }
                 }
             }
             b.init(input.spectrumIndex.size() - 1, input.binCounts.size(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
         }
     }
+    
+
+	////////////////////////////////////////////////////////////////////////////////////
+	// INIT BASIS FUNCTIONS
+
+	// Create our tree of bases
+	if (input.spectrumIndex.size() <= 2)
+	{
+		dimensions_ = 1;
+
+        new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::NO);
+        
+		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
+		{
+            new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
+		}
+	}
+	else
+	{
+		dimensions_ = 2;
+
+        new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::YES);
+        Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], Basis::Transient::NO);
+        //for (ii i = 0; i < 2; i++) new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, Basis::Transient::NO);
+ 
+        /*for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4; i++)
+        {
+        }*/
+        
+        /*for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4; i++)
+        {
+            if (i > 0)
+            {
+                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, Basis::Transient::NO);
+            }
+            
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
+            {
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
+            }
+        }*/
+	}
     
 	//inner_optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
 	optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
@@ -302,12 +316,12 @@ void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 
 	MatrixSparse c;
 	optimizer_->synthesis(c, dimensions_ - 1);
-	/*controlPoints.coeffs.resize(meshInfo.size());
+	controlPoints.coeffs.resize(meshInfo.size());
 	c.output(controlPoints.coeffs.data());
 
 	controlPoints.scale = meshInfo.scale;
 	controlPoints.offset = meshInfo.offset;
-	controlPoints.extent = meshInfo.extent;*/
+	controlPoints.extent = meshInfo.extent;
 }
 
 

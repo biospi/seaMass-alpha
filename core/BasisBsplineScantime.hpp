@@ -39,6 +39,7 @@ public:
     void deleteRows(const MatrixSparse& x, ii threshold);
 
 private:
+    bool parentTransposed_;
 	MatrixSparse a_;
 	MatrixSparse aT_;
 };

@@ -246,13 +246,13 @@ write_output_control_points(const SeamassCore::ControlPoints& controlPoints) con
 	hsize_t size = dims.size();
     hid_t scale_fspace = H5Screate_simple(1, &size, &size);
 	hid_t scale_attr = H5Acreate(dataset, "scale", H5T_NATIVE_INT, scale_fspace, H5P_DEFAULT, H5P_DEFAULT);
-	H5Awrite(scale_attr, H5T_NATIVE_INT, controlPoints.scale.data());
+	H5Awrite(scale_attr, H5T_NATIVE_SHORT, controlPoints.scale.data());
 	H5Sclose(scale_fspace);
 	H5Aclose(scale_attr);
 
 	hid_t offset_fspace = H5Screate_simple(1, &size, &size);
 	hid_t offset_attr = H5Acreate(dataset, "offset", H5T_NATIVE_INT, offset_fspace, H5P_DEFAULT, H5P_DEFAULT);
-	H5Awrite(offset_attr, H5T_NATIVE_INT, controlPoints.offset.data());
+	H5Awrite(offset_attr, H5T_NATIVE_LLONG, controlPoints.offset.data());
 	H5Sclose(offset_fspace);
 	H5Aclose(offset_attr);
     

@@ -32,12 +32,13 @@
 using namespace std;
 
 
+// todo: support ion mobility
 BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
                                            const std::vector<fp>& exposures, short scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
 {
 #ifndef NDEBUG
     cout << " " << getIndex() << " BasisBsplineScantime";
-    if (getTransient() == Basis::Transient::YES) cout << " (t)";
+    if (getTransient() == Basis::Transient::YES) cout << " (transient)";
     cout << endl;
 #endif
     
@@ -49,7 +50,6 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 	{
 		double diff = 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
 		scantimeDiff = diff < scantimeDiff ? diff : scantimeDiff;
-        cout << setprecision(20) << startTimes[j] << ":" << finishTimes[j] << ":" << diff << endl;
 	}
 
 	ii scaleAuto = (ii)floor(log2(1.0 / scantimeDiff));
@@ -64,15 +64,13 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 
 	// fill in b-spline grid info
 	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
-	gridInfo().n = 1;
-	gridInfo().scale[0] = parentGridInfo.scale[0];
-	gridInfo().offset[0] = parentGridInfo.offset[0];
-	gridInfo().extent[0] = parentGridInfo.extent[0];
+	gridInfo().count = 1;
+    gridInfo().scale[0] = parentGridInfo.scale[0];
+    gridInfo().offset[0] = parentGridInfo.offset[0];
+    gridInfo().extent[0] = parentGridInfo.extent[0];
 	gridInfo().scale[1] = scale;
 	gridInfo().offset[1] = (ii)floor(scantimeMin * bpi);
 	gridInfo().extent[1] = ((ii)ceil(scantimeMax * bpi)) + order - gridInfo().offset[1];
-	ii m = parentGridInfo.n;
-	ii n = gridInfo().extent[1];
     
     // populate coo matrix
     vector<fp> acoo;
@@ -106,9 +104,9 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         }
     }
 
-	// create 'a' and 'aT'
-	a_.init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-	aT_.init(n, m, (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+	// create transformation matrix 'a' and its transpose 'aT'
+	a_.init(parentGridInfo.m(), getGridInfo().m(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+	aT_.init(getGridInfo().m(), parentGridInfo.m(), (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
  
 #ifndef NDEBUG
     cout << "  parent=" << getParentIndex() << " range=" << fixed << setprecision(3) << scantimeMin << ":";
@@ -122,7 +120,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 
 	if (scaleAuto != scale)
 	{
-		cerr << endl << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
+		cerr << endl << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
 	}
 }
 
@@ -138,7 +136,7 @@ void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, boo
 	cout << " " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
 #endif
 
-    f.mul(accumulate ? MatrixSparse::Accumulate::YES : MatrixSparse::Accumulate::NO, x, MatrixSparse::Transpose::YES, aT_);
+    f.mul(true, x, aT_, accumulate, true);
 }
 
 
@@ -153,11 +151,11 @@ void BasisBsplineScantime::analysis(MatrixSparse& xE, const MatrixSparse& fE, bo
         MatrixSparse t;
         t.copy(a_);
         t.elementwiseSqr();
-        xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::YES, t);
+        xE.mul(true, fE, t, false, true);
     }
     else
     {
-        xE.mul(MatrixSparse::Accumulate::NO, fE, MatrixSparse::Transpose::YES, a_);
+        xE.mul(true, fE, a_, false, true);
     }
 }
 

@@ -53,6 +53,7 @@ public:
 	void init(ii m, ii n); // create empty matrix
 	void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind); // create from COO matrix
     void set(fp v); // set all non-zeros to constant 'v'
+    bool isTransposed() const;
     
     ii m() const;
     ii n() const;
@@ -68,9 +69,7 @@ public:
     void deleteRows(const MatrixSparse& a);
 
     // generalised sparse matrix multiplication
-	enum class Accumulate { NO, YES };
-    enum class Transpose { NO, YES };
-	void mul(Accumulate accumulate, const MatrixSparse& a, Transpose transposeX, const MatrixSparse& b);
+	void mul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate, bool transpose);
 
     // elementwise operations
 	void elementwiseAdd(fp beta);
@@ -95,16 +94,19 @@ public:
     // note: this aggregate operation ONLY considers the non-zero elements of THIS matrix
 	//double subsetSumSqrDiffs(const MatrixSparse& a) const;
 
-public:
+private:
 	ii m_;   // number of rows
 	ii n_;   // number of columns
     bool isEmpty_; // MKL doesn't like empty sparse matrices
+    bool isTransposed_;
     
     ii* is0_; ii* is1_; ii* js_; fp* vs_; // pointers to CSR array
     sparse_matrix_t mat_;
     bool isMklData_; // true if CSR arrays owned by mat_, false is owned by this object
 
-	friend class Matrix;
+    sparse_status_t status_; // last MKL function status
+    
+    friend std::ostream& operator<<(std::ostream& os, const MatrixSparse& mat);
 };
 
 std::ostream& operator<<(std::ostream& os, const MatrixSparse& mat);

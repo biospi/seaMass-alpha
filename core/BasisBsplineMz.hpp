@@ -31,7 +31,7 @@ class BasisBsplineMz : public BasisBspline
 {
 public:
 	BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
-		           const std::vector<double>& binEdges, short scale, Transient transient, int order = 3);
+                   const std::vector<double>& binEdges, short scale, Transient transient, int order = 3);
 	virtual ~BasisBsplineMz();
 
 	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;

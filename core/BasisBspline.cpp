@@ -36,7 +36,7 @@ BasisBspline::~BasisBspline()
 
 
 BasisBspline::GridInfo::GridInfo(short dimensions_)
-	: dimensions(dimensions_), scale(dimensions_), offset(dimensions_), extent(dimensions_), n(0)
+	: dimensions(dimensions_), scale(dimensions_), offset(dimensions_), extent(dimensions_), count(0)
 {
 }
 
@@ -47,7 +47,7 @@ void BasisBspline::GridInfo::operator=(const BasisBspline::GridInfo& mi)
 	scale = mi.scale;
 	offset = mi.offset;
 	extent = mi.extent;
-	n = mi.n;
+	count = mi.count;
 }
 
 
@@ -58,18 +58,24 @@ BasisBspline::GridInfo::~GridInfo()
 
 ii BasisBspline::GridInfo::m() const
 {
-	ii m = 1;
-	for (ii i = 0; i < dimensions; i++)
-	{
-		m *= extent[i];
-	}
-	return m;
+    ii m = count;
+    for (ii i = 1; i < dimensions; i++)
+    {
+        m *= extent[i];
+    }
+    return m;
+}
+
+
+ii BasisBspline::GridInfo::n() const
+{
+    return extent[0];
 }
 
 
 li BasisBspline::GridInfo::size() const
 {
-	li size = n;
+	li size = count;
 	for (ii i = 0; i < dimensions; i++)
 	{
 		size *= extent[i];
@@ -80,13 +86,13 @@ li BasisBspline::GridInfo::size() const
 
 ii BasisBspline::getM() const
 {
-	return gridInfo_.m();
+    return gridInfo_.m();
 }
 
 
 ii BasisBspline::getN() const
 {
-	return gridInfo_.n;
+    return gridInfo_.n();
 }
 
 
@@ -105,7 +111,7 @@ BasisBspline::GridInfo& BasisBspline::gridInfo()
 ostream&
 operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
 {
-	os << "gridInfo=(n=" << gridInfo.n;
+	os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]:(count=" << gridInfo.count;
 
 	os << ",scale=[";
 	for (ii i = 0; i < gridInfo.dimensions; i++)
