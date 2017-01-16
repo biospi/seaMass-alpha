@@ -98,7 +98,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
         {
             for (ii j = 0; j < input.binCounts.size(); j++)
             {
-                if (input.binCounts[j] != 0.0)
+                //if (input.binCounts[j] != 0.0)
                 {
                     acoo.push_back(input.binCounts[j]);
                     rowind.push_back(0);
@@ -113,7 +113,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             {
                 for (ii j = input.spectrumIndex[i]; j < input.spectrumIndex[i + 1]; j++)
                 {
-                    if (input.binCounts[j] != 0.0)
+                    //if (input.binCounts[j] != 0.0)
                     {
                         acoo.push_back(input.binCounts[j]);
                         rowind.push_back(i);
@@ -136,7 +136,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 
         new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::NO);
         
-		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
+		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6)
 		{
             new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
 		}
@@ -151,16 +151,12 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
  
         /*for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4; i++)
         {
-        }*/
-        
-        /*for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4; i++)
-        {
             if (i > 0)
             {
                 previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, Basis::Transient::NO);
             }
             
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[0] > 4)
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6)
             {
                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
             }
@@ -302,7 +298,7 @@ void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 
 	MatrixSparse f;
 	optimizer_->synthesis(f);
-	//f.output(binCounts.data());
+	f.output(binCounts.data());
 }
 
 

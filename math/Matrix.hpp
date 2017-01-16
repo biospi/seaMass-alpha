@@ -20,60 +20,15 @@
 //
 
 
-#ifndef _SEAMASS_MATH_MATRIX_HPP_
-#define _SEAMASS_MATH_MATRIX_HPP_
+#ifndef _SEAMASS_MATH_MATRIXMKL_HPP_
+#define _SEAMASS_MATH_MATRIXMKL_HPP_
 
 
-#include "MatrixSparse.hpp"
+#include "MatrixSparseMKL.hpp"
 
 
-/*class Matrix
-{
-public:
-	Matrix();
-	~Matrix();
-
-	void init(li m, ii n); // create matrix with storage but do not initialise
-	void init(li m, ii n, fp v); // create matrix with data all set to 'v'  
-	void init(li m, ii n, fp* vs); // create matrix using external data 'vs'
-	void init(const Matrix& a, li i, ii j, li m, ii n); // define submatrix of 'a' 
-	void free();
-
-	li m() const;
-	ii n() const;
-	li nnz() const;
-	li size() const;
-
-	//void copy(const Matrix& a);
-	//void prune(const Matrix& a, fp threshold);
-
-	//void mul(const MatrixSparse& a, const Matrix& x, bool accumulate, bool transposeA, bool transposeX);
-
-	//void elementwiseAdd(const Matrix& a, fp beta);
-	//void elementwiseMul(const Matrix& a, fp beta);
-	//void elementwiseMul(const Matrix& a, const Matrix& b);
-	//void elementwiseDiv(const Matrix& n, const Matrix& d);
-	//void elementwiseSqrt(const Matrix& a);
-	//void elementwiseLn(const Matrix& a);
-	//void elementwisePow(const Matrix& a, fp power);
-
-	//double sum() const;
-	//double sumSqrs() const;
-	//double sumSqrDiffs(const Matrix& a) const;
-
-	bool operator!() const;
-	li mem() const;
-
-	const fp* getVs() const;
-
-private:
-	li m_; // rows
-	ii n_; // columns
-	fp* vs_; // data
-	bool isOwned_; // does this object own its data?
-};
-
-std::ostream& operator<<(std::ostream& os, const Matrix& mat);*/
+typedef MatrixSparseMKL MatrixSparse;
+typedef MatrixSparseMKL Matrix;
 
 
 #endif

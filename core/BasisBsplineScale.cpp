@@ -47,7 +47,8 @@ dimension_(dimension)
 	gridInfo() = parentGridInfo;
 	gridInfo().scale[dimension_] = parentGridInfo.scale[dimension_] - 1;
 	gridInfo().offset[dimension_] = parentGridInfo.offset[dimension_] / 2;
-	gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_] - 1 - order) / 2 + order + 1 - gridInfo().offset[dimension_];
+	//gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_] - 1 - order) / 2 + order + 1 - gridInfo().offset[dimension_];
+    gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_]) / 2 + 1 - gridInfo().offset[dimension_];
     
 	ii stride = 1;
 	for (ii j = 0; j < dimension_; j++) stride *= gridInfo().extent[j];
@@ -84,6 +85,7 @@ dimension_(dimension)
 			acoo[nnz] = hs[i];
 			colind[nnz] = j;
 
+            //cout << rowind[nnz] << "," << colind[nnz] << ":" << acoo[nnz] << endl;
 			nnz++;
 		}
 	}

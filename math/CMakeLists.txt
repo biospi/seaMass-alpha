@@ -2,12 +2,13 @@ set(USE_MKL_64BIT_LIB On)
 find_package(Intel REQUIRED)
 
 set(HEADER_FILES
-	Matrix.hpp
-	MatrixSparse.hpp
+    Matrix.hpp
+	MatrixMKL.hpp
+	MatrixSparseMKL.hpp
 )
 set(SOURCE_FILES
-	Matrix.cpp
-	MatrixSparse.cpp
+	MatrixMKL.cpp
+	MatrixSparseMKL.cpp
 )
 
 add_library(seamass_math ${HEADER_FILES} ${SOURCE_FILES})

@@ -27,7 +27,7 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
 
-#include "../math/MatrixSparse.hpp"
+#include "../math/Matrix.hpp"
 #include "../io/iomath.hpp"
 #include "../io/NetCDFile.hpp"
 #include "../topdown/SeamassTopdown.hpp"
