@@ -39,8 +39,9 @@ typedef MKL_INT64 li; // li is always 64 bit
 
 
 void printNumThreads();
+void resetWallTime();
 double getWallTime();
-
+li getUsedMemory();
 
 class MatrixSparseMKL
 {
@@ -59,14 +60,15 @@ public:
     ii n() const;
     li size() const;
     ii nnz() const;
-    li mem() const;
+    //li mem() const;
   
     enum class Operation { NONE, TRANSPOSE, PACK_ROWS, UNPACK_ROWS };
     void copy(const MatrixSparseMKL& a, Operation operation = Operation::NONE);
-    void copy(const MatrixSparseMKL& a, fp pruneThreshold);
+    void prune(const MatrixSparseMKL& a, fp pruneThreshold);
     void output(fp* vs) const;
 
-    void deleteRows(const MatrixSparseMKL& a);
+    //void deleteRows(const MatrixSparseMKL& a);
+    void zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x);
 
     // generalised sparse matrix multiplication
 	void mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool transpose);

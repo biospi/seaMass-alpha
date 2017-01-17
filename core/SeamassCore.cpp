@@ -84,11 +84,8 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	// this is conservative, 4 times might be ok, but 2 times isn't enough
 	//merge_bins(mzs, intensities, 0.125 / rc_mz);
     
-    
     // Initialize input data
-#ifndef NDEBUG
-    cout << "Init B..." << endl;
-#endif
+    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising input data..." << flush;
     MatrixSparse b;
     {
         vector<fp> acoo;
@@ -124,12 +121,14 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             b.init(input.spectrumIndex.size() - 1, input.binCounts.size(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
         }
     }
-    
+    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
+
 
 	////////////////////////////////////////////////////////////////////////////////////
 	// INIT BASIS FUNCTIONS
 
 	// Create our tree of bases
+    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising overcomplete tree of basis functions..." << flush;
 	if (input.spectrumIndex.size() <= 2)
 	{
 		dimensions_ = 1;
@@ -162,11 +161,13 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             }
         }*/
 	}
+    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
     
 	//inner_optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
 	optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
 	//optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
 	optimizer_->init((fp)shrinkage_);
+
 }
 
 
@@ -185,7 +186,11 @@ bool SeamassCore::step()
 			}
 		}
 
-		cout << " it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_ << endl;
+        cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]";
+        cout.unsetf(ios::floatfield);
+        cout << " it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
+        cout << " mem: " << fixed << setprecision(3) << setw(9) << getUsedMemory()/1024.0/1024.0 << "Mb";
+        cout << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_ << endl;
 	}
 
 	iteration_++;
@@ -205,11 +210,14 @@ bool SeamassCore::step()
 				//for (ii i = 0; i < ts.size(); i++) cout << j << ":" << i << ":" << ts[i] << endl;
 			}
 		}
+        cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]";
+        cout.unsetf(ios::floatfield);
 		cout << " it: " << setw(5) << iteration_;
 		cout << " shrink: ";
 		cout.unsetf(ios::floatfield); 
 		cout << setprecision(4) << setw(6) << shrinkage_;
 		cout << " nnz: " << setw(10) << nnz;
+        cout << " mem: " << fixed << setprecision(3) << setw(9) << getUsedMemory()/1024.0/1024.0 << "Mb";
 		cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 	}
 

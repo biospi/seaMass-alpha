@@ -37,7 +37,7 @@ public:
 	virtual void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const = 0;
 	virtual void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const = 0;
 	virtual void shrinkage(MatrixSparse& y, MatrixSparse& x, const MatrixSparse& xE, const MatrixSparse& l1l2PlusLambda) const;
-    virtual void deleteRows(const MatrixSparse& x, ii threshold) = 0;
+    virtual void deleteBasisFunctions(const MatrixSparse& x, ii threshold) = 0;
 
 	virtual ii getM() const = 0;
 	virtual ii getN() const = 0;

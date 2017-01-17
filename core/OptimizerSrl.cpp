@@ -30,17 +30,12 @@
 using namespace std;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), debugLevel_(debugLevel), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), debugLevel_(debugLevel), xs_(bases_.size()), l2s_(bases_.size()), l1l2sPlusLambda_(bases_.size()), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
-#ifndef NDEBUG
-	cout << "Init Optimizer SRL..." << endl;
-#endif
+    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising Optimizer SRL..." << endl;
 
 	// compute L2 norm of each basis function and store in 'l2s'
-#ifndef NDEBUG
-	cout << " Init L2s..." << endl;
-#endif
-	l2s_.resize(bases_.size());
+    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising L2 norms..." << flush;
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -66,12 +61,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             l2s_[i].free();
 		}
 	}
+    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
 
 	// compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
-#ifndef NDEBUG
-	cout << " Init L2L1s..." << endl;
-#endif
-	l1l2sPlusLambda_.resize(bases_.size());
+    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising L1 norms of L2 norms..." << flush;
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -97,16 +90,14 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             l1l2sPlusLambda_[i].free();
 		}
 	}
+    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
     
     // now make 'b_' 'b' but with zeros removed
-    b_.copy(b, 0.0);
+    b_.prune(b, 0.0);
 
 	// initialise starting estimate of 'x' from analysis of 'b'
-#ifndef NDEBUG
-	cout << " Init xs from B" << endl;
-#endif
+    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Seeding from analysis of input..." << flush;
 	double sumX = 0.0;
-	xs_.resize(bases_.size());
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -134,7 +125,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             x.copy(xs_[i]);
             x.elementwiseDiv(l1l2PlusLambda);
             x.elementwiseMul((fp)(sumB / sumX));
-            xs_[i].copy(x, pruneThreshold);
+            xs_[i].prune(x, pruneThreshold);
             
             // remove unneeded l12sPlusLambda again (after pruning)
             MatrixSparse t;
@@ -152,16 +143,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             xs_[i].free();
 		}
 	}
+    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
     
 #ifndef NDEBUG
-	// how much memory are we using?
-	li mem = 0;
-	for (ii i = 0; i < xs_.size(); i++) mem += xs_[i].mem();
-	for (ii i = 0; i < l2s_.size(); i++) mem += l2s_[i].mem();
-	for (ii i = 0; i < l1l2sPlusLambda_.size(); i++) mem += l1l2sPlusLambda_[i].mem();
-	cout << "Sparse Richardson-Lucy mem="; 
-	cout.unsetf(ios::floatfield);
-	cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
+	cout << "Sparse Richardson-Lucy";
 #endif
 }
 
@@ -295,7 +280,7 @@ fp OptimizerSrl::step()
 		{
 			if (bases_[i]->getTransient() == Basis::Transient::NO)
 			{
-				xs_[i].copy(ys[i], pruneThreshold_);
+				xs_[i].prune(ys[i], pruneThreshold_);
                 ys[i].free();
                 
                 MatrixSparse t;
@@ -350,7 +335,7 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 		if (!ts[i].m() && bases_[i]->getTransient() == Basis::Transient::NO)
 		{
             ts[i].copy(xs_[i]);
-			ts[i].elementwiseDiv(l2s_[i]);
+			if (l2s_[i].m()) ts[i].elementwiseDiv(l2s_[i]);
 		}
 
 		if (basis == i) // return with B-spline control points
@@ -366,15 +351,15 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 			if (!ts[pi].m() && bases_[pi]->getTransient() == Basis::Transient::NO)
 			{
                 ts[pi].copy(xs_[pi]);
-				ts[pi].elementwiseDiv(l2s_[pi]);
+				if (l2s_[pi].m()) ts[pi].elementwiseDiv(l2s_[pi]);
 			}
 
-            bases_[i]->deleteRows(ts[i], 100000);
+            bases_[i]->deleteBasisFunctions(ts[i], 100000);
 			bases_[i]->synthesis(ts[pi], ts[i], bases_[pi]->getTransient() == Basis::Transient::NO);
 		}
 		else
 		{
-            bases_[0]->deleteRows(ts[0], 100000);
+            bases_[0]->deleteBasisFunctions(ts[0], 100000);
 			bases_[0]->synthesis(f, ts[0], false);
 		}
 

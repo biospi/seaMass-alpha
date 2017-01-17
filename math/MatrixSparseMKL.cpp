@@ -50,9 +50,25 @@ void printNumThreads()
 }
 
 
+static double zeroTime_ = dsecnd();
+
+
+void resetWallTime()
+{
+    zeroTime_ = dsecnd();
+}
+
+
 double getWallTime()
 {
-    return dsecnd();
+    return dsecnd() - zeroTime_;
+}
+
+
+li getUsedMemory()
+{
+    int allocatedBuffers;
+    return mkl_mem_stat(&allocatedBuffers);
 }
 
 
@@ -71,7 +87,11 @@ void MatrixSparseMKL::free()
 {
     if (!isEmpty_)
     {
-        mkl_sparse_destroy(mat_);
+#ifndef NDEBUG
+        cout << "  free(X" << *this << ")" << endl;
+#endif
+        
+        status_ = mkl_sparse_destroy(mat_); assert(!status_);
         
         if (!isMklData_)
         {
@@ -81,6 +101,10 @@ void MatrixSparseMKL::free()
         }
         
         isEmpty_ = true;
+        
+#ifndef NDEBUG
+        cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+#endif
     }
 }
 
@@ -143,10 +167,10 @@ ii MatrixSparseMKL::nnz() const
 }
 
 
-li MatrixSparseMKL::mem() const
+/*li MatrixSparseMKL::mem() const
 {
     return sizeof(*this) + sizeof(fp) * (li)nnz() + (li)sizeof(ii) * ((li)nnz() + m_ + 1);
-}
+}*/
 
 
 void MatrixSparseMKL::init(ii m, ii n)
@@ -162,11 +186,11 @@ void MatrixSparseMKL::init(ii m, ii n)
 
 void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind)
 {
+    free();
+    
 #ifndef NDEBUG
     cout << "  COO := " << flush;
 #endif
-    
-    free();
     
     m_ = m;
     n_ = n;
@@ -176,10 +200,11 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
     fp* c_acoo = const_cast<fp*>(acoo);
     ii* c_rowind = const_cast<ii*>(rowind);
     ii* c_colind = const_cast<ii*>(colind);
-   
+
     sparse_matrix_t t;
     status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, nnz, c_rowind, c_colind, c_acoo); assert(!status_);
     status_ = mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, &mat_); assert(!status_);
+    status_ = mkl_sparse_destroy(t); assert(!status_);
     
     sparse_index_base_t indexing;
     status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
@@ -187,6 +212,7 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
     
 #ifndef NDEBUG
     cout << "X" << *this << endl;
+    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
 #endif
 }
 
@@ -210,13 +236,13 @@ void MatrixSparseMKL::set(fp v)
 
 void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
 {
+    free();
+    
 #ifndef NDEBUG
     cout << "  " << (operation == Operation::PACK_ROWS ? "pack(" : "") << (operation == Operation::UNPACK_ROWS ? "unpack(" : "");
     cout << "A" << a;
     cout << (operation == Operation::PACK_ROWS || operation == Operation::UNPACK_ROWS ? ")" : "") << " := " << flush;
 #endif
-    
-    free();
     
     if (operation == Operation::TRANSPOSE)
     {
@@ -233,7 +259,7 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
             isMklData_ = true;
             
             isEmpty_ = false;
-            isTransposed_ = !a.isTransposed_;
+            isTransposed_ = a.isTransposed_;
         }
     }
     else
@@ -278,9 +304,7 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
                 {
                     for (ii nnz = a.is0_[i]; nnz < a.is1_[i]; nnz++)
                     {
-                        //cout << i << "," << a.js_[nnz] << ":" << a.vs_[nnz] << " -> " << flush;
                         js_[nnz] = a.js_[nnz] + i * a.n_;
-                        //cout << i << "," << js_[nnz] << ":" << vs_[nnz] << endl;
                     }
                 }
             }
@@ -298,20 +322,21 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
 
 #ifndef NDEBUG
 	cout << "X" << *this << endl;
+    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
 #endif
 }
 
 
 // todo: make this mkl
-void MatrixSparseMKL::copy(const MatrixSparseMKL& a, fp pruneThreshold)
+void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
 {
+    free();
+    
 #ifndef NDEBUG
 	cout << "  (A" << a << " > ";
 	cout.unsetf(ios::floatfield);
 	cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 := " << flush;
 #endif
-    
-    free();
     
 	m_ = a.m_;
 	n_ = a.n_;
@@ -363,6 +388,7 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, fp pruneThreshold)
 
 #ifndef NDEBUG
 	cout << "X" << *this << endl;
+    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
 #endif
 }
 
@@ -393,11 +419,11 @@ void MatrixSparseMKL::output(fp* vs) const
 }
 
 
-void MatrixSparseMKL::deleteRows(const MatrixSparseMKL& a)
+/*void MatrixSparseMKL::deleteRows(const MatrixSparseMKL& a)
 {
-#ifndef NDEBUG
+//#ifndef NDEBUG
     cout << "  X" << *this << ":deleteRows(A" << a << ") := " << flush;
-#endif
+//#endif
 
     if (!isEmpty_)
     {
@@ -454,14 +480,67 @@ void MatrixSparseMKL::deleteRows(const MatrixSparseMKL& a)
         }
     }
  
+//#ifndef NDEBUG
+    cout << "X" << *this << endl;
+    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+//#endif
+}*/
+
+
+void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x)
+{
+    free();
+    
+#ifndef NDEBUG
+    cout << "  zeroRowsOfZeroColumns(A" << a << ", X" << x << ") := " << flush;
+#endif
+    
+    if (x.isEmpty_)
+    {
+        // delete all
+        init(m_, n_);
+    }
+    else
+    {
+        // forces row vector to be column vector and hence have all row indicies (DOES NOT WORK IN 2D YET)
+        MatrixSparseMKL t;
+        t.copy(x, MatrixSparseMKL::Operation::TRANSPOSE);
+        
+        // make into unit diagonal matrix
+        t.n_ = t.m_;
+        t.set((fp)1.0);
+        for (ii i = 0; i < t.m_; i++)
+        {
+            for (ii nz = t.is0_[i]; nz < t.is1_[i]; nz++)
+            {
+                t.js_[nz] = i;
+            }
+        }
+        
+        sparse_matrix_t diag;
+        status_ = mkl_sparse_s_create_csr(&diag, SPARSE_INDEX_BASE_ZERO, t.m_, t.n_, t.is0_, t.is1_, t.js_, t.vs_); assert(!status_);
+        status_ = mkl_sparse_spmm(SPARSE_OPERATION_NON_TRANSPOSE, diag, a.mat_, &mat_); assert(!status_);
+        status_ = mkl_sparse_destroy(diag); assert(!status_);
+        
+        isTransposed_ = false;
+        isEmpty_ = false;
+        
+        sparse_index_base_t indexing;
+        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
+        isMklData_ = true;
+    }
+    
 #ifndef NDEBUG
     cout << "X" << *this << endl;
+    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
 #endif
 }
 
 
 void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool transpose)
 {
+    if (!accumulate) free();
+    
 #ifndef NDEBUG
     cout << "  " << (transpose ? "t(" : "") << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
     if (transpose) cout << ")" << flush;
@@ -484,6 +563,11 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
 		{
 			init(transposeA ? a.n() : a.m(), b.n());
 		}
+        
+#ifndef NDEBUG
+        cout << "X" << *this << endl;
+#endif
+        
 	}
 	else
 	{
@@ -491,35 +575,38 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
         {
             sparse_matrix_t t;
             status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t); assert(!status_);
-            
+ 
             sparse_matrix_t y;
             status_ = mkl_sparse_s_add(transpose == isTransposed_ ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, mat_, 1.0, t, &y); assert(!status_);
             status_ = mkl_sparse_destroy(t); assert(!status_);
+            
+#ifndef NDEBUG
+            cout << "X" << *this << endl;
+#endif
+            
             free();
-            
             mat_ = y;
-            
-            isTransposed_ = transpose;
         }
         else
 		{
-			free();
             status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_); assert(!status_);
             
-            isTransposed_ = transpose;
+#ifndef NDEBUG
+            cout << "X" << *this << endl;
+            cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+#endif
+            
 		}
-
+        
+        isTransposed_ = transpose;
         isEmpty_ = false;
         
         sparse_index_base_t indexing;
         status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
         isMklData_ = true;
 	}
-    
 
-#ifndef NDEBUG
-	cout << "X" << *this << endl;
-#endif
+
 }
 
 

@@ -35,7 +35,7 @@ using namespace std;
 
 BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
                                const std::vector<double>& binEdges, short scale, Transient transient, int order)
-	: BasisBspline(bases, 1, transient), nnzRows_(0)
+	: BasisBspline(bases, 1, transient), nnzBasisFunctions_(0)
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineMz";
@@ -76,7 +76,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	if (scale == numeric_limits<short>::max())
 	{
 		scale = scaleAuto;
-		cout << "Autodetected mz_scale=" << scale << endl;
+		cout << " autodetected_mz_scale=" << scale << flush;
 	}
 
 	// Bases per 1.0033548378Th (difference between carbon12 and carbon13)
@@ -124,8 +124,6 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 					rowind.push_back(i);
 					colind.push_back(j * gridInfo().extent[0] + (x - gridInfo().offset[0]));
 				}
-                
-                nnzRows_++;
 			}
 		}
 
@@ -140,8 +138,11 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	for (int i = 0; i < 256; ++i) cout << '\b';
     
     // create A
-    a_.init(js_[js_.size() - 1], getGridInfo().n() * getGridInfo().count, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-    aT_.init(getGridInfo().n() * getGridInfo().count, js_[js_.size() - 1], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+    a_ = new MatrixSparse();
+    a_->init(js_[js_.size() - 1], getGridInfo().n() * getGridInfo().count, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+    aT_ = new MatrixSparse();
+    aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
+    nnzBasisFunctions_ = getGridInfo().n() * getGridInfo().count;
     
 #ifndef NDEBUG
 	cout << "  range=" << fixed << setprecision(3) << mzMin << ":";
@@ -155,13 +156,15 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
     
 	if (scaleAuto != scale)
 	{
-		cerr << endl << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
+		cerr << endl << endl << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
 	}
 }
 
 
 BasisBsplineMz::~BasisBsplineMz()
 {
+    delete a_;
+    delete aT_;
 }
 
 
@@ -183,7 +186,7 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
         t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
     }
     
-	f.mul(false, t, aT_, accumulate, false);
+	f.mul(false, t, *aT_, accumulate, false);
 }
 
 
@@ -198,29 +201,38 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 	if (sqrA)
 	{
 		MatrixSparse aSqr;
-		aSqr.copy(a_);
+		aSqr.copy(*a_);
 		aSqr.elementwiseSqr();
 		t.mul(false, fE, aSqr, false, false);
 	}
 	else
 	{
-		t.mul(false, fE, a_, false, false);
+		t.mul(false, fE, *a_, false, false);
 	}
     
     xE.copy(t, MatrixSparse::Operation::PACK_ROWS);
 }
 
 
-void BasisBsplineMz::deleteRows(const MatrixSparse& x, ii threshold)
+// delete basis functions we don't need anymore
+void BasisBsplineMz::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
 {
-    /*if(nnzRows_ - x.nnz() >= threshold)
+    if(nnzBasisFunctions_ - x.nnz() >= threshold)
     {
-        // delete rows in aTs we don't need anymore
-        aT_.deleteRows(x);
-        a_.copy(aT_, MatrixSparse::Operation::TRANSPOSE);
+        cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;
         
-        nnzRows_ = x.nnz();
-    }*/
+        delete a_;
+        
+        MatrixSparse* aT = new MatrixSparse();
+        aT->zeroRowsOfZeroColumns(*aT_, x);
+        delete aT_;
+        aT_ = aT;
+        
+        a_ = new MatrixSparse();
+        a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
+        
+        nnzBasisFunctions_ = x.nnz();
+    }
 }
 
 

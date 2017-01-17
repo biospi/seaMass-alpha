@@ -34,8 +34,7 @@ using namespace std;
 
 BasisBsplineScale::
 BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Transient transient, int order)
-: BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex),
-dimension_(dimension)
+: BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale";
@@ -47,7 +46,6 @@ dimension_(dimension)
 	gridInfo() = parentGridInfo;
 	gridInfo().scale[dimension_] = parentGridInfo.scale[dimension_] - 1;
 	gridInfo().offset[dimension_] = parentGridInfo.offset[dimension_] / 2;
-	//gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_] - 1 - order) / 2 + order + 1 - gridInfo().offset[dimension_];
     gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_]) / 2 + 1 - gridInfo().offset[dimension_];
     
 	ii stride = 1;
@@ -90,14 +88,16 @@ dimension_(dimension)
 		}
 	}
 
-    a_.init(m, n, nnz, acoo.data(), rowind.data(), colind.data());
-    aT_.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
-    
-    nnzRows_ = n;
+    // create A
+    a_ = new MatrixSparse();
+    a_->init(m, n, nnz, acoo.data(), rowind.data(), colind.data());
+    aT_ = new MatrixSparse();
+    aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
+    nnzBasisFunctions_ = n;
 
 #ifndef NDEBUG
-	cout << "  parent=" << getParentIndex() << " dimension=" << dimension_ << " " << gridInfo() << " mem=";
-	cout << fixed << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
+	cout << "  parent=" << getParentIndex() << " dimension=" << dimension_ << " " << gridInfo() << endl;
+	//cout << fixed << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
 #endif
 }
 
@@ -114,7 +114,7 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
 #endif
-    f.mul(dimension_ > 0, x, aT_, accumulate, dimension_ > 0);
+    f.mul(dimension_ > 0, x, *aT_, accumulate, dimension_ > 0);
 }
 
 
@@ -127,26 +127,34 @@ void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool 
 	if (sqrA)
 	{
 		MatrixSparse t;
-		t.copy(a_);
+		t.copy(*a_);
 		t.elementwiseSqr();
 		xE.mul(dimension_ > 0, fE, t, false, dimension_ > 0);
 	}
 	else
 	{
-		xE.mul(dimension_ > 0, fE, a_, false, dimension_ > 0);
+		xE.mul(dimension_ > 0, fE, *a_, false, dimension_ > 0);
 	}
 }
 
 
-void BasisBsplineScale::deleteRows(const MatrixSparse& x, ii threshold)
+void BasisBsplineScale::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
 {
-    /*if(nnzRows_ - x.nnz() >= threshold)
+    if(nnzBasisFunctions_ - x.nnz() >= threshold)
     {
-        // delete rows in aTs we don't need anymore
-        aT_.deleteRows(x);
-        a_.copy(aT_, MatrixSparse::Operation::TRANSPOSE);
+        cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;
         
-        nnzRows_ = x.nnz();
-    }*/
+        delete a_;
+        
+        MatrixSparse* aT = new MatrixSparse();
+        aT->zeroRowsOfZeroColumns(*aT_, x);
+        delete aT_;
+        aT_ = aT;
+        
+        a_ = new MatrixSparse();
+        a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
+        
+        nnzBasisFunctions_ = x.nnz();
+    }
 }
 

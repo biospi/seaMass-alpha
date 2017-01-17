@@ -36,15 +36,14 @@ public:
 
 	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
 	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
-    void deleteRows(const MatrixSparse& x, ii threshold);
+    void deleteBasisFunctions(const MatrixSparse& x, ii threshold);
 
 private:
-	MatrixSparse a_;
-    MatrixSparse aT_;
+	MatrixSparse* a_;
+    MatrixSparse* aT_;
+    ii nnzBasisFunctions_;
     
 	std::vector<li> js_; // indicies to start of each spectrum
-    
-    ii nnzRows_;
 };
 
 
