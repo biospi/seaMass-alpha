@@ -25,7 +25,7 @@
 #ifndef SMPEAK_IOMATH_TPP_
 #define SMPEAK_IOMATH_TPP_
 
-#include "iomath.hpp"
+#include "VecMat.hpp"
 
 template<typename T>
 VecMat<T>::VecMat(void):m(NULL),row(0),col(0){}

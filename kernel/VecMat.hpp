@@ -52,6 +52,6 @@ private:
 };
 
 
-#include "iomath.tpp"
+#include "VecMat.tpp"
 
 #endif /* SMPEAK_IOMATH_HPP_ */

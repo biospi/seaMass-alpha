@@ -26,7 +26,7 @@
 #define SMPEAK_BSPLINEDATA_HPP_
 
 
-#include "../io/iomath.hpp"
+#include "../kernel/VecMat.hpp"
 #include "SMData.hpp"
 
 

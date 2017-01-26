@@ -28,8 +28,8 @@
 #include <pugixml.hpp>
 //#include <omp.h>
 
-#include "../io/iomath.hpp"
-#include "../io/NetCDFile.hpp"
+#include "../kernel/VecMat.hpp"
+#include "../kernel/NetcdfFile.hpp"
 #include "../core/SeamassCore.hpp"
 #include "../core/Bspline.hpp"
 #include "../io/mzMLxml.hpp"

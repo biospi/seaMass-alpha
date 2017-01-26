@@ -11,6 +11,5 @@ set(SOURCE_FILES
 
 add_library(seamass_topdown ${HEADER_FILES} ${SOURCE_FILES})
 target_link_libraries(seamass_topdown
-  seamass_math
   seamass_core
 )

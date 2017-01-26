@@ -38,7 +38,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	: BasisBspline(bases, 1, transient), nnzBasisFunctions_(0)
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineMz";
+	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz";
     if (getTransient() == Transient::YES) cout << " (transient)";
 	cout << endl;
 #endif
@@ -71,23 +71,29 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 			mzDiff = diff < mzDiff ? diff : mzDiff;
 		}
 	}
-
+    
 	ii scaleAuto = (ii) floor(log2(1.0 / mzDiff / 60.0 / 1.0033548378));
 	if (scale == numeric_limits<short>::max())
 	{
 		scale = scaleAuto;
-		cout << " autodetected_mz_scale=" << scale << flush;
+        cout << getTimeStamp() << "  autodetected_mz_scale=" << fixed << setprecision(1) << scale << endl;
 	}
 
 	// Bases per 1.0033548378Th (difference between carbon12 and carbon13)
 	double bpi = pow(2.0, (double)scale) * 60 / 1.0033548378;
-
-	// fill in b-spline grid info
-	gridInfo().count = (ii)js_.size() - 1;
-	gridInfo().scale[0] = scale;
-	gridInfo().offset[0] = (ii)floor(mzMin * bpi);
-	gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
-
+    
+    // fill in b-spline grid info
+    gridInfo().count = (ii)js_.size() - 1;
+    gridInfo().scale[0] = scale;
+    gridInfo().offset[0] = (ii)floor(mzMin * bpi);
+    gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
+    
+#ifndef NDEBUG
+    cout << getTimeStamp() << "  range=" << fixed << setprecision(3) << mzMin << ":"; cout.unsetf(std::ios::floatfield); cout << mzDiff << ":" << fixed << mzMax << "Th" << endl;
+    cout << getTimeStamp() << "  scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)" << endl;
+    cout << getTimeStamp() << "  " << gridInfo() << endl;
+#endif
+   
 	// populate coo matrix
     vector<fp> acoo;
     vector<ii> rowind;
@@ -136,6 +142,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         }
 	}
 	for (int i = 0; i < 256; ++i) cout << '\b';
+
     
     // create A
     a_ = new MatrixSparse();
@@ -144,19 +151,9 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
     aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
     nnzBasisFunctions_ = getGridInfo().n() * getGridInfo().count;
     
-#ifndef NDEBUG
-	cout << "  range=" << fixed << setprecision(3) << mzMin << ":";
-    cout.unsetf(std::ios::floatfield);
-    cout << mzDiff << ":" << fixed << mzMax << "Th";
-	cout << " scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)";
-    cout.unsetf(ios::floatfield);
-	cout << " " << gridInfo();
-	cout << endl;
-#endif
-    
 	if (scaleAuto != scale)
 	{
-		cerr << endl << endl << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
+		cerr << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
 	}
 }
 
@@ -171,7 +168,7 @@ BasisBsplineMz::~BasisBsplineMz()
 void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineMz::synthesis" << endl;
+	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz::synthesis" << endl;
 #endif
     
     MatrixSparse t;
@@ -193,7 +190,7 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
 void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineMz::analysis" << endl;
+	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz::analysis" << endl;
 #endif
 
     MatrixSparse t;
@@ -217,7 +214,7 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 // delete basis functions we don't need anymore
 void BasisBsplineMz::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
 {
-    if(nnzBasisFunctions_ - x.nnz() >= threshold)
+    /*if(x.nnz() / (double) nnzBasisFunctions_ <= 0.5)
     {
         cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;
         
@@ -232,7 +229,7 @@ void BasisBsplineMz::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
         a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
         
         nnzBasisFunctions_ = x.nnz();
-    }
+    }*/
 }
 
 

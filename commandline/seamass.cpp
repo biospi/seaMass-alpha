@@ -41,7 +41,7 @@ namespace po = boost::program_options;
 int main(int argc, char **argv)
 {
 	SeamassCore::notice();
-    printNumThreads();
+    cout << getThreadInfo() << endl;
 
 	string in_file;
 	vector<short> scales(2);
@@ -141,7 +141,7 @@ int main(int argc, char **argv)
 		{
 			if (debugLevel >= 3)
 			{
-				// create SMV file
+				/*// create SMV file
 				ostringstream oss;
 				oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
 				HDF5Writer smv(oss.str());
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 				// write RTree
 				SeamassCore::Output output;
 				sm.getOutput(output);
-				smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+				smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);*/
 
 				// for now, lets also write out an smo
 				ostringstream oss2;
@@ -166,12 +166,13 @@ int main(int argc, char **argv)
 				SeamassCore::ControlPoints controlPoints;
 				sm.getOutputControlPoints(controlPoints);
 				smo.write_output_control_points(controlPoints);
+                //exit(0);
 			}
 		}
 		while (sm.step());
 
 		// write seaMass outputBinCounts to new mzMLb file 
-		vector<fp> outputBinCounts(input.binCounts.size());
+		/*vector<fp> outputBinCounts(input.binCounts.size());
         cout << outputBinCounts.size() << endl;
 		sm.getOutputBinCounts(outputBinCounts); // retrieve seaMass processed outputBinCounts
 		// convert ion counts into ion density (counts per Th) and scale by exposures
@@ -197,16 +198,16 @@ int main(int argc, char **argv)
 				}
 			}
 		}
-		outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
+		outmzMLb.writeVecData(outputBinCounts); // write to mzMLb*/
         
 		// write SMV file
-		ostringstream oss;
+		/*ostringstream oss;
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
 		HDF5Writer smv(oss.str());
 		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
 		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts
 		for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
-		smv.write_input(input); // write residuals to smv
+		smv.write_input(input); // write residuals to smv*/
 		// write RTree
 		//SeaMass::Output output;
 		//sm.getOutput(output);
@@ -214,7 +215,7 @@ int main(int argc, char **argv)
 
         // write SMO file
 		ostringstream oss2;
-		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
+		oss2 << boost::filesystem::change_extension(in_file, "smo").string() << "." << id << ".smo";
 		HDF5Writer smo(oss2.str());
 		SeamassCore::ControlPoints controlPoints;
 		sm.getOutputControlPoints(controlPoints);
@@ -231,8 +232,6 @@ int main(int argc, char **argv)
 		rtree.read(loaded);
 		cout << "Number of saved bases: " << output.weights.size() << endl;
 		cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
-        
-        exit(0);
 	}
 
     vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();

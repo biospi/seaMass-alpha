@@ -25,7 +25,7 @@
 #ifndef SMPEAK_PEAKMANAGER_HPP_
 #define SMPEAK_PEAKMANAGER_HPP_
 
-#include "../io/iomath.hpp"
+#include "../kernel/VecMat.hpp"
 
 
 template

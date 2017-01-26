@@ -9,7 +9,7 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} ${CXX_EXTRA_FLAGS}")
 endif()
 
-add_subdirectory(math)
+add_subdirectory(kernel)
 add_subdirectory(core)
 add_subdirectory(topdown)
 add_subdirectory(io)

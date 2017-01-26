@@ -26,6 +26,7 @@
 #include <iostream>
 #include <cassert>
 #include <cstring>
+#include <sstream>
 
 #if defined(_OPENMP)
   #include <omp.h>
@@ -35,33 +36,46 @@
 #include <ipps.h>
 
 
+#include "../kernel/NetcdfFile.hpp"
+
 
 using namespace std;
 
 
-void printNumThreads()
+std::string getThreadInfo()
 {
-    cout << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, " << mkl_get_max_threads() << " MKL threads, ";
+    ostringstream out;
+    out << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, " << mkl_get_max_threads() << " MKL threads, ";
 #if defined(_OPENMP)
-    cout << omp_get_max_threads() << " OpenMP threads" << endl;
+    out << omp_get_max_threads() << " OpenMP threads" << endl;
 #else
-    cout << "non-OpenMP build" << endl;
+    out << "non-OpenMP build" << endl;
 #endif
+    return out.str();
 }
 
 
-static double zeroTime_ = dsecnd();
+static li id_ = 0;
 
 
-void resetWallTime()
+li getId()
 {
-    zeroTime_ = dsecnd();
+    return id_;
 }
 
 
-double getWallTime()
+static double startTime_ = dsecnd();
+
+
+void resetElapsedTime()
 {
-    return dsecnd() - zeroTime_;
+    startTime_ = dsecnd();
+}
+
+
+double getElapsedTime()
+{
+    return dsecnd() - startTime_;
 }
 
 
@@ -69,6 +83,14 @@ li getUsedMemory()
 {
     int allocatedBuffers;
     return mkl_mem_stat(&allocatedBuffers);
+}
+
+
+string getTimeStamp()
+{
+    ostringstream out;
+    out << "[" << setw(9) << id_++ << "," << fixed << internal << setw(9) << std::setprecision(3) << getElapsedTime() << "," << setw(9) << getUsedMemory()/1024.0/1024.0 << "] ";
+    return out.str();
 }
 
 
@@ -88,7 +110,7 @@ void MatrixSparseMKL::free()
     if (!isEmpty_)
     {
 #ifndef NDEBUG
-        cout << "  free(X" << *this << ")" << endl;
+        cout << getTimeStamp() << "   X" << *this << " := ..." << endl;
 #endif
         
         status_ = mkl_sparse_destroy(mat_); assert(!status_);
@@ -101,9 +123,12 @@ void MatrixSparseMKL::free()
         }
         
         isEmpty_ = true;
+        isTransposed_ = false;
+        m_ = 0;
+        n_ = 0;
         
 #ifndef NDEBUG
-        cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+        cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
     }
 }
@@ -189,7 +214,7 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
     free();
     
 #ifndef NDEBUG
-    cout << "  COO := " << flush;
+    cout << getTimeStamp() << "   COO := ..." << endl;
 #endif
     
     m_ = m;
@@ -211,8 +236,7 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
     isMklData_ = true;
     
 #ifndef NDEBUG
-    cout << "X" << *this << endl;
-    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -220,7 +244,7 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
 void MatrixSparseMKL::set(fp v)
 {
 #ifndef NDEBUG
-    cout << "  (X" << *this << " != 0.0) ? " << v << " : 0.0 := " << flush;
+    cout << getTimeStamp() << "   (X" << *this << " != 0.0) ? " << v << " : 0.0 := ..." << endl;
 #endif
     
     for (ii nz = 0; nz < nnz(); nz++)
@@ -229,7 +253,7 @@ void MatrixSparseMKL::set(fp v)
     }
     
 #ifndef NDEBUG
-    cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -239,9 +263,10 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
     free();
     
 #ifndef NDEBUG
-    cout << "  " << (operation == Operation::PACK_ROWS ? "pack(" : "") << (operation == Operation::UNPACK_ROWS ? "unpack(" : "");
-    cout << "A" << a;
-    cout << (operation == Operation::PACK_ROWS || operation == Operation::UNPACK_ROWS ? ")" : "") << " := " << flush;
+    cout << getTimeStamp() << "   " << (operation == Operation::TRANSPOSE ? "t(" : "");
+    cout << (operation == Operation::PACK_ROWS ? "pack(" : "") << (operation == Operation::UNPACK_ROWS ? "unpack(" : "");
+    cout << "A" << a << (operation == Operation::PACK_ROWS || operation == Operation::UNPACK_ROWS ? ")" : "");
+    cout << (operation == Operation::TRANSPOSE ? ")" : "") << " := ..." << endl;
 #endif
     
     if (operation == Operation::TRANSPOSE)
@@ -321,8 +346,7 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
     }
 
 #ifndef NDEBUG
-	cout << "X" << *this << endl;
-    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -333,9 +357,9 @@ void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
     free();
     
 #ifndef NDEBUG
-	cout << "  (A" << a << " > ";
+	cout << getTimeStamp() << "   (A" << a << " > ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 := " << flush;
+	cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 := ..." << endl;
 #endif
     
 	m_ = a.m_;
@@ -387,8 +411,7 @@ void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
     }
 
 #ifndef NDEBUG
-	cout << "X" << *this << endl;
-    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -396,7 +419,7 @@ void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
 void MatrixSparseMKL::output(fp* vs) const
 {
 #ifndef NDEBUG
-    cout << "  X" << *this << " := " << flush;
+    cout << getTimeStamp() << "   X" << *this << " := ..." << endl;
 #endif
     
     if (!isEmpty_)
@@ -409,12 +432,13 @@ void MatrixSparseMKL::output(fp* vs) const
             while (nz >= is1_[i]) i++; // row of nz'th non-zero
             ii j = js_[nz]; // column of nz'th non-zero
             
-            vs[j + i * n_] = vs_[nz];
+            vs[i + j * m_] = vs_[nz];
+            //cout << vs_[nz] << endl;
         }
     }
     
 #ifndef NDEBUG
-    cout << "out" << endl;
+    cout << getTimeStamp() << "   ... out" << endl;
 #endif
 }
 
@@ -492,7 +516,7 @@ void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const Matr
     free();
     
 #ifndef NDEBUG
-    cout << "  zeroRowsOfZeroColumns(A" << a << ", X" << x << ") := " << flush;
+    cout << getTimeStamp() << "   zeroRowsOfZeroColumns(A" << a << ", X" << x << ") := ..." << endl;
 #endif
     
     if (x.isEmpty_)
@@ -531,8 +555,7 @@ void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const Matr
     }
     
 #ifndef NDEBUG
-    cout << "X" << *this << endl;
-    cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -542,10 +565,10 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
     if (!accumulate) free();
     
 #ifndef NDEBUG
-    cout << "  " << (transpose ? "t(" : "") << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
-    if (transpose) cout << ")" << flush;
+    cout << getTimeStamp() << "   " << (transpose ? "t(" : "") << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
+    if (transpose) cout << ")";
     if (accumulate) cout << " + X" << *this;
-    cout << " := " << flush;
+    cout << " := ..." << endl;
     
     assert((transposeA ? a.m() : a.n()) == b.m());
 #endif
@@ -563,11 +586,6 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
 		{
 			init(transposeA ? a.n() : a.m(), b.n());
 		}
-        
-#ifndef NDEBUG
-        cout << "X" << *this << endl;
-#endif
-        
 	}
 	else
 	{
@@ -580,22 +598,12 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
             status_ = mkl_sparse_s_add(transpose == isTransposed_ ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, mat_, 1.0, t, &y); assert(!status_);
             status_ = mkl_sparse_destroy(t); assert(!status_);
             
-#ifndef NDEBUG
-            cout << "X" << *this << endl;
-#endif
-            
             free();
             mat_ = y;
         }
         else
 		{
             status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_); assert(!status_);
-            
-#ifndef NDEBUG
-            cout << "X" << *this << endl;
-            cout << "   mem=" << fixed << setprecision(2) << getUsedMemory()/1024.0/1024.0 << "Mb time=" << setprecision(10) << getWallTime << endl;
-#endif
-            
 		}
         
         isTransposed_ = transpose;
@@ -606,14 +614,23 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
         isMklData_ = true;
 	}
 
+#ifndef NDEBUG
+    cout << getTimeStamp() << "   ... X" << *this << endl;
+    
+    ostringstream oss; oss << getId() << ".csr";
+    NetCDFile outFile(oss.str(), NC_NETCDF4);
+    //outFile.write_VecNC("is", this->is0_, this->m_ + 1, NC_INT64);
+    //outFile.write_VecNC("js", this->js, this->is0[m_], NC_INT64);
+    //outFile.write_VecNC("vs", this->vs, this->is0[m_], NC_FLOAT);
 
+#endif
 }
 
 
 void MatrixSparseMKL::elementwiseSqr()
 {
 #ifndef NDEBUG
-	cout << "  (X" << *this << ")^2 := " << flush;
+	cout << getTimeStamp() << "   (X" << *this << ")^2 := ..." << endl;
 #endif
 
     if (!isEmpty_)
@@ -622,7 +639,7 @@ void MatrixSparseMKL::elementwiseSqr()
     }
     
 #ifndef NDEBUG
-	cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -630,7 +647,7 @@ void MatrixSparseMKL::elementwiseSqr()
 void MatrixSparseMKL::elementwiseSqrt()
 {
 #ifndef NDEBUG
-	cout << "  sqrt(X" << *this << ") := " << flush;
+	cout << getTimeStamp() << "   sqrt(X" << *this << ") := ..." << endl;
 #endif
 
     if (!isEmpty_)
@@ -639,7 +656,7 @@ void MatrixSparseMKL::elementwiseSqrt()
     }
 
 #ifndef NDEBUG
-	cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -647,9 +664,9 @@ void MatrixSparseMKL::elementwiseSqrt()
 void MatrixSparseMKL::elementwiseAdd(fp beta)
 {
 #ifndef NDEBUG
-	cout << "  X" << *this << " + ";
+	cout << getTimeStamp() << "   X" << *this << " + ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << beta << " := " << flush;
+	cout << setprecision(8) << beta << " := ..." << endl;
 #endif
     
     if (!isEmpty_)
@@ -658,7 +675,7 @@ void MatrixSparseMKL::elementwiseAdd(fp beta)
     }
 
 #ifndef NDEBUG
-	cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -666,9 +683,9 @@ void MatrixSparseMKL::elementwiseAdd(fp beta)
 void MatrixSparseMKL::elementwiseMul(fp beta)
 {
 #ifndef NDEBUG
-	cout << "  X" << *this << " * ";
+	cout << getTimeStamp() << "   X" << *this << " * ";
 	cout.unsetf(ios::floatfield);
-	cout << setprecision(8) << beta << " := " << flush;
+	cout << setprecision(8) << beta << " := ..." << endl;
 #endif
 
     if (!isEmpty_)
@@ -677,7 +694,7 @@ void MatrixSparseMKL::elementwiseMul(fp beta)
     }
 
 #ifndef NDEBUG
-	cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -685,7 +702,7 @@ void MatrixSparseMKL::elementwiseMul(fp beta)
 void MatrixSparseMKL::elementwiseMul(const MatrixSparseMKL& a)
 {
 #ifndef NDEBUG
-    cout << "  X" << *this << " * A" << a << " := " << flush;
+    cout << getTimeStamp() << "   X" << *this << " * A" << a << " := ..." << endl;
 #endif
     
     if (!isEmpty_)
@@ -694,7 +711,7 @@ void MatrixSparseMKL::elementwiseMul(const MatrixSparseMKL& a)
     }
     
 #ifndef NDEBUG
-    cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -702,7 +719,7 @@ void MatrixSparseMKL::elementwiseMul(const MatrixSparseMKL& a)
 void MatrixSparseMKL::elementwiseDiv(const MatrixSparseMKL& a)
 {
 #ifndef NDEBUG
-    cout << "  X" << *this << " / A" << a << " := " << flush;
+    cout << getTimeStamp() << "   X" << *this << " / A" << a << " := ..." << endl;
 #endif
     
     if (!isEmpty_)
@@ -711,7 +728,7 @@ void MatrixSparseMKL::elementwiseDiv(const MatrixSparseMKL& a)
     }
     
 #ifndef NDEBUG
-    cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -719,7 +736,7 @@ void MatrixSparseMKL::elementwiseDiv(const MatrixSparseMKL& a)
 fp MatrixSparseMKL::sum() const
 {
 #ifndef NDEBUG
-	cout << "  sum(X" << *this << ") := " << flush;
+	cout << getTimeStamp() << "   sum(X" << *this << ") := ..." << endl;
 #endif
 
     fp sum = 0.0;
@@ -730,6 +747,7 @@ fp MatrixSparseMKL::sum() const
     }
     
 #ifndef NDEBUG
+    cout << getTimeStamp() << "   ... ";
 	cout.unsetf(ios::floatfield);
 	cout << setprecision(8) << sum << endl;
 #endif
@@ -738,10 +756,13 @@ fp MatrixSparseMKL::sum() const
 }
 
 
+#include <math.h>
+
+
 fp MatrixSparseMKL::sumSqrs() const
 {
 #ifndef NDEBUG
-	cout << "  sum((X" << *this << ")^2) := " << flush;
+	cout << getTimeStamp() << "   sum((X" << *this << ")^2) := ..." << endl;
 #endif
 
     fp sum = 0.0;
@@ -751,8 +772,19 @@ fp MatrixSparseMKL::sumSqrs() const
         ippsNorm_L2_32f(vs_, is0_[m_], &sum);
         sum *= sum;
     }
+    
+    /*if (isinf(sum))
+    {
+        for (ii nz = 0; nz < nnz(); nz++)
+        {
+            cout << fixed << vs_[nz] << endl;
+        }
+        cout << "ARGH" << endl;
+        exit(0);
+    }*/
 
 #ifndef NDEBUG
+    cout << getTimeStamp() << "   ... ";
 	cout.unsetf(ios::floatfield);
 	cout << setprecision(8) << sum << endl;
 #endif
@@ -764,7 +796,7 @@ fp MatrixSparseMKL::sumSqrs() const
 fp MatrixSparseMKL::sumSqrDiffs(const MatrixSparseMKL& a) const
 {
 #ifndef NDEBUG
-    cout << "  sum((X" << *this << " - A" << a << ")^2) = " << flush;
+    cout << getTimeStamp() << "   sum((X" << *this << " - A" << a << ")^2) := ..." << endl;
 #endif
     
     fp sum = 0.0;
@@ -776,6 +808,7 @@ fp MatrixSparseMKL::sumSqrDiffs(const MatrixSparseMKL& a) const
     }
     
 #ifndef NDEBUG
+    cout << getTimeStamp() << "   ... ";
     cout.unsetf(ios::floatfield);
     cout << setprecision(8) << sum << endl;
 #endif
@@ -788,7 +821,7 @@ fp MatrixSparseMKL::sumSqrDiffs(const MatrixSparseMKL& a) const
 void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
 {
 #ifndef NDEBUG
-    cout << "  subset(A" << a << ") := " << flush;
+    cout << getTimeStamp() << "   subset(A" << a << ") := ..." << endl;
 #endif
     
     if (!isEmpty_)
@@ -814,7 +847,7 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
     }
     
 #ifndef NDEBUG
-    cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 
@@ -823,7 +856,7 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
 void MatrixSparseMKL::subsetElementwiseDiv(const MatrixSparseMKL& a)
 {
 #ifndef NDEBUG
-    cout << "  X" << *this << " / subset(A" << a << ") := " << flush;
+    cout << getTimeStamp() << "   X" << *this << " / subset(A" << a << ") := ..." << endl;
 #endif
     
     if (!isEmpty_ && !a.isEmpty_)
@@ -849,7 +882,7 @@ void MatrixSparseMKL::subsetElementwiseDiv(const MatrixSparseMKL& a)
     }
     
 #ifndef NDEBUG
-    cout << "X" << *this << endl;
+    cout << getTimeStamp() << "   ... X" << *this << endl;
 #endif
 }
 

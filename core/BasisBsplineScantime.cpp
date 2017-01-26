@@ -37,7 +37,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
                                            const std::vector<fp>& exposures, short scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
 {
 #ifndef NDEBUG
-    cout << " " << getIndex() << " BasisBsplineScantime";
+    cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime";
     if (getTransient() == Basis::Transient::YES) cout << " (transient)";
     cout << endl;
 #endif
@@ -56,22 +56,29 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 	if (scale == numeric_limits<short>::max())
 	{
 		scale = scaleAuto;
-		cout << " autodetected_st_scale=" << scale << flush;
+        cout << getTimeStamp() << "  autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
 	}
-
-	// Bases per second
-	double bpi = pow(2.0, (double)scale);
-
-	// fill in b-spline grid info
-	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
-	gridInfo().count = 1;
+    
+    // Bases per second
+    double bpi = pow(2.0, (double)scale);
+    
+    // fill in b-spline grid info
+    const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
+    gridInfo().count = 1;
     gridInfo().scale[0] = parentGridInfo.scale[0];
     gridInfo().offset[0] = parentGridInfo.offset[0];
     gridInfo().extent[0] = parentGridInfo.extent[0];
-	gridInfo().scale[1] = scale;
-	gridInfo().offset[1] = (ii)floor(scantimeMin * bpi);
-	gridInfo().extent[1] = ((ii)ceil(scantimeMax * bpi)) + order - gridInfo().offset[1];
+    gridInfo().scale[1] = scale;
+    gridInfo().offset[1] = (ii)floor(scantimeMin * bpi);
+    gridInfo().extent[1] = ((ii)ceil(scantimeMax * bpi)) + order - gridInfo().offset[1];
     
+#ifndef NDEBUG
+    cout << getTimeStamp() << "  parent=" << getParentIndex() << endl;
+    cout << getTimeStamp() << "  range=" << fixed << setprecision(3) << scantimeMin << ":"; cout.unsetf(std::ios::floatfield); cout << scantimeDiff << ":" << fixed << scantimeMax << "Th" << endl;
+    cout << getTimeStamp() << "  scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
+    cout << getTimeStamp() << "  " << gridInfo() << endl;
+#endif
+
     // populate coo matrix
     vector<fp> acoo;
     vector<ii> rowind;
@@ -110,21 +117,10 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     aT_ = new MatrixSparse();
     aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
     nnzBasisFunctions_ = getGridInfo().m();
-    
-    
-#ifndef NDEBUG
-    cout << "  parent=" << getParentIndex() << " range=" << fixed << setprecision(3) << scantimeMin << ":";
-    cout.unsetf(std::ios::floatfield);
-    cout << scantimeDiff << ":" << fixed << scantimeMax << "Th";
-    cout << " scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second) ";
-    cout.unsetf(ios::floatfield);
-    cout << gridInfo() << endl;
-    //cout << fixed << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
-#endif
 
 	if (scaleAuto != scale)
 	{
-		cerr << endl << endl << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl << endl;
+		cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
 	}
 }
 
@@ -137,36 +133,36 @@ BasisBsplineScantime::~BasisBsplineScantime()
 void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
+	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
 #endif
 
-    f.mul(true, x, *aT_, accumulate, true);
+    f.mul(false, *a_, x, accumulate, false);
 }
 
 
 void BasisBsplineScantime::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScantime::analysis" << endl;
+	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime::analysis" << endl;
 #endif
     
     if (sqrA)
     {
         MatrixSparse t;
-        t.copy(*a_);
+        t.copy(*aT_);
         t.elementwiseSqr();
-        xE.mul(true, fE, t, false, true);
+        xE.mul(false, t, fE, false, false);
     }
     else
     {
-        xE.mul(true, fE, *a_, false, true);
+        xE.mul(false, *aT_, fE, false, false);
     }
 }
 
 
 void BasisBsplineScantime::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
 {
-    if(nnzBasisFunctions_ - x.nnz() >= threshold)
+    /*if(x.nnz() / (double) nnzBasisFunctions_ <= 0.5)
     {
         cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;
         
@@ -181,5 +177,5 @@ void BasisBsplineScantime::deleteBasisFunctions(const MatrixSparse& x, ii thresh
         a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
         
         nnzBasisFunctions_ = x.nnz();
-    }
+    }*/
 }

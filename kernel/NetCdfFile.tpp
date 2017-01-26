@@ -25,7 +25,7 @@
 #ifndef SMPEAK_NETCDFILE_TPP_
 #define SMPEAK_NETCDFILE_TPP_
 
-#include "NetCDFile.hpp"
+#include "NetcdfFile.hpp"
 #include <string>
 #include <sstream>
 #include <iostream>

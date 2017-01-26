@@ -25,5 +25,5 @@ set(SOURCE_FILES
 
 add_library(seamass_core ${HEADER_FILES} ${SOURCE_FILES})
 target_link_libraries(seamass_core
-  seamass_math
+    seamass_kernel
 )

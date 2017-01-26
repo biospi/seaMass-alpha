@@ -32,10 +32,10 @@ using namespace std;
 
 OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), debugLevel_(debugLevel), xs_(bases_.size()), l2s_(bases_.size()), l1l2sPlusLambda_(bases_.size()), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
-    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising Optimizer SRL..." << endl;
+    cout << getTimeStamp() << "Initialising Optimizer SRL ..." << endl;
 
 	// compute L2 norm of each basis function and store in 'l2s'
-    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising L2 norms..." << flush;
+    cout << getTimeStamp() << "Initialising L2 norms ..." << endl;
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -54,17 +54,19 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 	{
         if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
+            MatrixSparse t;
             l2s_[i].elementwiseSqrt();
+            t.prune(l2s_[i], pruneThreshold);
+            l2s_[i].copy(t);
 		}
 		else
 		{
             l2s_[i].free();
 		}
 	}
-    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
 
 	// compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
-    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising L1 norms of L2 norms..." << flush;
+    cout << getTimeStamp() << "Initialising L1 norms of L2 norms ..." << endl;
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -83,6 +85,9 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
+            MatrixSparse t;
+            t.copy(l2s_[i]);
+            t.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
             l1l2sPlusLambda_[i].elementwiseDiv(l2s_[i]);
 		}
 		else
@@ -90,14 +95,13 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             l1l2sPlusLambda_[i].free();
 		}
 	}
-    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
     
     // now make 'b_' 'b' but with zeros removed
     b_.prune(b, 0.0);
 
 	// initialise starting estimate of 'x' from analysis of 'b'
-    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Seeding from analysis of input..." << flush;
-	double sumX = 0.0;
+    cout << getTimeStamp() << "Seeding from analysis of input ..." << endl;
+	//double sumX = 0.0;
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -108,14 +112,21 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 		{
 			bases_[i]->analysis(xs_[i], xs_[bases_[i]->getParentIndex()], false);
 		}
-		sumX += xs_[i].sum();
+  
+        /*for (ii nz = 0; nz < 1000000; nz++)
+        {
+            cout << xs_[i].vs_[nz] << ",";
+        }
+        cout << i << "ARGH1" << endl;*/
+        
+		//sumX += xs_[i].sum();
 	}
-	double sumB = b_.sum();
+	//double sumB = b_.sum();
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-            // remove unneeded l12sPlusLambda
+            // remove unneeded l1l2sPlusLambda
             MatrixSparse l1l2PlusLambda;
             l1l2PlusLambda.copy(xs_[i]);
             l1l2PlusLambda.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
@@ -124,7 +135,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             MatrixSparse x;
             x.copy(xs_[i]);
             x.elementwiseDiv(l1l2PlusLambda);
-            x.elementwiseMul((fp)(sumB / sumX));
+            //x.elementwiseMul((fp)(sumB / sumX));
             xs_[i].prune(x, pruneThreshold);
             
             // remove unneeded l12sPlusLambda again (after pruning)
@@ -137,16 +148,21 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
             t.copy(xs_[i]);
             t.subsetElementwiseCopy(l2s_[i]);
             l2s_[i].copy(t);
+        
+            /*for (ii nz = 0; nz < 1000000; nz++)
+            {
+                cout << xs_[i].vs_[nz] << ",";
+            }
+            cout << i << "ARGH2" << endl;*/
 		}
 		else
 		{
             xs_[i].free();
 		}
 	}
-    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
     
 #ifndef NDEBUG
-	cout << "Sparse Richardson-Lucy";
+	cout << getTimeStamp() << "Sparse Richardson-Lucy ..." << endl;
 #endif
 }
 
@@ -159,7 +175,7 @@ OptimizerSrl::~OptimizerSrl()
 void OptimizerSrl::init(fp lambda)
 {
 #ifndef NDEBUG
-    cout << iteration_ << " lambda=" << lambda << endl;
+    cout << getTimeStamp() << iteration_ << " lambda=" << lambda << endl;
 #endif
 
     for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -181,34 +197,34 @@ fp OptimizerSrl::step()
 
 	// SYNTHESIS
 #ifndef NDEBUG
-	cout << iteration_ << " synthesis" << endl;
+	cout << getTimeStamp() << iteration_ << " synthesis" << endl;
 #endif
     MatrixSparse f;
-	double synthesisStart = getWallTime();
+	double synthesisStart = getElapsedTime();
 	{
 		synthesis(f);
 	}
-	double synthesisDuration = getWallTime() - synthesisStart;
+	double synthesisDuration = getElapsedTime() - synthesisStart;
 	
 	// ERROR
 #ifndef NDEBUG
-	cout << iteration_ << " error" << endl;
+	cout << getTimeStamp() << iteration_ << " error" << endl;
 #endif
     MatrixSparse fE;
-	double errorStart = getWallTime();
+	double errorStart = getElapsedTime();
 	{
 		fE.copy(b_);
 		fE.subsetElementwiseDiv(f); // make this dense mm
 		f.free();
 	}
-	double errorDuration = getWallTime() - errorStart;
+	double errorDuration = getElapsedTime() - errorStart;
 	
 	// ANALYSIS
 #ifndef NDEBUG
-	cout << iteration_ << " analysis" << endl;
+	cout << getTimeStamp() << iteration_ << " analysis" << endl;
 #endif
     vector<MatrixSparse> xEs(bases_.size());
-	double analysisStart = getWallTime();
+	double analysisStart = getElapsedTime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
@@ -235,14 +251,14 @@ fp OptimizerSrl::step()
 			xEs[i].elementwiseDiv(l2s_[i]);
 		}
 	}
-	double analysisDuration = getWallTime() - analysisStart;
+	double analysisDuration = getElapsedTime() - analysisStart;
 
 	// SHRINKAGE
 #ifndef NDEBUG
-	cout << iteration_ << " shrinkage" << endl;
+	cout << getTimeStamp() << iteration_ << " shrinkage" << endl;
 #endif
     vector<MatrixSparse> ys(bases_.size());
-	double shrinkageStart = getWallTime();
+	double shrinkageStart = getElapsedTime();
 	{
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
@@ -254,15 +270,15 @@ fp OptimizerSrl::step()
              xEs[i].free();
 		}
 	}
-	double shrinkageDuration = getWallTime() - shrinkageStart;
+	double shrinkageDuration = getElapsedTime() - shrinkageStart;
 	
 	// UPDATE
 #ifndef NDEBUG
-	cout << iteration_ << " termination check" << endl;
+	cout << getTimeStamp() << iteration_ << " termination check" << endl;
 #endif
     fp sumSqrs = 0.0;
     fp sumSqrDiffs = 0.0;
-	double updateStart = getWallTime();
+	double updateStart = getElapsedTime();
 	{
 		// termination check
 		for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -294,10 +310,11 @@ fp OptimizerSrl::step()
 			}
 		}
 	}
-	double updateDuration = getWallTime() - updateStart;
+	double updateDuration = getElapsedTime() - updateStart;
     
-    if (debugLevel_ >= 2 && getWallTime() != 0.0)
+    if (debugLevel_ >= 2 && getElapsedTime() != 0.0)
     {
+        cout << getTimeStamp();
         cout << "  Durations: synthesis=";
         cout.unsetf(ios::floatfield);
         cout << setprecision(3) << synthesisDuration;
@@ -313,6 +330,7 @@ fp OptimizerSrl::step()
         shrinkageDuration_ += shrinkageDuration;
         updateDuration_ += updateDuration;
         
+        cout << getTimeStamp();
         cout << "  Total Durations: synthesis=";
         cout.unsetf(ios::floatfield);
         cout << setprecision(3) << synthesisDuration_;

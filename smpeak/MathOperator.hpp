@@ -25,7 +25,7 @@
 #ifndef SMPEAK_MATHOPERATOR_HPP_
 #define SMPEAK_MATHOPERATOR_HPP_
 
-#include "../io/iomath.hpp"
+#include "../kernel/VecMat.hpp"
 
 template<class T>
 class OpUnitS

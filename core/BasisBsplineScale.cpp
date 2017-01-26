@@ -112,7 +112,7 @@ BasisBsplineScale::
 synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
+	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
 #endif
     f.mul(dimension_ > 0, x, *aT_, accumulate, dimension_ > 0);
 }
@@ -121,7 +121,7 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScale::analysis" << endl;
+	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScale::analysis" << endl;
 #endif
 
 	if (sqrA)
@@ -140,7 +140,7 @@ void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool 
 
 void BasisBsplineScale::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
 {
-    if(nnzBasisFunctions_ - x.nnz() >= threshold)
+    /*if(x.nnz() / (double) nnzBasisFunctions_ <= 0.5)
     {
         cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;
         
@@ -155,6 +155,6 @@ void BasisBsplineScale::deleteBasisFunctions(const MatrixSparse& x, ii threshold
         a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
         
         nnzBasisFunctions_ = x.nnz();
-    }
+    }*/
 }
 

@@ -26,7 +26,7 @@
 #define SEAMASS_MZMLB_HPP
 
 #include <pugixml.hpp>
-#include "NetCDFile.hpp"
+#include "../kernel/NetcdfFile.hpp"
 #include "MSFileData.hpp"
 #include <sstream>
 

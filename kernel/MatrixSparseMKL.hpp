@@ -38,10 +38,15 @@ typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
 typedef MKL_INT64 li; // li is always 64 bit
 
 
-void printNumThreads();
-void resetWallTime();
-double getWallTime();
+std::string getThreadInfo();
+
+void resetElapsedTime();
+double getElapsedTime();
+
 li getUsedMemory();
+
+std::string getTimeStamp();
+
 
 class MatrixSparseMKL
 {
@@ -96,7 +101,7 @@ public:
     // note: this aggregate operation ONLY considers the non-zero elements of THIS matrix
 	//double subsetSumSqrDiffs(const MatrixSparseMKL& a) const;
 
-private:
+public:
 	ii m_;   // number of rows
 	ii n_;   // number of columns
     bool isEmpty_; // MKL doesn't like empty sparse matrices

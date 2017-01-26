@@ -24,7 +24,7 @@
 #define _SEAMASS_CORE_BASIS_HPP_
 
 
-#include "../math/Matrix.hpp"
+#include "../kernel/Matrix.hpp"
 
 
 class Basis

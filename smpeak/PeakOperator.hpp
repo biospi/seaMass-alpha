@@ -25,7 +25,7 @@
 #ifndef SMPEAK_PEAKOPERATOR_HPP_
 #define SMPEAK_PEAKOPERATOR_HPP_
 
-#include "../io/iomath.hpp"
+#include "../kernel/VecMat.hpp"
 
 
 template<typename T, typename R>

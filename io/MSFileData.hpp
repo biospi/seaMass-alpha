@@ -27,7 +27,7 @@
 
 #include <vector>
 #include <string>
-#include "NetCDFile.hpp"
+#include "../kernel/NetcdfFile.hpp"
 #include "../core/SeamassCore.hpp"
 
 

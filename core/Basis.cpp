@@ -42,7 +42,7 @@ Basis::~Basis()
 void Basis::shrinkage(MatrixSparse& y, MatrixSparse& x, const MatrixSparse& xE, const MatrixSparse& l1l2PlusLambda) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " Basis::shrinkage" << endl;
+	cout << getTimeStamp() << " " << getIndex() << " Basis::shrinkage" << endl;
 #endif
     
 	y.copy(x);

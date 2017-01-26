@@ -9,31 +9,21 @@ if(NOT HDF5_FOUND)
     find_package(HDF5 1.8.5 REQUIRED)
 endif()
 
-find_package(netCDF NO_MODULE)
-if(NOT netCDF_FOUND)
-    find_package(OldNetCDF REQUIRED)
-endif()
-
 set(HEADER_FILES
 	MSFileData.hpp
-    NetCDFile.hpp
 	HDF5Writer.hpp
-	iomath.hpp
 	mzMLxml.hpp
 	RTreeReader.hpp
 	MzMLb.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
-    NetCDFile.cpp
-	HDF5Writer.cpp
+ 	HDF5Writer.cpp
 	mzMLxml.cpp
 	RTreeReader.cpp
 	MzMLb.cpp
 )
 set(TEMPLATE_FILES
-	NetCDFile.tpp
-	iomath.tpp
 	mzMLxml.tpp
 )
 

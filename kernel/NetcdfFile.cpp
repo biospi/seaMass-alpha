@@ -22,7 +22,7 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "NetCDFile.hpp"
+#include "NetcdfFile.hpp"
 
 NetCDFile::NetCDFile(const string _fileName, int omode) : fileName(_fileName)
 {

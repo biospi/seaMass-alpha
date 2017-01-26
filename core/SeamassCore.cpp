@@ -80,12 +80,14 @@ void SeamassCore::notice()
 
 void SeamassCore::init(Input& input, const std::vector<short>& scales)
 {
+    resetElapsedTime();
+    
 	// for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
 	// this is conservative, 4 times might be ok, but 2 times isn't enough
 	//merge_bins(mzs, intensities, 0.125 / rc_mz);
     
     // Initialize input data
-    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising input data..." << flush;
+    cout << getTimeStamp() << "Initialising input data ..." << endl;
     MatrixSparse b;
     {
         vector<fp> acoo;
@@ -121,14 +123,13 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             b.init(input.spectrumIndex.size() - 1, input.binCounts.size(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
         }
     }
-    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
 
 
 	////////////////////////////////////////////////////////////////////////////////////
 	// INIT BASIS FUNCTIONS
 
 	// Create our tree of bases
-    cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "] Initialising overcomplete tree of basis functions..." << flush;
+    cout << getTimeStamp() << "Initialising overcomplete tree of basis functions ..." << endl;
 	if (input.spectrumIndex.size() <= 2)
 	{
 		dimensions_ = 1;
@@ -161,7 +162,6 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             }
         }*/
 	}
-    cout << endl << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]  finished, mem: " << fixed << setprecision(3) << getUsedMemory()/1024.0/1024.0 << "Mb" << endl;
     
 	//inner_optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
 	optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
@@ -186,10 +186,8 @@ bool SeamassCore::step()
 			}
 		}
 
-        cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]";
-        cout.unsetf(ios::floatfield);
+        cout << getTimeStamp();
         cout << " it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
-        cout << " mem: " << fixed << setprecision(3) << setw(9) << getUsedMemory()/1024.0/1024.0 << "Mb";
         cout << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_ << endl;
 	}
 
@@ -210,14 +208,12 @@ bool SeamassCore::step()
 				//for (ii i = 0; i < ts.size(); i++) cout << j << ":" << i << ":" << ts[i] << endl;
 			}
 		}
-        cout << "[" << fixed << internal << setw(9) << std::setprecision(3) << getWallTime() << "]";
-        cout.unsetf(ios::floatfield);
+        cout << getTimeStamp();
 		cout << " it: " << setw(5) << iteration_;
 		cout << " shrink: ";
 		cout.unsetf(ios::floatfield); 
 		cout << setprecision(4) << setw(6) << shrinkage_;
 		cout << " nnz: " << setw(10) << nnz;
-        cout << " mem: " << fixed << setprecision(3) << setw(9) << getUsedMemory()/1024.0/1024.0 << "Mb";
 		cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 	}
 
@@ -240,6 +236,8 @@ bool SeamassCore::step()
 		if (debugLevel_ == 0) cout << "." << flush;
 	}
     
+    if (grad != grad) exit(0);
+    
 	return true;
 }
 
@@ -253,7 +251,7 @@ ii SeamassCore::getIteration() const
 void SeamassCore::getOutput(Output& output) const
 {
 #ifndef NDEBUG
-	cout << iteration_ << " getOutput" << endl;
+	cout << getTimeStamp() << " " << iteration_ << " getOutput" << endl;
 #endif
 
 	output.scales.resize(dimensions_);
@@ -301,7 +299,7 @@ void SeamassCore::getOutput(Output& output) const
 void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 {
 #ifndef NDEBUG
-	cout << iteration_ << " getOutputBinCounts" << endl;
+	cout << getTimeStamp() << " " << iteration_ << " getOutputBinCounts" << endl;
 #endif
 
 	MatrixSparse f;
@@ -313,7 +311,7 @@ void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 {
 #ifndef NDEBUG
-	cout << iteration_ << " getOutputControlPoints" << endl;
+	cout << getTimeStamp() << " " << iteration_ << " getOutputControlPoints" << endl;
 #endif
 
 	const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();

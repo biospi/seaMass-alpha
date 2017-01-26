@@ -34,7 +34,7 @@
 #include <fstream>
 #include <typeinfo>
 
-#include "iomath.hpp"
+#include "VecMat.hpp"
 
 #define ERRCODE 2
 #define ERR(e) {cout<<"Error: "<<nc_strerror(e)<<endl; exit(ERRCODE);}
@@ -144,6 +144,6 @@ private:
 	void err(int e);
 };
 
-#include "NetCDFile.tpp"
+#include "NetcdfFile.tpp"
 
 #endif /* SMPEAK_NETCDFILE_HPP_ */
