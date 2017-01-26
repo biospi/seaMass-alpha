@@ -22,8 +22,8 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SMPEAK_NETCDFILE_TPP_
-#define SMPEAK_NETCDFILE_TPP_
+#ifndef NETCDFFILE_TPP_
+#define NETCDFFILE_TPP_
 
 #include "NetcdfFile.hpp"
 #include <string>
@@ -611,6 +611,79 @@ int NetCDFile::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 
 
 template<typename T>
+int NetCDFile::write_VecNC(const string dataSet, T *vec, size_t len, nc_type xtype,
+			int grpid, bool unlim,
+			size_t chunks, int deflate_level, int shuffle)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int varid;
+	int dimid;
+	int ndim = 1;
+	int deflate = 0;
+	size_t N;
+	//string dimName = "dim_" + dataSet;
+	if(unlim == false)
+	{
+		N = len;
+		if(N < chunks) chunks = N;
+	}
+	else
+	{
+		N = NC_UNLIMITED;
+	}
+
+	// Set chunking, shuffle, and deflate.
+	shuffle = NC_SHUFFLE;
+	if(deflate_level > 0 && deflate_level < 10)
+		deflate = 1;
+
+	// Define the dimensions.
+	if((retval = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
+		ERR(retval);
+
+	// Define the variable.
+	if((retval = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+	                         &dimid, &varid)))
+		ERR(retval);
+
+	if((retval = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+		ERR(retval);
+	if((retval = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+	                                 deflate_level)))
+		ERR(retval);
+
+	if(unlim == true)
+	{
+		T attVal[1] = {0};
+		if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+			ERR(retval);
+	}
+
+	if((retval = nc_enddef(grpid)))
+		ERR(retval);
+
+	// No need to explicitly end define mode for netCDF-4 files. Write
+	// the data to the file.
+
+	if(unlim == true)
+	{
+		N=len;
+		size_t cIdx=0;
+		if((retval = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
+			ERR(retval);
+	}
+	else
+	{
+		if((retval = nc_put_var(grpid, varid, &vec[0])))
+			ERR(retval);
+	}
+
+	return varid;
+}
+
+
+template<typename T>
 int NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 			int grpid, const string rowY, const string colX,
 			size_t chunk, int deflate_level, int shuffle)
@@ -963,4 +1036,4 @@ void NetCDFile::write_PutHypMatNC(const string dataSet, T *vm,
 }
 
 
-#endif /* SMPEAK_NETCDFILE_TPP_ */
+#endif /* NETCDFFILE_TPP_ */

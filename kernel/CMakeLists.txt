@@ -10,7 +10,7 @@ set(HEADER_FILES
     Matrix.hpp
 	MatrixMKL.hpp
 	MatrixSparseMKL.hpp
-    VecMat.hpp
+	VecMat.hpp
     NetcdfFile.hpp
 )
 set(SOURCE_FILES
@@ -19,12 +19,11 @@ set(SOURCE_FILES
     NetcdfFile.cpp
 )
 set(TEMPLATE_FILES
-    mzMLxml.tpp
-    VecMat.tpp
+	VecMat.tpp
     NetcdfFile.tpp
 )
 
-add_library(seamass_kernel ${HEADER_FILES} ${SOURCE_FILES})
+add_library(seamass_kernel ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
 target_include_directories(seamass_kernel PUBLIC
     ${netCDF_INCLUDE_DIR}
     ${MKL_INCLUDE_DIR}

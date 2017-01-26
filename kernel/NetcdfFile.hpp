@@ -22,8 +22,8 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SMPEAK_NETCDFILE_HPP_
-#define SMPEAK_NETCDFILE_HPP_
+#ifndef NETCDFFILE_HPP_
+#define NETCDFFILE_HPP_
 
 #include <iostream>
 #include <stdio.h>
@@ -98,6 +98,11 @@ public:
 			int grpid = 0, bool unlim = false,
 			size_t chunks = 4096, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
+    template<typename T>
+	int write_VecNC(const string dataSet, T *vec, size_t len, nc_type xtype,
+			int grpid = 0, bool unlim = false,
+			size_t chunks = 4096, int deflate_level = 1,
+			int shuffle = NC_SHUFFLE);
 	template<typename T>
 	int write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 			int grpid = 0, const string rowY="", const string colX="",
@@ -146,4 +151,4 @@ private:
 
 #include "NetcdfFile.tpp"
 
-#endif /* SMPEAK_NETCDFILE_HPP_ */
+#endif /* NETCDFFILE_HPP_ */

@@ -616,12 +616,17 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
 
 #ifndef NDEBUG
     cout << getTimeStamp() << "   ... X" << *this << endl;
-    
+    vector<ii> dims;
+    dims.push_back(m_);
+    dims.push_back(n_);
+
     ostringstream oss; oss << getId() << ".csr";
     NetCDFile outFile(oss.str(), NC_NETCDF4);
-    //outFile.write_VecNC("is", this->is0_, this->m_ + 1, NC_INT64);
-    //outFile.write_VecNC("js", this->js, this->is0[m_], NC_INT64);
-    //outFile.write_VecNC("vs", this->vs, this->is0[m_], NC_FLOAT);
+    outFile.write_VecNC("is", this->is0_, this->m_ + 1, NC_INT64);
+    outFile.write_VecNC("js", this->js_, this->is0_[m_], NC_INT64);
+    outFile.write_VecNC("vs", this->vs_, this->is0_[m_], NC_FLOAT);
+
+    outFile.write_AttNC("js","dims",dims,NC_INT64);
 
 #endif
 }
