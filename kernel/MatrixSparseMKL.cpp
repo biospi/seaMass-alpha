@@ -560,59 +560,64 @@ void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const Matr
 }
 
 
-void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool transpose)
-{
+void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool transpose) {
     if (!accumulate) free();
-    
+
 #ifndef NDEBUG
-    cout << getTimeStamp() << "   " << (transpose ? "t(" : "") << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
+    cout << getTimeStamp() << "   " << (transpose ? "t(" : "") << (transposeA ? "t(" : "")
+         << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
     if (transpose) cout << ")";
     if (accumulate) cout << " + X" << *this;
     cout << " := ..." << endl;
-    
+
     assert((transposeA ? a.m() : a.n()) == b.m());
 #endif
-    
-    if (isEmpty_)
-    {
+
+    if (isEmpty_) {
         accumulate = false;
     }
-    
+
     transposeA = a.isTransposed_ ? !transposeA : transposeA;
 
-	if (a.isEmpty_ || b.isEmpty_)
-	{
-		if (!accumulate)
-		{
-			init(transposeA ? a.n() : a.m(), b.n());
-		}
-	}
-	else
-	{
-		if (accumulate)
-        {
+    if (a.isEmpty_ || b.isEmpty_) {
+        if (!accumulate) {
+            init(transposeA ? a.n() : a.m(), b.n());
+        }
+    } else {
+        if (accumulate) {
             sparse_matrix_t t;
-            status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t); assert(!status_);
- 
+            status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE
+                                                 : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_,
+                                      b.mat_, &t);
+            assert(!status_);
+
             sparse_matrix_t y;
-            status_ = mkl_sparse_s_add(transpose == isTransposed_ ? SPARSE_OPERATION_NON_TRANSPOSE : SPARSE_OPERATION_TRANSPOSE, mat_, 1.0, t, &y); assert(!status_);
-            status_ = mkl_sparse_destroy(t); assert(!status_);
-            
+            status_ = mkl_sparse_s_add(
+                    transpose == isTransposed_ ? SPARSE_OPERATION_NON_TRANSPOSE
+                                               : SPARSE_OPERATION_TRANSPOSE, mat_, 1.0, t,
+                    &y);
+            assert(!status_);
+            status_ = mkl_sparse_destroy(t);
+            assert(!status_);
+
             free();
             mat_ = y;
+        } else {
+            status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE
+                                                 : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_,
+                                      b.mat_, &mat_);
+            assert(!status_);
         }
-        else
-		{
-            status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_); assert(!status_);
-		}
-        
+
         isTransposed_ = transpose;
         isEmpty_ = false;
-        
+
         sparse_index_base_t indexing;
-        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
+        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_,
+                                          &vs_);
+        assert(!status_);
         isMklData_ = true;
-	}
+    }
 
 #ifndef NDEBUG
     cout << getTimeStamp() << "   ... X" << *this << endl;
@@ -620,13 +625,40 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
     dims.push_back(m_);
     dims.push_back(n_);
 
-    ostringstream oss; oss << getId() << ".csr";
+    ostringstream oss;
+    oss << getId() << ".csr";
     NetCDFile outFile(oss.str(), NC_NETCDF4);
-    outFile.write_VecNC("is", this->is0_, this->m_ + 1, NC_INT64);
-    outFile.write_VecNC("js", this->js_, this->is0_[m_], NC_INT64);
-    outFile.write_VecNC("vs", this->vs_, this->is0_[m_], NC_FLOAT);
-
-    outFile.write_AttNC("js","dims",dims,NC_INT64);
+    try{
+        if(this->is0_==NULL){
+           throw "is0_ is pointing to NULL Array";
+        }
+        else{
+            outFile.write_VecNC("is", this->is0_, this->m_ + 1, NC_INT64);
+        }
+        if(this->js_==NULL){
+           throw "js_ is pointing to NULL Array";
+        }
+        else{
+            outFile.write_VecNC("js", this->js_, this->is0_[m_], NC_INT64);
+        }
+        if(this->vs_==NULL){
+           throw "vs_ is pointing to NULL Array";
+        }
+        else{
+            outFile.write_VecNC("vs", this->vs_, this->is0_[m_], NC_FLOAT);
+        }
+        if(dims.empty() == true){
+           throw "Error in dims in array";
+        }
+        else{
+            outFile.write_AttNC("js", "dims", dims, NC_INT64);
+        }
+    }
+    catch(const char* msg)
+    {
+        cerr<<"Matirx error: "<<msg<<endl;
+        exit(2);
+    };
 
 #endif
 }
