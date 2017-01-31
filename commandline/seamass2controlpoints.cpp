@@ -28,7 +28,7 @@
 #include <boost/filesystem/convenience.hpp>
 //#include <omp.h>
 
-#include "../io/HDF5Writer.hpp"
+#include "../io/NetcdfWriter.hpp"
 #include "../io/MSFileData.hpp"
 #include "../core/SeamassCore.hpp"
 
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 
 	ostringstream oss2;
 	oss2 << boost::filesystem::change_extension(in_file, "").string() << ".smo";
-	HDF5Writer smo(oss2.str());
+	NetcdfWriter smo(oss2.str());
 
 	seaMass::ControlPoints control_points;
 	sm.get_output_control_points(control_points);

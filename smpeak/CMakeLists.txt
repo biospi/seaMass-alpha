@@ -23,14 +23,13 @@ set(TEMPLATE_FILES
 source_group("Template Files" FILES ${TEMPLATE_FILES})
 add_executable(smpeak ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
 target_include_directories(smpeak PUBLIC
-	${HDF5_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
 	${PugiXML_INCLUDE_DIR}
 )
 target_link_libraries(smpeak
 	seamass_io
 	seamass_core
-	${HDF5_LIBRARIES}
+	seamass_kernel
 	${Boost_LIBRARIES}
 	${PugiXML_LIBRARIES}
 )

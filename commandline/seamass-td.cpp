@@ -193,7 +193,7 @@ int main(int argc, char **argv)
 				// create SMV file
 				ostringstream oss;
 				oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
-				HDF5Writer smv(oss.str());
+				NetcdfWriter smv(oss.str());
 
 				// save back input but with bin_counts now containing the residuals
 				vector<fp> originalBinCounts = input.binCounts;
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 				// for now, lets also write out an smo
 				ostringstream oss2;
 				oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
-				HDF5Writer smo(oss2.str());
+				NetcdfWriter smo(oss2.str());
 
 				SeaMass::ControlPoints controlPoints;
 				sm.getOutputControlPoints(controlPoints);
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 		// write SMV file
 		ostringstream oss;
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
-		HDF5Writer smv(oss.str());
+		NetcdfWriter smv(oss.str());
 		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
 		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts 
 		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
         // write SMO file
 		ostringstream oss2;
 		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
-		HDF5Writer smo(oss2.str());
+	    NetcdfWriter smo(oss2.str());
 		SeaMass::ControlPoints controlPoints;
 		sm.getOutputControlPoints(controlPoints);
 		smo.write_output_control_points(controlPoints);
