@@ -23,6 +23,7 @@ set(TEMPLATE_FILES
     NetcdfFile.tpp
 )
 
+source_group("Template Files" FILES ${TEMPLATE_FILES})
 add_library(seamass_kernel ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
 target_include_directories(seamass_kernel PUBLIC
     ${netCDF_INCLUDE_DIR}

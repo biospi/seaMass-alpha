@@ -47,6 +47,9 @@ li getUsedMemory();
 
 std::string getTimeStamp();
 
+void setDebugLevel(int debugLevel);
+int getDebugLevel();
+
 
 class MatrixSparseMKL
 {

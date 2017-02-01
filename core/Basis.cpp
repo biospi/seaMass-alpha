@@ -41,9 +41,10 @@ Basis::~Basis()
 
 void Basis::shrinkage(MatrixSparse& y, MatrixSparse& x, const MatrixSparse& xE, const MatrixSparse& l1l2PlusLambda) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " Basis::shrinkage" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << " Basis::shrinkage" << endl;
+    }
     
 	y.copy(x);
 	y.elementwiseDiv(l1l2PlusLambda);

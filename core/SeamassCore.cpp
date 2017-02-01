@@ -36,13 +36,13 @@
 using namespace std;
 
 
-SeamassCore::SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance, int debugLevel) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0), debugLevel_(debugLevel)
+SeamassCore::SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0)
 {
 	init(input, scales);
 }
 
 
-SeamassCore::SeamassCore(Input& input, const Output& seed, int debugLevel) : iteration_(0), debugLevel_(debugLevel)
+SeamassCore::SeamassCore(Input& input, const Output& seed) : iteration_(0)
 {
 	vector<short> scales(seed.scales.size());
 	init(input, scales);
@@ -87,7 +87,10 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	//merge_bins(mzs, intensities, 0.125 / rc_mz);
     
     // Initialize input data
-    cout << getTimeStamp() << "Initialising input data ..." << endl;
+    if (getDebugLevel() % 10 >= 1)
+    {
+        cout << getTimeStamp() << "Initialising input data ..." << endl;
+    }
     MatrixSparse b;
     {
         vector<fp> acoo;
@@ -129,7 +132,10 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	// INIT BASIS FUNCTIONS
 
 	// Create our tree of bases
-    cout << getTimeStamp() << "Initialising overcomplete tree of basis functions ..." << endl;
+    if (getDebugLevel() % 10 >= 1)
+    {
+        cout << getTimeStamp() << "Initialising overcomplete tree of basis functions ..." << endl;
+    }
 	if (input.spectrumIndex.size() <= 2)
 	{
 		dimensions_ = 1;
@@ -164,7 +170,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	}
     
 	//inner_optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
-	optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
+	optimizer_ = new OptimizerSrl(bases_, b);
 	//optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
 	optimizer_->init((fp)shrinkage_);
 
@@ -173,7 +179,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 
 bool SeamassCore::step()
 {
-	if (iteration_ == 0 && debugLevel_ > 0)
+	if (iteration_ == 0 && getDebugLevel() % 10 >= 1)
 	{
 		li nnz = 0;
 		li nx = 0;
@@ -194,7 +200,7 @@ bool SeamassCore::step()
 	iteration_++;
 	double grad = optimizer_->step();
 
-	if (debugLevel_ > 0)
+	if (getDebugLevel() % 10 >= 1)
 	{
 		li nnz = 0;
 		for (ii j = 0; j < (ii)bases_.size(); j++)
@@ -221,22 +227,26 @@ bool SeamassCore::step()
 	{
 		if (shrinkage_ == 0)
 		{
-			if (debugLevel_ == 0) cout << "o" << endl;
+			if (getDebugLevel() == 0) cout << "o" << endl;
 			return false;
 		}
 		else
 		{
-			if (debugLevel_ == 0) cout << "o" << flush;
+			if (getDebugLevel() == 0) cout << "o" << flush;
 			shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
 			optimizer_->init((fp)shrinkage_);
 		}
 	}
 	else
 	{
-		if (debugLevel_ == 0) cout << "." << flush;
+		if (getDebugLevel() == 0) cout << "." << flush;
 	}
     
-    if (grad != grad) exit(0);
+    if (grad != grad)
+    {
+        cout << "ARGGH!" << endl;
+        exit(0);
+    }
     
 	return true;
 }
@@ -250,9 +260,10 @@ ii SeamassCore::getIteration() const
 
 void SeamassCore::getOutput(Output& output) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << iteration_ << " getOutput" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << " " << iteration_ << " getOutput" << endl;
+    }
 
 	output.scales.resize(dimensions_);
 	output.offsets.resize(dimensions_);
@@ -298,9 +309,10 @@ void SeamassCore::getOutput(Output& output) const
 
 void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << iteration_ << " getOutputBinCounts" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << " " << iteration_ << " getOutputBinCounts" << endl;
+    }
 
 	MatrixSparse f;
 	optimizer_->synthesis(f);
@@ -310,9 +322,10 @@ void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 
 void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << iteration_ << " getOutputControlPoints" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << " " << iteration_ << " getOutputControlPoints" << endl;
+    }
 
 	const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 

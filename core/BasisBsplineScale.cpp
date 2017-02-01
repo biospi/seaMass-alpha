@@ -36,11 +36,12 @@ BasisBsplineScale::
 BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Transient transient, int order)
 : BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
 {
-#ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScale";
-    if (getTransient() == Basis::Transient::YES) cout << " (transient)";
-	cout << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScale";
+        if (getTransient() == Basis::Transient::YES) cout << " (transient)";
+        cout << endl;
+    }
 
 	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
 	gridInfo() = parentGridInfo;
@@ -95,10 +96,12 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
     aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
     nnzBasisFunctions_ = n;
 
-#ifndef NDEBUG
-	cout << "  parent=" << getParentIndex() << " dimension=" << dimension_ << " " << gridInfo() << endl;
-	//cout << fixed << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "   parent=" << getParentIndex() << endl;
+        cout << getTimeStamp() << "   dimension=" << dimension_ << endl;
+        cout << getTimeStamp() << "   " << gridInfo() << endl;
+    }
 }
 
 
@@ -111,18 +114,21 @@ void
 BasisBsplineScale::
 synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScale::synthesis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale::synthesis" << endl;
+    }
+    
     f.mul(dimension_ > 0, x, *aT_, accumulate, dimension_ > 0);
 }
 
 
 void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScale::analysis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale::analysis" << endl;
+    }
 
 	if (sqrA)
 	{

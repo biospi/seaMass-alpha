@@ -30,12 +30,16 @@
 using namespace std;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, int debugLevel, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), debugLevel_(debugLevel), xs_(bases_.size()), l2s_(bases_.size()), l1l2sPlusLambda_(bases_.size()), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), xs_(bases_.size()), l2s_(bases_.size()), l1l2sPlusLambda_(bases_.size()), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
-    cout << getTimeStamp() << "Initialising Optimizer SRL ..." << endl;
-
-	// compute L2 norm of each basis function and store in 'l2s'
-    cout << getTimeStamp() << "Initialising L2 norms ..." << endl;
+    if (getDebugLevel() % 10 >= 1)
+    {
+        cout << getTimeStamp() << "Initialising Optimizer SRL ..." << endl;
+        
+        // compute L2 norm of each basis function and store in 'l2s'
+        cout << getTimeStamp() << "Initialising L2 norms ..." << endl;
+    }
+    
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -66,7 +70,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 	}
 
 	// compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
-    cout << getTimeStamp() << "Initialising L1 norms of L2 norms ..." << endl;
+    if (getDebugLevel() % 10 >= 1)
+    {
+        cout << getTimeStamp() << "Initialising L1 norms of L2 norms ..." << endl;
+    }
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -100,7 +107,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
     b_.prune(b, 0.0);
 
 	// initialise starting estimate of 'x' from analysis of 'b'
-    cout << getTimeStamp() << "Seeding from analysis of input ..." << endl;
+    if (getDebugLevel() % 10 >= 1)
+    {
+        cout << getTimeStamp() << "Seeding from analysis of input ..." << endl;
+    }
 	//double sumX = 0.0;
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
@@ -161,9 +171,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, i
 		}
 	}
     
-#ifndef NDEBUG
-	cout << getTimeStamp() << "Sparse Richardson-Lucy ..." << endl;
-#endif
+    if (getDebugLevel() % 10 >= 1)
+    {
+        cout << getTimeStamp() << "Sparse Richardson-Lucy ..." << endl;
+    }
 }
 
 
@@ -174,9 +185,10 @@ OptimizerSrl::~OptimizerSrl()
 
 void OptimizerSrl::init(fp lambda)
 {
-#ifndef NDEBUG
-    cout << getTimeStamp() << iteration_ << " lambda=" << lambda << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << " lambda=" << lambda << endl;
+    }
 
     for (ii i = 0; i < (ii)bases_.size(); i++)
     {
@@ -196,9 +208,10 @@ fp OptimizerSrl::step()
 	iteration_++;
 
 	// SYNTHESIS
-#ifndef NDEBUG
-	cout << getTimeStamp() << iteration_ << " synthesis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "  Synthesis ..." << endl;
+    }
     MatrixSparse f;
 	double synthesisStart = getElapsedTime();
 	{
@@ -207,12 +220,18 @@ fp OptimizerSrl::step()
 	double synthesisDuration = getElapsedTime() - synthesisStart;
 	
 	// ERROR
-#ifndef NDEBUG
-	cout << getTimeStamp() << iteration_ << " error" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "  Error ..." << endl;
+    }
     MatrixSparse fE;
 	double errorStart = getElapsedTime();
 	{
+        if (getDebugLevel() % 10 >= 3)
+        {
+            cout << getTimeStamp() << "   OptimizerSrl::error" << endl;
+        }
+        
 		fE.copy(b_);
 		fE.subsetElementwiseDiv(f); // make this dense mm
 		f.free();
@@ -220,9 +239,10 @@ fp OptimizerSrl::step()
 	double errorDuration = getElapsedTime() - errorStart;
 	
 	// ANALYSIS
-#ifndef NDEBUG
-	cout << getTimeStamp() << iteration_ << " analysis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "  Analysis ..." << endl;
+    }
     vector<MatrixSparse> xEs(bases_.size());
 	double analysisStart = getElapsedTime();
 	{
@@ -254,9 +274,10 @@ fp OptimizerSrl::step()
 	double analysisDuration = getElapsedTime() - analysisStart;
 
 	// SHRINKAGE
-#ifndef NDEBUG
-	cout << getTimeStamp() << iteration_ << " shrinkage" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "  Shrinkage ..." << endl;
+    }
     vector<MatrixSparse> ys(bases_.size());
 	double shrinkageStart = getElapsedTime();
 	{
@@ -273,9 +294,10 @@ fp OptimizerSrl::step()
 	double shrinkageDuration = getElapsedTime() - shrinkageStart;
 	
 	// UPDATE
-#ifndef NDEBUG
-	cout << getTimeStamp() << iteration_ << " termination check" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "  Termination Check ..." << endl;
+    }
     fp sumSqrs = 0.0;
     fp sumSqrDiffs = 0.0;
 	double updateStart = getElapsedTime();
@@ -285,6 +307,11 @@ fp OptimizerSrl::step()
 		{
 			if (bases_[i]->getTransient() == Basis::Transient::NO)
 			{
+                if (getDebugLevel() % 10 >= 3)
+                {
+                    cout << getTimeStamp() << "   " << i << " OptimizerSrl::grad" << endl;
+                }
+                
 				sumSqrs += xs_[i].sumSqrs();
                 ys[i].sumSqrs();
 				sumSqrDiffs += xs_[i].sumSqrDiffs(ys[i]);
@@ -312,7 +339,7 @@ fp OptimizerSrl::step()
 	}
 	double updateDuration = getElapsedTime() - updateStart;
     
-    if (debugLevel_ >= 2 && getElapsedTime() != 0.0)
+    if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
     {
         cout << getTimeStamp();
         cout << "  Durations: synthesis=";

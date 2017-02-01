@@ -125,6 +125,8 @@ int main(int argc, char **argv)
 		cerr<<"Exception of unknown type!\n";
 	}
     
+    setDebugLevel(debugLevel);
+    
 	mzMLbInputFile msFile(in_file);
     OutmzMLb outmzMLb(in_file,msFile);
 	SeamassCore::Input input;
@@ -135,11 +137,11 @@ int main(int argc, char **argv)
 	{
 		cout << endl << "Processing " << id << ":" << endl;
 
-		SeamassCore sm(input, scales, shrinkage, tolerance, debugLevel);
+		SeamassCore sm(input, scales, shrinkage, tolerance);
 
 		do
 		{
-			if (debugLevel >= 3)
+			if (getDebugLevel() >= 10)
 			{
 				/*// create SMV file
 				ostringstream oss;

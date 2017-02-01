@@ -36,11 +36,12 @@ using namespace std;
 BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
                                            const std::vector<fp>& exposures, short scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
 {
-#ifndef NDEBUG
-    cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime";
-    if (getTransient() == Basis::Transient::YES) cout << " (transient)";
-    cout << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime";
+        if (getTransient() == Basis::Transient::YES) cout << " (transient)";
+        cout << endl;
+    }
     
 	double scantimeMin = startTimes.front();
 	double scantimeMax = finishTimes.back();
@@ -56,7 +57,11 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 	if (scale == numeric_limits<short>::max())
 	{
 		scale = scaleAuto;
-        cout << getTimeStamp() << "  autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
+        
+        if (getDebugLevel() % 10 >= 1)
+        {
+            cout << getTimeStamp() << "  autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
+        }
 	}
     
     // Bases per second
@@ -72,12 +77,13 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     gridInfo().offset[1] = (ii)floor(scantimeMin * bpi);
     gridInfo().extent[1] = ((ii)ceil(scantimeMax * bpi)) + order - gridInfo().offset[1];
     
-#ifndef NDEBUG
-    cout << getTimeStamp() << "  parent=" << getParentIndex() << endl;
-    cout << getTimeStamp() << "  range=" << fixed << setprecision(3) << scantimeMin << ":"; cout.unsetf(std::ios::floatfield); cout << scantimeDiff << ":" << fixed << scantimeMax << "Th" << endl;
-    cout << getTimeStamp() << "  scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
-    cout << getTimeStamp() << "  " << gridInfo() << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "  parent=" << getParentIndex() << endl;
+        cout << getTimeStamp() << "  range=" << fixed << setprecision(3) << scantimeMin << ":"; cout.unsetf(std::ios::floatfield); cout << scantimeDiff << ":" << fixed << scantimeMax << "Th" << endl;
+        cout << getTimeStamp() << "  scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
+        cout << getTimeStamp() << "  " << gridInfo() << endl;
+    }
 
     // populate coo matrix
     vector<fp> acoo;
@@ -132,9 +138,10 @@ BasisBsplineScantime::~BasisBsplineScantime()
 
 void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
+    }
 
     f.mul(false, *a_, x, accumulate, false);
 }
@@ -142,9 +149,10 @@ void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, boo
 
 void BasisBsplineScantime::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime::analysis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::analysis" << endl;
+    }
     
     if (sqrA)
     {

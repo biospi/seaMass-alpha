@@ -71,8 +71,8 @@ public:
 		std::vector<ii> offsets;
 	};
 
-	SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance, int debugLevel = 0);
-	SeamassCore(Input& input, const Output& seed, int debugLevel = 0);
+	SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance);
+	SeamassCore(Input& input, const Output& seed);
 	virtual ~SeamassCore();
 
 	bool step();
@@ -93,7 +93,6 @@ private:
 	double shrinkage_;
 	double tolerance_;
 	int iteration_;
-	int debugLevel_;
 };
 
 

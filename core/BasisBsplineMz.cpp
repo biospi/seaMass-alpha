@@ -37,12 +37,13 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
                                const std::vector<double>& binEdges, short scale, Transient transient, int order)
 	: BasisBspline(bases, 1, transient), nnzBasisFunctions_(0)
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz";
-    if (getTransient() == Transient::YES) cout << " (transient)";
-	cout << endl;
-#endif
-
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz";
+        if (getTransient() == Transient::YES) cout << " (transient)";
+        cout << endl;
+    }
+    
 	if (spectrumIndex.size() > 0)
 	{
 		js_ = spectrumIndex;
@@ -76,7 +77,11 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	if (scale == numeric_limits<short>::max())
 	{
 		scale = scaleAuto;
-        cout << getTimeStamp() << "  autodetected_mz_scale=" << fixed << setprecision(1) << scale << endl;
+        
+        if (getDebugLevel() % 10 >= 1)
+        {
+            cout << getTimeStamp() << "   autodetected_mz_scale=" << fixed << setprecision(1) << scale << endl;
+        }
 	}
 
 	// Bases per 1.0033548378Th (difference between carbon12 and carbon13)
@@ -88,11 +93,12 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
     gridInfo().offset[0] = (ii)floor(mzMin * bpi);
     gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
     
-#ifndef NDEBUG
-    cout << getTimeStamp() << "  range=" << fixed << setprecision(3) << mzMin << ":"; cout.unsetf(std::ios::floatfield); cout << mzDiff << ":" << fixed << mzMax << "Th" << endl;
-    cout << getTimeStamp() << "  scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)" << endl;
-    cout << getTimeStamp() << "  " << gridInfo() << endl;
-#endif
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "   range=" << fixed << setprecision(3) << mzMin << ":"; cout.unsetf(std::ios::floatfield); cout << mzDiff << ":" << fixed << mzMax << "Th" << endl;
+        cout << getTimeStamp() << "   scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)" << endl;
+        cout << getTimeStamp() << "   " << gridInfo() << endl;
+    }
    
 	// populate coo matrix
     vector<fp> acoo;
@@ -167,21 +173,13 @@ BasisBsplineMz::~BasisBsplineMz()
 
 void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz::synthesis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::synthesis" << endl;
+    }
     
     MatrixSparse t;
-    /*if (x.isTransposed())
-    {
-        MatrixSparse t2;
-        t2.copy(x, MatrixSparse::Operation::TRANSPOSE);
-        t.copy(t2, MatrixSparse::Operation::UNPACK_ROWS);
-    }
-    else*/
-    {
-        t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
-    }
+    t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
     
 	f.mul(false, t, *aT_, accumulate, false);
 }
@@ -189,9 +187,10 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
 
 void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
 {
-#ifndef NDEBUG
-	cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz::analysis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::analysis" << endl;
+    }
 
     MatrixSparse t;
     
