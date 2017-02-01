@@ -2,26 +2,19 @@ find_package(Boost 1.54 COMPONENTS filesystem REQUIRED)
 find_package(PugiXML REQUIRED)
 find_package(SpatialIndex 1.8.5 REQUIRED)
 
-set(_SAVED_HDF5_DIR ${HDF5_DIR})
-find_package(HDF5 1.8.5 NO_MODULE)
-if(NOT HDF5_FOUND)
-    set(HDF5_DIR ${_SAVED_HDF5_DIR} CACHE PATH "HDF5 install dir" FORCE)
-    find_package(HDF5 1.8.5 REQUIRED)
-endif()
-
 set(HEADER_FILES
 	MSFileData.hpp
-	HDF5Writer.hpp
 	mzMLxml.hpp
 	RTreeReader.hpp
 	MzMLb.hpp
+	NetcdfWriter.hpp
 )
 set(SOURCE_FILES
 	MSFileData.cpp
- 	HDF5Writer.cpp
 	mzMLxml.cpp
 	RTreeReader.cpp
 	MzMLb.cpp
+	NetcdfWriter.cpp
 )
 set(TEMPLATE_FILES
 	mzMLxml.tpp
@@ -30,16 +23,13 @@ set(TEMPLATE_FILES
 source_group("Template Files" FILES ${TEMPLATE_FILES})
 add_library(seamass_io ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
 target_include_directories(seamass_io PUBLIC
-	${HDF5_INCLUDE_DIR}
-	${netCDF_INCLUDE_DIR}
 	${PugiXML_INCLUDE_DIR}
 	${SPATIALINDEX_INCLUDE_DIR}
 	${Boost_INCLUDE_DIR}
 )
 target_link_libraries(seamass_io
 	seamass_core
-	${HDF5_LIBRARIES}
-	${netCDF_LIBRARIES}
+	seamass_kernel
 	${PugiXML_LIBRARIES}
 	${SPATIALINDEX_LIBRARY}
 	${Boost_LIBRARY}
