@@ -56,23 +56,19 @@ public:
     
     void free();
 
-	void init(ii m, ii n); // create empty matrix
 	void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind); // create from COO matrix
     void set(fp v); // set all non-zeros to constant 'v'
-    bool isTransposed() const;
     
     ii m() const;
     ii n() const;
     li size() const;
     ii nnz() const;
-    //li mem() const;
   
     enum class Operation { NONE, TRANSPOSE, PACK_ROWS, UNPACK_ROWS };
     void copy(const MatrixSparseMKL& a, Operation operation = Operation::NONE);
     void prune(const MatrixSparseMKL& a, fp pruneThreshold);
     void output(fp* vs) const;
 
-    //void deleteRows(const MatrixSparseMKL& a);
     void zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x);
 
     // generalised sparse matrix multiplication
@@ -95,17 +91,11 @@ public:
     
     // note: these elementwise operations ONLY considers the non-zero elements of THIS matrix
     void subsetElementwiseCopy(const MatrixSparseMKL& a);
-    //void subsetElementwiseMul(const MatrixSparseMKL& a);
     void subsetElementwiseDiv(const MatrixSparseMKL& a); // needed for error calculation atm
-    
-    // note: this aggregate operation ONLY considers the non-zero elements of THIS matrix
-	//double subsetSumSqrDiffs(const MatrixSparseMKL& a) const;
 
 public:
 	ii m_;   // number of rows
 	ii n_;   // number of columns
-    bool isEmpty_; // MKL doesn't like empty sparse matrices
-    bool isTransposed_;
     
     ii* is0_; ii* is1_; ii* js_; fp* vs_; // pointers to CSR array
     sparse_matrix_t mat_;

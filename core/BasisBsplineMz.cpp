@@ -172,13 +172,13 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
 #endif
     
     MatrixSparse t;
-    if (x.isTransposed())
+    /*if (x.isTransposed())
     {
         MatrixSparse t2;
         t2.copy(x, MatrixSparse::Operation::TRANSPOSE);
         t.copy(t2, MatrixSparse::Operation::UNPACK_ROWS);
     }
-    else
+    else*/
     {
         t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
     }
