@@ -65,7 +65,7 @@ void NetcdfWriter::write_output(SeamassCore::Output& output, ii shrinkage, ii to
 void NetcdfWriter::write_output_control_points(SeamassCore::ControlPoints& controlPoints)
 {
 
-    VecMat<float> cpMat(uli(controlPoints.extent[0]),uli(controlPoints.extent.size()),controlPoints.coeffs);
+    VecMat<float> cpMat(uli(controlPoints.extent.size()),uli(controlPoints.extent[0]),controlPoints.coeffs);
 
     fileout.write_MatNC("controlPoints",cpMat,NC_FLOAT);
     fileout.write_AttNC("controlPoints","offset",controlPoints.offset,NC_INT);
