@@ -163,11 +163,11 @@ int main(int argc, char **argv)
 				// for now, lets also write out an smo
 				ostringstream oss2;
 				oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
-                NetcdfWriter smo(oss2.str());
+                NetcdfWriter netcdfWriter(oss2.str());
 
 				SeamassCore::ControlPoints controlPoints;
 				sm.getOutputControlPoints(controlPoints);
-				smo.write_output_control_points(controlPoints);
+				netcdfWriter.writeSmo(controlPoints);
                 //exit(0);
 			}
 		}
@@ -218,10 +218,10 @@ int main(int argc, char **argv)
         // write SMO file
 		ostringstream oss2;
 		oss2 << boost::filesystem::change_extension(in_file, "smo").string() << "." << id << ".smo";
-        NetcdfWriter smo(oss2.str());
+        NetcdfWriter netcdfWriter(oss2.str());
 		SeamassCore::ControlPoints controlPoints;
 		sm.getOutputControlPoints(controlPoints);
-		smo.write_output_control_points(controlPoints);
+		netcdfWriter.writeSmo(controlPoints);
 
 		// demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
 		// lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)

@@ -24,7 +24,9 @@
 
 #include "NetcdfWriter.hpp"
 
+
 using namespace std;
+
 
 NetcdfWriter::NetcdfWriter(const string& _filename) :
         filename(_filename)
@@ -39,7 +41,7 @@ NetcdfWriter::~NetcdfWriter()
 }
 
 
-void NetcdfWriter::write_input(SeamassCore::Input& input)
+void NetcdfWriter::writeSmi(SeamassCore::Input& input)
 {
     write("binEdges", input.binEdges);
     write("binCounts", input.binCounts);
@@ -49,33 +51,32 @@ void NetcdfWriter::write_input(SeamassCore::Input& input)
     if (input.exposures.size() > 0) write("exposures", input.exposures);
 }
 
-void NetcdfWriter::write_output(SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size)
+void NetcdfWriter::writeSmv(SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size)
 {
-    vector<ii> shrik(1,shrinkage);
+    vector<ii> shrink(1,shrinkage);
     vector<ii> tol(1,tolerance);
 
     fileout.write_AttNC("seamassIndex","extent",output.baselineExtent,NC_INT);
     fileout.write_AttNC("seamassIndex","scale",output.baselineScale,NC_SHORT);
     fileout.write_AttNC("seamassIndex","offset",output.baselineOffset,NC_INT);
-    fileout.write_AttNC("seamassIndex","shrinkage",shrik,NC_INT);
+    fileout.write_AttNC("seamassIndex","shrinkage",shrink,NC_INT);
     fileout.write_AttNC("seamassIndex","tolerance",tol,NC_INT);
 }
 
 
-void NetcdfWriter::write_output_control_points(SeamassCore::ControlPoints& controlPoints)
+void NetcdfWriter::writeSmo(SeamassCore::ControlPoints& controlPoints)
 {
+    VecMat<fp> cpMat(uli(controlPoints.extent.size()),uli(controlPoints.extent[0]),controlPoints.coeffs);
 
-    VecMat<float> cpMat(uli(controlPoints.extent.size()),uli(controlPoints.extent[0]),controlPoints.coeffs);
-
-    fileout.write_MatNC("controlPoints",cpMat,NC_FLOAT);
-    fileout.write_AttNC("controlPoints","offset",controlPoints.offset,NC_INT);
-    fileout.write_AttNC("controlPoints","scale",controlPoints.scale,NC_INT);
+    fileout.write_MatNC("controlPoints", cpMat, sizeof(controlPoints.offset[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+    fileout.write_AttNC("controlPoints","scale",controlPoints.scale,NC_SHORT);
+    fileout.write_AttNC("controlPoints","offset",controlPoints.offset,sizeof(controlPoints.offset[0]) == 4 ? NC_INT : NC_INT64);
 }
 
 
-void NetcdfWriter::write(const string& objectname, vector<unsigned char>& cdata)
+void NetcdfWriter::write(const string& objectname, vector<short>& cdata)
 {
-    write(objectname, cdata, NC_UBYTE);
+    write(objectname, cdata, NC_SHORT);
 }
 
 
@@ -90,10 +91,12 @@ void NetcdfWriter::write(const string& objectname, vector<double>& cdata)
     write(objectname, cdata, NC_DOUBLE);
 }
 
+
 void  NetcdfWriter::write(const string& objectname,vector<long>& cdata)
 {
     write(objectname, cdata, NC_INT);
 }
+
 
 void NetcdfWriter::write(const string& objectname, vector<long long>& cdata)
 {

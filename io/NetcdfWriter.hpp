@@ -25,6 +25,7 @@
 #ifndef SEAMASS_NETCDFWRITER_HPP
 #define SEAMASS_NETCDFWRITER_HPP
 
+
 #include <iostream>
 #include "../kernel/NetcdfFile.hpp"
 #include "../core/SeamassCore.hpp"
@@ -32,26 +33,26 @@
 
 class NetcdfWriter
 {
-protected:
-    std::string filename;
-    NetCDFile fileout;
-    template<typename T>
-    void write(const std::string& objectname, std::vector<T>& cdata, nc_type xtype);
-
 public:
     NetcdfWriter(const std::string& filename);
     ~NetcdfWriter();
 
-    void write_input(SeamassCore::Input& input);
-    void write_output(SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size);
-    void write_output_control_points(SeamassCore::ControlPoints& control_points);
-
-    void write(const std::string& objectname, std::vector<unsigned char>& cdata);
+    void writeSmi(SeamassCore::Input& input);
+    void writeSmv(SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size);
+    void writeSmo(SeamassCore::ControlPoints& control_points);
+    
+private:
+    std::string filename;
+    NetCDFile fileout;
+    
+    void write(const std::string& objectname, std::vector<short>& cdata);
     void write(const std::string& objectname, std::vector<float>& cdata);
     void write(const std::string& objectname, std::vector<double>& cdata);
     void write(const std::string& objectname, std::vector<long>& cdata);
     void write(const std::string& objectname, std::vector<long long>& cdata);
+    template<typename T> void write(const std::string& objectname, std::vector<T>& cdata, nc_type xtype);
 };
+
 
 template<typename T>
 void NetcdfWriter::write(const std::string& objectname, std::vector<T>& cdata, nc_type xtype)
