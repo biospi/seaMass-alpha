@@ -136,104 +136,107 @@ int main(int argc, char **argv)
 	while (msFile.next(input, id))
 	{
 		cout << endl << "Processing " << id << ":" << endl;
-
-		SeamassCore sm(input, scales, shrinkage, tolerance);
-
-		do
-		{
-			if (getDebugLevel() >= 10)
-			{
-				/*// create SMV file
-				ostringstream oss;
-				oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
-				NetcdfWriter smv(oss.str());
-
-				// save back input but with bin_counts now containing the residuals
-				vector<fp> originalBinCounts = input.binCounts;
-				sm.getOutputBinCounts(input.binCounts);
-				for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
-				smv.write_input(input);
-				input.binCounts = originalBinCounts;
-
-				// write RTree
-				SeamassCore::Output output;
-				sm.getOutput(output);
-				smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);*/
-
-				// for now, lets also write out an smo
-				ostringstream oss2;
-				oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
-                NetcdfWriter netcdfWriter(oss2.str());
-
-				SeamassCore::ControlPoints controlPoints;
-				sm.getOutputControlPoints(controlPoints);
-				netcdfWriter.writeSmo(controlPoints);
-                //exit(0);
-			}
-		}
-		while (sm.step());
-
-		// write seaMass outputBinCounts to new mzMLb file 
-		/*vector<fp> outputBinCounts(input.binCounts.size());
-        cout << outputBinCounts.size() << endl;
-		sm.getOutputBinCounts(outputBinCounts); // retrieve seaMass processed outputBinCounts
-		// convert ion counts into ion density (counts per Th) and scale by exposures
-		if (input.exposures.size() > 0)
-		{
-			if (input.spectrumIndex.size() > 0)
-			{
-				// 2D data
-				for (li j = 0; j < (li)input.spectrumIndex.size() - 1; j++)
-				{
-					for (li i = input.spectrumIndex[j]; i < input.spectrumIndex[j + 1]; i++)
-					{
-						outputBinCounts[i] /= (fp) (input.binEdges[i + j + 1] - input.binEdges[i + j]) * input.exposures[j];
-					}
-				}
-			}
-			else
-			{
-				// 1D data
-				for (li i = 0; i < (li)input.binCounts.size(); i++)
-				{
-					outputBinCounts[i] /= (fp) (input.binEdges[i + 1] - input.binEdges[i]) * input.exposures[0];
-				}
-			}
-		}
-		outmzMLb.writeVecData(outputBinCounts); // write to mzMLb*/
         
-		// write SMV file
-		/*ostringstream oss;
-		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
-		NetcdfWriter smv(oss.str());
-		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
-		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts
-		for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
-		smv.write_input(input); // write residuals to smv*/
-		// write RTree
-		//SeaMass::Output output;
-		//sm.getOutput(output);
-		//smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
-
-        // write SMO file
-		ostringstream oss2;
-		oss2 << boost::filesystem::change_extension(in_file, "smo").string() << "." << id << ".smo";
-        NetcdfWriter netcdfWriter(oss2.str());
-		SeamassCore::ControlPoints controlPoints;
-		sm.getOutputControlPoints(controlPoints);
-		netcdfWriter.writeSmo(controlPoints);
-
-		// demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
-		// lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)
-		// therefore we just need to load from the RTree ito Output::weights,scales,offsets
-		/*SeaMass::Output loaded;
-		loaded.baselineOffset = output.baselineOffset;
-		loaded.baselineScale = output.baselineScale;
-		loaded.baselineExtent = output.baselineExtent;
-		RTreeReader rtree(oss.str());
-		rtree.read(loaded);
-		cout << "Number of saved bases: " << output.weights.size() << endl;
-		cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
+        //if (id == "pos_537")
+        {
+            SeamassCore sm(input, scales, shrinkage, tolerance);
+            
+            do
+            {
+                if (getDebugLevel() >= 10)
+                {
+                    /*// create SMV file
+                     ostringstream oss;
+                     oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
+                     NetcdfWriter smv(oss.str());
+                     
+                     // save back input but with bin_counts now containing the residuals
+                     vector<fp> originalBinCounts = input.binCounts;
+                     sm.getOutputBinCounts(input.binCounts);
+                     for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
+                     smv.write_input(input);
+                     input.binCounts = originalBinCounts;
+                     
+                     // write RTree
+                     SeamassCore::Output output;
+                     sm.getOutput(output);
+                     smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);*/
+                    
+                    // for now, lets also write out an smo
+                    ostringstream oss2;
+                    oss2 << boost::filesystem::change_extension(in_file, ".").string() << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
+                    NetcdfWriter netcdfWriter(oss2.str());
+                    
+                    SeamassCore::ControlPoints controlPoints;
+                    sm.getOutputControlPoints(controlPoints);
+                    netcdfWriter.writeSmo(controlPoints);
+                    //exit(0);
+                }
+            }
+            while (sm.step());
+            
+            // write seaMass outputBinCounts to new mzMLb file
+            /*vector<fp> outputBinCounts(input.binCounts.size());
+             cout << outputBinCounts.size() << endl;
+             sm.getOutputBinCounts(outputBinCounts); // retrieve seaMass processed outputBinCounts
+             // convert ion counts into ion density (counts per Th) and scale by exposures
+             if (input.exposures.size() > 0)
+             {
+             if (input.spectrumIndex.size() > 0)
+             {
+             // 2D data
+             for (li j = 0; j < (li)input.spectrumIndex.size() - 1; j++)
+             {
+             for (li i = input.spectrumIndex[j]; i < input.spectrumIndex[j + 1]; i++)
+             {
+             outputBinCounts[i] /= (fp) (input.binEdges[i + j + 1] - input.binEdges[i + j]) * input.exposures[j];
+             }
+             }
+             }
+             else
+             {
+             // 1D data
+             for (li i = 0; i < (li)input.binCounts.size(); i++)
+             {
+             outputBinCounts[i] /= (fp) (input.binEdges[i + 1] - input.binEdges[i]) * input.exposures[0];
+             }
+             }
+             }
+             outmzMLb.writeVecData(outputBinCounts); // write to mzMLb*/
+            
+            // write SMV file
+            /*ostringstream oss;
+             oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
+             NetcdfWriter smv(oss.str());
+             vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
+             sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts
+             for (size_t i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
+             smv.write_input(input); // write residuals to smv*/
+            // write RTree
+            //SeaMass::Output output;
+            //sm.getOutput(output);
+            //smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+            
+            // write SMO file
+            ostringstream oss2;
+            oss2 << boost::filesystem::change_extension(in_file, ".").string() << id << ".smo";
+            NetcdfWriter netcdfWriter(oss2.str());
+            SeamassCore::ControlPoints controlPoints;
+            sm.getOutputControlPoints(controlPoints);
+            netcdfWriter.writeSmo(controlPoints);
+            
+            // demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
+            // lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)
+            // therefore we just need to load from the RTree ito Output::weights,scales,offsets
+            /*SeaMass::Output loaded;
+             loaded.baselineOffset = output.baselineOffset;
+             loaded.baselineScale = output.baselineScale;
+             loaded.baselineExtent = output.baselineExtent;
+             RTreeReader rtree(oss.str());
+             rtree.read(loaded);
+             cout << "Number of saved bases: " << output.weights.size() << endl;
+             cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
+        }
 	}
 
     vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();

@@ -60,7 +60,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         
         if (getDebugLevel() % 10 >= 1)
         {
-            cout << getTimeStamp() << "  autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
+            cout << getTimeStamp() << "   autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
         }
 	}
     
@@ -79,10 +79,10 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  parent=" << getParentIndex() << endl;
-        cout << getTimeStamp() << "  range=" << fixed << setprecision(3) << scantimeMin << ":"; cout.unsetf(std::ios::floatfield); cout << scantimeDiff << ":" << fixed << scantimeMax << "Th" << endl;
-        cout << getTimeStamp() << "  scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
-        cout << getTimeStamp() << "  " << gridInfo() << endl;
+        cout << getTimeStamp() << "   parent=" << getParentIndex() << endl;
+        cout << getTimeStamp() << "   range=" << fixed << setprecision(3) << scantimeMin << ":"; cout.unsetf(std::ios::floatfield); cout << scantimeDiff << ":" << fixed << scantimeMax << "seconds" << endl;
+        cout << getTimeStamp() << "   scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
+        cout << getTimeStamp() << "   " << gridInfo() << endl;
     }
 
     // populate coo matrix

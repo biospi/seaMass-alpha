@@ -227,25 +227,25 @@ bool SeamassCore::step()
 	{
 		if (shrinkage_ == 0)
 		{
-			if (getDebugLevel() == 0) cout << "o" << endl;
+			if (getDebugLevel() % 10 == 0) cout << "o" << endl;
 			return false;
 		}
 		else
 		{
-			if (getDebugLevel() == 0) cout << "o" << flush;
+			if (getDebugLevel() % 10 == 0) cout << "o" << flush;
 			shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
 			optimizer_->init((fp)shrinkage_);
 		}
 	}
 	else
 	{
-		if (getDebugLevel() == 0) cout << "." << flush;
+		if (getDebugLevel() % 10 == 0) cout << "." << flush;
 	}
     
     if (grad != grad)
     {
         cout << "ARGGH!" << endl;
-        exit(0);
+        return false;
     }
     
 	return true;

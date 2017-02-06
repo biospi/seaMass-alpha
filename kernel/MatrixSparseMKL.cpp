@@ -144,7 +144,7 @@ void MatrixSparseMKL::free()
         
         if (getDebugLevel() % 10 >= 4)
         {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
+            cout << getTimeStamp() << "     ... X" << *this << endl;
         }
     }
     else
@@ -214,6 +214,12 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -233,6 +239,12 @@ void MatrixSparseMKL::set(fp v)
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -316,6 +328,12 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -377,6 +395,12 @@ void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -396,12 +420,47 @@ void MatrixSparseMKL::output(fp* vs) const
         while (nz >= is1_[i]) i++; // row of nz'th non-zero
         ii j = js_[nz]; // column of nz'th non-zero
         
-        vs[i + j * m_] = vs_[nz];
+        vs[j + i * n_] = vs_[nz];
     }
     
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... out" << endl;
+    }
+    
+    /*ii nnz = 0;
+    for (ii j = 0; j < n_; j++)
+    {
+        for (ii i = 0; i < m_; i++)
+        {
+            cout << fixed << setprecision(1) << vs[j + i * n_] << ",";
+            if (vs[j + i * n_] > 0.0) nnz++;
+        }
+        cout << endl ;
+    }
+    cout << nnz << endl;*/
+}
+
+
+void MatrixSparseMKL::write(const string& filename) const
+{
+    if (m_ > 0)
+    {
+        NetCDFile outFile(filename, NC_NETCDF4);
+        if (is1_)
+        {
+            outFile.write_VecNC("ia", is0_, m_ + 1, NC_INT64);
+            outFile.write_VecNC("ja", js_, nnz(), NC_INT64);
+            outFile.write_VecNC("a", vs_, nnz(), NC_FLOAT);
+        }
+        else
+        {
+            vector<ii> is(m_ + 1, 0);
+            outFile.write_VecNC("ia", is, NC_INT64);
+        }
+        vector<ii> n;
+        n.push_back(n_);
+        outFile.write_AttNC("ia", "n", n, NC_INT64);
     }
 }
 
@@ -464,9 +523,9 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
         if (transpose) cout << ")";
         if (accumulate) cout << " + X" << *this;
         cout << " := ..." << endl;
-    
-        assert((transposeA ? a.m() : a.n()) == b.m());
     }
+    
+    assert((transposeA ? a.m() : a.n()) == b.m());
     
     if (!is1_)
     {
@@ -506,26 +565,11 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
         
-        /*if (m_ > 0)
+        if (getDebugLevel() >= 14)
         {
-            ostringstream oss; oss << getId() << ".csr";
-            NetCDFile outFile(oss.str(), NC_NETCDF4);
-            
-            if (is1_)
-            {
-                outFile.write_VecNC("ia", is0_, m_ + 1, NC_INT64);
-                outFile.write_VecNC("ja", js_, nnz(), NC_INT64);
-                outFile.write_VecNC("a", vs_, nnz(), NC_FLOAT);
-            }
-            else
-            {
-                vector<ii> is(m_ + 1, 0);
-                outFile.write_VecNC("ia", is, NC_INT64);
-            }
-            vector<ii> n;
-            n.push_back(n_);
-            outFile.write_AttNC("ia", "n", n, NC_INT64);
-        }*/
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -541,6 +585,12 @@ void MatrixSparseMKL::elementwiseSqr()
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -557,6 +607,12 @@ void MatrixSparseMKL::elementwiseSqrt()
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -575,6 +631,12 @@ void MatrixSparseMKL::elementwiseAdd(fp beta)
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -593,6 +655,12 @@ void MatrixSparseMKL::elementwiseMul(fp beta)
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -604,11 +672,19 @@ void MatrixSparseMKL::elementwiseMul(const MatrixSparseMKL& a)
         cout << getTimeStamp() << "     X" << *this << " * A" << a << " := ..." << endl;
     }
     
+    assert(nnz() == a.nnz());
+    
     vsMul(nnz(), vs_, a.vs_, vs_);
     
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -620,11 +696,19 @@ void MatrixSparseMKL::elementwiseDiv(const MatrixSparseMKL& a)
         cout << getTimeStamp() << "     X" << *this << " / A" << a << " := ..." << endl;
     }
     
+    assert(nnz() == a.nnz());
+    
     vsDiv(nnz(), vs_, a.vs_, vs_);
     
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
@@ -698,30 +782,60 @@ fp MatrixSparseMKL::sumSqrDiffs(const MatrixSparseMKL& a) const
 
 
 // todo: use OpenMP
+// todo: argh, mul output not sorted so a may not be
 void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "     " << *this << ":subset(A" << a << ") := ..." << endl;
+        cout << getTimeStamp() << "     " << a << " within " << *this << " := ..." << endl;
     }
     
-    if (is1_)
+    assert(m_ = a.m_);
+    assert(n_ = a.n_);
+    
+    ii nnz = 0;
+    if (is1_ && a.is1_)
     {
-        ii i = 0;
-        ii a_i = 0;
-        ii a_nz = 0;
-        for (ii nz = 0; nz < is0_[m_]; nz++)
+        for (ii i = 0; i < m_; i++)
         {
-            while (nz >= is1_[i]) i++; // row of nz'th non-zero
-            
-            for (; a_nz < a.is0_[m_]; a_nz++)
+            ii a_nz = a.is0_[i];
+            for (ii nz = is0_[i]; nz < is1_[i]; nz++)
             {
-                while (a_nz >= a.is1_[a_i]) a_i++; // row of nz'th non-zero of a
-                
-                if (a.js_[a_nz] == js_[nz] && a_i == i)
+                bool found = false;
+
+                while(a_nz < a.is1_[i])
                 {
-                    vs_[nz] = a.vs_[a_nz];
-                    break;
+                     if (js_[nz] == a.js_[a_nz])
+                    {
+                        vs_[nz] = a.vs_[a_nz];
+                        a_nz++;
+                        nnz++;
+                        found = true;
+                        break;
+                    }
+                    else
+                    {
+                        a_nz++;
+                    }
+                }
+                
+                if (!found) // go back to beginning because we might have missed it
+                {
+                    a_nz = a.is0_[i];
+                    while(a_nz < a.is1_[i])
+                    {
+                        if (js_[nz] == a.js_[a_nz])
+                        {
+                            vs_[nz] = a.vs_[a_nz];
+                            a_nz++;
+                            nnz++;
+                            break;
+                        }
+                        else
+                        {
+                            a_nz++;
+                        }
+                    }
                 }
             }
         }
@@ -730,11 +844,18 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 
 
 // todo: use OpenMP
+// todo: argh, mul output not sorted so a may not be
 void MatrixSparseMKL::subsetElementwiseDiv(const MatrixSparseMKL& a)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -744,21 +865,44 @@ void MatrixSparseMKL::subsetElementwiseDiv(const MatrixSparseMKL& a)
     
     if (is1_ && a.is1_)
     {
-        ii i = 0;
-        ii a_i = 0;
-        ii a_nz = 0;
-        for (ii nz = 0; nz < is0_[m_]; nz++)
+        for (ii i = 0; i < m_; i++)
         {
-            while (nz >= is1_[i]) i++; // row of nz'th non-zero
-            
-            for (; a_nz < a.is0_[m_]; a_nz++)
+            ii a_nz = a.is0_[i];
+            for (ii nz = is0_[i]; nz < is1_[i]; nz++)
             {
-                while (a_nz >= a.is1_[a_i]) a_i++; // row of nz'th non-zero of a
+                bool found = false;
                 
-                if (a.js_[a_nz] == js_[nz] && a_i == i)
+                while(a_nz < a.is1_[i])
                 {
-                    vs_[nz] /= a.vs_[a_nz];
-                    break;
+                    if (js_[nz] == a.js_[a_nz])
+                    {
+                        vs_[nz] /= a.vs_[a_nz];
+                        a_nz++;
+                        found = true;
+                        break;
+                    }
+                    else
+                    {
+                        a_nz++;
+                    }
+                }
+                
+                if (!found) // go back to beginning because we might have missed it
+                {
+                    a_nz = a.is0_[i];
+                    while(a_nz < a.is1_[i])
+                    {
+                        if (js_[nz] == a.js_[a_nz])
+                        {
+                            vs_[nz] /= a.vs_[a_nz];
+                            a_nz++;
+                            break;
+                        }
+                        else
+                        {
+                            a_nz++;
+                        }
+                    }
                 }
             }
         }
@@ -767,6 +911,12 @@ void MatrixSparseMKL::subsetElementwiseDiv(const MatrixSparseMKL& a)
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
     }
 }
 

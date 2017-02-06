@@ -58,10 +58,11 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	{
         if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-            MatrixSparse t;
             l2s_[i].elementwiseSqrt();
+            
+            /*MatrixSparse t;
             t.prune(l2s_[i], pruneThreshold);
-            l2s_[i].copy(t);
+            l2s_[i].copy(t);*/
 		}
 		else
 		{
@@ -92,10 +93,13 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-            MatrixSparse t;
+            l1l2sPlusLambda_[i].elementwiseDiv(l2s_[i]);
+            
+            /*MatrixSparse t;
             t.copy(l2s_[i]);
             t.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
-            l1l2sPlusLambda_[i].elementwiseDiv(l2s_[i]);
+            t.elementwiseDiv(l2s_[i]);
+            l1l2sPlusLambda_[i].copy(t);*/
 		}
 		else
 		{
@@ -104,6 +108,11 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	}
     
     // now make 'b_' 'b' but with zeros removed
+    // initialise starting estimate of 'x' from analysis of 'b'
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "Pruning input ..." << endl;
+    }
     b_.prune(b, 0.0);
 
 	// initialise starting estimate of 'x' from analysis of 'b'
@@ -111,7 +120,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
     {
         cout << getTimeStamp() << "Seeding from analysis of input ..." << endl;
     }
-	//double sumX = 0.0;
+	double sumX = 0.0;
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (i == 0)
@@ -129,23 +138,23 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
         }
         cout << i << "ARGH1" << endl;*/
         
-		//sumX += xs_[i].sum();
+		sumX += xs_[i].sum();
 	}
-	//double sumB = b_.sum();
+	double sumB = b_.sum();
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
             // remove unneeded l1l2sPlusLambda
             MatrixSparse l1l2PlusLambda;
-            l1l2PlusLambda.copy(xs_[i]);
-            l1l2PlusLambda.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
+            l1l2PlusLambda.copy(xs_[i]); //100
+            l1l2PlusLambda.subsetElementwiseCopy(l1l2sPlusLambda_[i]); //102 bad? after 1467 it equals xs_[i]
             
             // normalise and prune xs
             MatrixSparse x;
-            x.copy(xs_[i]);
-            x.elementwiseDiv(l1l2PlusLambda);
-            //x.elementwiseMul((fp)(sumB / sumX));
+            x.copy(xs_[i]); //104
+            x.elementwiseDiv(l1l2PlusLambda); // 106 bad
+            x.elementwiseMul((fp)(sumB / sumX));
             xs_[i].prune(x, pruneThreshold);
             
             // remove unneeded l12sPlusLambda again (after pruning)

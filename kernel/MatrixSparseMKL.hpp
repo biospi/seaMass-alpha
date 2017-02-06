@@ -71,6 +71,7 @@ public:
     void copy(const MatrixSparseMKL& a, Operation operation = Operation::NONE);
     void prune(const MatrixSparseMKL& a, fp pruneThreshold);
     void output(fp* vs) const;
+    void write(const std::string& filename) const;
 
     void zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x);
 

@@ -66,29 +66,16 @@ void NetcdfWriter::writeSmv(SeamassCore::Output& output, ii shrinkage, ii tolera
 
 void NetcdfWriter::writeSmo(SeamassCore::ControlPoints& controlPoints)
 {
-
-    uli rtrows;
-    uli mzcols;
-
-    if(controlPoints.extent.size()==1)
+    if (controlPoints.extent.size() == 1)
     {
-        rtrows=1;
-        mzcols=uli(controlPoints.extent[0]);
-    }
-    else if(controlPoints.extent.size()==2)
-    {
-        rtrows=uli(controlPoints.extent[1]);
-        mzcols=uli(controlPoints.extent[0]);
+        fileout.write_VecNC("controlPoints", controlPoints.coeffs, sizeof(controlPoints.coeffs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
     }
     else
     {
-        cout<<"Error in dimmesions of controlPoints!"<<endl;
-        exit(2);
+        VecMat<fp> cpMat(controlPoints.extent[1], controlPoints.extent[0], controlPoints.coeffs);
+        fileout.write_MatNC("controlPoints", cpMat, sizeof(controlPoints.coeffs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
     }
 
-    VecMat<fp> cpMat(rtrows,mzcols,controlPoints.coeffs);
-
-    fileout.write_MatNC("controlPoints", cpMat, sizeof(controlPoints.coeffs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
     fileout.write_AttNC("controlPoints","scale",controlPoints.scale,NC_SHORT);
     fileout.write_AttNC("controlPoints","offset",controlPoints.offset,sizeof(controlPoints.offset[0]) == 4 ? NC_INT : NC_INT64);
 }
