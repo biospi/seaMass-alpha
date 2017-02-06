@@ -76,7 +76,7 @@ public:
     void zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x);
 
     // generalised sparse matrix multiplication
-	void mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool transpose);
+	void mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate);
 
     // elementwise operations
 	void elementwiseAdd(fp beta);

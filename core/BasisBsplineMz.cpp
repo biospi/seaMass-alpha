@@ -181,7 +181,7 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
     MatrixSparse t;
     t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
     
-	f.mul(false, t, *aT_, accumulate, false);
+	f.mul(false, t, *aT_, accumulate);
 }
 
 
@@ -199,11 +199,11 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 		MatrixSparse aSqr;
 		aSqr.copy(*a_);
 		aSqr.elementwiseSqr();
-		t.mul(false, fE, aSqr, false, false);
+		t.mul(false, fE, aSqr, false);
 	}
 	else
 	{
-		t.mul(false, fE, *a_, false, false);
+		t.mul(false, fE, *a_, false);
 	}
     
     xE.copy(t, MatrixSparse::Operation::PACK_ROWS);

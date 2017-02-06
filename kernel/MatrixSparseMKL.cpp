@@ -513,14 +513,13 @@ void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const Matr
 }
 
 
-void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool transpose)
+void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate)
 {
     if (!accumulate) free();
     
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "     " << (transpose ? "t(" : "") << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
-        if (transpose) cout << ")";
+        cout << getTimeStamp() << "     " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
         if (accumulate) cout << " + X" << *this;
         cout << " := ..." << endl;
     }
@@ -672,7 +671,9 @@ void MatrixSparseMKL::elementwiseMul(const MatrixSparseMKL& a)
         cout << getTimeStamp() << "     X" << *this << " * A" << a << " := ..." << endl;
     }
     
-    assert(nnz() == a.nnz());
+    assert(m_ == a.m_);
+    assert(n_ == a.n_);
+    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
     
     vsMul(nnz(), vs_, a.vs_, vs_);
     
@@ -696,7 +697,9 @@ void MatrixSparseMKL::elementwiseDiv(const MatrixSparseMKL& a)
         cout << getTimeStamp() << "     X" << *this << " / A" << a << " := ..." << endl;
     }
     
-    assert(nnz() == a.nnz());
+    assert(m_ == a.m_);
+    assert(n_ == a.n_);
+    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
     
     vsDiv(nnz(), vs_, a.vs_, vs_);
     
@@ -765,6 +768,9 @@ fp MatrixSparseMKL::sumSqrDiffs(const MatrixSparseMKL& a) const
     {
         cout << getTimeStamp() << "     sum((X" << *this << " - A" << a << ")^2) := ..." << endl;
     }
+ 
+    assert(m_ == a.m_);
+    assert(n_ == a.n_);
     
     fp sum = 0.0;
     ippsNormDiff_L2_32f(vs_, a.vs_, nnz(), &sum);
@@ -790,8 +796,8 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
         cout << getTimeStamp() << "     " << a << " within " << *this << " := ..." << endl;
     }
     
-    assert(m_ = a.m_);
-    assert(n_ = a.n_);
+    assert(m_ == a.m_);
+    assert(n_ == a.n_);
     
     ii nnz = 0;
     if (is1_ && a.is1_)
@@ -862,6 +868,9 @@ void MatrixSparseMKL::subsetElementwiseDiv(const MatrixSparseMKL& a)
     {
         cout << getTimeStamp() << "     X" << *this << " / subset(A" << a << ", " << *this << ") := ..." << endl;
     }
+    
+    assert(m_ == a.m_);
+    assert(n_ == a.n_);
     
     if (is1_ && a.is1_)
     {

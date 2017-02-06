@@ -49,6 +49,13 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
 	gridInfo().offset[dimension_] = parentGridInfo.offset[dimension_] / 2;
     gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_]) / 2 + 1 - gridInfo().offset[dimension_];
     
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "   parent=" << getParentIndex() << endl;
+        cout << getTimeStamp() << "   dimension=" << dimension_ << endl;
+        cout << getTimeStamp() << "   " << gridInfo() << endl;
+    }
+    
 	ii stride = 1;
 	for (ii j = 0; j < dimension_; j++) stride *= gridInfo().extent[j];
 
@@ -95,13 +102,6 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
     aT_ = new MatrixSparse();
     aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
     nnzBasisFunctions_ = n;
-
-    if (getDebugLevel() % 10 >= 2)
-    {
-        cout << getTimeStamp() << "   parent=" << getParentIndex() << endl;
-        cout << getTimeStamp() << "   dimension=" << dimension_ << endl;
-        cout << getTimeStamp() << "   " << gridInfo() << endl;
-    }
 }
 
 
@@ -119,7 +119,14 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
         cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale::synthesis" << endl;
     }
     
-    f.mul(dimension_ > 0, x, *aT_, accumulate, dimension_ > 0);
+    if (dimension_ == 0)
+    {
+        f.mul(false, x, *aT_, accumulate);
+    }
+    else
+    {
+        f.mul(false, *a_, x, accumulate);
+    }
 }
 
 
@@ -132,14 +139,33 @@ void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool 
 
 	if (sqrA)
 	{
-		MatrixSparse t;
-		t.copy(*a_);
-		t.elementwiseSqr();
-		xE.mul(dimension_ > 0, fE, t, false, dimension_ > 0);
+        if (dimension_ == 0)
+        {
+            MatrixSparse t;
+            t.copy(*a_);
+            t.elementwiseSqr();
+            
+            xE.mul(false, fE, t, false);
+        }
+        else
+        {
+            MatrixSparse t;
+            t.copy(*aT_);
+            t.elementwiseSqr();
+            
+            xE.mul(false, t, fE, false);
+        }
 	}
 	else
 	{
-		xE.mul(dimension_ > 0, fE, *a_, false, dimension_ > 0);
+        if (dimension_ == 0)
+        {
+            xE.mul(false, fE, *a_, false);
+        }
+        else
+        {
+            xE.mul(false, *aT_, fE, false);
+        }
 	}
 }
 

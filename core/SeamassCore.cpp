@@ -155,7 +155,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
         Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], Basis::Transient::NO);
         //for (ii i = 0; i < 2; i++) new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, Basis::Transient::NO);
  
-        /*for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4; i++)
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4; i++)
         {
             if (i > 0)
             {
@@ -166,7 +166,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
             {
                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
             }
-        }*/
+        }
 	}
     
 	//inner_optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);

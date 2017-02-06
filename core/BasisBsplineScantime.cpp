@@ -143,7 +143,7 @@ void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, boo
         cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
     }
 
-    f.mul(false, *a_, x, accumulate, false);
+    f.mul(false, *a_, x, accumulate);
 }
 
 
@@ -159,11 +159,11 @@ void BasisBsplineScantime::analysis(MatrixSparse& xE, const MatrixSparse& fE, bo
         MatrixSparse t;
         t.copy(*aT_);
         t.elementwiseSqr();
-        xE.mul(false, t, fE, false, false);
+        xE.mul(false, t, fE, false);
     }
     else
     {
-        xE.mul(false, *aT_, fE, false, false);
+        xE.mul(false, *aT_, fE, false);
     }
 }
 
