@@ -46,7 +46,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 		{
 			MatrixSparse t;
             t.copy(b);
-            t.set((fp)1.0);
+            t.setNonzeros((fp)1.0);
 			bases_[i]->analysis(l2s_[0], t, true);
 		}
 		else
@@ -58,11 +58,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	{
         if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-            l2s_[i].elementwiseSqrt();
-            
-            /*MatrixSparse t;
-            t.prune(l2s_[i], pruneThreshold);
-            l2s_[i].copy(t);*/
+            l2s_[i].sqrt();
 		}
 		else
 		{
@@ -81,7 +77,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 		{
 			MatrixSparse t;
             t.copy(b);
-            t.set((fp)1.0);
+            t.setNonzeros((fp)1.0);
 			bases_[i]->analysis(l1l2sPlusLambda_[0], t, false);
 		}
 		else
@@ -93,13 +89,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-            l1l2sPlusLambda_[i].elementwiseDiv(l2s_[i]);
-            
-            /*MatrixSparse t;
-            t.copy(l2s_[i]);
-            t.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
-            t.elementwiseDiv(l2s_[i]);
-            l1l2sPlusLambda_[i].copy(t);*/
+            l1l2sPlusLambda_[i].divCorrespondingNonzeros(l2s_[i]);
 		}
 		else
 		{
@@ -108,7 +98,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	}
     
     // now make 'b_' 'b' but with zeros removed
-    // initialise starting estimate of 'x' from analysis of 'b'
     if (getDebugLevel() % 10 >= 2)
     {
         cout << getTimeStamp() << "Pruning input ..." << endl;
@@ -131,12 +120,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 		{
 			bases_[i]->analysis(xs_[i], xs_[bases_[i]->getParentIndex()], false);
 		}
-  
-        /*for (ii nz = 0; nz < 1000000; nz++)
-        {
-            cout << xs_[i].vs_[nz] << ",";
-        }
-        cout << i << "ARGH1" << endl;*/
         
 		sumX += xs_[i].sum();
 	}
@@ -147,14 +130,14 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 		{
             // remove unneeded l1l2sPlusLambda
             MatrixSparse l1l2PlusLambda;
-            l1l2PlusLambda.copy(xs_[i]); //100
-            l1l2PlusLambda.subsetElementwiseCopy(l1l2sPlusLambda_[i]); //102 bad? after 1467 it equals xs_[i]
+            l1l2PlusLambda.copy(xs_[i]);
+            l1l2PlusLambda.subsetElementwiseCopy(l1l2sPlusLambda_[i]);
             
             // normalise and prune xs
             MatrixSparse x;
-            x.copy(xs_[i]); //104
-            x.elementwiseDiv(l1l2PlusLambda); // 106 bad
-            x.elementwiseMul((fp)(sumB / sumX));
+            x.copy(xs_[i]);
+            x.divCorrespondingNonzeros(l1l2PlusLambda); // 106 bad
+            x.mul((fp)(sumB / sumX));
             xs_[i].prune(x, pruneThreshold);
             
             // remove unneeded l12sPlusLambda again (after pruning)
@@ -167,18 +150,23 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
             t.copy(xs_[i]);
             t.subsetElementwiseCopy(l2s_[i]);
             l2s_[i].copy(t);
-        
-            /*for (ii nz = 0; nz < 1000000; nz++)
-            {
-                cout << xs_[i].vs_[nz] << ",";
-            }
-            cout << i << "ARGH2" << endl;*/
 		}
 		else
 		{
             xs_[i].free();
 		}
 	}
+    
+    // log b_ and add back zeros
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "Log input ..." << endl;
+    }
+    b_.lnNonzeros();
+    MatrixSparse t;
+    t.add(0.0, false, b, b_);
+    b_.copy(t);
+    
     
     if (getDebugLevel() % 10 >= 1)
     {
@@ -203,7 +191,7 @@ void OptimizerSrl::init(fp lambda)
     {
         if (bases_[i]->getTransient() == Basis::Transient::NO)
         {
-            l1l2sPlusLambda_[i].elementwiseAdd(lambda - lambda_);
+            l1l2sPlusLambda_[i].addNonzeros(lambda - lambda_);
         }
     }
     
@@ -241,8 +229,10 @@ fp OptimizerSrl::step()
             cout << getTimeStamp() << "   OptimizerSrl::error" << endl;
         }
         
-		fE.copy(b_);
-		fE.subsetElementwiseDiv(f); // make this dense mm
+		// could this use dense matmul instead?
+        f.lnNonzeros();
+        fE.add(-1.0, false, f, b_);
+        fE.expNonzeros(); // because b_ has zeros this will work like normal exp (i.e 0 -> 1)
 		f.free();
 	}
 	double errorDuration = getElapsedTime() - errorStart;
@@ -277,7 +267,7 @@ fp OptimizerSrl::step()
             t.subsetElementwiseCopy(xEs[i]);
             xEs[i].copy(t);
             
-			xEs[i].elementwiseDiv(l2s_[i]);
+			xEs[i].divCorrespondingNonzeros(l2s_[i]);
 		}
 	}
 	double analysisDuration = getElapsedTime() - analysisStart;
@@ -323,7 +313,7 @@ fp OptimizerSrl::step()
                 
 				sumSqrs += xs_[i].sumSqrs();
                 ys[i].sumSqrs();
-				sumSqrDiffs += xs_[i].sumSqrDiffs(ys[i]);
+				sumSqrDiffs += xs_[i].sumSqrDiffsCorrespondingNonzeros(ys[i]);
 			}
 		}
 
@@ -389,7 +379,7 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 		if (!ts[i].m() && bases_[i]->getTransient() == Basis::Transient::NO)
 		{
             ts[i].copy(xs_[i]);
-			if (l2s_[i].m()) ts[i].elementwiseDiv(l2s_[i]);
+			if (l2s_[i].m()) ts[i].divCorrespondingNonzeros(l2s_[i]);
 		}
 
 		if (basis == i) // return with B-spline control points
@@ -405,7 +395,7 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 			if (!ts[pi].m() && bases_[pi]->getTransient() == Basis::Transient::NO)
 			{
                 ts[pi].copy(xs_[pi]);
-				if (l2s_[pi].m()) ts[pi].elementwiseDiv(l2s_[pi]);
+				if (l2s_[pi].m()) ts[pi].divCorrespondingNonzeros(l2s_[pi]);
 			}
 
             bases_[i]->deleteBasisFunctions(ts[i], 100000);
@@ -413,6 +403,8 @@ void OptimizerSrl::synthesis(MatrixSparse& f, ii basis)
 		}
 		else
 		{
+            //cout << ts[0].nnz() << ":" << ts[0].nnzActual() << endl;
+            
             bases_[0]->deleteBasisFunctions(ts[0], 100000);
 			bases_[0]->synthesis(f, ts[0], false);
 		}

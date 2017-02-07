@@ -57,15 +57,14 @@ public:
 	MatrixSparseMKL();
 	~MatrixSparseMKL();
     
+    void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind); // create from COO matrix
     void free();
-
-	void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind); // create from COO matrix
-    void set(fp v); // set all non-zeros to constant 'v'
     
     ii m() const;
     ii n() const;
     li size() const;
     ii nnz() const;
+    ii nnzActual() const;
   
     enum class Operation { NONE, TRANSPOSE, PACK_ROWS, UNPACK_ROWS };
     void copy(const MatrixSparseMKL& a, Operation operation = Operation::NONE);
@@ -75,27 +74,28 @@ public:
 
     void zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x);
 
-    // generalised sparse matrix multiplication
-	void mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate);
+    void add(fp alpha, bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b);
+	void matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate);
+    void mul(fp beta);
+    void mul(const MatrixSparseMKL& a);
+    void sqr();
+    void sqrt();
 
-    // elementwise operations
-	void elementwiseAdd(fp beta);
-	void elementwiseMul(fp beta);
-    void elementwiseMul(const MatrixSparseMKL& a);
-    void elementwiseDiv(const MatrixSparseMKL& a);
-	void elementwiseSqr();
-	void elementwiseSqrt();
-	void elementwiseLn();
-	void elementwisePow(fp power);
+    // operate only on non-zero elements
+    void setNonzeros(fp v);
+	void addNonzeros(fp beta);
+	void lnNonzeros();
+    void expNonzeros();
+	void powNonzeros(fp power);
+    void divCorrespondingNonzeros(const MatrixSparseMKL& a);
 
     // aggregate operations
 	fp sum() const;
 	fp sumSqrs() const;
-    fp sumSqrDiffs(const MatrixSparseMKL& a) const;
+    fp sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) const;
     
     // note: these elementwise operations ONLY considers the non-zero elements of THIS matrix
     void subsetElementwiseCopy(const MatrixSparseMKL& a);
-    void subsetElementwiseDiv(const MatrixSparseMKL& a); // needed for error calculation atm
 
 public:
 	ii m_;   // number of rows

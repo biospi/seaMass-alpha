@@ -47,8 +47,8 @@ void Basis::shrinkage(MatrixSparse& y, MatrixSparse& x, const MatrixSparse& xE, 
     }
     
 	y.copy(x);
-	y.elementwiseDiv(l1l2PlusLambda);
-	y.elementwiseMul(xE);
+	y.divCorrespondingNonzeros(l1l2PlusLambda);
+	y.mul(xE);
 }
 
 

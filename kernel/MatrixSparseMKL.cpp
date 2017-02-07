@@ -26,6 +26,7 @@
 #include <iostream>
 #include <cassert>
 #include <cstring>
+#include <cmath>
 #include <sstream>
 
 #if defined(_OPENMP)
@@ -120,6 +121,44 @@ MatrixSparseMKL::~MatrixSparseMKL()
 }
 
 
+void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind)
+{
+    free();
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     COO := ..." << endl;
+    }
+    
+    m_ = m;
+    n_ = n;
+    
+    fp* c_acoo = const_cast<fp*>(acoo);
+    ii* c_rowind = const_cast<ii*>(rowind);
+    ii* c_colind = const_cast<ii*>(colind);
+    
+    sparse_matrix_t t;
+    status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, nnz, c_rowind, c_colind, c_acoo); assert(!status_);
+    status_ = mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, &mat_); assert(!status_);
+    status_ = mkl_sparse_destroy(t); assert(!status_);
+    
+    sparse_index_base_t indexing;
+    status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
+    isMklData_ = true;
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
 void MatrixSparseMKL::free()
 {
     if (is1_)
@@ -186,65 +225,22 @@ ii MatrixSparseMKL::nnz() const
 }
 
 
-void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind)
+ii MatrixSparseMKL::nnzActual() const
 {
-    free();
-    
-    if (getDebugLevel() % 10 >= 4)
+    if (is1_)
     {
-        cout << getTimeStamp() << "     COO := ..." << endl;
-    }
-    
-    m_ = m;
-    n_ = n;
-    
-    fp* c_acoo = const_cast<fp*>(acoo);
-    ii* c_rowind = const_cast<ii*>(rowind);
-    ii* c_colind = const_cast<ii*>(colind);
-
-    sparse_matrix_t t;
-    status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, nnz, c_rowind, c_colind, c_acoo); assert(!status_);
-    status_ = mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, &mat_); assert(!status_);
-    status_ = mkl_sparse_destroy(t); assert(!status_);
-    
-    sparse_index_base_t indexing;
-    status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
-    isMklData_ = true;
-    
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
+        ii count = 0;
         
-        if (getDebugLevel() >= 14)
+        for (ii nz = 0; nz < nnz(); nz++)
         {
-            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
-            write(oss.str());
+            if (vs_[nz] != 0.0) count++;
         }
-    }
-}
-
-
-void MatrixSparseMKL::set(fp v)
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     (X" << *this << " != 0.0) ? " << v << " : 0.0 := ..." << endl;
-    }
-    
-    for (ii nz = 0; nz < nnz(); nz++)
-    {
-        vs_[nz] = v;
-    }
-    
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
         
-        if (getDebugLevel() >= 14)
-        {
-            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
-            write(oss.str());
-        }
+        return count;
+    }
+    else
+    {
+        return 0;
     }
 }
 
@@ -482,7 +478,7 @@ void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const Matr
         
         // make into unit diagonal matrix
         t.n_ = t.m_;
-        t.set((fp)1.0);
+        t.setNonzeros((fp)1.0);
         for (ii i = 0; i < t.m_; i++)
         {
             for (ii nz = t.is0_[i]; nz < t.is1_[i]; nz++)
@@ -513,7 +509,56 @@ void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const Matr
 }
 
 
-void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate)
+void MatrixSparseMKL::add(fp alpha, bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b)
+{
+    free();
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     " << alpha << " * " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " + B" << b;
+        cout << " := ..." << endl;
+    }
+    
+    assert((transposeA ? a.n() : a.m()) == b.m());
+    assert((transposeA ? a.m() : a.n()) == b.n());
+    
+    if (!a.is1_ || !b.is1_)
+    {
+        m_ = transposeA ? a.n() : a.m();
+        n_ = b.n();
+    }
+    else if (!a.is1_)
+    {
+        copy(b);
+    }
+    else if (!b.is1_)
+    {
+        copy(a, transposeA ? Operation::TRANSPOSE : Operation::NONE);
+        mul(alpha);
+    }
+    else
+    {
+        status_ = mkl_sparse_s_add(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, alpha, b.mat_, &mat_); assert(!status_);
+        
+        sparse_index_base_t indexing;
+        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
+        isMklData_ = true;
+    }
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate)
 {
     if (!accumulate) free();
     
@@ -573,74 +618,7 @@ void MatrixSparseMKL::mul(bool transposeA, const MatrixSparseMKL& a, const Matri
 }
 
 
-void MatrixSparseMKL::elementwiseSqr()
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     (X" << *this << ")^2 := ..." << endl;
-    }
-    vsSqr(nnz(), vs_, vs_);
-    
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
-        
-        if (getDebugLevel() >= 14)
-        {
-            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
-            write(oss.str());
-        }
-    }
-}
-
-
-void MatrixSparseMKL::elementwiseSqrt()
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     sqrt(X" << *this << ") := ..." << endl;
-    }
-
-    vsSqrt(nnz(), vs_, vs_);
-
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
-        
-        if (getDebugLevel() >= 14)
-        {
-            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
-            write(oss.str());
-        }
-    }
-}
-
-
-void MatrixSparseMKL::elementwiseAdd(fp beta)
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     X" << *this << " + ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << beta << " := ..." << endl;
-    }
-    
-    ippsAddC_32f_I(beta, vs_, nnz());
-
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
-        
-        if (getDebugLevel() >= 14)
-        {
-            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
-            write(oss.str());
-        }
-    }
-}
-
-
-void MatrixSparseMKL::elementwiseMul(fp beta)
+void MatrixSparseMKL::mul(fp beta)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -650,7 +628,7 @@ void MatrixSparseMKL::elementwiseMul(fp beta)
     }
     
     ippsMulC_32f_I(beta, vs_, nnz());
-
+    
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
@@ -664,7 +642,7 @@ void MatrixSparseMKL::elementwiseMul(fp beta)
 }
 
 
-void MatrixSparseMKL::elementwiseMul(const MatrixSparseMKL& a)
+void MatrixSparseMKL::mul(const MatrixSparseMKL& a)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -690,18 +668,150 @@ void MatrixSparseMKL::elementwiseMul(const MatrixSparseMKL& a)
 }
 
 
-void MatrixSparseMKL::elementwiseDiv(const MatrixSparseMKL& a)
+void MatrixSparseMKL::sqr()
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "     X" << *this << " / A" << a << " := ..." << endl;
+        cout << getTimeStamp() << "     (X" << *this << ")^2 := ..." << endl;
+    }
+    vsSqr(nnz(), vs_, vs_);
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::sqrt()
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     sqrt(X" << *this << ") := ..." << endl;
     }
     
-    assert(m_ == a.m_);
-    assert(n_ == a.n_);
-    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
+    vsSqrt(nnz(), vs_, vs_);
     
-    vsDiv(nnz(), vs_, a.vs_, vs_);
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::setNonzeros(fp v)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     (X" << *this << " != 0.0) ? " << v << " : 0.0 := ..." << endl;
+    }
+    
+    for (ii nz = 0; nz < nnz(); nz++)
+    {
+        vs_[nz] = v;
+    }
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::addNonzeros(fp beta)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     X" << *this << " + ";
+        cout.unsetf(ios::floatfield);
+        cout << setprecision(8) << beta << " := ..." << endl;
+    }
+    
+    ippsAddC_32f_I(beta, vs_, nnz());
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::lnNonzeros()
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ln(X" << *this << ") := ..." << endl;
+    }
+    
+    vsLn(nnz(), vs_, vs_);
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::expNonzeros()
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     exp(X" << *this << ") := ..." << endl;
+    }
+    
+    vsExp(nnz(), vs_, vs_);
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::powNonzeros(fp power)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     X" << *this << "^" << power << " := ..." << endl;
+    }
+    
+    vsPowx(nnz(), vs_, power, vs_);
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -737,7 +847,30 @@ fp MatrixSparseMKL::sum() const
 }
 
 
-#include <math.h>
+void MatrixSparseMKL::divCorrespondingNonzeros(const MatrixSparseMKL& a)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     X" << *this << " / A" << a << " := ..." << endl;
+    }
+    
+    assert(m_ == a.m_);
+    assert(n_ == a.n_);
+    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
+    
+    vsDiv(nnz(), vs_, a.vs_, vs_);
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
 
 
 fp MatrixSparseMKL::sumSqrs() const
@@ -762,7 +895,7 @@ fp MatrixSparseMKL::sumSqrs() const
 }
 
 
-fp MatrixSparseMKL::sumSqrDiffs(const MatrixSparseMKL& a) const
+fp MatrixSparseMKL::sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) const
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -860,76 +993,6 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
 }
 
 
-// todo: use OpenMP
-// todo: argh, mul output not sorted so a may not be
-void MatrixSparseMKL::subsetElementwiseDiv(const MatrixSparseMKL& a)
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     X" << *this << " / subset(A" << a << ", " << *this << ") := ..." << endl;
-    }
-    
-    assert(m_ == a.m_);
-    assert(n_ == a.n_);
-    
-    if (is1_ && a.is1_)
-    {
-        for (ii i = 0; i < m_; i++)
-        {
-            ii a_nz = a.is0_[i];
-            for (ii nz = is0_[i]; nz < is1_[i]; nz++)
-            {
-                bool found = false;
-                
-                while(a_nz < a.is1_[i])
-                {
-                    if (js_[nz] == a.js_[a_nz])
-                    {
-                        vs_[nz] /= a.vs_[a_nz];
-                        a_nz++;
-                        found = true;
-                        break;
-                    }
-                    else
-                    {
-                        a_nz++;
-                    }
-                }
-                
-                if (!found) // go back to beginning because we might have missed it
-                {
-                    a_nz = a.is0_[i];
-                    while(a_nz < a.is1_[i])
-                    {
-                        if (js_[nz] == a.js_[a_nz])
-                        {
-                            vs_[nz] /= a.vs_[a_nz];
-                            a_nz++;
-                            break;
-                        }
-                        else
-                        {
-                            a_nz++;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
-        
-        if (getDebugLevel() >= 14)
-        {
-            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
-            write(oss.str());
-        }
-    }
-}
-
-
 ostream& operator<<(ostream& os, const MatrixSparseMKL& a)
 {
 	if (a.m() == 0)
@@ -938,7 +1001,14 @@ ostream& operator<<(ostream& os, const MatrixSparseMKL& a)
 	}
 	else
 	{
-        os << "[" << a.m_ << "," << a.n_ << "]:" << a.nnz() << "/" << a.size() << ":";
+        os << "[" << a.m_ << "," << a.n_ << "]:" << a.nnz();
+        
+        if (getDebugLevel() % 10 >= 4)
+        {
+            os << "(" << a.nnzActual() << ")";
+        }
+        
+        os << "/" << a.size() << ":";
         os.unsetf(ios::floatfield);
         os << setprecision(3) << 100.0 * a.nnz() / (double)a.size() << "%";
 	}

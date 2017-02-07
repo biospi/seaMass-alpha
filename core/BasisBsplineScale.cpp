@@ -121,11 +121,11 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
     
     if (dimension_ == 0)
     {
-        f.mul(false, x, *aT_, accumulate);
+        f.matmul(false, x, *aT_, accumulate);
     }
     else
     {
-        f.mul(false, *a_, x, accumulate);
+        f.matmul(false, *a_, x, accumulate);
     }
 }
 
@@ -143,28 +143,28 @@ void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool 
         {
             MatrixSparse t;
             t.copy(*a_);
-            t.elementwiseSqr();
+            t.sqr();
             
-            xE.mul(false, fE, t, false);
+            xE.matmul(false, fE, t, false);
         }
         else
         {
             MatrixSparse t;
             t.copy(*aT_);
-            t.elementwiseSqr();
+            t.sqr();
             
-            xE.mul(false, t, fE, false);
+            xE.matmul(false, t, fE, false);
         }
 	}
 	else
 	{
         if (dimension_ == 0)
         {
-            xE.mul(false, fE, *a_, false);
+            xE.matmul(false, fE, *a_, false);
         }
         else
         {
-            xE.mul(false, *aT_, fE, false);
+            xE.matmul(false, *aT_, fE, false);
         }
 	}
 }
