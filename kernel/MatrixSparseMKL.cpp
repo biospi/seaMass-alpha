@@ -334,6 +334,63 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
 }
 
 
+class MatrixSparseMKL::MyComparator
+{
+public:
+    
+    ii* js_;
+    
+    MyComparator(ii* js): js_(js) {}
+    
+    bool operator()(ii i1, ii i2)
+    {
+        return js_[i1] < js_[i2];
+    }
+};
+
+
+void MatrixSparseMKL::sort()
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     sort(X" << *this << ") := ..." << endl;
+    }
+    
+    if (is1_)
+    {
+        for (ii i = 0; i < m_; i++)
+        {
+            vector<ii> indicies(is1_[i] - is0_[i]);
+            for (ii nz = 0; nz < indicies.size(); nz++) indicies[nz] = nz;
+            std::sort(indicies.begin(), indicies.end(), MyComparator(&js_[is0_[i]]));
+            
+            {
+                vector<ii> js(is1_[i] - is0_[i]);
+                for (ii nz = 0; nz < js.size(); nz++) js[nz] = js_[is0_[i] + indicies[nz]];
+                for (ii nz = 0; nz < js.size(); nz++) js_[is0_[i] + nz] = js[nz];
+            }
+            
+            {
+                vector<fp> vs(is1_[i] - is0_[i]);
+                for (ii nz = 0; nz < vs.size(); nz++) vs[nz] = vs_[is0_[i] + indicies[nz]];
+                for (ii nz = 0; nz < vs.size(); nz++) vs_[is0_[i] + nz] = vs[nz];
+            }
+        }
+    }
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
 // todo: make this mkl
 void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
 {
@@ -935,6 +992,9 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
     ii nnz = 0;
     if (is1_ && a.is1_)
     {
+        for (ii i = 0; i < m_; i++) for (ii nz = is0_[i]; nz < is1_[i] - 1; nz++) assert(js_[nz] <= js_[nz + 1]);
+        for (ii i = 0; i < a.m_; i++) for (ii a_nz = a.is0_[i]; a_nz < a.is1_[i] - 1; a_nz++) assert(a.js_[a_nz] <= a.js_[a_nz + 1]);
+        
         for (ii i = 0; i < m_; i++)
         {
             ii a_nz = a.is0_[i];
@@ -944,7 +1004,7 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
 
                 while(a_nz < a.is1_[i])
                 {
-                     if (js_[nz] == a.js_[a_nz])
+                    if (js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
                         a_nz++;
@@ -957,25 +1017,6 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
                         a_nz++;
                     }
                 }
-                
-                if (!found) // go back to beginning because we might have missed it
-                {
-                    a_nz = a.is0_[i];
-                    while(a_nz < a.is1_[i])
-                    {
-                        if (js_[nz] == a.js_[a_nz])
-                        {
-                            vs_[nz] = a.vs_[a_nz];
-                            a_nz++;
-                            nnz++;
-                            break;
-                        }
-                        else
-                        {
-                            a_nz++;
-                        }
-                    }
-                }
             }
         }
     }
@@ -986,7 +1027,7 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
         
         if (getDebugLevel() >= 14)
         {
-            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            ostringstream oss; oss << getId() << ".csr";
             write(oss.str());
         }
     }

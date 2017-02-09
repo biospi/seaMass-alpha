@@ -66,14 +66,15 @@ public:
     ii nnz() const;
     ii nnzActual() const;
   
-    enum class Operation { NONE, TRANSPOSE, PACK_ROWS, UNPACK_ROWS };
-    void copy(const MatrixSparseMKL& a, Operation operation = Operation::NONE);
+    void sort();
     void prune(const MatrixSparseMKL& a, fp pruneThreshold);
     void output(fp* vs) const;
     void write(const std::string& filename) const;
 
     void zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x);
 
+    enum class Operation { NONE, TRANSPOSE, PACK_ROWS, UNPACK_ROWS };
+    void copy(const MatrixSparseMKL& a, Operation operation = Operation::NONE);
     void add(fp alpha, bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b);
 	void matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate);
     void mul(fp beta);
@@ -106,6 +107,8 @@ public:
     bool isMklData_; // true if CSR arrays owned by mat_, false is owned by this object
 
     sparse_status_t status_; // last MKL function status
+    
+    class MyComparator;
     
     friend std::ostream& operator<<(std::ostream& os, const MatrixSparseMKL& mat);
 };

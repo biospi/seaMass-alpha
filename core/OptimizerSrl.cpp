@@ -59,6 +59,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
         if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
             l2s_[i].sqrt();
+            l2s_[i].sort();
 		}
 		else
 		{
@@ -89,6 +90,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
+            l1l2sPlusLambda_[i].sort();
             l1l2sPlusLambda_[i].divCorrespondingNonzeros(l2s_[i]);
 		}
 		else
@@ -128,6 +130,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const MatrixSparse& b, f
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
+            xs_[i].sort();
+            
             // remove unneeded l1l2sPlusLambda
             MatrixSparse l1l2PlusLambda;
             l1l2PlusLambda.copy(xs_[i]);
@@ -262,6 +266,8 @@ fp OptimizerSrl::step()
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
+            xEs[i].sort();
+            
             MatrixSparse t;
             t.copy(xs_[i]);
             t.subsetElementwiseCopy(xEs[i]);
@@ -317,7 +323,7 @@ fp OptimizerSrl::step()
 			}
 		}
 
-		// copy into xs_, pruning small coefficients
+		// copy into xs_, pruning small coefficients (maybe pruning would be best straight after shrinkage)
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (bases_[i]->getTransient() == Basis::Transient::NO)
