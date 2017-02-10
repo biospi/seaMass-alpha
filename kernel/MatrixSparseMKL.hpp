@@ -81,13 +81,13 @@ public:
     void mul(const MatrixSparseMKL& a);
     void sqr();
     void sqrt();
+    void pow(fp power);
 
     // operate only on non-zero elements
     void setNonzeros(fp v);
 	void addNonzeros(fp beta);
 	void lnNonzeros();
     void expNonzeros();
-	void powNonzeros(fp power);
     void divCorrespondingNonzeros(const MatrixSparseMKL& a);
 
     // aggregate operations

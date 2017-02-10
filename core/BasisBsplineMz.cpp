@@ -182,6 +182,11 @@ void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accu
     t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
     
 	f.matmul(false, t, *aT_, accumulate);
+    
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << "   " << f << endl;
+    }
 }
 
 
@@ -207,12 +212,20 @@ void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqr
 	}
     
     xE.copy(t, MatrixSparse::Operation::PACK_ROWS);
+    
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << "   " << xE << endl;
+    }
 }
 
 
 // delete basis functions we don't need anymore
 void BasisBsplineMz::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
 {
+    
+    
+    
     /*if(x.nnz() / (double) nnzBasisFunctions_ <= 0.5)
     {
         cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;

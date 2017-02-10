@@ -29,37 +29,17 @@
 using namespace std;
 
 
-/*OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer, ii debugLevel) : optimizer_(optimizer)
+OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer) : optimizer_(optimizer), accelerationDuration_(0.0)
 {
-#ifndef NDEBUG
-	cout << "Init Optimizer Biggs-Andrews Acceleration (EVE1)..." << endl;
-#endif
+    if (getDebugLevel() % 10 >= 1)
+    {
+        cout << getTimeStamp() << "Initialising Biggs-Andrews Acceleration (EVE1)..." << endl;
+    }
 
 	// temporaries required for acceleration
 	x0s_.resize(getBases().size());
 	y0s_.resize(getBases().size());
 	u0s_.resize(getBases().size());
-	for (ii i = 0; i < (ii)getBases().size(); i++)
-	{
-		if (!getBases()[i]->isTransient())
-		{
-			x0s_[i].init(getBases()[i]->getM(), getBases()[i]->getN());
-			y0s_[i].init(getBases()[i]->getM(), getBases()[i]->getN());
-			u0s_[i].init(getBases()[i]->getM(), getBases()[i]->getN());
-		}
-	}
-
-#ifndef NDEBUG
-	// how much memory are we using?
-	li mem = 0;
-	for (ii i = 0; i < x0s_.size(); i++) mem += x0s_[i].mem();
-	for (ii i = 0; i < y0s_.size(); i++) mem += y0s_[i].mem();
-	for (ii i = 0; i < u0s_.size(); i++) mem += u0s_[i].mem();
-
-	cout << "Eve1-Andrews Acceleration mem=";
-	cout.unsetf(ios::floatfield); 
-	cout << setprecision(3) << mem / (1024.0*1024.0) << "Mb" << endl;
-#endif
 }
 
 
@@ -74,19 +54,21 @@ void OptimizerAccelerationEve1::init(fp lambda)
 }
 
 
-double OptimizerAccelerationEve1::step()
+fp OptimizerAccelerationEve1::step()
 {
-#ifndef NDEBUG
-	cout << getIteration() << " acceleration" << endl;
-	fp aDebug = 0.0;
-#endif
-	double start = omp_get_wtime();
+    if (getDebugLevel() % 10 >= 2)
+    {
+        cout << getTimeStamp() << "  Acceleration ..." << endl;
+    }
+    
+    double accelerationStart = getElapsedTime();
 
+    fp a = 0.0;
 	if (getIteration() == 0)
 	{
 		for (ii i = 0; i < (ii)getBases().size(); i++)
 		{
-			if (!getBases()[i]->isTransient())
+			if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
 				// no extrapolation this iteration, just save 'xs'
 				y0s_[i].copy(xs()[i]);
@@ -97,10 +79,11 @@ double OptimizerAccelerationEve1::step()
 	{
 		for (ii i = 0; i < (ii)getBases().size(); i++)
 		{
-			if (!getBases()[i]->isTransient())
+			if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
 				// can now calcaulte first gradient vector 'u0s'
-				u0s_[i].elementwiseDiv(xs()[i], y0s_[i]);
+                u0s_[i].copy(xs()[i]);
+				u0s_[i].divCorrespondingNonzeros(y0s_[i]);
 				// no extrapolation this iteration, just save 'xs'
 				x0s_[i].copy(xs()[i]);
 				y0s_[i].copy(xs()[i]);
@@ -114,62 +97,83 @@ double OptimizerAccelerationEve1::step()
 		double denominator = 0.0;
 		for (ii i = 0; i < (ii)getBases().size(); i++)
 		{
-			if (!getBases()[i]->isTransient())
+			if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
 				// using old gradient vector 'u0s'
-				Matrix cLogU0;
-				cLogU0.elementwiseLn(u0s_[i]);
-				cLogU0.elementwiseMul(x0s_[i], cLogU0); // (x[k-1] . log u[k-2])
+				MatrixSparse cLogU0;
+                cLogU0.copy(u0s_[i]);
+				cLogU0.lnNonzeros();
+				cLogU0.mul(x0s_[i]); // (x[k-1] . log u[k-2])
 				denominator += cLogU0.sumSqrs();  // (x[k-1] . log u[k-2]) T (x[k-1] . log u[k-2])
 
 				// update to new gradient vector 'u0s'
-				u0s_[i].elementwiseDiv(xs()[i], y0s_[i]);
+                u0s_[i].copy(xs()[i]);
+                MatrixSparse t;
+                t.copy(xs()[i]);
+                t.subsetElementwiseCopy(y0s_[i]);
+				u0s_[i].divCorrespondingNonzeros(t);
+                
+                t.copy(xs()[i]);
+                t.subsetElementwiseCopy(cLogU0);
 
 				// using new gradient vector 'u0s'
 				Matrix c1LogU;
-				c1LogU.elementwiseLn(u0s_[i]);
-				c1LogU.elementwiseMul(xs()[i], c1LogU); // (x[k] . log u[k-1])
-				c1LogU.elementwiseMul(c1LogU, cLogU0); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
+                c1LogU.copy(u0s_[i]);
+				c1LogU.lnNonzeros();
+				c1LogU.mul(xs()[i]); // (x[k] . log u[k-1])
+                c1LogU.mul(t); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
 				numerator += c1LogU.sum(); // (x[k] . log u[k-1]) T (x[k-1] . log u[k-2])
 			}
 		}
-		fp a = (fp)(numerator / denominator);
-#ifndef NDEBUG
-		aDebug = a;
-#endif
-		a = a > 0.0f ? a : 0.0f;
-		a = a < 1.0f ? a : 1.0f;
+		a = (fp)(numerator / denominator);
+		fp aThresh = a > 0.0f ? a : 0.0f;
+		aThresh = aThresh < 1.0f ? aThresh : 1.0f;
 
 		// linear extrapolation of 'xs'
 		for (ii i = 0; i < (ii)getBases().size(); i++)
 		{
-			if (!getBases()[i]->isTransient())
+			if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
 				// extrapolate 'xs' and save for next iteration as 'y0s'
-				y0s_[i].elementwiseDiv(xs()[i], x0s_[i]);
-				y0s_[i].elementwisePow(y0s_[i], a);
-				y0s_[i].elementwiseMul(y0s_[i], xs()[i]); // x[k] . (x[k] / x[k-1])^a
+                y0s_[i].copy(xs()[i]);
+                
+                MatrixSparse t;
+                t.copy(xs()[i]);
+                t.subsetElementwiseCopy(x0s_[i]);
+                
+				y0s_[i].divCorrespondingNonzeros(t);
+				y0s_[i].pow(aThresh);
+				y0s_[i].mul(xs()[i]); // x[k] . (x[k] / x[k-1])^a
 
 				x0s_[i].copy(xs()[i]); // previous 'xs' saved as 'x0s' for next iteration
 				xs()[i].copy(y0s_[i]); // extrapolated 'xs' for this iteration
 			}
 		}
 	}
-
-	double duration = omp_get_wtime() - start;
-
-#ifndef NDEBUG
-	cout << "Acceleration: a=";
-	cout.unsetf(ios::floatfield); 
-	cout << setprecision(3) << aDebug << " duration=" << duration << endl;
-#endif
+    
+    double accelerationDuration = getElapsedTime() - accelerationStart;
+    
+    if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
+    {
+        cout << getTimeStamp() << "    acceleration=" << a << endl;
+        
+        cout << getTimeStamp() << "    duration=";
+        cout.unsetf(ios::floatfield);
+        cout << setprecision(3) << accelerationDuration << endl;
+        
+        accelerationDuration_ += accelerationDuration;
+        
+        cout << getTimeStamp();
+        cout << "    total=";
+        cout.unsetf(ios::floatfield);
+        cout << setprecision(3) << accelerationDuration_ << endl;
+    }
 
 	// now perform the optimizer iteration on the extrapolated 'xs'
 	return optimizer_->step();
 }
 
-
-void OptimizerAccelerationEve1::synthesis(Matrix& f, ii basis) const
+void OptimizerAccelerationEve1::synthesis(MatrixSparse& f, ii basis)
 {
 	optimizer_->synthesis(f, basis);
 }
@@ -194,7 +198,7 @@ std::vector<Matrix>& OptimizerAccelerationEve1::xs()
 
 
 // quadratic vector extrapolation below (todo)
-
+/*
 		else if (iteration_ == 1) // linear vector extrapolation this time, but save the qs
 		{
 			for (ii j = 0; j < (ii)bases_.size(); j++)

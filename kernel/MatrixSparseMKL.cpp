@@ -35,7 +35,7 @@
 
 #include <ippcore.h>
 #include <ipps.h>
-
+#include <ippi.h>
 
 #include "../kernel/NetcdfFile.hpp"
 
@@ -121,6 +121,7 @@ MatrixSparseMKL::~MatrixSparseMKL()
 }
 
 
+// SEEMS OPTIMAL
 void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind)
 {
     free();
@@ -245,6 +246,7 @@ ii MatrixSparseMKL::nnzActual() const
 }
 
 
+// SEEMS OPTIMAL
 void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
 {
     free();
@@ -293,27 +295,33 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
 
             if (operation == Operation::PACK_ROWS)
             {
+                #pragma omp parallel
                 for (ii i = 0; i < a.m_; i++)
                 {
-                    for (ii nnz = a.is0_[i]; nnz < a.is1_[i]; nnz++)
+                    for (ii nz = a.is0_[i]; nz < a.is1_[i]; nz++)
                     {
-                        js_[nnz] = a.js_[nnz] % n_;
+                        js_[nz] = a.js_[nz] % n_;
                     }
                 }
             }
             else if (operation == Operation::UNPACK_ROWS)
             {
+                #pragma omp parallel
                 for (ii i = 0; i < a.m_; i++)
                 {
-                    for (ii nnz = a.is0_[i]; nnz < a.is1_[i]; nnz++)
+                    for (ii nz = a.is0_[i]; nz < a.is1_[i]; nz++)
                     {
-                        js_[nnz] = a.js_[nnz] + i * a.n_;
+                        js_[nz] = a.js_[nz] + i * a.n_;
                     }
                 }
             }
             else
             {
-                memcpy(js_, a.js_, sizeof(ii) * a.is0_[m_]);
+                #pragma omp parallel
+                for (ii i = 0; i < a.m_; i++)
+                {
+                    memcpy(&js_[is0_[i]], &a.js_[a.is0_[i]], sizeof(ii) * (a.is1_[i] - a.is0_[i]));
+                }
             }
 
             status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
@@ -349,6 +357,7 @@ public:
 };
 
 
+// SHOULD BE IN-PLACE SORTING WITHOUT CREATION OF INDICIES (LOOK AT IPP SORT)
 void MatrixSparseMKL::sort()
 {
     if (getDebugLevel() % 10 >= 4)
@@ -358,6 +367,7 @@ void MatrixSparseMKL::sort()
     
     if (is1_)
     {
+        //#pragma omp parallel // why does omp make it crash here?
         for (ii i = 0; i < m_; i++)
         {
             vector<ii> indicies(is1_[i] - is0_[i]);
@@ -390,8 +400,8 @@ void MatrixSparseMKL::sort()
     }
 }
 
-
-// todo: make this mkl
+// IPP NOT 64BIT LENGTH - USE OPENMP IN FOR
+// MAIN LOOP NEEDS PARALLELISING FOR OPENMP
 void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
 {
     free();
@@ -405,22 +415,18 @@ void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
     
 	m_ = a.m_;
 	n_ = a.n_;
-
-	ii nnz = 0;
-    for (ii a_nz = 0; a_nz < a.nnz(); a_nz++)
-    {
-        if (a.vs_[a_nz] >= pruneThreshold)
-        {
-            nnz++;
-        }
-    }
     
-    if (nnz > 0)
+    int count;
+    IppiSize size; size.width = a.nnz(); size.height = 1;
+    ippiCountInRange_32f_C1R(a.vs_, 1, size, &count, 0.0f, pruneThreshold);
+	ii a_nnz = a.nnz() - count;
+    
+    if (a_nnz > 0)
     {
         is0_ = static_cast<ii*>(mkl_calloc(m_ + 1, sizeof(ii), 64));
         is1_ = is0_ + 1;
-        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (nnz == 0 ? 1 : nnz), 64));
-        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * (nnz == 0 ? 1 : nnz), 64));
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a_nnz == 0 ? 1 : a_nnz), 64));
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * (a_nnz == 0 ? 1 : a_nnz), 64));
         
         ii nz = 0;
         ii a_i = 0;
@@ -458,6 +464,7 @@ void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
 }
 
 
+// USE MKL FUNCTION THATS CONVERTS TO DENSE
 void MatrixSparseMKL::output(fp* vs) const
 {
     if (getDebugLevel() % 10 >= 4)
@@ -675,6 +682,7 @@ void MatrixSparseMKL::matmul(bool transposeA, const MatrixSparseMKL& a, const Ma
 }
 
 
+// WARNING: IPP IS NOT 32BIT LENGTH
 void MatrixSparseMKL::mul(fp beta)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -708,6 +716,7 @@ void MatrixSparseMKL::mul(const MatrixSparseMKL& a)
     
     assert(m_ == a.m_);
     assert(n_ == a.n_);
+    assert(nnz() == a.nnz());
     for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
     
     vsMul(nnz(), vs_, a.vs_, vs_);
@@ -716,7 +725,7 @@ void MatrixSparseMKL::mul(const MatrixSparseMKL& a)
     {
         cout << getTimeStamp() << "     ... X" << *this << endl;
         
-        if (getDebugLevel() >= 14)
+        if (getDebugLevel()   >= 14)
         {
             ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
             write(oss.str());
@@ -731,6 +740,7 @@ void MatrixSparseMKL::sqr()
     {
         cout << getTimeStamp() << "     (X" << *this << ")^2 := ..." << endl;
     }
+    
     vsSqr(nnz(), vs_, vs_);
     
     if (getDebugLevel() % 10 >= 4)
@@ -768,6 +778,7 @@ void MatrixSparseMKL::sqrt()
 }
 
 
+// WARNING: IPP IS NOT 32BIT LENGTH
 void MatrixSparseMKL::setNonzeros(fp v)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -775,10 +786,7 @@ void MatrixSparseMKL::setNonzeros(fp v)
         cout << getTimeStamp() << "     (X" << *this << " != 0.0) ? " << v << " : 0.0 := ..." << endl;
     }
     
-    for (ii nz = 0; nz < nnz(); nz++)
-    {
-        vs_[nz] = v;
-    }
+    ippsSet_32f(v, vs_, nnz());
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -793,6 +801,7 @@ void MatrixSparseMKL::setNonzeros(fp v)
 }
 
 
+// WARNING: IPP IS NOT 32BIT LENGTH
 void MatrixSparseMKL::addNonzeros(fp beta)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -861,7 +870,7 @@ void MatrixSparseMKL::expNonzeros()
 }
 
 
-void MatrixSparseMKL::powNonzeros(fp power)
+void MatrixSparseMKL::pow(fp power)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -883,6 +892,7 @@ void MatrixSparseMKL::powNonzeros(fp power)
 }
 
 
+// WARNING: IPP IS NOT 32BIT LENGTH
 fp MatrixSparseMKL::sum() const
 {
     if (getDebugLevel() % 10 >= 4)
@@ -913,6 +923,7 @@ void MatrixSparseMKL::divCorrespondingNonzeros(const MatrixSparseMKL& a)
     
     assert(m_ == a.m_);
     assert(n_ == a.n_);
+    assert(nnz() == a.nnz());
     for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
     
     vsDiv(nnz(), vs_, a.vs_, vs_);
@@ -930,6 +941,7 @@ void MatrixSparseMKL::divCorrespondingNonzeros(const MatrixSparseMKL& a)
 }
 
 
+// WARNING: IPP IS NOT 32BIT LENGTH
 fp MatrixSparseMKL::sumSqrs() const
 {
     if (getDebugLevel() % 10 >= 4)
@@ -952,6 +964,7 @@ fp MatrixSparseMKL::sumSqrs() const
 }
 
 
+// WARNING: IPP IS NOT 32BIT LENGTH
 fp MatrixSparseMKL::sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) const
 {
     if (getDebugLevel() % 10 >= 4)
@@ -961,6 +974,8 @@ fp MatrixSparseMKL::sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) c
  
     assert(m_ == a.m_);
     assert(n_ == a.n_);
+    assert(nnz() == a.nnz());
+    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
     
     fp sum = 0.0;
     ippsNormDiff_L2_32f(vs_, a.vs_, nnz(), &sum);
@@ -977,8 +992,7 @@ fp MatrixSparseMKL::sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) c
 }
 
 
-// todo: use OpenMP
-// todo: argh, mul output not sorted so a may not be
+// SEEMS OPTIMAL
 void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -989,27 +1003,23 @@ void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
     assert(m_ == a.m_);
     assert(n_ == a.n_);
     
-    ii nnz = 0;
     if (is1_ && a.is1_)
     {
         for (ii i = 0; i < m_; i++) for (ii nz = is0_[i]; nz < is1_[i] - 1; nz++) assert(js_[nz] <= js_[nz + 1]);
         for (ii i = 0; i < a.m_; i++) for (ii a_nz = a.is0_[i]; a_nz < a.is1_[i] - 1; a_nz++) assert(a.js_[a_nz] <= a.js_[a_nz + 1]);
         
+        #pragma omp parallel
         for (ii i = 0; i < m_; i++)
         {
             ii a_nz = a.is0_[i];
             for (ii nz = is0_[i]; nz < is1_[i]; nz++)
             {
-                bool found = false;
-
                 while(a_nz < a.is1_[i])
                 {
                     if (js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
                         a_nz++;
-                        nnz++;
-                        found = true;
                         break;
                     }
                     else

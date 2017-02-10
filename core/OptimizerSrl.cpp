@@ -301,7 +301,7 @@ fp OptimizerSrl::step()
 	// UPDATE
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  Termination Check ..." << endl;
+        cout << getTimeStamp() << "  Termination Check and Pruning..." << endl;
     }
     fp sumSqrs = 0.0;
     fp sumSqrDiffs = 0.0;
@@ -323,7 +323,7 @@ fp OptimizerSrl::step()
 			}
 		}
 
-		// copy into xs_, pruning small coefficients (maybe pruning would be best straight after shrinkage)
+		// copy into xs_, pruning small coefficients
 		for (ii i = 0; i < (ii)bases_.size(); i++)
 		{
 			if (bases_[i]->getTransient() == Basis::Transient::NO)
@@ -430,6 +430,7 @@ const std::vector<Basis*>& OptimizerSrl::getBases() const
 {
 	return bases_;
 }
+
 
 std::vector<MatrixSparse>& OptimizerSrl::xs()
 {

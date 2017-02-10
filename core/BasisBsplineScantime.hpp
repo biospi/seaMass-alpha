@@ -40,7 +40,6 @@ public:
 
 private:
 	MatrixSparse* a_;
-	MatrixSparse* aT_;
     ii nnzBasisFunctions_;
 };
 

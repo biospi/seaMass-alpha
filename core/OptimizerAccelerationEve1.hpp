@@ -38,27 +38,29 @@
 *  ii) [Wang & Miller, IEEE Trans Imag Proc 2014] provide a Scaled Heavy-Ball method with a convergence rate proof and
     show Vector Extrapolation is a special case. However, again this is the non-exponentiated version.
 */
-/*class OptimizerAccelerationEve1 : public Optimizer
+class OptimizerAccelerationEve1 : public Optimizer
 {
 public:    
-	OptimizerAccelerationEve1(Optimizer* optimizer, ii debugLevel);
+	OptimizerAccelerationEve1(Optimizer* optimizer);
 	virtual ~OptimizerAccelerationEve1();
     
-	void init(fp lamba);
-	double step();
-	void synthesis(Matrix& f, ii basis = -1) const;
-
-	virtual ii getIteration() const;
-	virtual const std::vector<Basis*>& getBases() const;
-	std::vector<Matrix>& xs();
+    void init(fp lamba);
+    fp step();
+    void synthesis(MatrixSparse& f, ii basis = -1);
+    
+    std::vector<MatrixSparse>& xs();
+    const std::vector<Basis*>& getBases() const;
+    ii getIteration() const;
 
 private:
 	Optimizer* optimizer_;
 
-	std::vector<Matrix> x0s_;
-	std::vector<Matrix> y0s_;
-	std::vector<Matrix> u0s_;
-};*/
+	std::vector<MatrixSparse> x0s_;
+	std::vector<MatrixSparse> y0s_;
+	std::vector<MatrixSparse> u0s_;
+    
+    double accelerationDuration_;
+};
 
 
 #endif

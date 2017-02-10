@@ -120,8 +120,6 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 	// create transformation matrix 'a' and its transpose 'aT'
     a_ = new MatrixSparse();
     a_->init(parentGridInfo.m(), getGridInfo().m(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-    aT_ = new MatrixSparse();
-    aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
     nnzBasisFunctions_ = getGridInfo().m();
 
 	if (scaleAuto != scale)
@@ -133,6 +131,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 
 BasisBsplineScantime::~BasisBsplineScantime()
 {
+    delete a_;
 }
 
 
@@ -144,6 +143,11 @@ void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, boo
     }
 
     f.matmul(false, *a_, x, accumulate);
+    
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << "   " << f << endl;
+    }
 }
 
 
@@ -157,13 +161,18 @@ void BasisBsplineScantime::analysis(MatrixSparse& xE, const MatrixSparse& fE, bo
     if (sqrA)
     {
         MatrixSparse t;
-        t.copy(*aT_);
+        t.copy(*a_);
         t.sqr();
-        xE.matmul(false, t, fE, false);
+        xE.matmul(true, t, fE, false);
     }
     else
     {
-        xE.matmul(false, *aT_, fE, false);
+        xE.matmul(true, *a_, fE, false);
+    }
+    
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << "   " << xE << endl;
     }
 }
 

@@ -97,16 +97,21 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
 	}
 
     // create A
-    a_ = new MatrixSparse();
-    a_->init(m, n, nnz, acoo.data(), rowind.data(), colind.data());
     aT_ = new MatrixSparse();
-    aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
+    aT_->init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
+    if (dimension == 0)
+    {
+        a_ = new MatrixSparse();
+        a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
+    }
     nnzBasisFunctions_ = n;
 }
 
 
 BasisBsplineScale::~BasisBsplineScale()
 {
+    delete aT_;
+    if (dimension_ == 0) delete a_;
 }
 
 
@@ -125,7 +130,12 @@ synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
     }
     else
     {
-        f.matmul(false, *a_, x, accumulate);
+        f.matmul(true, *aT_, x, accumulate);
+    }
+    
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << "   " << f << endl;
     }
 }
 
@@ -167,6 +177,11 @@ void BasisBsplineScale::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool 
             xE.matmul(false, *aT_, fE, false);
         }
 	}
+    
+    if (getDebugLevel() % 10 >= 3)
+    {
+        cout << getTimeStamp() << "   " << getIndex() << "   " << xE << endl;
+    }
 }
 
 

@@ -153,25 +153,23 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 
         new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::YES);
         Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], Basis::Transient::NO);
-        //for (ii i = 0; i < 2; i++) new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, Basis::Transient::NO);
  
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4; i++)
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6; i++)
         {
             if (i > 0)
             {
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, Basis::Transient::NO);
+                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, Basis::Transient::NO);
             }
             
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6)
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4)
             {
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, Basis::Transient::NO);
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, Basis::Transient::NO);
             }
         }
 	}
     
-	//inner_optimizer_ = new OptimizerSrl(bases_, b, debugLevel_);
-	optimizer_ = new OptimizerSrl(bases_, b);
-	//optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_, debugLevel_);
+	inner_optimizer_ = new OptimizerSrl(bases_, b);
+	optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_);
 	optimizer_->init((fp)shrinkage_);
 
 }
