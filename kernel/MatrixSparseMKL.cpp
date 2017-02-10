@@ -28,6 +28,7 @@
 #include <cstring>
 #include <cmath>
 #include <sstream>
+#include <algorithm>
 
 #if defined(_OPENMP)
   #include <omp.h>
