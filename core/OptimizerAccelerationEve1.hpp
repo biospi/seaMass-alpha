@@ -46,18 +46,18 @@ public:
     
     void init(fp lamba);
     fp step();
-    void synthesis(MatrixSparse& f, ii basis = -1);
+    void synthesis(std::vector<MatrixSparse>& f, ii basis = -1);
     
-    std::vector<MatrixSparse>& xs();
+    std::vector< std::vector<MatrixSparse> >& xs();
     const std::vector<Basis*>& getBases() const;
     ii getIteration() const;
 
 private:
 	Optimizer* optimizer_;
 
-	std::vector<MatrixSparse> x0s_;
-	std::vector<MatrixSparse> y0s_;
-	std::vector<MatrixSparse> u0s_;
+	std::vector< std::vector<MatrixSparse> > x0s_;
+	std::vector< std::vector<MatrixSparse> > y0s_;
+	std::vector< std::vector<MatrixSparse> > u0s_;
     
     double accelerationDuration_;
 };

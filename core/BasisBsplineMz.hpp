@@ -34,16 +34,15 @@ public:
                    const std::vector<double>& binEdges, short scale, Transient transient, int order = 3);
 	virtual ~BasisBsplineMz();
 
-	void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const;
-	void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA = false) const;
-    void deleteBasisFunctions(const MatrixSparse& x, ii threshold);
+	void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
+	void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA = false) const;
+    void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
 
 private:
-	MatrixSparse* a_;
-    MatrixSparse* aT_;
-    ii nnzBasisFunctions_;
+    std::vector<MatrixSparse> aTs_;
+    std::vector<ii> aTnnzRows_;
     
-	std::vector<li> js_; // indicies to start of each spectrum
+    std::vector<MatrixSparse> as_;
 };
 
 

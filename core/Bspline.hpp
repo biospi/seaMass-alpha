@@ -24,6 +24,8 @@
 #define _SEAMASS_CORE_BSPLINE_HPP_
 
 
+#include <vector>
+
 #include "../kernel/Matrix.hpp"
 
 

@@ -30,28 +30,28 @@
 class OptimizerSrl : public Optimizer
 {
 public:    
-	OptimizerSrl(const std::vector<Basis*>& bases, const MatrixSparse& b, fp pruneThreshold = (fp)0.001);
+    OptimizerSrl(const std::vector<Basis*>& bases, const std::vector<fp> binCounts, const std::vector<li> spectrumIndex, fp pruneThreshold = (fp)0.001);
 	virtual ~OptimizerSrl();
     
 	void init(fp lamba);
 	fp step();
-	void synthesis(MatrixSparse& f, ii basis = -1);
+	void synthesis(std::vector<MatrixSparse>& f, ii basis = -1);
 
 	ii getIteration() const;
 	const std::vector<Basis*>& getBases() const;
-	std::vector<MatrixSparse>& xs();
+	std::vector< std::vector<MatrixSparse> >& xs();
 
 private:
 	const std::vector<Basis*>& bases_;
-	MatrixSparse b_;
+    std::vector<Matrix> b_;
 	fp pruneThreshold_;
 
 	fp lambda_;
 	int iteration_;
 
-	std::vector<MatrixSparse> xs_;
-	std::vector<MatrixSparse> l2s_;
-	std::vector<MatrixSparse> l1l2sPlusLambda_;
+	std::vector< std::vector<MatrixSparse> > xs_;
+	std::vector< std::vector<MatrixSparse> > l2s_;
+	std::vector< std::vector<MatrixSparse> > l1l2sPlusLambda_;
     
     double synthesisDuration_;
     double errorDuration_;

@@ -24,31 +24,9 @@
 #define _SEAMASS_MATH_MATRIXSPARSEMKL_HPP_
 
 
-#include <iostream>
+#include "MatrixMKL.hpp"
+
 #include <vector>
-
-
-#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
-#include <mkl.h>
-#include <mkl_spblas.h>
-
-
-typedef float fp; // fp is the selected floating point precision (float or double)
-typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
-typedef MKL_INT64 li; // li is always 64 bit
-
-
-std::string getThreadInfo();
-
-void resetElapsedTime();
-double getElapsedTime();
-
-li getUsedMemory();
-
-std::string getTimeStamp();
-
-void setDebugLevel(int debugLevel);
-int getDebugLevel();
 
 
 class MatrixSparseMKL
@@ -57,7 +35,16 @@ public:
 	MatrixSparseMKL();
 	~MatrixSparseMKL();
     
+    // deep copies
     void init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind, const ii* colind); // create from COO matrix
+    void init(ii m, ii n, fp v);
+    void init(const std::vector<MatrixSparseMKL>& as); // stack these rows
+    void init(const MatrixMKL& a);
+    
+    // shallow copy
+    void wrap(const MatrixSparseMKL& a, ii row);
+    
+    void clear();
     void free();
     
     ii m() const;
@@ -65,18 +52,18 @@ public:
     li size() const;
     ii nnz() const;
     ii nnzActual() const;
+    ii* js() const;
+    fp* vs() const;
   
     void sort();
-    void prune(const MatrixSparseMKL& a, fp pruneThreshold);
+    ii prune(const MatrixSparseMKL& a, fp pruneThreshold);
+    ii pruneRows(const MatrixSparseMKL& a, ii aNnzRows, const MatrixSparseMKL& b, bool bRows, fp threshold);
     void output(fp* vs) const;
     void write(const std::string& filename) const;
 
-    void zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x);
-
-    enum class Operation { NONE, TRANSPOSE, PACK_ROWS, UNPACK_ROWS };
-    void copy(const MatrixSparseMKL& a, Operation operation = Operation::NONE);
+    void copy(const MatrixSparseMKL& a, bool transpose = false);
     void add(fp alpha, bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b);
-	void matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate);
+	void matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool denseOutput = false);
     void mul(fp beta);
     void mul(const MatrixSparseMKL& a);
     void sqr();
@@ -88,23 +75,24 @@ public:
 	void addNonzeros(fp beta);
 	void lnNonzeros();
     void expNonzeros();
-    void divCorrespondingNonzeros(const MatrixSparseMKL& a);
+    void divNonzeros(const fp* a_vs);
+    void div2Nonzeros(const fp* a_vs);
 
     // aggregate operations
 	fp sum() const;
 	fp sumSqrs() const;
-    fp sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) const;
+    fp sumSqrDiffsNonzeros(const fp *a_vs) const;
     
     // note: these elementwise operations ONLY considers the non-zero elements of THIS matrix
-    void subsetElementwiseCopy(const MatrixSparseMKL& a);
+    void subsetCopy(const MatrixSparseMKL& a);
 
-public:
+private:
 	ii m_;   // number of rows
 	ii n_;   // number of columns
     
     ii* is0_; ii* is1_; ii* js_; fp* vs_; // pointers to CSR array
     sparse_matrix_t mat_;
-    bool isMklData_; // true if CSR arrays owned by mat_, false is owned by this object
+    bool isOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
 
     sparse_status_t status_; // last MKL function status
     

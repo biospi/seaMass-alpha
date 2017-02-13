@@ -20,27 +20,32 @@
 //
 
 
-#ifndef _SEAMASS_CORE_OPTIMIZER_HPP_
-#define _SEAMASS_CORE_OPTIMIZER_HPP_
+#ifndef _SEAMASS_MATH_MKL_HPP_
+#define _SEAMASS_MATH_MKL_HPP_
 
 
-#include "Basis.hpp"
+#include "MatrixMKL.hpp"
+
+#include <string>
+
+//#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
+#include <mkl.h>
+#include <mkl_spblas.h>
 
 
-class Optimizer
-{
-public:    
-	Optimizer();
-	virtual ~Optimizer();
-    
-	virtual void init(fp lamba) = 0;
-	virtual fp step() = 0;
-    virtual void synthesis(std::vector<MatrixSparse>& f, ii basis = -1) = 0;
+typedef float fp; // fp is the selected floating point precision (float or double)
+typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
+typedef MKL_INT64 li; // li is always 64 bit
 
-	virtual std::vector< std::vector<MatrixSparse> >& xs() = 0;
-	virtual const std::vector<Basis*>& getBases() const = 0;
-	virtual ii getIteration() const = 0;
-};
+
+std::string getThreadInfo();
+li getId();
+void resetElapsedTime();
+double getElapsedTime();
+li getUsedMemory();
+std::string getTimeStamp();
+void setDebugLevel(int debugLevel);
+int getDebugLevel();
 
 
 #endif

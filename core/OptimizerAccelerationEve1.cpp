@@ -37,9 +37,15 @@ OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer) : opt
     }
 
 	// temporaries required for acceleration
-	x0s_.resize(getBases().size());
-	y0s_.resize(getBases().size());
-	u0s_.resize(getBases().size());
+	x0s_.resize(xs().size());
+	y0s_.resize(xs().size());
+	u0s_.resize(xs().size());
+    for (size_t i = 0; i < xs().size(); i++)
+    {
+        x0s_[i].resize(xs()[i].size());
+        y0s_[i].resize(xs()[i].size());
+        u0s_[i].resize(xs()[i].size());
+    }
 }
 
 
@@ -71,7 +77,10 @@ fp OptimizerAccelerationEve1::step()
 			if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
 				// no extrapolation this iteration, just save 'xs'
-				y0s_[i].copy(xs()[i]);
+                for (size_t k = 0; k < xs()[i].size(); k++)
+                {
+                    y0s_[i][k].copy(xs()[i][k]);
+               }
 			}
 		}
 	}
@@ -81,12 +90,19 @@ fp OptimizerAccelerationEve1::step()
 		{
 			if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
-				// can now calcaulte first gradient vector 'u0s'
-                u0s_[i].copy(xs()[i]);
-				u0s_[i].divCorrespondingNonzeros(y0s_[i]);
-				// no extrapolation this iteration, just save 'xs'
-				x0s_[i].copy(xs()[i]);
-				y0s_[i].copy(xs()[i]);
+                for (size_t k = 0; k < xs()[i].size(); k++)
+                {
+                    // can now calcaulte first gradient vector 'u0s'
+                    MatrixSparse t;
+                    t.copy(xs()[i][k]);
+                    t.subsetCopy(y0s_[i][k]);
+                    
+                    u0s_[i][k].copy(xs()[i][k]);
+                    u0s_[i][k].divNonzeros(t.vs());
+                    // no extrapolation this iteration, just save 'xs'
+                    x0s_[i][k].copy(xs()[i][k]);
+                    y0s_[i][k].copy(xs()[i][k]);
+                }
 			}
 		}
 	}
@@ -99,30 +115,33 @@ fp OptimizerAccelerationEve1::step()
 		{
 			if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
-				// using old gradient vector 'u0s'
-				MatrixSparse cLogU0;
-                cLogU0.copy(u0s_[i]);
-				cLogU0.lnNonzeros();
-				cLogU0.mul(x0s_[i]); // (x[k-1] . log u[k-2])
-				denominator += cLogU0.sumSqrs();  // (x[k-1] . log u[k-2]) T (x[k-1] . log u[k-2])
-
-				// update to new gradient vector 'u0s'
-                u0s_[i].copy(xs()[i]);
-                MatrixSparse t;
-                t.copy(xs()[i]);
-                t.subsetElementwiseCopy(y0s_[i]);
-				u0s_[i].divCorrespondingNonzeros(t);
-                
-                t.copy(xs()[i]);
-                t.subsetElementwiseCopy(cLogU0);
-
-				// using new gradient vector 'u0s'
-				Matrix c1LogU;
-                c1LogU.copy(u0s_[i]);
-				c1LogU.lnNonzeros();
-				c1LogU.mul(xs()[i]); // (x[k] . log u[k-1])
-                c1LogU.mul(t); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
-				numerator += c1LogU.sum(); // (x[k] . log u[k-1]) T (x[k-1] . log u[k-2])
+                for (size_t k = 0; k < xs()[i].size(); k++)
+                {
+                    // using old gradient vector 'u0s'
+                    MatrixSparse cLogU0;
+                    cLogU0.copy(u0s_[i][k]);
+                    cLogU0.lnNonzeros();
+                    cLogU0.mul(x0s_[i][k]); // (x[k-1] . log u[k-2])
+                    denominator += cLogU0.sumSqrs();  // (x[k-1] . log u[k-2]) T (x[k-1] . log u[k-2])
+                    
+                    // update to new gradient vector 'u0s'
+                    u0s_[i][k].copy(xs()[i][k]);
+                    MatrixSparse t;
+                    t.copy(xs()[i][k]);
+                    t.subsetCopy(y0s_[i][k]);
+                    u0s_[i][k].divNonzeros(t.vs());
+                    
+                    t.copy(xs()[i][k]);
+                    t.subsetCopy(cLogU0);
+                    
+                    // using new gradient vector 'u0s'
+                    MatrixSparse c1LogU;
+                    c1LogU.copy(u0s_[i][k]);
+                    c1LogU.lnNonzeros();
+                    c1LogU.mul(xs()[i][k]); // (x[k] . log u[k-1])
+                    c1LogU.mul(t); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
+                    numerator += c1LogU.sum(); // (x[k] . log u[k-1]) T (x[k-1] . log u[k-2])
+                }
 			}
 		}
 		a = (fp)(numerator / denominator);
@@ -132,21 +151,24 @@ fp OptimizerAccelerationEve1::step()
 		// linear extrapolation of 'xs'
 		for (ii i = 0; i < (ii)getBases().size(); i++)
 		{
-			if (getBases()[i]->getTransient() == Basis::Transient::NO)
+            if (getBases()[i]->getTransient() == Basis::Transient::NO)
 			{
-				// extrapolate 'xs' and save for next iteration as 'y0s'
-                y0s_[i].copy(xs()[i]);
-                
-                MatrixSparse t;
-                t.copy(xs()[i]);
-                t.subsetElementwiseCopy(x0s_[i]);
-                
-				y0s_[i].divCorrespondingNonzeros(t);
-				y0s_[i].pow(aThresh);
-				y0s_[i].mul(xs()[i]); // x[k] . (x[k] / x[k-1])^a
-
-				x0s_[i].copy(xs()[i]); // previous 'xs' saved as 'x0s' for next iteration
-				xs()[i].copy(y0s_[i]); // extrapolated 'xs' for this iteration
+                for (size_t k = 0; k < xs()[i].size(); k++)
+                {
+                    // extrapolate 'xs' and save for next iteration as 'y0s'
+                    y0s_[i][k].copy(xs()[i][k]);
+                    
+                    MatrixSparse t;
+                    t.copy(xs()[i][k]);
+                    t.subsetCopy(x0s_[i][k]);
+                    
+                    y0s_[i][k].divNonzeros(t.vs());
+                    y0s_[i][k].pow(aThresh);
+                    y0s_[i][k].mul(xs()[i][k]); // x[k] . (x[k] / x[k-1])^a
+                    
+                    x0s_[i][k].copy(xs()[i][k]); // previous 'xs' saved as 'x0s' for next iteration
+                    xs()[i][k].copy(y0s_[i][k]); // extrapolated 'xs' for this iteration
+               }
 			}
 		}
 	}
@@ -173,7 +195,7 @@ fp OptimizerAccelerationEve1::step()
 	return optimizer_->step();
 }
 
-void OptimizerAccelerationEve1::synthesis(MatrixSparse& f, ii basis)
+void OptimizerAccelerationEve1::synthesis(vector<MatrixSparse>& f, ii basis)
 {
 	optimizer_->synthesis(f, basis);
 }
@@ -191,7 +213,7 @@ const std::vector<Basis*>& OptimizerAccelerationEve1::getBases() const
 }
 
 
-std::vector<Matrix>& OptimizerAccelerationEve1::xs()
+std::vector< std::vector<MatrixSparse> >& OptimizerAccelerationEve1::xs()
 {
 	return optimizer_->xs();
 }

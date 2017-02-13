@@ -21,6 +21,10 @@
 
 
 #include "BasisBspline.hpp"
+
+#include <iostream>
+
+
 using namespace std;
 
 

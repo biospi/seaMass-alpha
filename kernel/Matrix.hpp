@@ -20,15 +20,15 @@
 //
 
 
-#ifndef _SEAMASS_MATH_MATRIXMKL_HPP_
-#define _SEAMASS_MATH_MATRIXMKL_HPP_
+#ifndef _SEAMASS_MATH_MATRIX_HPP_
+#define _SEAMASS_MATH_MATRIX_HPP_
 
 
 #include "MatrixSparseMKL.hpp"
 
 
 typedef MatrixSparseMKL MatrixSparse;
-typedef MatrixSparseMKL Matrix;
+typedef MatrixMKL Matrix;
 
 
 #endif

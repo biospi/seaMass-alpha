@@ -3,17 +3,19 @@ if(NOT netCDF_FOUND)
     find_package(OldNetCDF REQUIRED)
 endif()
 
-set(USE_MKL_64BIT_LIB On)
+#set(USE_MKL_64BIT_LIB On)
 find_package(Intel REQUIRED)
 
 set(HEADER_FILES
     Matrix.hpp
+    MKL.hpp
 	MatrixMKL.hpp
 	MatrixSparseMKL.hpp
 	VecMat.hpp
     NetcdfFile.hpp
 )
 set(SOURCE_FILES
+    MKL.cpp
 	MatrixMKL.cpp
 	MatrixSparseMKL.cpp
     NetcdfFile.cpp

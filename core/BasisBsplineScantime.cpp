@@ -27,6 +27,7 @@
 #include <limits>
 #include <iomanip>
 #include <cmath>
+#include <iostream>
 
 
 using namespace std;
@@ -117,10 +118,9 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         }
     }
 
-	// create transformation matrix 'a' and its transpose 'aT'
-    a_ = new MatrixSparse();
-    a_->init(parentGridInfo.m(), getGridInfo().m(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-    nnzBasisFunctions_ = getGridInfo().m();
+	// create transformation matrix 'a'
+    aT_.init(getGridInfo().m(), parentGridInfo.m(), (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+    aTnnzRows_ = getGridInfo().m();
 
 	if (scaleAuto != scale)
 	{
@@ -131,68 +131,66 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 
 BasisBsplineScantime::~BasisBsplineScantime()
 {
-    delete a_;
 }
 
 
-void BasisBsplineScantime::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
+void BasisBsplineScantime::synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulate) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
         cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
     }
 
-    f.matmul(false, *a_, x, accumulate);
+    if (!f.size()) f.resize(1);
     
+    f[0].matmul(true, aT_, x[0], accumulate);
+        
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << f << endl;
+        cout << getTimeStamp() << "   " << getIndex() << "   " << f[0] << endl;
     }
 }
 
 
-void BasisBsplineScantime::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
+void BasisBsplineScantime::analysis(vector<MatrixSparse>& xE, const vector<MatrixSparse>& fE, bool sqrA) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
         cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::analysis" << endl;
     }
     
+    if (!xE.size()) xE.resize(1);
+
     if (sqrA)
     {
         MatrixSparse t;
-        t.copy(*a_);
+        t.copy(aT_);
         t.sqr();
-        xE.matmul(true, t, fE, false);
+        xE[0].matmul(false, t, fE[0], false);
     }
     else
     {
-        xE.matmul(true, *a_, fE, false);
+        xE[0].matmul(false, aT_, fE[0], false);
     }
     
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << xE << endl;
+        cout << getTimeStamp() << "   " << getIndex() << "   " << xE[0] << endl;
     }
 }
 
 
-void BasisBsplineScantime::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
+void BasisBsplineScantime::deleteBasisFunctions(const vector<MatrixSparse>& x, fp threshold)
 {
-    /*if(x.nnz() / (double) nnzBasisFunctions_ <= 0.5)
+    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], true, threshold);
+    
+    if (aTnnzRows < aTnnzRows_)
     {
-        cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;
+        if (getDebugLevel() % 10 >= 3)
+        {
+            cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
+        }
         
-        delete a_;
-        
-        MatrixSparse* aT = new MatrixSparse();
-        aT->zeroRowsOfZeroColumns(*aT_, x);
-        delete aT_;
-        aT_ = aT;
-        
-        a_ = new MatrixSparse();
-        a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
-        
-        nnzBasisFunctions_ = x.nnz();
-    }*/
+        aTnnzRows_ = aTnnzRows;
+    }
 }

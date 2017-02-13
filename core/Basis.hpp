@@ -24,6 +24,8 @@
 #define _SEAMASS_CORE_BASIS_HPP_
 
 
+#include <vector>
+
 #include "../kernel/Matrix.hpp"
 
 
@@ -34,10 +36,10 @@ public:
 	Basis(std::vector<Basis*>& bases, Transient transient, int parentIndex = -1);
 	virtual ~Basis();
 
-	virtual void synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const = 0;
-	virtual void analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const = 0;
-	virtual void shrinkage(MatrixSparse& y, MatrixSparse& x, const MatrixSparse& xE, const MatrixSparse& l1l2PlusLambda) const;
-    virtual void deleteBasisFunctions(const MatrixSparse& x, ii threshold) = 0;
+    virtual void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const = 0;
+	virtual void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA) const = 0;
+	virtual void shrinkage(std::vector<MatrixSparse>& y, std::vector<MatrixSparse>& x, const std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& l1l2PlusLambda) const;
+    virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0) = 0;
 
 	virtual ii getM() const = 0;
 	virtual ii getN() const = 0;

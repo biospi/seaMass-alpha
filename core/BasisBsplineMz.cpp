@@ -35,7 +35,7 @@ using namespace std;
 
 BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
                                const std::vector<double>& binEdges, short scale, Transient transient, int order)
-	: BasisBspline(bases, 1, transient), nnzBasisFunctions_(0)
+	: BasisBspline(bases, 1, transient)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -44,14 +44,15 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         cout << endl;
     }
     
+    std::vector<li> js;
 	if (spectrumIndex.size() > 0)
 	{
-		js_ = spectrumIndex;
+		js = spectrumIndex;
 	}
 	else
 	{
-		js_.push_back(0);
-		js_.push_back(binCounts.size());
+		js.push_back(0);
+		js.push_back(binCounts.size());
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -61,12 +62,12 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	double mzMin = numeric_limits<double>::max();
 	double mzMax = 0.0;
 	double mzDiff = numeric_limits<double>::max();
-	for (ii j = 0; j < (ii)js_.size() - 1; j++)
+	for (ii j = 0; j < (ii)js.size() - 1; j++)
 	{
-		mzMin = binEdges[js_[j] + j] < mzMin ? binEdges[js_[j] + j] : mzMin;
-		mzMax = binEdges[js_[j + 1] + j] > mzMax ? binEdges[js_[j + 1] + j] : mzMax;
+		mzMin = binEdges[js[j] + j] < mzMin ? binEdges[js[j] + j] : mzMin;
+		mzMax = binEdges[js[j + 1] + j] > mzMax ? binEdges[js[j + 1] + j] : mzMax;
 
-		for (ii i = js_[j]; i < js_[j + 1]; i++)
+		for (ii i = js[j]; i < js[j + 1]; i++)
 		{
 			double diff = binEdges[i + j + 1] - binEdges[i + j];
 			mzDiff = diff < mzDiff ? diff : mzDiff;
@@ -88,7 +89,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	double bpi = pow(2.0, (double)scale) * 60 / 1.0033548378;
     
     // fill in b-spline grid info
-    gridInfo().count = (ii)js_.size() - 1;
+    gridInfo().count = (ii)js.size() - 1;
     gridInfo().scale[0] = scale;
     gridInfo().offset[0] = (ii)floor(mzMin * bpi);
     gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
@@ -100,21 +101,25 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         cout << getTimeStamp() << "   " << gridInfo() << endl;
     }
    
-	// populate coo matrix
-    vector<fp> acoo;
-    vector<ii> rowind;
-    vector<ii> colind;
+    aTs_.resize(js.size() - 1);
+    aTnnzRows_.resize(js.size() - 1);
+    
+    as_.resize(js.size() - 1);
     
 	ii done = 0;
 	Bspline bspline(order, 65536); // bspline basis function lookup table
-	for (ii j = 0; j < (ii)js_.size() - 1; j++)
+	for (ii k = 0; k < (ii)js.size() - 1; k++)
 	{
-        for (ii i = js_[j]; i < js_[j + 1]; i++)
+        vector<fp> acoo;
+        vector<ii> rowind;
+        vector<ii> colind;
+        
+        for (ii i = 0; i < js[k + 1] - js[k]; i++)
 		{
 			if (binCounts[i] >= 0.0)
 			{
-				double xfMin = binEdges[i + j] * bpi;
-				double xfMax = binEdges[i + j + 1] * bpi;
+				double xfMin = binEdges[i + k] * bpi;
+				double xfMax = binEdges[i + k + 1] * bpi;
 
 				ii xMin = (ii)floor(xfMin);
 				ii xMax = ((ii)ceil(xfMax)) + order;
@@ -134,28 +139,25 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 
 					acoo.push_back(b);
 					rowind.push_back(i);
-					colind.push_back(j * gridInfo().extent[0] + (x - gridInfo().offset[0]));
+					colind.push_back(x - gridInfo().offset[0]);
 				}
 			}
 		}
+        
+        // create A
+        aTs_[k].init(getGridInfo().n(), js[k + 1] - js[k], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+        aTnnzRows_[k] = getGridInfo().n();
+        
+        as_[k].copy(aTs_[k], true);
 
 		// display progress update
         done++;
         if (done % 100 == 0)
         {
-            for (int i = 0; i < 256; ++i) cout << '\b';
-            cout << getIndex() << " BasisBsplineMz " << setw(1 + (int)(log10((float)js_.size() - 1))) << done << "/" << (js_.size() - 1) << " " << flush;
+            cout << getTimeStamp() << "    processed " << setw(1 + (int)(log10((float)js.size() - 1))) << done << "/" << (js.size() - 1) << " spectra" << endl;
         }
 	}
 	for (int i = 0; i < 256; ++i) cout << '\b';
-
-    
-    // create A
-    a_ = new MatrixSparse();
-    a_->init(js_[js_.size() - 1], getGridInfo().n() * getGridInfo().count, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-    aT_ = new MatrixSparse();
-    aT_->copy(*a_, MatrixSparse::Operation::TRANSPOSE);
-    nnzBasisFunctions_ = getGridInfo().n() * getGridInfo().count;
     
 	if (scaleAuto != scale)
 	{
@@ -166,82 +168,84 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 
 BasisBsplineMz::~BasisBsplineMz()
 {
-    delete a_;
-    delete aT_;
 }
 
 
-void BasisBsplineMz::synthesis(MatrixSparse& f, const MatrixSparse& x, bool accumulate) const
+void BasisBsplineMz::synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulate) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
         cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::synthesis" << endl;
     }
     
-    MatrixSparse t;
-    t.copy(x, MatrixSparse::Operation::UNPACK_ROWS);
-    
-	f.matmul(false, t, *aT_, accumulate);
-    
-    if (getDebugLevel() % 10 >= 3)
+    if (!f.size()) f.resize(aTs_.size());
+    for (size_t k = 0; k < f.size(); k++)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << f << endl;
+        MatrixSparse t;
+        t.wrap(x[0], k);
+        
+        f[k].matmul(false, t, aTs_[k], accumulate, true);
+        
+        if (getDebugLevel() % 10 >= 3)
+        {
+            cout << getTimeStamp() << "   " << getIndex() << "   " << f[k] << endl;
+        }
     }
 }
 
 
-void BasisBsplineMz::analysis(MatrixSparse& xE, const MatrixSparse& fE, bool sqrA) const
+void BasisBsplineMz::analysis(vector<MatrixSparse>& xE, const vector<MatrixSparse>& fE, bool sqrA) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
         cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::analysis" << endl;
     }
-
-    MatrixSparse t;
     
-	if (sqrA)
-	{
-		MatrixSparse aSqr;
-		aSqr.copy(*a_);
-		aSqr.sqr();
-		t.matmul(false, fE, aSqr, false);
-	}
-	else
-	{
-		t.matmul(false, fE, *a_, false);
-	}
+    vector<MatrixSparse> xEs(aTs_.size());
+    for (size_t k = 0; k < aTs_.size(); k++)
+    {
+        if (sqrA)
+        {
+            MatrixSparse aSqr;
+            aSqr.copy(as_[k]);
+            aSqr.sqr();
+            xEs[k].matmul(false, fE[k], aSqr, false);
+        }
+        else
+        {
+            xEs[k].matmul(false, fE[k], as_[k], false);
+        }
+    }
     
-    xE.copy(t, MatrixSparse::Operation::PACK_ROWS);
+    xE.resize(1);
+    xE[0].init(xEs);
     
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << xE << endl;
+        cout << getTimeStamp() << "   " << getIndex() << "   " << xE[0] << endl;
     }
 }
 
 
 // delete basis functions we don't need anymore
-void BasisBsplineMz::deleteBasisFunctions(const MatrixSparse& x, ii threshold)
+void BasisBsplineMz::deleteBasisFunctions(const vector<MatrixSparse>& x, fp threshold)
 {
-    
-    
-    
-    /*if(x.nnz() / (double) nnzBasisFunctions_ <= 0.5)
+    for (size_t k = 0; k < x.size(); k++)
     {
-        cout << "deleting " << nnzBasisFunctions_ - x.nnz() << " basis functions" << endl;
+        ii aTnnzRows = aTs_[k].pruneRows(aTs_[k], aTnnzRows_[k], x[k], false, threshold);
         
-        delete a_;
-        
-        MatrixSparse* aT = new MatrixSparse();
-        aT->zeroRowsOfZeroColumns(*aT_, x);
-        delete aT_;
-        aT_ = aT;
-        
-        a_ = new MatrixSparse();
-        a_->copy(*aT_, MatrixSparse::Operation::TRANSPOSE);
-        
-        nnzBasisFunctions_ = x.nnz();
-    }*/
+        if (aTnnzRows < aTnnzRows_[k])
+        {
+            as_[k].copy(aTs_[k], true);
+            
+            if (getDebugLevel() % 10 >= 3)
+            {
+                cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::deleteBasisFunctions " << aTnnzRows_[k] - aTnnzRows << endl;
+            }
+            
+            aTnnzRows_[k] = aTnnzRows;
+        }
+    }
 }
 
 

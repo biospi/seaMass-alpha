@@ -23,12 +23,12 @@
 #include "MatrixSparseMKL.hpp"
 
 #include <iomanip>
-#include <iostream>
+//#include <iostream>
 #include <cassert>
-#include <cstring>
-#include <cmath>
-#include <sstream>
-#include <algorithm>
+//#include <cstring>
+//#include <cmath>
+//#include <sstream>
+//#include <algorithm>
 
 #if defined(_OPENMP)
   #include <omp.h>
@@ -42,73 +42,6 @@
 
 
 using namespace std;
-
-
-std::string getThreadInfo()
-{
-    ostringstream out;
-    out << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, " << mkl_get_max_threads() << " MKL threads, ";
-#if defined(_OPENMP)
-    out << omp_get_max_threads() << " OpenMP threads" << endl;
-#else
-    out << "non-OpenMP build" << endl;
-#endif
-    return out.str();
-}
-
-
-static li id_ = -1;
-
-
-li getId()
-{
-    return id_;
-}
-
-
-static double startTime_ = dsecnd();
-
-
-void resetElapsedTime()
-{
-    startTime_ = dsecnd();
-}
-
-
-double getElapsedTime()
-{
-    return dsecnd() - startTime_;
-}
-
-
-li getUsedMemory()
-{
-    int allocatedBuffers;
-    return mkl_mem_stat(&allocatedBuffers);
-}
-
-
-string getTimeStamp()
-{
-    ostringstream out;
-    out << "[" << setw(9) << ++id_ << "," << fixed << internal << setw(9) << std::setprecision(3) << getElapsedTime() << "," << setw(9) << getUsedMemory()/1024.0/1024.0 << "] ";
-    return out.str();
-}
-
-
-static int debugLevel_ = 0;
-
-
-void setDebugLevel(int debugLevel)
-{
-    debugLevel_ = debugLevel;
-}
-
-
-int getDebugLevel()
-{
-    return debugLevel_;
-}
 
 
 MatrixSparseMKL::MatrixSparseMKL() : m_(0), n_(0), is1_(0)
@@ -146,7 +79,7 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
     
     sparse_index_base_t indexing;
     status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
-    isMklData_ = true;
+    isOwned_ = false;
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -161,38 +94,154 @@ void MatrixSparseMKL::init(ii m, ii n, ii nnz, const fp* acoo, const ii* rowind,
 }
 
 
-void MatrixSparseMKL::free()
+void MatrixSparseMKL::init(ii m, ii n, fp v)
+{
+    free();
+    
+    vector<fp> acoo;
+    vector<ii> rowind;
+    vector<ii> colind;
+    
+    for (ii i = 0; i < m; i++)
+    {
+        for (ii j = 0; j < n; j++)
+        {
+            acoo.push_back(v);
+            rowind.push_back(i);
+            colind.push_back(j);
+        }
+    }
+    
+    init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+}
+
+
+void MatrixSparseMKL::init(const std::vector<MatrixSparseMKL>& as)
+{
+    free();
+    
+    for (size_t k = 0; k < as.size(); k++) assert(as[k].m_ == 1);
+    for (size_t k = 0; k < as.size() - 1; k++) assert(as[k].n_ == as[k + 1].n_);
+    
+    m_ = (ii)as.size();
+    n_ = as[0].n();
+    
+    ii nnz = 0;
+    for (ii i = 0; i < m_; i++)
+    {
+        nnz += as[i].nnz();
+    }
+    
+    if (nnz > 0)
+    {
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+        is0_[0] = 0;
+        is1_ = is0_ + 1;
+        for (ii i = 0; i < m_; i++)
+        {
+            is1_[i] = is0_[i] + as[i].is1_[0];
+        }
+        
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+        #pragma omp parallel
+        for (ii i = 0; i < m_; i++)
+        {
+            memcpy(&js_[is0_[i]], as[i].js_, sizeof(ii) * as[i].is1_[0]);
+            memcpy(&vs_[is0_[i]], as[i].vs_, sizeof(fp) * as[i].is1_[0]);
+        }
+        
+        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
+        isOwned_ = true;
+    }
+}
+
+
+void MatrixSparseMKL::init(const MatrixMKL& a)
+{
+    free();
+    
+    vector<fp> acoo;
+    vector<ii> rowind;
+    vector<ii> colind;
+    
+    for (ii i = 0; i < a.m(); i++)
+    {
+        for (ii j = 0; j < a.n(); j++)
+        {
+            if (a.vs()[j + i * a.n()] != 0.0)
+            {
+                acoo.push_back(a.vs()[j + i * a.n()]);
+                rowind.push_back(i);
+                colind.push_back(j);
+            }
+        }
+    }
+    
+    init(a.m(), a.n(), (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+}
+
+
+// we are not deallocating is0_ at the moment...
+void MatrixSparseMKL::wrap(const MatrixSparseMKL& a, ii row)
+{
+    free();
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     A" << a << "[" << row << "] := ..." << endl;
+    }
+    
+    m_ = 1;
+    n_ = a.n();
+    is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * 2, 64));
+    is0_[0] = 0;
+    is1_ = is0_ + 1;
+    
+    ii newNnz = a.is1_[row] - a.is0_[row];
+    is1_[0] = newNnz;
+    js_ = &a.js_[a.is0_[row]];
+    vs_ = &a.vs_[a.is0_[row]];
+    
+    status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
+    isOwned_ = false;
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::clear()
 {
     if (is1_)
     {
-        if (getDebugLevel() % 10 >= 4)
-        {
-            cout << getTimeStamp() << "     X" << *this << " := ..." << endl;
-        }
-        
         status_ = mkl_sparse_destroy(mat_); assert(!status_);
         
-        if (!isMklData_)
+        if (isOwned_)
         {
             mkl_free(is0_);
             mkl_free(js_);
             mkl_free(vs_);
         }
         
-        m_ = 0;
-        n_ = 0;
         is1_ = 0;
-        
-        if (getDebugLevel() % 10 >= 4)
-        {
-            cout << getTimeStamp() << "     ... X" << *this << endl;
-        }
     }
-    else
-    {
-        m_ = 0;
-        n_ = 0;
-    }
+}
+
+
+void MatrixSparseMKL::free()
+{
+    clear();
+    m_ = 0;
+    n_ = 0;
 }
 
 
@@ -247,42 +296,48 @@ ii MatrixSparseMKL::nnzActual() const
 }
 
 
+ii* MatrixSparseMKL::js() const
+{
+    return js_;
+}
+
+
+fp* MatrixSparseMKL::vs() const
+{
+    return vs_;
+}
+
+
 // SEEMS OPTIMAL
-void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
+void MatrixSparseMKL::copy(const MatrixSparseMKL& a, bool transpose)
 {
     free();
     
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "     " << (operation == Operation::TRANSPOSE ? "t(" : "");
-        cout << (operation == Operation::PACK_ROWS ? "pack(" : "") << (operation == Operation::UNPACK_ROWS ? "unpack(" : "");
-        cout << "A" << a << (operation == Operation::PACK_ROWS || operation == Operation::UNPACK_ROWS ? ")" : "");
-        cout << (operation == Operation::TRANSPOSE ? ")" : "") << " := ..." << endl;
+        cout << getTimeStamp() << "     " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ..." << endl;
     }
     
-    if (operation == Operation::TRANSPOSE)
+    if (transpose)
     {
-        mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
+        if (a.is1_)
+        {
+            mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
             
-        sparse_index_base_t indexing;
-        mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
-        isMklData_ = true;
+            sparse_index_base_t indexing;
+            mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
+            isOwned_ = false;
+        }
+        else
+        {
+            m_ = a.n_;
+            n_ = a.m_;
+        }
     }
     else
     {
         m_ = a.m_;
-        if (operation == Operation::PACK_ROWS)
-        {
-            n_ = a.n_ / a.m_;
-        }
-        else if (operation == Operation::UNPACK_ROWS)
-        {
-            n_ = a.n_ * a.m_;
-        }
-        else
-        {
-            n_ = a.n_;
-        }
+        n_ = a.n_;
         
         if (a.is1_)
         {
@@ -293,40 +348,10 @@ void MatrixSparseMKL::copy(const MatrixSparseMKL& a, Operation operation)
             
             memcpy(is0_, a.is0_, sizeof(ii) * (a.m_ + 1));
             memcpy(vs_, a.vs_, sizeof(fp) * a.is1_[m_ - 1]);
-
-            if (operation == Operation::PACK_ROWS)
-            {
-                #pragma omp parallel
-                for (ii i = 0; i < a.m_; i++)
-                {
-                    for (ii nz = a.is0_[i]; nz < a.is1_[i]; nz++)
-                    {
-                        js_[nz] = a.js_[nz] % n_;
-                    }
-                }
-            }
-            else if (operation == Operation::UNPACK_ROWS)
-            {
-                #pragma omp parallel
-                for (ii i = 0; i < a.m_; i++)
-                {
-                    for (ii nz = a.is0_[i]; nz < a.is1_[i]; nz++)
-                    {
-                        js_[nz] = a.js_[nz] + i * a.n_;
-                    }
-                }
-            }
-            else
-            {
-                #pragma omp parallel
-                for (ii i = 0; i < a.m_; i++)
-                {
-                    memcpy(&js_[is0_[i]], &a.js_[a.is0_[i]], sizeof(ii) * (a.is1_[i] - a.is0_[i]));
-                }
-            }
+            memcpy(js_, a.js_, sizeof(ii) * a.is1_[m_ - 1]);
 
             status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
-            isMklData_ = false;
+            isOwned_ = true;
         }
     }
 
@@ -401,55 +426,78 @@ void MatrixSparseMKL::sort()
     }
 }
 
-// IPP NOT 64BIT LENGTH - USE OPENMP IN FOR
-// MAIN LOOP NEEDS PARALLELISING FOR OPENMP
-void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
+
+ii MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
 {
-    free();
-    
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "     (A" << a << " > ";
         cout.unsetf(ios::floatfield);
         cout << setprecision(8) << pruneThreshold << ") ? A : 0.0 := ..." << endl;
     }
-    
-	m_ = a.m_;
-	n_ = a.n_;
-    
-    int count;
-    IppiSize size; size.width = a.nnz(); size.height = 1;
-    ippiCountInRange_32f_C1R(a.vs_, 1, size, &count, 0.0f, pruneThreshold);
-	ii a_nnz = a.nnz() - count;
-    
-    if (a_nnz > 0)
+
+    ii nnzCells = 0;
+    if (a.is1_)
     {
-        is0_ = static_cast<ii*>(mkl_calloc(m_ + 1, sizeof(ii), 64));
-        is1_ = is0_ + 1;
-        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a_nnz == 0 ? 1 : a_nnz), 64));
-        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * (a_nnz == 0 ? 1 : a_nnz), 64));
-        
-        ii nz = 0;
-        ii a_i = 0;
-        for (ii a_nz = 0; a_nz < a.nnz(); a_nz++)
+        vector<ii> nnzs(a.m_, 0);
+        for (ii i = 0; i < a.m_; i++)
         {
-            while (a_nz >= a.is1_[a_i]) a_i++; // row of nz'th non-zero in a
-            
-            if (a.vs_[a_nz] > pruneThreshold)
+            for (ii a_nz = a.is0_[i]; a_nz < a.is1_[i]; a_nz++)
             {
-                is1_[a_i]++;
-                js_[nz] = a.js_[a_nz];
-                vs_[nz] = a.vs_[a_nz];
-                nz++;
+                if (a.vs_[a_nz] > pruneThreshold) nnzs[i]++;
             }
-        }
-        for (ii i = 0; i < m_; i++)
-        {
-            is1_[i] += is0_[i];
+            nnzCells += nnzs[i];
         }
         
-        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
-        isMklData_ = false;
+        if (nnzCells > 0)
+        {
+            ii* is0 = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a.m_ + 1), 64));
+            is0[0] = 0;
+            ii* is1 = is0 + 1;
+            for (ii i = 0; i < a.m_; i++)
+            {
+                is1[i] = is0[i] + nnzs[i];
+            }
+            
+            ii* js = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1[a.m_ - 1], 64));
+            fp* vs = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1[a.m_ - 1], 64));
+            #pragma omp parallel
+            for (ii i = 0; i < a.m_; i++)
+            {
+                ii nz = is0[i];
+                for (ii a_nz = a.is0_[i]; a_nz < a.is1_[i]; a_nz++)
+                {
+                    if (a.vs_[a_nz] > pruneThreshold)
+                    {
+                        js[nz] = a.js_[a_nz];
+                        vs[nz] = a.vs_[a_nz];
+                        nz++;
+                    }
+                }
+            }
+            
+            clear();
+            m_ = a.m_;
+            n_ = a.n_;
+            is0_ = is0;
+            is1_ = is1;
+            js_ = js;
+            vs_ = vs;
+            status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
+            isOwned_ = true;
+        }
+        else
+        {
+            clear();
+            m_ = a.m_;
+            n_ = a.n_;
+        }
+    }
+    else
+    {
+        clear();
+        m_ = a.m_;
+        n_ = a.n_;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -462,7 +510,100 @@ void MatrixSparseMKL::prune(const MatrixSparseMKL& a, fp pruneThreshold)
             write(oss.str());
         }
     }
+    
+    return nnzCells;
 }
+
+
+// MOSTLY OPTIMAL, MIGHT BE BETTER IF OMP LOOP DIDN'T INCLUDE PRUNED ROWS
+ii MatrixSparseMKL::pruneRows(const MatrixSparseMKL& a, ii aNnzRows, const MatrixSparseMKL& b, bool bRows, fp threshold)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     pruneRows(" << a << ",";
+        cout << (bRows ? "rows(" : "cols(") << b << ")) where ";
+        cout << (bRows ? "nRows" : "nCols") << " to prune > " << fixed << setprecision(1) << threshold * 100.0 << "% := ..." << endl;
+    }
+
+    if (b.is1_ && a.is1_)
+    {
+        vector<ii> rowOrColNnzs(a.m_, 0);
+        if (bRows)
+        {
+            for (ii i = 0; i < b.m(); i++)
+            {
+                rowOrColNnzs[i] += b.is1_[i] - b.is0_[i];
+            }
+        }
+        else
+        {
+            for (ii nz = 0; nz < b.nnz(); nz++)
+            {
+                rowOrColNnzs[b.js_[nz]]++;
+            }
+        }
+        
+        ii b_nnzRowsOrCols = 0;
+        for (ii i = 0; i < a.m_; i++)
+        {
+            if (rowOrColNnzs[i] > 0) b_nnzRowsOrCols++;
+        }
+        
+        if (b_nnzRowsOrCols / (fp) aNnzRows <= threshold)
+        {
+            ii* is0 = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a.m_ + 1), 64));
+            is0[0] = 0;
+            ii* is1 = is0 + 1;
+            for (ii i = 0; i < a.m_; i++)
+            {
+                is1[i] = is0[i] + (rowOrColNnzs[i] > 0 ? a.is1_[i] - a.is0_[i] : 0);
+            }
+            
+            ii* js = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1[a.m_ - 1], 64));
+            fp* vs = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1[a.m_ - 1], 64));
+            #pragma omp parallel
+            for (ii i = 0; i < a.m_; i++)
+            {
+                memcpy(&js[is0[i]], &a.js_[a.is0_[i]], sizeof(ii) * (is1[i] - is0[i]));
+                memcpy(&vs[is0[i]], &a.vs_[a.is0_[i]], sizeof(fp) * (is1[i] - is0[i]));
+            }
+            
+            clear();
+            m_ = a.m_;
+            n_ = a.n_;
+            is0_ = is0;
+            is1_ = is1;
+            js_ = js;
+            vs_ = vs;
+            status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
+            isOwned_ = true;
+            
+            aNnzRows = b_nnzRowsOrCols;
+        }
+    }
+    else
+    {
+        clear();
+        m_ = a.m_;
+        n_ = a.n_;
+        
+        aNnzRows = 0;
+    }
+    
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << " (" << aNnzRows << " " << (bRows ? "rows" : "cols") << " pruned)" << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+    
+    return aNnzRows;
+}
+
 
 
 // USE MKL FUNCTION THATS CONVERTS TO DENSE
@@ -526,54 +667,6 @@ void MatrixSparseMKL::write(const string& filename) const
 }
 
 
-void MatrixSparseMKL::zeroRowsOfZeroColumns(const MatrixSparseMKL& a, const MatrixSparseMKL& x)
-{
-    free();
-    
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     zeroRowsOfZeroColumns(A" << a << ", X" << x << ") := ..." << endl;
-    }
-    
-    if (x.is1_)
-    {
-        // forces row vector to be column vector and hence have all row indicies (DOES NOT WORK IN 2D YET)
-        MatrixSparseMKL t;
-        t.copy(x, MatrixSparseMKL::Operation::TRANSPOSE);
-        
-        // make into unit diagonal matrix
-        t.n_ = t.m_;
-        t.setNonzeros((fp)1.0);
-        for (ii i = 0; i < t.m_; i++)
-        {
-            for (ii nz = t.is0_[i]; nz < t.is1_[i]; nz++)
-            {
-                t.js_[nz] = i;
-            }
-        }
-        
-        sparse_matrix_t diag;
-        status_ = mkl_sparse_s_create_csr(&diag, SPARSE_INDEX_BASE_ZERO, t.m_, t.n_, t.is0_, t.is1_, t.js_, t.vs_); assert(!status_);
-        status_ = mkl_sparse_spmm(SPARSE_OPERATION_NON_TRANSPOSE, diag, a.mat_, &mat_); assert(!status_);
-        status_ = mkl_sparse_destroy(diag); assert(!status_);
-        
-        sparse_index_base_t indexing;
-        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
-        isMklData_ = true;
-    }
-    else
-    {
-        m_ = a.m_;
-        n_ = a.n_;
-    }
-    
-    if (getDebugLevel() % 10 >= 4)
-    {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
-    }
-}
-
-
 void MatrixSparseMKL::add(fp alpha, bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b)
 {
     free();
@@ -598,7 +691,7 @@ void MatrixSparseMKL::add(fp alpha, bool transposeA, const MatrixSparseMKL& a, c
     }
     else if (!b.is1_)
     {
-        copy(a, transposeA ? Operation::TRANSPOSE : Operation::NONE);
+        copy(a, transposeA);
         mul(alpha);
     }
     else
@@ -607,7 +700,7 @@ void MatrixSparseMKL::add(fp alpha, bool transposeA, const MatrixSparseMKL& a, c
         
         sparse_index_base_t indexing;
         status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
-        isMklData_ = true;
+        isOwned_ = false;
     }
     
     if (getDebugLevel() % 10 >= 4)
@@ -623,7 +716,7 @@ void MatrixSparseMKL::add(fp alpha, bool transposeA, const MatrixSparseMKL& a, c
 }
 
 
-void MatrixSparseMKL::matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate)
+void MatrixSparseMKL::matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool denseOutput)
 {
     if (!accumulate) free();
     
@@ -648,31 +741,90 @@ void MatrixSparseMKL::matmul(bool transposeA, const MatrixSparseMKL& a, const Ma
 	}
 	else
 	{
-		if (accumulate)
+        if (denseOutput)
         {
-            sparse_matrix_t t;
-            status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t); assert(!status_);
- 
-            sparse_matrix_t y;
-            status_ = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y); assert(!status_);
-            status_ = mkl_sparse_destroy(t); assert(!status_);
+            ii m = transposeA ? a.n() : a.m();
+            ii n = b.n();
             
-            free();
-            mat_ = y;
+            ii* is0 = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m + 1), 64));
+            is0[0] = 0;
+            ii* is1 = is0 + 1;
+            for (ii i = 0; i < m; i++)
+            {
+                is1[i] = is0[i] + n;
+            }
+            
+            ii* js = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1[m - 1], 64));
+            for (ii nz = 0; nz < is1[m - 1]; nz++)
+            {
+                js[nz] = nz % n;
+            }
+            
+            fp* vs = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1[m - 1], 64));
+            status_ = mkl_sparse_s_spmmd(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, SPARSE_LAYOUT_ROW_MAJOR, vs, n); assert(!status_);
+
+            sparse_matrix_t t;
+            status_ = mkl_sparse_s_create_csr(&t, SPARSE_INDEX_BASE_ZERO, m, n, is0, is1, js, vs); assert(!status_);
+
+            if (accumulate)
+            {
+                sparse_matrix_t y;
+                status_ = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y); assert(!status_);
+                status_ = mkl_sparse_destroy(t); assert(!status_);
+                
+                free();
+                mat_ = y;
+                
+                sparse_index_base_t indexing;
+                status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
+                isOwned_ = false;
+            }
+            else
+            {
+                m_ = m;
+                n_ = n;
+                is0_ = is0;
+                is1_ = is1;
+                js_ = js;
+                vs_ = vs;
+                mat_ = t;
+                isOwned_ = true;
+            }
         }
         else
-		{
-            status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_); assert(!status_);
-		}
-        
-        sparse_index_base_t indexing;
-        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
-        isMklData_ = true;
+        {
+            if (accumulate)
+            {
+                sparse_matrix_t t;
+                status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t); assert(!status_);
+                
+                sparse_matrix_t y;
+                status_ = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y); assert(!status_);
+                status_ = mkl_sparse_destroy(t); assert(!status_);
+                
+                free();
+                mat_ = y;
+                
+                sparse_index_base_t indexing;
+                status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
+                isOwned_ = false;
+            }
+            else
+            {
+                status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_); assert(!status_);
+                
+                sparse_index_base_t indexing;
+                status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_); assert(!status_);
+                isOwned_ = false;
+            }
+        }
 	}
 
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "     ... X" << *this << endl;
+        cout << getTimeStamp() << "     ... X" << *this;
+        if (denseOutput) cout << " (DENSE)";
+        cout << endl;
         
         if (getDebugLevel() >= 14)
         {
@@ -893,7 +1045,6 @@ void MatrixSparseMKL::pow(fp power)
 }
 
 
-// WARNING: IPP IS NOT 32BIT LENGTH
 fp MatrixSparseMKL::sum() const
 {
     if (getDebugLevel() % 10 >= 4)
@@ -915,19 +1066,36 @@ fp MatrixSparseMKL::sum() const
 }
 
 
-void MatrixSparseMKL::divCorrespondingNonzeros(const MatrixSparseMKL& a)
+void MatrixSparseMKL::divNonzeros(const fp* a_vs)
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "     X" << *this << " / A" << a << " := ..." << endl;
+        cout << getTimeStamp() << "     X" << *this << " / A := ..." << endl;
     }
     
-    assert(m_ == a.m_);
-    assert(n_ == a.n_);
-    assert(nnz() == a.nnz());
-    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
+    vsDiv(nnz(), vs_, a_vs, vs_);
     
-    vsDiv(nnz(), vs_, a.vs_, vs_);
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     ... X" << *this << endl;
+        
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::div2Nonzeros(const fp* a_vs)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "     X" << *this << " / A := ..." << endl;
+    }
+    
+    vsDiv(nnz(), a_vs, vs_, vs_);
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -966,20 +1134,15 @@ fp MatrixSparseMKL::sumSqrs() const
 
 
 // WARNING: IPP IS NOT 32BIT LENGTH
-fp MatrixSparseMKL::sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) const
+fp MatrixSparseMKL::sumSqrDiffsNonzeros(const fp* a_vs) const
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "     sum((X" << *this << " - A" << a << ")^2) := ..." << endl;
+        cout << getTimeStamp() << "     sum((X" << *this << " - A)^2) := ..." << endl;
     }
- 
-    assert(m_ == a.m_);
-    assert(n_ == a.n_);
-    assert(nnz() == a.nnz());
-    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
     
     fp sum = 0.0;
-    ippsNormDiff_L2_32f(vs_, a.vs_, nnz(), &sum);
+    ippsNormDiff_L2_32f(vs_, a_vs, nnz(), &sum);
     sum *= sum;
     
     if (getDebugLevel() % 10 >= 4)
@@ -994,7 +1157,7 @@ fp MatrixSparseMKL::sumSqrDiffsCorrespondingNonzeros(const MatrixSparseMKL& a) c
 
 
 // SEEMS OPTIMAL
-void MatrixSparseMKL::subsetElementwiseCopy(const MatrixSparseMKL& a)
+void MatrixSparseMKL::subsetCopy(const MatrixSparseMKL& a)
 {
     if (getDebugLevel() % 10 >= 4)
     {

@@ -133,6 +133,7 @@ int main(int argc, char **argv)
 	string id;
 	double tolerance = pow(2.0, toleranceExponent);
 	double shrinkage = pow(2.0, shrinkageExponent);
+    //msFile.next(input, id);
 	while (msFile.next(input, id))
 	{
 		cout << endl << "Processing " << id << ":" << endl;
@@ -170,7 +171,6 @@ int main(int argc, char **argv)
                     SeamassCore::ControlPoints controlPoints;
                     sm.getOutputControlPoints(controlPoints);
                     netcdfWriter.writeSmo(controlPoints);
-                    //exit(0);
                 }
             }
             while (sm.step());

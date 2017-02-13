@@ -24,6 +24,8 @@
 #define _SEAMASS_CORE_BASISBSPLINE_HPP_
 
 
+#include <vector>
+
 #include "Basis.hpp"
 
 
