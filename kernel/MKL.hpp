@@ -24,7 +24,7 @@
 #define _SEAMASS_MATH_MKL_HPP_
 
 
-#include "MatrixMKL.hpp"
+//#include "MatrixMKL.hpp" //Not sure why you have included this here... Recursive?!?!
 
 #include <string>
 

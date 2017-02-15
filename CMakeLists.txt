@@ -15,3 +15,5 @@ add_subdirectory(topdown)
 add_subdirectory(io)
 add_subdirectory(commandline)
 add_subdirectory(smpeak)
+add_subdirectory(smimage)
+
