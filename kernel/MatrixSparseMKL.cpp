@@ -25,10 +25,10 @@
 #include <iomanip>
 //#include <iostream>
 #include <cassert>
-//#include <cstring>
+#include <cstring>
 //#include <cmath>
 //#include <sstream>
-//#include <algorithm>
+#include <algorithm>
 
 #if defined(_OPENMP)
   #include <omp.h>
