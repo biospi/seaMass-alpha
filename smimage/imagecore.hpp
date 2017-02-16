@@ -1,3 +1,27 @@
+//
+// $Id$
+//
+//
+// Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
+//
+// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
+//
+// This file is part of seaMass.
+//
+// seaMass is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// seaMass is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
+//
+
 #ifndef _IMAGECORE_HPP
 #define _IMAGECORE_HPP
 
@@ -21,15 +45,16 @@ struct MassSpecData
 	void calMZi(void);
 	void calRange(void);
 
-	vector<double> rt; // StartTime from smj file
-	vector<double> mz; // SpectrumMZ from rebinned smo file
-	vector<float> sc; // SpectrumCount from rebinned smo file
-	vector<lli> sci; // SpectrumCountIndex from rebinned smo file
+	vector<double> rt; // StartTime from smi file
+	vector<double> mz; // SpectrumMZ from rebinned smi file
+	vector<float> sc; // SpectrumCount from rebinned smi file
+	vector<lli> sci; // SpectrumCountIndex from rebinned smi file
+	vector<float> exp; // Exposures of each spectrum scan
 	vector<lli> mzi; // SpectrumMZ Index calculated from sci
-	vector<double> precursorMZ; // PrecursorMZ
 	vector<lli> rti; // StartTime index for valid MZ.
-	vector<lli> rtp; // StartTime index for Precursor MZ.
-	lli N;
+	//vector<double> precursorMZ; // PrecursorMZ
+	//vector<lli> rtp; // StartTime index for Precursor MZ.
+	size_t N; // Number of mz Scans .i.e. the number of rt.
 
 	pair<double,double> mzRange; // Viewable limits
 	pair<double,double> rtRange; // Viewable limits
