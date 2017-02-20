@@ -37,6 +37,7 @@ int main(int argc, char** argv){
 	pair<double,double> mzInputRange;
 	pair<double,double> rtInputRange;
 	pair<ui,ui> xyview;
+	bool rescaleExp = false;
 
 	po::options_description usage("Usage: smimage [OPTION...] [SMI FILE]\n"
 			"Example: smimage -m [200,300] -r [20,140] -o [3000,1000] --ms2 datafile.smi\n"
@@ -66,7 +67,9 @@ int main(int argc, char** argv){
 				"RT range units (s) argument takes the following format: [Min Value,Max Value], "
 				"omitting a value will result in the appropriate [Min,Max] value "
 				".i.e. [,Val] -> will give a range [Min,Val], "
-				"[Val,] -> will give a range [Val,Max].");
+				"[Val,] -> will give a range [Val,Max].")
+			("rescale-exposure,e",
+			 "Rescale exposure gain control, default applyed, use this switch to rescale to origonal.");
 	try
 	{
 		po::positional_options_description pod;
@@ -108,6 +111,14 @@ int main(int argc, char** argv){
 		else
 		{
 			rtInputRange = make_pair(-1.0,-1.0);
+		}
+		if(vm.count("rescale-exposure"))
+		{
+			rescaleExp=true;
+		}
+		else
+		{
+			rescaleExp=false;
 		}
 		if(vm.count("file"))
 		{
@@ -155,6 +166,22 @@ int main(int argc, char** argv){
 
 	smiInput.read_VecNC("exposures",raw.exp);
 
+	if(rescaleExp)
+	{
+		cout<<"Running Rescale!!"<<endl;
+		for(size_t i=0; i < raw.exp.size(); ++i)
+		{
+			lli idx_beg=raw.sci[i];
+			lli idx_end=raw.sci[i+1];
+
+			raw.exp[i]=1.0/raw.exp[i];
+
+			for(size_t j=idx_beg; j <= idx_end; ++j)
+			{
+				raw.sc[j]=raw.sc[j]*raw.exp[i];
+			}
+		}
+	}
 
 	cout<<"Processing data to create new SMR raw image file..."<<endl;
 	// Calculate MZ index
