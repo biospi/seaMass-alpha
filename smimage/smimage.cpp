@@ -105,8 +105,8 @@ int main(int argc, char** argv){
 		if(vm.count("rt-range"))
 		{
 			rtInputRange=numStrBraket<double,double>(vm["rt-range"].as<string>());
-			if(rtInputRange.first != -1) rtInputRange.first = rtInputRange.first/60.0;
-			if(rtInputRange.second != -1) rtInputRange.second = rtInputRange.second/60.0;
+			if(rtInputRange.first != -1) rtInputRange.first = rtInputRange.first;
+			if(rtInputRange.second != -1) rtInputRange.second = rtInputRange.second;
 		}
 		else
 		{
@@ -149,22 +149,35 @@ int main(int argc, char** argv){
 	NetCDFile smiInput(smiFileName);
 
 	cout<<"Load raw data from data filies:"<<endl;
-	ostringstream datah5;
 	MassSpecData raw;
-	MassSpecImage imgBox(xyview);
 
 	// Load Data from smi file
 	cout<<"Load Start Time from SMI:"<<endl;
-	smiInput.read_VecNC("startTimes",raw.rt);
-	raw.N = raw.rt.size();
+	int data2D = smiInput.search_Group("startTimes");
 
-	smiInput.read_VecNC("binEdges",raw.mz);
+	if(data2D == 0)
+	{
+		raw.N = 2;
+		raw.rt.push_back(1);
+		raw.rt.push_back(2);
+		smiInput.read_VecNC("binEdges",raw.mz);
+		smiInput.read_VecNC("binCounts",raw.sc);
+		smiInput.read_VecNC("exposures",raw.exp);
+		raw.sci.push_back(0);
+		raw.sci.push_back(lli(raw.mz.size())-1);
+		xyview.second=1;
+	}
+	else
+	{
+		smiInput.read_VecNC("startTimes",raw.rt);
+		raw.N = raw.rt.size();
+		smiInput.read_VecNC("binEdges",raw.mz);
+		smiInput.read_VecNC("binCounts",raw.sc);
+		smiInput.read_VecNC("spectrumIndex",raw.sci);
+		smiInput.read_VecNC("exposures",raw.exp);
+	}
 
-	smiInput.read_VecNC("binCounts",raw.sc);
-
-	smiInput.read_VecNC("spectrumIndex",raw.sci);
-
-	smiInput.read_VecNC("exposures",raw.exp);
+	MassSpecImage imgBox(xyview);
 
 	if(rescaleExp)
 	{
@@ -237,57 +250,71 @@ int main(int argc, char** argv){
 		}
 	}
 
-	for(size_t idx=rtidxBegin; idx <=rtidxEnd; ++idx)
+	if(data2D)
 	{
-		double scaleRT=0.0;
-		double drt=fabs(raw.rt[idx+1]-raw.rt[idx]);
-		double yn=(raw.rt[idx]-imgBox.rt[0])/imgBox.drt;
-		double yp=(raw.rt[idx+1]-imgBox.rt[0])/imgBox.drt;
-		lli rowN=floor(yn);
-		lli rowP=floor(yp);
+		for (size_t idx = rtidxBegin; idx <= rtidxEnd; ++idx) {
+			double scaleRT = 0.0;
+			double drt = fabs(raw.rt[idx + 1] - raw.rt[idx]);
+			double yn = (raw.rt[idx] - imgBox.rt[0]) / imgBox.drt;
+			double yp = (raw.rt[idx + 1] - imgBox.rt[0]) / imgBox.drt;
+			lli rowN = floor(yn);
+			lli rowP = floor(yp);
 
-		if(rowP > imgBox.xypxl.second-2) rowP=imgBox.xypxl.second-1;
-		if(rowN >= imgBox.xypxl.second-1) break;
-		// Overlapping image 1st box on boundary
-		if(rowN < 0 && rowP >= 0)
-		{
-			rowN=0;
-			for(lli row=rowN; row <= rowP; ++row)
-			{
-				double boxBegin=0.0;
-				double boxEnd=0.0;
-				// Cut top overlap else its contained
-				(imgBox.rt[row] < raw.rt[idx]) ? boxBegin=raw.rt[idx] : boxBegin=imgBox.rt[row];
-				// Cut bottom overlap else its contained
-				(imgBox.rt[row+1] < raw.rt[idx+1]) ? boxEnd=imgBox.rt[row+1] : boxEnd=raw.rt[idx+1];
-				scaleRT=(boxEnd-boxBegin)/drt;
+			if (rowP > imgBox.xypxl.second - 2) rowP = imgBox.xypxl.second - 1;
+			if (rowN >= imgBox.xypxl.second - 1) break;
+			// Overlapping image 1st box on boundary
+			if (rowN < 0 && rowP >= 0) {
+				rowN = 0;
+				for (lli row = rowN; row <= rowP; ++row) {
+					double boxBegin = 0.0;
+					double boxEnd = 0.0;
+					// Cut top overlap else its contained
+					(imgBox.rt[row] < raw.rt[idx]) ? boxBegin = raw.rt[idx]
+												   : boxBegin = imgBox.rt[row];
+					// Cut bottom overlap else its contained
+					(imgBox.rt[row + 1] < raw.rt[idx + 1]) ? boxEnd = imgBox.rt[row + 1]
+														   : boxEnd = raw.rt[idx + 1];
+					scaleRT = (boxEnd - boxBegin) / drt;
+					// Run MZ scan calculations
+					if (raw.rti[idx] >= 0)
+						scanMZ(raw, imgBox, raw.rti[idx], row, scaleRT);
+				}
+			}
+				// Multiple smaller image boxes within single raw data scanline
+			else if (rowN < rowP && rowN >= 0) {
+				for (lli row = rowN; row <= rowP; ++row) {
+					double boxBegin = 0.0;
+					double boxEnd = 0.0;
+					// Cut top overlap else its contained
+					(imgBox.rt[row] < raw.rt[idx]) ? boxBegin = raw.rt[idx]
+												   : boxBegin = imgBox.rt[row];
+					// Cut bottom overlap else its contained
+					(imgBox.rt[row + 1] < raw.rt[idx + 1]) ? boxEnd = imgBox.rt[row + 1]
+														   : boxEnd = raw.rt[idx + 1];
+					scaleRT = (boxEnd - boxBegin) / drt;
+					// Run MZ scan calculations
+					if (raw.rti[idx] >= 0)
+						scanMZ(raw, imgBox, raw.rti[idx], row, scaleRT);
+				}
+			}
+				// Raw data scanline contained within a Image box hence no scale needed.
+			else if (rowN == rowP) {
+				scaleRT = 1.0;
 				// Run MZ scan calculations
-				if(raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], row, scaleRT);
+				if (raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], rowN, scaleRT);
 			}
 		}
-		// Multiple smaller image boxes within single raw data scanline
-		else if(rowN < rowP && rowN >=0)
-		{
-			for(lli row=rowN; row <= rowP; ++row)
-			{
-				double boxBegin=0.0;
-				double boxEnd=0.0;
-				// Cut top overlap else its contained
-				(imgBox.rt[row] < raw.rt[idx]) ? boxBegin=raw.rt[idx] : boxBegin=imgBox.rt[row];
-				// Cut bottom overlap else its contained
-				(imgBox.rt[row+1] < raw.rt[idx+1]) ? boxEnd=imgBox.rt[row+1] : boxEnd=raw.rt[idx+1];
-				scaleRT=(boxEnd-boxBegin)/drt;
-				// Run MZ scan calculations
-				if(raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], row, scaleRT);
-			}
-		}
-		// Raw data scanline contained within a Image box hence no scale needed.
-		else if(rowN == rowP)
-		{
-			scaleRT=1.0;
-			// Run MZ scan calculations
-			if(raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], rowN, scaleRT);
-		}
+	}
+	else
+	{
+		size_t idx = 0;
+		double scaleRT = 1.0;
+		double drt = fabs(raw.rt[idx + 1] - raw.rt[idx]);
+		double yn = (raw.rt[idx] - imgBox.rt[0]) / imgBox.drt;
+		double yp = (raw.rt[idx + 1] - imgBox.rt[0]) / imgBox.drt;
+		lli rowN = floor(yn);
+		lli rowP = floor(yp);
+		if (raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], rowN, scaleRT);
 	}
 
 	cout<<"Writing out data to seaMass image data file: "<<endl;

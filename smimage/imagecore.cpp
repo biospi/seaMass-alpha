@@ -70,8 +70,8 @@ void MassSpecData::calRange(void)
 		idx++;
 	} while(rt[idx-1]<0);
 	rtRange.second=rt.back();
-	cout<<"Range Min RT(min): "<<rtRange.first<<"   Range Max RT(min): "<<rtRange.second<<endl;
-	cout<<"Range Min RT(s):   "<<rtRange.first*60.0<<"   Range Max RT(s):   "<<rtRange.second*60.0<<endl;
+	cout<<"Range Min RT(min): "<<rtRange.first/60.0<<"   Range Max RT(min): "<<rtRange.second/60.0<<endl;
+	cout<<"Range Min RT(s):   "<<rtRange.first<<"   Range Max RT(s):   "<<rtRange.second<<endl;
 }
 
 
