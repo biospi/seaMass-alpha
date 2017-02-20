@@ -33,7 +33,6 @@
 
 using namespace std;
 
-//typedef unsigned long long int lli;
 typedef long long lli;
 typedef unsigned int ui;
 
@@ -52,8 +51,6 @@ struct MassSpecData
 	vector<float> exp; // Exposures of each spectrum scan
 	vector<lli> mzi; // SpectrumMZ Index calculated from sci
 	vector<lli> rti; // StartTime index for valid MZ.
-	//vector<double> precursorMZ; // PrecursorMZ
-	//vector<lli> rtp; // StartTime index for Precursor MZ.
 	size_t N; // Number of mz Scans .i.e. the number of rt.
 
 	pair<double,double> mzRange; // Viewable limits

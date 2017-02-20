@@ -23,9 +23,6 @@
 //
 
 #include "imagecore.hpp"
-//#include "SMGWriter.hpp"
-//#include "core.hpp"
-//#include <utility>
 #include <boost/program_options.hpp>
 
 #include "../kernel/NetcdfFile.hpp"
@@ -37,7 +34,6 @@ int main(int argc, char** argv){
 
 	string smiFileName, channel;
 	int mz_res=0;
-	//bool reBin, ms2;
 	pair<double,double> mzInputRange;
 	pair<double,double> rtInputRange;
 	pair<ui,ui> xyview;
@@ -71,12 +67,6 @@ int main(int argc, char** argv){
 				"omitting a value will result in the appropriate [Min,Max] value "
 				".i.e. [,Val] -> will give a range [Min,Val], "
 				"[Val,] -> will give a range [Val,Max].");
-		//("ms2", "Include MS2 data.")
-		//("mz-rebin,b",
-		//		po::value<int>(&mz_res),
-		//		"Re-Bin MZ for speed. MZ resolution given as: "
-		//		"\"b-splines per Th = 2^mz_res * 60 / 1.0033548378\" "
-		//		"guidelines: between 0 to 2 for ToF, 3 for Orbitrap.");
 	try
 	{
 		po::positional_options_description pod;
@@ -119,14 +109,6 @@ int main(int argc, char** argv){
 		{
 			rtInputRange = make_pair(-1.0,-1.0);
 		}
-		//if(vm.count("ms2"))
-		//	ms2=true;
-		//else
-		//	ms2=false;
-		//if(vm.count("mz-rebin"))
-		//	reBin=true;
-		//else
-		//	reBin=false;
 		if(vm.count("file"))
 		{
 			cout<<"Opening SMI file: "<<vm["file"].as<string>()<<endl;
@@ -154,51 +136,11 @@ int main(int argc, char** argv){
 
 	string outFileName=smiFileName.substr(0,smiFileName.size()-4);
 	NetCDFile smiInput(smiFileName);
-	//SMGWriter smgFile(outFileName);
 
 	cout<<"Load raw data from data filies:"<<endl;
 	ostringstream datah5;
 	MassSpecData raw;
 	MassSpecImage imgBox(xyview);
-
-	// Load Data from smj file
-	//datah5 << "/" << "StartTime";
-	//cout<<"Load Start Time from SMJ:"<<endl;
-	//read_VecH5(smiFileName, datah5.str(), raw.rt, H5::PredType::NATIVE_DOUBLE);
-	//datah5.str("");
-	//datah5.clear();
-
-	// Load Data from smj file
-	//datah5 << "/" << "PrecursorMZ";
-	//cout<<"Load Precursor MZ from SMJ:"<<endl;
-	//read_VecH5(smiFileName, datah5.str(), raw.precursorMZ, H5::PredType::NATIVE_DOUBLE);
-	//datah5.str("");
-	//datah5.clear();
-
-
-	// Load Data from smj file
-	//vector<double> vmz;
-	//datah5 << "/" << "SpectrumMZ";
-	//cout<<"Load Spectrim MZ from SMJ:"<<endl;
-	//read_VecH5(smiFileName, datah5.str(), vmz, H5::PredType::NATIVE_DOUBLE);
-	//datah5.str("");
-	//datah5.clear();
-
-	// Load Data from smj file
-	//vector<double> vsc;
-	//datah5 << "/" << "SpectrumIntensity";
-	//cout<<"Load Spectrum Count from SMJ:"<<endl;
-	//read_VecH5(smiFileName, datah5.str(), vsc, H5::PredType::NATIVE_DOUBLE);
-	//datah5.str("");
-	//datah5.clear();
-
-	// Load Data from smj file
-	//vector<lli> vsci;
-	//datah5 << "/" <<"SpectrumIndex";
-	//cout<<"Load Spectrum Count Index from SMJ:"<<endl;
-	//read_VecH5(smiFileName, datah5.str(), vsci, H5::PredType::NATIVE_ULONG);
-	//datah5.str("");
-	//datah5.clear();
 
 	// Load Data from smi file
 	cout<<"Load Start Time from SMI:"<<endl;
@@ -213,61 +155,6 @@ int main(int argc, char** argv){
 
 	smiInput.read_VecNC("exposures",raw.exp);
 
-	//vector<vector <double> > mzs;
-	//vector<vector <double> > intensities;
-
-	/*
-	mzs.resize(raw.N);
-	intensities.resize(raw.N);
-
-	for(lli i = 0; i < raw.N; ++i)
-	{
-		lli elements=vsci[i+1]-vsci[i]-1;
-		if(elements > 0)
-		{
-			mzs[i].reserve(elements);
-			intensities[i].reserve(elements);
-		}
-		for(lli j = vsci[i]; j < vsci[i+1]; ++j)
-		{
-			mzs[i].push_back(vmz[j]);
-			intensities[i].push_back(vsc[j]);
-		}
-	}
-
-	// difference between carbon12 and carbon13
-	double rc_mz = pow(2.0, (double) mz_res) * 60 / 1.0033548378;
-	unsigned long instrument_type = 1;
-	//read_AttH5(smiFileName,"/SpectrumIntensity","instrumentType",
-	//		instrument_type, H5::IntType(H5::PredType::NATIVE_USHORT));
-
-	// Ensure the raw data is in binned format and compute exposures
-	vector<fp> exposures;
-	bin_mzs_intensities(mzs, intensities, instrument_type, exposures);
-
-	if(reBin)
-	{
-		// for speed only, merge bins if rc_mz is set higher than twice bin width
-		cout<<"Re-scaling MZ for speed..."<<endl;
-		merge_bins(mzs, intensities, 0.5 / rc_mz);
-	}
-
-	// Convert intensities into format used in algorithm for gs
-	vector<ii> nonZeroI;
-	create_gs(raw.sc, raw.sci, nonZeroI, intensities);
-
-	for (ii i = 0; i < (ii) intensities.size(); i++) vector<double>().swap(intensities[i]);
-
-	for(lli i = 0; i < mzs.size(); ++i)
-	{
-		for(lli j = 0; j < mzs[i].size(); ++j)
-		{
-			raw.mz.push_back(mzs[i][j]);
-		}
-	}
-
-	for (ii i = 0; i < (ii) mzs.size(); i++) vector<double>().swap(mzs[i]);
-	*/
 
 	cout<<"Processing data to create new SMR raw image file..."<<endl;
 	// Calculate MZ index
@@ -275,43 +162,9 @@ int main(int argc, char** argv){
 	// Find data limits in mass spec data.
 	raw.calRange();
 
-	/*
-	raw.rtp.resize(raw.precursorMZ.size());
-
-	if(ms2)
-	{
-		for(lli i=0; i < raw.precursorMZ.size(); ++i)
-		{
-			raw.rtp[i]=i;
-		}
-	}
-	else
-	{
-		for(lli i=0; i < raw.precursorMZ.size(); ++i)
-		{
-			if(raw.precursorMZ[i] == 0.0)
-			{
-				raw.rtp[i]=i;
-			}
-			else
-			{
-				raw.rtp[i]=-1;
-			}
-		}
-	}
-	*/
-
 	raw.rti.resize(raw.N,-1);
 	for(size_t i=0; i < raw.N-1; ++i)
 		raw.rti[i]=i;
-
-	/*
-	for(lli i=0; i < nonZeroI.size(); ++i)
-	{
-		if(raw.rtp[nonZeroI[i]] >= 0)
-			raw.rti[nonZeroI[i]]=i;
-	}
-	*/
 
 	// Clip Box if needed
 	// Min MZ Value
@@ -409,25 +262,6 @@ int main(int argc, char** argv){
 			if(raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], rowN, scaleRT);
 		}
 	}
-
-	//vector<hsize_t> mzDims;
-	//mzDims.push_back(imgBox.mz.size());
-	//smgFile.write_VecMatH5("SpectrumMZ", imgBox.mz, mzDims, H5::PredType::NATIVE_DOUBLE);
-
-	//vector<hsize_t> scDims;
-	//scDims.push_back(imgBox.xypxl.second);
-	//scDims.push_back(imgBox.xypxl.first);
-	//smgFile.write_VecMatH5("SpectrumCount", imgBox.sc, scDims, H5::PredType::NATIVE_FLOAT);
-
-	//Convert RT to seconds...
-	//for(int i=0;i < imgBox.rt.size(); ++i)
-	//{
-	//	imgBox.rt[i]=imgBox.rt[i]*60.0;
-	//}
-
-	//vector<hsize_t> rtDims;
-	//rtDims.push_back(imgBox.rt.size()-1);
-	//smgFile.write_VecMatH5("StartTime", imgBox.rt, rtDims, H5::PredType::NATIVE_DOUBLE);
 
 	cout<<"Writing out data to seaMass image data file: "<<endl;
 	cout<<"    "<<outFileName+".smr"<<endl;
