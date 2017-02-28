@@ -135,5 +135,15 @@ T genAxisN(vector<T> &x, T xmin, T xmax)
 	return dx;
 }
 
+template<typename T>
+void centreBin(vector<T> &vec)
+{
+	size_t N=vec.size();
+	for(size_t i =0; i<N-1; ++i)
+	{
+		vec[i]=0.5*(vec[i]+vec[i+1]);
+	}
+	vec.pop_back();
+}
 
 #endif //_IMAGECORE_HPP

@@ -108,6 +108,14 @@ public:
 			int grpid = 0, const string rowY="", const string colX="",
 			size_t chunk = 4096, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
+	template<typename T,typename X, typename Y>
+	int write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type ztype,
+					vector<X> colAxisX, nc_type xtype,
+					vector<Y> rowAxisY, nc_type ytype,
+					const string colX="", const string rowY="",
+					int grpid = 0,
+					size_t chunk = 4096, int deflate_level = 1,
+					int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_AttNC(const string dataSet, const string attName,
 			vector<T> &attVal, nc_type xtype, int grpid = 0);

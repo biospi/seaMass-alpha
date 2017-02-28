@@ -320,14 +320,26 @@ int main(int argc, char** argv){
 	cout<<"Writing out data to seaMass image data file: "<<endl;
 	cout<<"    "<<outFileName+".smr"<<endl;
 
+	//Convert MZ and StartTimes to bin centres
 	NetCDFile smrFile(outFileName+".smr",NC_NETCDF4);
 
-	smrFile.write_VecNC("SpectrumMZ",imgBox.mz,NC_DOUBLE);
+	if(data2D)
+	{
+		centreBin(imgBox.mz);
+		centreBin(imgBox.rt);
+		VecMat<float> scImage(imgBox.xypxl.second,imgBox.xypxl.first,imgBox.sc);
+		smrFile.write_MatAxisNC("SpectrumCount",scImage,NC_FLOAT,
+								imgBox.mz,NC_DOUBLE,
+								imgBox.rt,NC_DOUBLE,
+								"SpectrumMZ","StartTime");
+	}
+	else
+	{
+		centreBin(imgBox.mz);
+		smrFile.write_VecNC("SpectrumMZ",imgBox.mz,NC_DOUBLE);
+		smrFile.write_VecNC("SpectrumCount",imgBox.sc,NC_FLOAT);
+	}
 
-	VecMat<float> scImage(imgBox.xypxl.second,imgBox.xypxl.first,imgBox.sc);
-	smrFile.write_MatNC("SpectrumCount",scImage,NC_FLOAT);
-
-	smrFile.write_VecNC("StartTime",imgBox.rt,NC_DOUBLE);
 
 	return 0;
 }

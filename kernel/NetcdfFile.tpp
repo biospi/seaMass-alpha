@@ -771,6 +771,114 @@ int NetCDFile::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 }
 
 
+template<typename T,typename X, typename Y>
+int NetCDFile::write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type ztype,
+				   vector<X> colAxisX, nc_type xtype,
+				   vector<Y> rowAxisY, nc_type ytype,
+				   const string colX, const string rowY,
+				   int grpid,
+				   size_t chunk, int deflate_level,
+				   int shuffle)
+{
+	if(grpid == 0) grpid = ncid;
+
+	int varid;
+	int dimid[2];
+	int axisVarid[2];
+	size_t chunks[2];
+	size_t xchunk, ychunk;
+	int ndim = 2;
+	int vecDim=1;
+	int deflate = 0;
+	size_t N[2];
+	uli buffN[2];
+
+	string dimName1;
+	string dimName2;
+
+	// Set chunking, shuffle, and deflate.
+	shuffle = NC_SHUFFLE;
+	if(deflate_level > 0 && deflate_level < 10)
+		deflate = 1;
+
+	vm.getDims(buffN);
+
+	N[0]=size_t(buffN[0]);
+	N[1]=size_t(buffN[1]);
+
+	// Define the dimensions.
+	if(rowY.size() == 0)
+	{
+		dimName1 = dataSet+"_row";
+	}
+	else
+	{
+		dimName1=rowY;
+	}
+	if(colX.size() == 0)
+	{
+		dimName2 = dataSet+"_col";
+	}
+	else
+	{
+		dimName2=colX;
+	}
+	if((retval = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
+		ERR(retval);
+	if((retval = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
+		ERR(retval);
+
+	// Chunking for Axis Data
+	if(colAxisX.size() < chunk) xchunk=colAxisX.size()-1;
+	if(rowAxisY.size() < chunk) ychunk=rowAxisY.size()-1;
+
+	// Chunking for Matrix
+	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
+	if(N[1] < chunk) chunk = N[1];
+	chunks[0] = 1;
+	chunks[1] = chunk;
+
+	// Define Axises variables.
+	if((retval = nc_def_var(grpid,dimName1.c_str(),ytype,vecDim,&dimid[0],&axisVarid[0])))
+	   ERR(retval);
+	if((retval = nc_def_var_chunking(grpid,axisVarid[0],NC_CHUNKED,&ychunk)))
+	   ERR(retval);
+	if((retval = nc_def_var_deflate(grpid,axisVarid[0],shuffle,deflate,deflate_level)))
+	   ERR(retval);
+
+	if((retval = nc_def_var(grpid,dimName2.c_str(),xtype,vecDim,&dimid[1],&axisVarid[1])))
+	   ERR(retval);
+	if((retval = nc_def_var_chunking(grpid,axisVarid[1],NC_CHUNKED,&xchunk)))
+	   ERR(retval);
+	if((retval = nc_def_var_deflate(grpid,axisVarid[1],shuffle,deflate,deflate_level)))
+	   ERR(retval);
+
+
+	// Define the Matrix variable.
+	if((retval = nc_def_var(grpid,dataSet.c_str(),ztype,ndim,&dimid[0],&varid)))
+	   ERR(retval);
+
+	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	   ERR(retval);
+
+	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	   ERR(retval);
+
+	if((retval = nc_enddef(grpid)))
+		ERR(retval);
+
+	// Write the data to the file.
+	if((retval = nc_put_var(grpid, axisVarid[0], &rowAxisY[0])))
+		ERR(retval);
+	if((retval = nc_put_var(grpid, axisVarid[1], &colAxisX[0])))
+		ERR(retval);
+	if((retval = nc_put_var(grpid, varid, &vm.v[0])))
+	   ERR(retval);
+
+	return varid;
+}
+
+
 template<typename T>
 void NetCDFile::write_AttNC(const string dataSet, const string attName,
 			vector<T> &attVal, nc_type xtype, int grpid)
