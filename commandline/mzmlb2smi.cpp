@@ -31,7 +31,6 @@
 #include "../io/NetcdfWriter.hpp"
 #include "../io/MSFileData.hpp"
 
-
 using namespace std;
 namespace po = boost::program_options;
 
@@ -103,9 +102,11 @@ int main(int argc, char *argv[])
 	for (int i = 0; msFile.next(input, id); i++)
 	{
 		ostringstream oss;
+
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smi";
         NetcdfWriter netcdfWriter(oss.str());
 		cout << "Writing file: " << oss.str() << endl;
+
 		netcdfWriter.writeSmi(input);
 	}
 

@@ -411,14 +411,16 @@ void MSmzMLb::getScanMZs(vector<double> &mz, size_t index, size_t count)
 {
 	hypIdx[0]=mzIdx[index];
 	rdLen[0]=count;
-	mzMLbFile.read_HypVecNC(dataSetList[0].varName,mz,&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
+	if(count > 0)
+		mzMLbFile.read_HypVecNC(dataSetList[0].varName,mz,&hypIdx[0],&rdLen[0],dataSetList[0].grpid);
 }
 
 void MSmzMLb::getScanIntensities(vector<double> &intensities, size_t index, size_t count)
 {
 	hypIdx[0]=intensitiesIdx[index];
 	rdLen[0]=count;
-	mzMLbFile.read_HypVecNC(dataSetList[1].varName,intensities,&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
+	if(count > 0)
+		mzMLbFile.read_HypVecNC(dataSetList[1].varName,intensities,&hypIdx[0],&rdLen[0],dataSetList[1].grpid);
 }
 
 unsigned long MSmzMLb::getInstrument(void)
@@ -628,6 +630,7 @@ bool mzMLbInputFile::next(SeamassCore::Input& out, std::string& id)
 			}
 		}
 	}
+
 	if (intensities.size() > 1) out.spectrumIndex.back() = out.binCounts.size();
 
 	return true;

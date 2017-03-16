@@ -378,9 +378,8 @@ void NetCDFile::read_HypVecNC(const string dataSet, vector<T> &vm,
 
 	int varid;
 	int ndim;
-	vector<int> dimid;
-	vector<size_t> dimSize;
-	size_t N=1;
+	int dimid;
+	size_t dimSize;
 	nc_type typId;
 
 	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
@@ -392,25 +391,13 @@ void NetCDFile::read_HypVecNC(const string dataSet, vector<T> &vm,
 	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
 		ERR(retval);
 
-	dimid.resize(ndim);
-	dimSize.resize(ndim);
-
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+	if((retval = nc_inq_vardimid(grpid, varid, &dimid) ))
 		ERR(retval);
 
-	for(int i = 0; i < ndim; ++i)
-	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			ERR(retval);
-	}
+	if ((retval = nc_inq_dimlen(grpid, dimid, &dimSize) ))
+		ERR(retval);
 
-	for(int i = 0; i < ndim; ++i)
-	{
-		if(len[i] == 0) len[i]=dimSize[i]-rcIdx[i];
-		N *=len[i];
-	}
-
-	vm.resize(N);
+	vm.resize(*len);
 
 	if(typeid(vector<float>) == typeid(vm))
 	{
