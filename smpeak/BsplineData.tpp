@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
@@ -107,7 +104,7 @@ void BsplineBasisData<R,T>::dumpData(string filename, nc_type data_type_id)
 
 	// Write data to SMD (debug) file.
 	string outFileName=filename.substr(0,filename.size()-4)+".smd";
-	NetCDFile smpDataFile(outFileName,NC_NETCDF4);
+	FileNetcdf smpDataFile(outFileName,NC_NETCDF4);
 
 	DataAxis<T,R> const *bs=bspObjP[0];
 	DataAxis<T,R> const *dhbs=bspObjP[1];

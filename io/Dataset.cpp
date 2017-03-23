@@ -1,7 +1,7 @@
 //
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
+// Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -19,33 +19,29 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_MZMLXML_TPP
-#define SEAMASS_MZMLXML_TPP
+#include "Dataset.hpp"
 
-#include "mzMLxml.hpp"
+#include "DatasetMzmlb.hpp"
+#include <boost/filesystem/convenience.hpp>
 
-template<typename T>
-void findVecString(vector<char> &vecStr, vector<T> &vec,
-		const string subStr, const string endSubStr)
+
+using namespace std;
+
+
+Dataset* FileFactory::createFileObj(string filename)
 {
-	size_t nSub = subStr.length();
-	string str(&vecStr[0]);
-	if(vec.size()>0) vec.resize(0);
+    string ext = boost::filesystem::extension(filename);
 
-	for(size_t i=0; i < (vecStr.size() - nSub);)
-	{
-		size_t pos=str.find(subStr,i);
-		if(pos == string::npos)
-		{
-			pos = str.find(endSubStr,i);
-			vec.push_back(pos);
-			i=vecStr.size();
-		}
-		else{
-			vec.push_back(pos);
-			i=pos+nSub;
-		}
-	}
+    if(ext == "mzMLb")
+    {
+        return new DatasetMzmlb(filename);
+    }
+    /*
+    else if(ext == "smi")
+    {
+		retun new DatasetSeamass(filename);
+    }
+    */
+
+    return NULL;
 }
-
-#endif //SEAMASS_MZMLXML_TPP

@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
@@ -26,7 +23,7 @@
 #define SMPEAK_PEAKDATA_HPP_
 
 #include "../kernel/VecMat.hpp"
-#include "../kernel/NetcdfFile.hpp"
+#include "../kernel/FileNetcdf.hpp"
 
 template<typename T = float>
 struct Peak
@@ -39,7 +36,7 @@ public:
 		lli _mz_idx, lli _rt_idx);
 	double mz; // MZ value of Peak
 	double rt; // RT value of Peak
-	T pkcnt; // Peak count value
+	T pkcnt; // Peak size value
 	pair<double,double> mzW; // MZ value of Peak Width [LHS,RHS]
 	pair<double,double> rtW; // RT value of Peak Width [LHS,RHS]
 	double t;  // Value of t at second derivative

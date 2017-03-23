@@ -38,7 +38,7 @@
 #include <ipps.h>
 #include <ippi.h>
 
-#include "../kernel/NetcdfFile.hpp"
+#include "FileNetcdf.hpp"
 
 
 using namespace std;
@@ -648,7 +648,7 @@ void MatrixSparseMKL::write(const string& filename) const
 {
     if (m_ > 0)
     {
-        NetCDFile outFile(filename, NC_NETCDF4);
+        FileNetcdf outFile(filename, NC_NETCDF4);
         if (is1_)
         {
             outFile.write_VecNC("ia", is0_, m_ + 1, NC_INT64);

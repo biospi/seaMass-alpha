@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
@@ -29,7 +26,7 @@
 //#include <omp.h>
 
 #include "../kernel/VecMat.hpp"
-#include "../kernel/NetcdfFile.hpp"
+#include "../kernel/FileNetcdf.hpp"
 #include "../core/SeamassCore.hpp"
 #include "../core/Bspline.hpp"
 #include "../io/mzMLxml.hpp"
@@ -212,7 +209,7 @@ int main(int argc, char **argv)
 	cout<<"Processing SMO Data Set..."<<endl;
 
 	vector<char> mzMLbuff;
-	NetCDFile mzMLb3DF;
+	FileNetcdf mzMLb3DF;
 
 	vector<int> msLevel;
 	vector<rtIdxData> rtRaw;
@@ -295,7 +292,7 @@ int main(int argc, char **argv)
 	//----------------------------
 	// Load SMO Data that we need.
 	//----------------------------
-	NetCDFile smoDF(smoFileName);
+	FileNetcdf smoDF(smoFileName);
 
 	vector<int> offset;
 	vector<size_t> dataMatLen;
@@ -533,7 +530,7 @@ int main(int argc, char **argv)
 		findVecString(mzMLbuff, mzpkSpecIdx);
 
 		// Load rest of data from mzMLb3 file...
-		NetCDFile mzMLb3NCDF4(outMZFileName,NC_NETCDF4);
+		FileNetcdf mzMLb3NCDF4(outMZFileName,NC_NETCDF4);
 
 		mzMLb3NCDF4.write_VecNC("mzML",mzMLbuff,NC_BYTE);
 		vector<unsigned int> mzMLver;

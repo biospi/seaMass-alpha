@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -29,7 +26,7 @@
 
 #include "../kernel/Matrix.hpp"
 #include "../kernel/VecMat.hpp"
-#include "../kernel/NetcdfFile.hpp"
+#include "../kernel/FileNetcdf.hpp"
 #include "../topdown/SeamassTopdown.hpp"
 
 
@@ -140,7 +137,7 @@ int main(int argc, char **argv)
 	double tolerance = pow(2.0, toleranceExponent);
 	double shrinkage = pow(2.0, shrinkageExponent);
 
-	NetCDFile inFile(in_file);
+	FileNetcdf inFile(in_file);
 	VecMat<> in;
 	inFile.read_MatNC("controlPoints", in);
 	uli extent[2];
@@ -168,7 +165,7 @@ int main(int argc, char **argv)
 	input.scale = scale[0];
 	input.offset = offset[0];
 
-	NetCDFile outFile("input.smr", NC_NETCDF4);
+	FileNetcdf outFile("input.smr", NC_NETCDF4);
 	outFile.write_VecNC("binCounts", input.binCounts, NC_FLOAT);
 
 	SeamassTopdown sm(input, maxMass, binsPerDalton, shrinkage, tolerance, debugLevel);
@@ -269,7 +266,7 @@ int main(int argc, char **argv)
 		smo.write_output_control_points(controlPoints);
 	}
 
-    vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();
+    vector<MetadataMzmlbSpectrum> *spcPtr = msFile.getSpectrumMetaData();
     outmzMLb.writeXmlData(spcPtr);*/
 
 	return 0;

@@ -27,7 +27,7 @@
 
 
 #include <iostream>
-#include "../kernel/NetcdfFile.hpp"
+#include "../kernel/FileNetcdf.hpp"
 #include "../core/SeamassCore.hpp"
 
 
@@ -43,7 +43,7 @@ public:
     
 private:
     std::string filename;
-    NetCDFile fileout;
+    FileNetcdf fileout;
     
     void write(const std::string& objectname, std::vector<short>& cdata);
     void write(const std::string& objectname, std::vector<float>& cdata);

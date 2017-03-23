@@ -1,4 +1,4 @@
-//mesh
+//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -115,7 +115,7 @@ BasisBspline::GridInfo& BasisBspline::gridInfo()
 ostream&
 operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
 {
-	os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]:(count=" << gridInfo.count;
+	os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]:(size=" << gridInfo.count;
 
 	os << ",scale=[";
 	for (ii i = 0; i < gridInfo.dimensions; i++)

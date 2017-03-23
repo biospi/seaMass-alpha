@@ -1,10 +1,7 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
+// Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -26,8 +23,8 @@
 #define SEAMASS_MZMLB_HPP
 
 #include <pugixml.hpp>
-#include "../kernel/NetcdfFile.hpp"
-#include "MSFileData.hpp"
+#include "../kernel/FileNetcdf.hpp"
+#include "DatasetMzmlb.hpp"
 #include <sstream>
 
 namespace xml = pugi;
@@ -35,10 +32,10 @@ namespace xml = pugi;
 class OutmzMLb
 {
 public:
-    OutmzMLb(string _filename, mzMLbInputFile& inputFile);
+    OutmzMLb(string _filename, DatasetMzmlb& inputFile);
     ~OutmzMLb();
     void writeVecData(vector<float>& _data);
-    void writeXmlData(vector<spectrumMetaData>* spec);
+    void writeXmlData(vector<MetadataMzmlbSpectrum>* spec);
 private:
     //size_t getIndex(xml::xml_document &scan);
     //void setIndex(size_t idx);
@@ -61,10 +58,10 @@ private:
     vector<unsigned long long int> newChroIdx;
     vector<float> chroBinCounts;
     vector<double> chroMz;
-    NetCDFile input;
-    NetCDFile mzMLbFileOut;
-    mzMLbInputFile *msInputFile;
-    MassSpecFile *specFile;
+    FileNetcdf input;
+    FileNetcdf mzMLbFileOut;
+    DatasetMzmlb *msInputFile;
+    Dataset *specFile;
     size_t idxOffSet;
     vector<char> versionID;
     //xml::xml_document mzMLXML;

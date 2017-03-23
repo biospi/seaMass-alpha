@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
@@ -22,9 +19,9 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include "NetcdfFile.hpp"
+#include "FileNetcdf.hpp"
 
-NetCDFile::NetCDFile(const string _fileName, int omode) : fileName(_fileName)
+FileNetcdf::FileNetcdf(const string _fileName, int omode) : fileName(_fileName)
 {
 	switch(omode)
 	{
@@ -46,7 +43,7 @@ NetCDFile::NetCDFile(const string _fileName, int omode) : fileName(_fileName)
 	}
 }
 
-void NetCDFile::open(const string _fileName, int omode)
+void FileNetcdf::open(const string _fileName, int omode)
 {
 	if (fileStatus == false)
 	{
@@ -77,7 +74,7 @@ void NetCDFile::open(const string _fileName, int omode)
 	}
 }
 
-void NetCDFile::close(void)
+void FileNetcdf::close(void)
 {
 	if (fileStatus == true)
 	{
@@ -92,7 +89,7 @@ void NetCDFile::close(void)
 	}
 }
 
-NetCDFile::~NetCDFile()
+FileNetcdf::~FileNetcdf()
 {
 	if(fileStatus == true)
 	{
@@ -101,7 +98,7 @@ NetCDFile::~NetCDFile()
 	}
 }
 
-int NetCDFile::read_VarIDNC(const string dataSet, int grpid)
+int FileNetcdf::read_VarIDNC(const string dataSet, int grpid)
 {
 	if(grpid == 0) grpid = ncid;
 
@@ -115,7 +112,7 @@ int NetCDFile::read_VarIDNC(const string dataSet, int grpid)
 }
 
 
-vector<size_t> NetCDFile::read_DimNC(const string dataSet, int grpid)
+vector<size_t> FileNetcdf::read_DimNC(const string dataSet, int grpid)
 {
 	if(grpid == 0) grpid = ncid;
 
@@ -145,7 +142,7 @@ vector<size_t> NetCDFile::read_DimNC(const string dataSet, int grpid)
 	return dimSize;
 }
 
-int NetCDFile::search_Group(const string dataSet, int grpid)
+int FileNetcdf::search_Group(const string dataSet, int grpid)
 {
 	if(grpid == 0) grpid = ncid;
 
@@ -195,7 +192,7 @@ int NetCDFile::search_Group(const string dataSet, int grpid)
 
 
 
-void NetCDFile::err(int e)
+void FileNetcdf::err(int e)
 {
 	cout<<"Error: "<<nc_strerror(e)<<endl;
 	exit(ERRCODE);

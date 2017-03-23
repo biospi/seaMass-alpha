@@ -12,17 +12,17 @@ set(HEADER_FILES
 	MatrixMKL.hpp
 	MatrixSparseMKL.hpp
 	VecMat.hpp
-    NetcdfFile.hpp
+        FileNetcdf.hpp
 )
 set(SOURCE_FILES
     MKL.cpp
 	MatrixMKL.cpp
 	MatrixSparseMKL.cpp
-    NetcdfFile.cpp
+        FileNetcdf.cpp
 )
 set(TEMPLATE_FILES
 	VecMat.tpp
-    NetcdfFile.tpp
+		FileNetcdf.tpp
 )
 
 source_group("Template Files" FILES ${TEMPLATE_FILES})

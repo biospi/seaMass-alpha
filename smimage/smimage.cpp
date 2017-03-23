@@ -25,7 +25,7 @@
 #include "imagecore.hpp"
 #include <boost/program_options.hpp>
 
-#include "../kernel/NetcdfFile.hpp"
+#include "../kernel/FileNetcdf.hpp"
 #include "../kernel/VecMat.hpp"
 
 namespace po = boost::program_options;
@@ -146,7 +146,7 @@ int main(int argc, char** argv){
 	}
 
 	string outFileName=smiFileName.substr(0,smiFileName.size()-4);
-	NetCDFile smiInput(smiFileName);
+	FileNetcdf smiInput(smiFileName);
 
 	cout<<"Load raw data from data filies:"<<endl;
 	MassSpecData raw;
@@ -321,7 +321,7 @@ int main(int argc, char** argv){
 	cout<<"    "<<outFileName+".smr"<<endl;
 
 	//Convert MZ and StartTimes to bin centres
-	NetCDFile smrFile(outFileName+".smr",NC_NETCDF4);
+	FileNetcdf smrFile(outFileName+".smr",NC_NETCDF4);
 
 	if(data2D)
 	{

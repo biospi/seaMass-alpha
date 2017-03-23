@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -24,13 +21,12 @@
 
 
 #include <limits>
+#include <iomanip>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
 
 #include "../io/NetcdfWriter.hpp"
-#include "../io/RTreeReader.hpp"
-#include "../io/MSFileData.hpp"
-#include "../core/SeamassCore.hpp"
+#include "../io/DatasetMzmlb.hpp"
 #include "../io/MzMLb.hpp"
 
 
@@ -126,15 +122,15 @@ int main(int argc, char **argv)
 	}
     
     setDebugLevel(debugLevel);
-    
-	mzMLbInputFile msFile(in_file);
-    OutmzMLb outmzMLb(in_file,msFile);
+
+	DatasetMzmlb msFile(in_file);
+    OutmzMLb outmzMLb(in_file, msFile);
 	SeamassCore::Input input;
 	string id;
 	double tolerance = pow(2.0, toleranceExponent);
 	double shrinkage = pow(2.0, shrinkageExponent);
-    //msFile.next(input, id);
-	while (msFile.next(input, id))
+    msFile.next(input, id);
+	//while (msFile.next(input, id))
 	{
 		cout << endl << "Processing " << id << ":" << endl;
         
@@ -239,8 +235,8 @@ int main(int argc, char **argv)
         }
 	}
 
-    vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();
-    outmzMLb.writeXmlData(spcPtr);
+    //vector<MetadataMzmlbSpectrum> *spcPtr = msFile.getSpectrumMetaData();
+    //outmzMLb.writeXmlData(spcPtr);
 
 	return 0;
 }

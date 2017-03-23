@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
@@ -242,7 +239,7 @@ void PeakData<T>::dumpPeakData(string filename, nc_type data_type_id)
 {
 	// Write data to SMP file.
 	string outFileName=filename.substr(0,filename.size()-4)+".smp";
-	NetCDFile smpDataFile(string(outFileName),NC_NETCDF4);
+	FileNetcdf smpDataFile(string(outFileName),NC_NETCDF4);
 
 	cout<<"\nSaving Peak Data to File: "<<outFileName<<endl;
 

@@ -1,10 +1,7 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
-// Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
+// Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
 //
 // This file is part of seaMass.
 //
@@ -25,15 +22,15 @@
 #include "MzMLb.hpp"
 #include "mzMLxml.hpp"
 
-OutmzMLb::OutmzMLb(string _filename, mzMLbInputFile& inputFile) : filename(_filename)
+OutmzMLb::OutmzMLb(string _filename, DatasetMzmlb& inputFile) : filename(_filename)
 {
     idxOffSet=0;
     msInputFile = &inputFile;
-    specFile = msInputFile->getGeometry();
-    //NetCDFile input(filename);
+    specFile = msInputFile;
+    //FileNetcdf input(filename);
     input.open(filename);
     vector<InfoGrpVar> dataSet;
-    //input.read_VecNC("mzML",mzMLBuff);
+    //input.read_VecNC("mzML",mzMLBuff_);
     input.read_VecNC("mzML_spectrumIndex",specIdx);
     input.read_VecNC("mzML_chromatogramIndex",chroIdx);
     input.read_VecNC("chromatogram_MS_1000595_double",chroMz);
@@ -49,15 +46,15 @@ OutmzMLb::OutmzMLb(string _filename, mzMLbInputFile& inputFile) : filename(_file
     //input.close();
 
 
-    //size_t xmlSize=sizeof(char)*mzMLBuff.size();
-    //xml::xml_parse_result result = mzMLXML.load_buffer_inplace(&mzMLBuff[0],xmlSize);
+    //size_t xmlSize=sizeof(char)*mzMLBuff_.size();
+    //xml::xml_parse_result result = mzMLXML.load_buffer_inplace(&mzMLBuff_[0],xmlSize);
 
     size_t lastdot = filename.find_last_of(".");
     string outFileName=filename.substr(0,lastdot)+".out.mzMLb";
     mzMLbFileOut.open(outFileName,NC_NETCDF4);
     //mzMLbFileOut.write_VecNC("mzML_spectrumIndex",specIdx,NC_UINT64);
     //mzMLbFileOut.write_VecNC("spectrum_MS_1000514_double",mz,NC_DOUBLE);
-    //mzMLbFileOut.write_VecNC("mzML",mzMLBuff,NC_CHAR);
+    //mzMLbFileOut.write_VecNC("mzML",mzMLBuff_,NC_CHAR);
     //mzMLbFileOut.write_AttNC("mzML","version",versionID,NC_CHAR);
     //mzMLbFileOut.write_VecNC("mzML_chromatogramIndex",chroIdx,NC_UINT64);
     mzMLbFileOut.write_VecNC("chromatogram_MS_1000595_double",chroMz,NC_DOUBLE);
@@ -83,7 +80,7 @@ void OutmzMLb::writeVecData(vector<float>& _data)
     mzMLbFileOut.write_CatHypVecNC("spectrum_MS_1000515_float",_data);
 }
 
-void OutmzMLb::writeXmlData(vector<spectrumMetaData> *spec)
+void OutmzMLb::writeXmlData(vector<MetadataMzmlbSpectrum> *spec)
 {
     //vector<size_t> mzMLSize;
     for(size_t i = 0; i < spec->size(); ++i)

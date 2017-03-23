@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -29,7 +26,7 @@
 //#include <omp.h>
 
 #include "../io/NetcdfWriter.hpp"
-#include "../io/MSFileData.hpp"
+#include "../io/DatasetMzmlb.hpp"
 
 using namespace std;
 namespace po = boost::program_options;
@@ -96,7 +93,7 @@ int main(int argc, char *argv[])
 		cerr<<"Exception of unknown type!\n";
 	}
 
-	mzMLbInputFile msFile(in_file);
+	DatasetMzmlb msFile(in_file);
 	SeamassCore::Input input;
 	string id;
 	for (int i = 0; msFile.next(input, id); i++)

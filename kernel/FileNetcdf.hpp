@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Author: Ranjeet Bhamber <ranjeet <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2015  Biospi Laboratory for Medical Bioinformatics, University of Bristol, UK
@@ -22,8 +19,8 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef NETCDFFILE_HPP_
-#define NETCDFFILE_HPP_
+#ifndef FILENETCDF_HPP_
+#define FILENETCDF_HPP_
 
 #include <iostream>
 #include <stdio.h>
@@ -52,14 +49,14 @@ struct InfoGrpVar
 	string varName;
 };
 
-class NetCDFile
+class FileNetcdf
 {
 public:
-	NetCDFile(void) : fileStatus(false), ncid(0),retval(0){};
-	NetCDFile(const string _fileName, int omode = NC_NOWRITE);
+	FileNetcdf(void) : fileStatus(false), ncid(0),retval(0){};
+	FileNetcdf(const string _fileName, int omode = NC_NOWRITE);
 	void open(const string _fileName, int omode = NC_NOWRITE);
 	void close(void);
-	~NetCDFile();
+	~FileNetcdf();
 
 	template<typename T>
 	void read_VecNC(const string dataSet, vector<T> &vecData, int grpid = 0);
@@ -157,6 +154,6 @@ private:
 	void err(int e);
 };
 
-#include "NetcdfFile.tpp"
+#include "FileNetcdf.tpp"
 
-#endif /* NETCDFFILE_HPP_ */
+#endif /* FILENETCDF_HPP_ */

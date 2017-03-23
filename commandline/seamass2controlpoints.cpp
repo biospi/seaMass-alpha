@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -29,7 +26,7 @@
 //#include <omp.h>
 
 #include "../io/NetcdfWriter.hpp"
-#include "../io/MSFileData.hpp"
+#include "../io/DatasetMzmlb.hpp"
 #include "../core/SeamassCore.hpp"
 
 
