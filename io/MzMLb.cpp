@@ -90,7 +90,7 @@ void OutmzMLb::writeXmlData(vector<MetadataMzmlbSpectrum> *spec)
         xml::xml_document mzMLScan;
         vector<double> mzScan;
 
-        size_t idx=(*spec)[i].index;
+        size_t idx=(*spec)[i].mzmlSpectrumIndex;
         size_t loc[1] = {specIdx[idx]};
         size_t len[1] = {specIdx[idx+1]-specIdx[idx]};
         input.read_HypVecNC("mzML", mzMLBuff, loc, len);

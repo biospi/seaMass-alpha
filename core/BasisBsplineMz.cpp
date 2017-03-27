@@ -28,31 +28,41 @@
 #include <iomanip>
 #include <cmath>
 #include <iostream>
+#include <assert.h>
 
 
 using namespace std;
 
 
-BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
+BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex,
                                const std::vector<double>& binEdges, short scale, Transient transient, int order)
 	: BasisBspline(bases, 1, transient)
 {
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << " " << getIndex() << " BasisBsplineMz";
+        cout << getTimeStamp();
+        if (getDebugLevel() % 10 >= 2)
+            cout << "   " << getIndex() << " BasisBsplineMz";
+        else
+            cout << "   BasisBsplineMz";
         if (getTransient() == Transient::YES) cout << " (transient)";
-        cout << endl;
+        cout << " ..." << endl;
     }
     
-    std::vector<li> js;
-	if (spectrumIndex.size() > 0)
+    std::vector<li> bci;
+    std::vector<li> bei;
+	if (binCountsIndex.size() > 0)
 	{
-		js = spectrumIndex;
+		bci = binCountsIndex;
+        bei = binCountsIndex;
+        for (ii i = 0; i < bei.size(); i++) bei[i] += i;
 	}
 	else
 	{
-		js.push_back(0);
-		js.push_back(binCounts.size());
+		bci.push_back(0);
+		bci.push_back(binCounts.size());
+        bei.push_back(0);
+        bei.push_back(binEdges.size());
 	}
 
 	///////////////////////////////////////////////////////////////////////
@@ -62,15 +72,15 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	double mzMin = numeric_limits<double>::max();
 	double mzMax = 0.0;
 	double mzDiff = numeric_limits<double>::max();
-	for (ii j = 0; j < (ii)js.size() - 1; j++)
+	for (ii k = 0; k < (ii)bei.size() - 1; k++)
 	{
-		mzMin = binEdges[js[j] + j] < mzMin ? binEdges[js[j] + j] : mzMin;
-		mzMax = binEdges[js[j + 1] + j] > mzMax ? binEdges[js[j + 1] + j] : mzMax;
+		mzMin = binEdges[bei[k]] < mzMin ? binEdges[bei[k]] : mzMin;
+		mzMax = binEdges[bei[k + 1] - 1] > mzMax ? binEdges[bei[k + 1] - 1] : mzMax;
 
-		for (ii i = js[j]; i < js[j + 1]; i++)
+ 		for (ii i = bei[k]; i < bei[k + 1] - 1; i++)
 		{
-			double diff = binEdges[i + j + 1] - binEdges[i + j];
-			mzDiff = diff < mzDiff ? diff : mzDiff;
+			double diff = binEdges[i + 1] - binEdges[i];
+ 			mzDiff = diff < mzDiff ? diff : mzDiff;
 		}
 	}
     
@@ -81,7 +91,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         
         if (getDebugLevel() % 10 >= 1)
         {
-            cout << getTimeStamp() << "   autodetected_mz_scale=" << fixed << setprecision(1) << scale << endl;
+            cout << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << scale << endl;
         }
 	}
 
@@ -89,37 +99,37 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	double bpi = pow(2.0, (double)scale) * 60 / 1.0033548378;
     
     // fill in b-spline grid info
-    gridInfo().count = (ii)js.size() - 1;
+    gridInfo().count = (ii)bei.size() - 1;
     gridInfo().scale[0] = scale;
     gridInfo().offset[0] = (ii)floor(mzMin * bpi);
     gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
     
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "   range=" << fixed << setprecision(3) << mzMin << ":"; cout.unsetf(std::ios::floatfield); cout << mzDiff << ":" << fixed << mzMax << "Th" << endl;
-        cout << getTimeStamp() << "   scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)" << endl;
-        cout << getTimeStamp() << "   " << gridInfo() << endl;
+        cout << getTimeStamp() << "     range=" << fixed << setprecision(3) << mzMin << ":"; cout.unsetf(std::ios::floatfield);
+        cout << mzDiff << ":" << fixed << mzMax << "Th" << endl;
+        cout << getTimeStamp() << "     scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)" << endl;
+        cout << getTimeStamp() << "     " << gridInfo() << endl;
     }
    
-    aTs_.resize(js.size() - 1);
-    aTnnzRows_.resize(js.size() - 1);
+    aTs_.resize(bei.size() - 1);
+    aTnnzRows_.resize(bei.size() - 1);
     
-    as_.resize(js.size() - 1);
+    as_.resize(bei.size() - 1);
     
-	ii done = 0;
 	Bspline bspline(order, 65536); // bspline basis function lookup table
-	for (ii k = 0; k < (ii)js.size() - 1; k++)
+	for (ii k = 0; k < (ii)bei.size() - 1; k++)
 	{
         vector<fp> acoo;
         vector<ii> rowind;
         vector<ii> colind;
         
-        for (ii i = 0; i < js[k + 1] - js[k]; i++)
+        for (ii i = bei[k]; i < bei[k + 1] - 1; i++)
 		{
-			if (binCounts[i] >= 0.0)
+			if (binCounts[i - bei[k] + bci[k]] >= 0.0)
 			{
-				double xfMin = binEdges[i + k] * bpi;
-				double xfMax = binEdges[i + k + 1] * bpi;
+				double xfMin = binEdges[i] * bpi;
+				double xfMax = binEdges[i + 1] * bpi;
 
 				ii xMin = (ii)floor(xfMin);
 				ii xMax = ((ii)ceil(xfMax)) + order;
@@ -138,27 +148,28 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 					fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
 					acoo.push_back(b);
-					rowind.push_back(i);
+					rowind.push_back(i - bei[k]);
 					colind.push_back(x - gridInfo().offset[0]);
 				}
 			}
 		}
         
         // create A
-        aTs_[k].init(getGridInfo().n(), js[k + 1] - js[k], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+        aTs_[k].init(getGridInfo().n(), bci[k + 1] - bci[k], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
         aTnnzRows_[k] = getGridInfo().n();
         
         as_[k].copy(aTs_[k], true);
 
 		// display progress update
-        done++;
-        if (done % 100 == 0)
+        if (getDebugLevel() % 10 >= 1)
         {
-            cout << getTimeStamp() << "    processed " << setw(1 + (int)(log10((float)js.size() - 1))) << done << "/" << (js.size() - 1) << " spectra" << endl;
+            if ((k + 1) % 100 == 0 || k == (ii)bei.size() - 2)
+            {
+                cout << getTimeStamp() << "     " << setw(1 + (int)(log10((float)bci.size() - 1))) << (k + 1) << "/" << (bci.size() - 1) << endl;
+            }
         }
 	}
-	for (int i = 0; i < 256; ++i) cout << '\b';
-    
+
 	if (scaleAuto != scale)
 	{
 		cerr << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
@@ -175,7 +186,7 @@ void BasisBsplineMz::synthesis(vector<MatrixSparse>& f, const vector<MatrixSpars
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::synthesis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::synthesis" << endl;
     }
     
     if (!f.size()) f.resize(aTs_.size());
@@ -188,7 +199,7 @@ void BasisBsplineMz::synthesis(vector<MatrixSparse>& f, const vector<MatrixSpars
         
         if (getDebugLevel() % 10 >= 3)
         {
-            cout << getTimeStamp() << "   " << getIndex() << "   " << f[k] << endl;
+            cout << getTimeStamp() << "       " << f[k] << endl;
         }
     }
 }
@@ -198,7 +209,7 @@ void BasisBsplineMz::analysis(vector<MatrixSparse>& xE, const vector<MatrixSpars
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::analysis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::analysis" << endl;
     }
     
     vector<MatrixSparse> xEs(aTs_.size());
@@ -222,7 +233,7 @@ void BasisBsplineMz::analysis(vector<MatrixSparse>& xE, const vector<MatrixSpars
     
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << xE[0] << endl;
+        cout << getTimeStamp() << "       " << xE[0] << endl;
     }
 }
 
@@ -240,7 +251,7 @@ void BasisBsplineMz::deleteBasisFunctions(const vector<MatrixSparse>& x, fp thre
             
             if (getDebugLevel() % 10 >= 3)
             {
-                cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineMz::deleteBasisFunctions " << aTnnzRows_[k] - aTnnzRows << endl;
+                cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::deleteBasisFunctions " << aTnnzRows_[k] - aTnnzRows << endl;
             }
             
             aTnnzRows_[k] = aTnnzRows;

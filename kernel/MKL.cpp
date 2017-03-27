@@ -49,9 +49,9 @@ std::string getThreadInfo()
     ostringstream out;
     out << "Config: " << 8 * sizeof(ii) << "bit MKL addressing, " << mkl_get_max_threads() << " MKL threads, ";
 #if defined(_OPENMP)
-    out << omp_get_max_threads() << " OpenMP threads" << endl;
+    out << omp_get_max_threads() << " OpenMP threads";
 #else
-    out << "non-OpenMP build" << endl;
+    out << "non-OpenMP build";
 #endif
     return out.str();
 }

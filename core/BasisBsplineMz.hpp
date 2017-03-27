@@ -30,7 +30,7 @@
 class BasisBsplineMz : public BasisBspline
 {
 public:
-	BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
+	BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex,
                    const std::vector<double>& binEdges, short scale, Transient transient, int order = 3);
 	virtual ~BasisBsplineMz();
 

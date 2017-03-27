@@ -39,7 +39,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
 {
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScale";
+        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale";
         if (getTransient() == Basis::Transient::YES) cout << " (transient)";
         cout << endl;
     }
@@ -52,9 +52,9 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
     
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "   parent=" << getParentIndex() << endl;
-        cout << getTimeStamp() << "   dimension=" << dimension_ << endl;
-        cout << getTimeStamp() << "   " << gridInfo() << endl;
+        cout << getTimeStamp() << "     parent=" << getParentIndex() << endl;
+        cout << getTimeStamp() << "     dimension=" << dimension_ << endl;
+        cout << getTimeStamp() << "     " << gridInfo() << endl;
     }
     
 	ii stride = 1;
@@ -119,7 +119,7 @@ synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulat
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale::synthesis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesis" << endl;
     }
     
     if (!f.size()) f.resize(1);
@@ -135,7 +135,7 @@ synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulat
     
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << f[0] << endl;
+        cout << getTimeStamp() << "       " << f[0] << endl;
     }
 }
 
@@ -144,7 +144,7 @@ void BasisBsplineScale::analysis(vector<MatrixSparse>& xE, const vector<MatrixSp
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale::analysis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analysis" << endl;
     }
     
     if (!xE.size()) xE.resize(1);
@@ -182,7 +182,7 @@ void BasisBsplineScale::analysis(vector<MatrixSparse>& xE, const vector<MatrixSp
     
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << xE[0] << endl;
+        cout << getTimeStamp() << "       " << xE[0] << endl;
     }
 }
 
@@ -200,7 +200,7 @@ void BasisBsplineScale::deleteBasisFunctions(const vector<MatrixSparse>& x, fp t
         
         if (getDebugLevel() % 10 >= 3)
         {
-            cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
+            cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
         }
         
         aTnnzRows_ = aTnnzRows;

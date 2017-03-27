@@ -69,8 +69,7 @@ void FileNetcdf::open(const string _fileName, int omode)
 	}
 	else
 	{
-		cout<<"File already opened"<<endl;
-		exit(ERRCODE);
+        throw runtime_error("Error: File already opened");
 	}
 }
 
@@ -84,8 +83,7 @@ void FileNetcdf::close(void)
 	}
 	else
 	{
-		cout<<"No file to close"<<endl;
-		exit(ERRCODE);
+        throw runtime_error("Error: No file to close");
 	}
 }
 
@@ -122,21 +120,21 @@ vector<size_t> FileNetcdf::read_DimNC(const string dataSet, int grpid)
 	vector<size_t> dimSize;
 
 	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		ERR(retval);
+		err(retval);
 
 	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		ERR(retval);
+		err(retval);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
 	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		ERR(retval);
+		err(retval);
 
 	for(int i = 0; i < ndim; ++i)
 	{
 		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			ERR(retval);
+			err(retval);
 	}
 
 	return dimSize;
@@ -194,8 +192,7 @@ int FileNetcdf::search_Group(const string dataSet, int grpid)
 
 void FileNetcdf::err(int e)
 {
-	cout<<"Error: "<<nc_strerror(e)<<endl;
-	exit(ERRCODE);
+    throw runtime_error("ERROR: " + string(nc_strerror(e)));
 }
 
 

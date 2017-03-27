@@ -31,17 +31,27 @@
 
 struct MetadataMzmlbSpectrum
 {
-    size_t index;
-	size_t arrayLength;
-	double startTime;
-	double finishTime;
-	size_t presetConfig;
+    size_t mzmlSpectrumIndex;
+    string id;
+
 	bool isProfileMode;
 	bool isPositivePolarity;
-    double precursorMz;
 
-    size_t mzIdx;
-    size_t intensitiesIdx;
+	double startTime;
+	double finishTime;
+
+    enum DataType { Unknown, IonCount, IonCurrent } dataType;
+
+	size_t defaultArrayLength;
+
+	//double mz0;
+	//double mz1;
+
+    std::string mzsDataset;
+    size_t mzsOffset;
+
+    std::string intensitiesDataset;
+	size_t intensitiesOffset;
 };
 
 
@@ -54,19 +64,13 @@ public:
     virtual bool next(SeamassCore::Input& output, std::string& id);
 
 private:
-    void getScanMZs(vector<double> &mz, size_t index, size_t count);
-    void getScanIntensities(vector<double> &intensities, size_t index, size_t count);
-
     static bool startTimeOrder(const MetadataMzmlbSpectrum &lhs, const MetadataMzmlbSpectrum &rhs);
     static bool seamassOrder(const MetadataMzmlbSpectrum &lhs, const MetadataMzmlbSpectrum &rhs);
 
     FileNetcdf file_;
-    unsigned short instrumentType_;
-    size_t spectrumIndex_;
 
     vector<MetadataMzmlbSpectrum> metadata_; // this will be sorted for 'next()'
-
-    vector<InfoGrpVar> dataSetList_; // todo: this is not the mzMLb spec
+    size_t spectrumIndex_;
 };
 
 

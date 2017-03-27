@@ -115,7 +115,7 @@ BasisBspline::GridInfo& BasisBspline::gridInfo()
 ostream&
 operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
 {
-	os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]:(size=" << gridInfo.count;
+	os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]:(count=" << gridInfo.count;
 
 	os << ",scale=[";
 	for (ii i = 0; i < gridInfo.dimensions; i++)

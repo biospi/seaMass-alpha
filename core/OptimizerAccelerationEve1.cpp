@@ -33,7 +33,7 @@ OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer) : opt
 {
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "Initialising Biggs-Andrews Acceleration (EVE1)..." << endl;
+        cout << getTimeStamp() << "  Initialising Biggs-Andrews Acceleration (EVE1) ..." << endl;
     }
 
 	// temporaries required for acceleration
@@ -64,7 +64,7 @@ fp OptimizerAccelerationEve1::step()
 {
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  Acceleration ..." << endl;
+        cout << getTimeStamp() << "    Acceleration ..." << endl;
     }
     
     double accelerationStart = getElapsedTime();
@@ -177,16 +177,16 @@ fp OptimizerAccelerationEve1::step()
     
     if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
     {
-        cout << getTimeStamp() << "    acceleration=" << a << endl;
+        cout << getTimeStamp() << "      acceleration=" << a << endl;
         
-        cout << getTimeStamp() << "    duration=";
+        cout << getTimeStamp() << "      duration=";
         cout.unsetf(ios::floatfield);
         cout << setprecision(3) << accelerationDuration << endl;
         
         accelerationDuration_ += accelerationDuration;
         
         cout << getTimeStamp();
-        cout << "    total=";
+        cout << "      total=";
         cout.unsetf(ios::floatfield);
         cout << setprecision(3) << accelerationDuration_ << endl;
     }

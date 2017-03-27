@@ -37,11 +37,15 @@ using namespace std;
 BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
                                            const std::vector<fp>& exposures, short scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
 {
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << " " << getIndex() << " BasisBsplineScantime";
+        cout << getTimeStamp();
+        if (getDebugLevel() % 10 >= 2)
+            cout << "   " << getIndex() << " BasisBsplineScantime";
+        else
+            cout << "   BasisBsplineScantime";
         if (getTransient() == Basis::Transient::YES) cout << " (transient)";
-        cout << endl;
+        cout << " ..." << endl;
     }
     
 	double scantimeMin = startTimes.front();
@@ -61,7 +65,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         
         if (getDebugLevel() % 10 >= 1)
         {
-            cout << getTimeStamp() << "   autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
+            cout << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
         }
 	}
     
@@ -80,10 +84,12 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "   parent=" << getParentIndex() << endl;
-        cout << getTimeStamp() << "   range=" << fixed << setprecision(3) << scantimeMin << ":"; cout.unsetf(std::ios::floatfield); cout << scantimeDiff << ":" << fixed << scantimeMax << "seconds" << endl;
-        cout << getTimeStamp() << "   scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
-        cout << getTimeStamp() << "   " << gridInfo() << endl;
+        cout << getTimeStamp() << "     parent=" << getParentIndex() << endl;
+        cout << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
+        cout.unsetf(std::ios::floatfield);
+        cout << scantimeDiff << ":" << fixed << scantimeMax << "seconds" << endl;
+        cout << getTimeStamp() << "     scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
+        cout << getTimeStamp() << "     " << gridInfo() << endl;
     }
 
     // populate coo matrix
@@ -138,7 +144,7 @@ void BasisBsplineScantime::synthesis(vector<MatrixSparse>& f, const vector<Matri
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
     }
 
     if (!f.size()) f.resize(1);
@@ -147,7 +153,7 @@ void BasisBsplineScantime::synthesis(vector<MatrixSparse>& f, const vector<Matri
         
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << f[0] << endl;
+        cout << getTimeStamp() << "       " << f[0] << endl;
     }
 }
 
@@ -156,7 +162,7 @@ void BasisBsplineScantime::analysis(vector<MatrixSparse>& xE, const vector<Matri
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::analysis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analysis" << endl;
     }
     
     if (!xE.size()) xE.resize(1);
@@ -175,7 +181,7 @@ void BasisBsplineScantime::analysis(vector<MatrixSparse>& xE, const vector<Matri
     
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << "   " << xE[0] << endl;
+        cout << getTimeStamp() << "       " << xE[0] << endl;
     }
 }
 
@@ -188,7 +194,7 @@ void BasisBsplineScantime::deleteBasisFunctions(const vector<MatrixSparse>& x, f
     {
         if (getDebugLevel() % 10 >= 3)
         {
-            cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScantime::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
+            cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
         }
         
         aTnnzRows_ = aTnnzRows;

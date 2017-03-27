@@ -42,7 +42,7 @@ public:
 
 	struct Input {
 		std::vector<fp> binCounts;
-		std::vector<li> spectrumIndex;
+		std::vector<li> binCountsIndex;
 		std::vector<double> binEdges;
 		std::vector<double> startTimes;
 		std::vector<double> finishTimes;
@@ -65,12 +65,6 @@ public:
 		std::vector<ii> extent;
 	};
 
-	struct ControlPoints1D {
-		std::vector< std::vector<fp> > coeffs;
-		short scale;
-		std::vector<ii> offsets;
-	};
-
 	SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance);
 	SeamassCore(Input& input, const Output& seed);
 	virtual ~SeamassCore();
@@ -78,10 +72,17 @@ public:
 	bool step();
 	ii getIteration() const;
 
+	// get seaMass output (for smv file)
 	void getOutput(Output& output) const;
+
+	// get restored bin counts derived from seaMass output
 	void getOutputBinCounts(std::vector<fp>& binCounts) const;
+
+	// get restored 1D control points (i.e. per spectra) derived from seaMass output
+	void getOutputControlPoints1d(ControlPoints& controlPoints) const;
+
+	// get restored control points with dimension depending on input (i.e. 1D or 2D)
 	void getOutputControlPoints(ControlPoints& controlPoints) const;
-	void getOutputControlPoints1d(ControlPoints1D& controlPoints) const;
 
 private:
 	void init(Input& input, const std::vector<short>& scales);

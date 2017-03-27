@@ -42,8 +42,8 @@ public:
     void writeSmo(SeamassCore::ControlPoints& control_points);
     
 private:
-    std::string filename;
-    FileNetcdf fileout;
+    std::string fileName_;
+    FileNetcdf file_;
     
     void write(const std::string& objectname, std::vector<short>& cdata);
     void write(const std::string& objectname, std::vector<float>& cdata);
@@ -57,7 +57,7 @@ private:
 template<typename T>
 void NetcdfWriter::write(const std::string& objectname, std::vector<T>& cdata, nc_type xtype)
 {
-    fileout.write_VecNC(objectname,cdata,xtype);
+    file_.write_VecNC(objectname,cdata,xtype);
 }
 
 

@@ -34,26 +34,32 @@ namespace po = boost::program_options;
 
 int main(int argc, char *argv[])
 {
-	string in_file;
-
-	// *******************************************************************
-
-	po::options_description general("Usage\n"
-			"-----\n"
-			"mzmlb2smi [OPTIONS...] [MZMLB]\n"
-			"mzmlb2smi <-f in_file>\n");
-
-	general.add_options()
-		("help,h", "Produce help message")
-		("file,f", po::value<string>(&in_file),
-			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
-			"guidelines: Use pwiz-seamass to convert from mzML or vendor format");
-
-	po::options_description desc;
-	desc.add(general);
-
+#ifndef NDEBUG
 	try
+#endif
 	{
+		string fileName;
+		int debugLevel;
+
+		po::options_description general("Usage\n"
+												"-----\n"
+												"mzmlb2smi [OPTIONS...] [MZMLB]\n"
+												"mzmlb2smi <-f inFile>\n");
+
+		general.add_options()
+				("help,h", "Produce help message")
+				("file,f", po::value<string>(&fileName),
+				 "input file in mzMLb format"
+						 "guidelines: Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format")
+				("debug_level,d", po::value<int>(&debugLevel)->default_value(0),
+				 "debug level"
+						 "guidelines: 1+ for convergence stats, 2+ for performance stats, 3+ to write intermediate iterations to disk, 4 for all math"
+						 "default: 0");
+
+
+		po::options_description desc;
+		desc.add(general);
+
 		po::positional_options_description pod;
 		pod.add("file", 1);
 
@@ -63,49 +69,35 @@ int main(int argc, char *argv[])
 
 		if(vm.count("help"))
 		{
-			cout<<desc<<endl;
+			cout << desc << endl;
 			return 0;
 		}
-
-		if(vm.count("file"))
+		if(!vm.count("file"))
 		{
-			cout<<"Opening file: "<<vm["file"].as<string>()<<endl;
+			throw runtime_error("Error: Valid mzMLb input file was not given");
 		}
-		else
+
+		setDebugLevel(debugLevel);
+
+        if (getDebugLevel() % 10 == 0) cout << "Reading " << fileName << endl;
+        DatasetMzmlb msFile(fileName);
+		SeamassCore::Input input;
+		string id;
+		for (int i = 0; msFile.next(input, id); i++)
 		{
-			throw "Valid seamass input file was not given...";
+			string smiFileName = boost::filesystem::change_extension(fileName, "").string() + "." + id + ".smi";
+			if (getDebugLevel() % 10 == 0) cout << "Writing " << smiFileName << endl;
+			NetcdfWriter netcdfWriter(smiFileName);
+			netcdfWriter.writeSmi(input);
 		}
 	}
+#ifndef NDEBUG
 	catch(exception& e)
 	{
-		cerr<<"error: " << e.what() <<endl;
-		cout<<desc<<endl;
+		cerr << e.what() << endl;
 		return 1;
 	}
-	catch(const char* msg)
-	{
-		cerr<<"error: "<<msg<<endl;
-		cout<<desc<<endl;
-		return 1;
-	}
-	catch(...)
-	{
-		cerr<<"Exception of unknown type!\n";
-	}
-
-	DatasetMzmlb msFile(in_file);
-	SeamassCore::Input input;
-	string id;
-	for (int i = 0; msFile.next(input, id); i++)
-	{
-		ostringstream oss;
-
-		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smi";
-        NetcdfWriter netcdfWriter(oss.str());
-		cout << "Writing file: " << oss.str() << endl;
-
-		netcdfWriter.writeSmi(input);
-	}
+#endif
 
 	return 0;
 }

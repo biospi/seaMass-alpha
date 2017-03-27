@@ -34,10 +34,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
 {
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "Initialising Optimizer SRL ..." << endl;
+        cout << getTimeStamp() << "  Initialising optimizer SRL ..." << endl;
         
         // Initialize input data
-        cout << getTimeStamp() << "Initialising input data ..." << endl;
+        cout << getTimeStamp() << "  Initialising input data ..." << endl;
     }
     
     if (spectrumIndex.size() == 0)
@@ -57,7 +57,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
     if (getDebugLevel() % 10 >= 1)
     {
         // compute L2 norm of each basis function and store in 'l2s'
-        cout << getTimeStamp() << "Initialising L2 norms ..." << endl;
+        cout << getTimeStamp() << "  Initialising L2 norms ..." << endl;
     }
     
 	for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -98,7 +98,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
 	// compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "Initialising L1 norms of L2 norms ..." << endl;
+        cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
     }
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
@@ -138,7 +138,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
 	// initialise starting estimate of 'x' from analysis of 'b'
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "Seeding from analysis of input ..." << endl;
+        cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
     }
     double sumB = 0.0;
 	double sumX = 0.0;
@@ -203,11 +203,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
             }
 		}
 	}
-    
-    if (getDebugLevel() % 10 >= 1)
-    {
-        cout << getTimeStamp() << "Sparse Richardson-Lucy ..." << endl;
-    }
 }
 
 
@@ -220,7 +215,7 @@ void OptimizerSrl::init(fp lambda)
 {
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << " lambda=" << lambda << endl;
+        cout << getTimeStamp() << "   lambda=" << lambda << endl;
     }
 
     for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -246,7 +241,7 @@ fp OptimizerSrl::step()
 	// SYNTHESIS
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  Synthesis ..." << endl;
+        cout << getTimeStamp() << "    Synthesis ..." << endl;
     }
     vector<MatrixSparse> f_fE;
 	double synthesisStart = getElapsedTime();
@@ -258,13 +253,13 @@ fp OptimizerSrl::step()
 	// ERROR
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  Error ..." << endl;
+        cout << getTimeStamp() << "    Error ..." << endl;
     }
 	double errorStart = getElapsedTime();
 	{
         if (getDebugLevel() % 10 >= 3)
         {
-            cout << getTimeStamp() << "   OptimizerSrl::error" << endl;
+            cout << getTimeStamp() << "     OptimizerSrl::error" << endl;
         }
         
         for (size_t k = 0; k < f_fE.size(); k++)
@@ -277,7 +272,7 @@ fp OptimizerSrl::step()
 	// ANALYSIS
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  Analysis ..." << endl;
+        cout << getTimeStamp() << "    Analysis ..." << endl;
     }
     vector< vector<MatrixSparse> > xEs(bases_.size());
 	double analysisStart = getElapsedTime();
@@ -317,7 +312,7 @@ fp OptimizerSrl::step()
 	// SHRINKAGE
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  Shrinkage ..." << endl;
+        cout << getTimeStamp() << "    Shrinkage ..." << endl;
     }
     vector< vector<MatrixSparse> > ys(bases_.size());
 	double shrinkageStart = getElapsedTime();
@@ -336,7 +331,7 @@ fp OptimizerSrl::step()
 	// UPDATE
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "  Termination Check and Pruning..." << endl;
+        cout << getTimeStamp() << "    Termination Check and Pruning..." << endl;
     }
     fp sumSqrs = 0.0;
     fp sumSqrDiffs = 0.0;
@@ -349,7 +344,7 @@ fp OptimizerSrl::step()
 			{
                 if (getDebugLevel() % 10 >= 3)
                 {
-                    cout << getTimeStamp() << "   " << i << " OptimizerSrl::grad" << endl;
+                    cout << getTimeStamp() << "     " << i << " OptimizerSrl::grad" << endl;
                 }
                 
                 for (size_t k = 0; k < xs_[i].size(); k++)
@@ -388,7 +383,7 @@ fp OptimizerSrl::step()
     if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
     {
         cout << getTimeStamp();
-        cout << "  Durations: synthesis=";
+        cout << "      durations: synthesis=";
         cout.unsetf(ios::floatfield);
         cout << setprecision(3) << synthesisDuration;
         cout << " error=" << errorDuration;
@@ -404,7 +399,7 @@ fp OptimizerSrl::step()
         updateDuration_ += updateDuration;
         
         cout << getTimeStamp();
-        cout << "  Total Durations: synthesis=";
+        cout << "      total: synthesis=";
         cout.unsetf(ios::floatfield);
         cout << setprecision(3) << synthesisDuration_;
         cout << " error=" << errorDuration_;

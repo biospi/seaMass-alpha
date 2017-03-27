@@ -28,27 +28,49 @@
 using namespace std;
 
 
-NetcdfWriter::NetcdfWriter(const string& _filename) :
-        filename(_filename)
+NetcdfWriter::NetcdfWriter(const string& fileName) :
+        fileName_(fileName)
 {
-    fileout.open(filename,NC_NETCDF4);
+    file_.open(fileName_,NC_NETCDF4);
 }
 
 
 NetcdfWriter::~NetcdfWriter()
 {
-    fileout.close();
+    file_.close();
 }
 
 
 void NetcdfWriter::writeSmi(SeamassCore::Input& input)
 {
-    write("binEdges", input.binEdges);
+    if (getDebugLevel() % 10 >= 1)
+        cout << getTimeStamp() << "  Writing " << fileName_ << " ..." << endl;
+
+    if (input.startTimes.size() > 0) {
+        write("startTimes", input.startTimes);
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    startTimes" << endl;
+    }
+
+    if (input.finishTimes.size() > 0) {
+        write("finishTimes", input.finishTimes);
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    finishTimes" << endl;
+    }
+
+    if (input.exposures.size() > 0) {
+        write("exposures", input.exposures);
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    exposures" << endl;
+    }
+
+    if (input.binCountsIndex.size() > 0) {
+        write("binCountsIndex", input.binCountsIndex);
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    binCountsIndex" << endl;
+    }
+
     write("binCounts", input.binCounts);
-    if (input.spectrumIndex.size() > 0) write("spectrumIndex", input.spectrumIndex);
-    if (input.startTimes.size() > 0) write("startTimes", input.startTimes);
-    if (input.finishTimes.size() > 0) write("finishTimes", input.finishTimes);
-    if (input.exposures.size() > 0) write("exposures", input.exposures);
+    if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    binCounts" << endl;
+
+    write("binEdges", input.binEdges);
+    if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    binEdges" << endl;
 }
 
 void NetcdfWriter::writeSmv(SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size)
@@ -56,28 +78,24 @@ void NetcdfWriter::writeSmv(SeamassCore::Output& output, ii shrinkage, ii tolera
     vector<ii> shrink(1,shrinkage);
     vector<ii> tol(1,tolerance);
 
-    fileout.write_AttNC("seamassIndex","extent",output.baselineExtent,NC_INT);
-    fileout.write_AttNC("seamassIndex","scale",output.baselineScale,NC_SHORT);
-    fileout.write_AttNC("seamassIndex","offset",output.baselineOffset,NC_INT);
-    fileout.write_AttNC("seamassIndex","shrinkage",shrink,NC_INT);
-    fileout.write_AttNC("seamassIndex","tolerance",tol,NC_INT);
+    file_.write_AttNC("seamassIndex","extent",output.baselineExtent,NC_INT);
+    file_.write_AttNC("seamassIndex","scale",output.baselineScale,NC_SHORT);
+    file_.write_AttNC("seamassIndex","offset",output.baselineOffset,NC_INT);
+    file_.write_AttNC("seamassIndex","shrinkage",shrink,NC_INT);
+    file_.write_AttNC("seamassIndex","tolerance",tol,NC_INT);
 }
 
 
 void NetcdfWriter::writeSmo(SeamassCore::ControlPoints& controlPoints)
 {
-    if (controlPoints.extent.size() == 1)
-    {
-        fileout.write_VecNC("controlPoints", controlPoints.coeffs, sizeof(controlPoints.coeffs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-    }
-    else
-    {
-        VecMat<fp> cpMat(controlPoints.extent[1], controlPoints.extent[0], controlPoints.coeffs);
-        fileout.write_MatNC("controlPoints", cpMat, sizeof(controlPoints.coeffs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-    }
+    if (getDebugLevel() % 10 >= 1)
+        cout << getTimeStamp() << "  Writing " << fileName_ << " ..." << endl;
 
-    fileout.write_AttNC("controlPoints","scale",controlPoints.scale,NC_SHORT);
-    fileout.write_AttNC("controlPoints","offset",controlPoints.offset,sizeof(controlPoints.offset[0]) == 4 ? NC_INT : NC_INT64);
+    VecMat<fp> cpMat(controlPoints.extent[1], controlPoints.extent[0], controlPoints.coeffs);
+    file_.write_MatNC("controlPoints", cpMat, sizeof(controlPoints.coeffs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+
+    file_.write_AttNC("controlPoints","scale",controlPoints.scale,NC_SHORT);
+    file_.write_AttNC("controlPoints","offset",controlPoints.offset,sizeof(controlPoints.offset[0]) == 4 ? NC_INT : NC_INT64);
 }
 
 

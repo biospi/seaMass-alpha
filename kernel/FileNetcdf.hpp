@@ -33,11 +33,6 @@
 
 #include "VecMat.hpp"
 
-#define ERRCODE 2
-#define ERR(e) {cout<<"Error: "<<nc_strerror(e)<<endl; exit(ERRCODE);}
-
-using namespace std;
-
 
 struct InfoGrpVar
 {
@@ -93,17 +88,17 @@ public:
 	template<typename T>
 	int write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 			int grpid = 0, bool unlim = false,
-			size_t chunks = 4096, int deflate_level = 1,
+			size_t chunks = 1048576, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
     template<typename T>
 	int write_VecNC(const string dataSet, T *vec, size_t len, nc_type xtype,
 			int grpid = 0, bool unlim = false,
-			size_t chunks = 4096, int deflate_level = 1,
+			size_t chunks = 1048576, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
 	template<typename T>
 	int write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 			int grpid = 0, const string rowY="", const string colX="",
-			size_t chunk = 4096, int deflate_level = 1,
+			size_t chunk = 1048576, int deflate_level = 1,
 			int shuffle = NC_SHUFFLE);
 	template<typename T,typename X, typename Y>
 	int write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type ztype,
@@ -111,7 +106,7 @@ public:
 					vector<Y> rowAxisY, nc_type ytype,
 					const string colX="", const string rowY="",
 					int grpid = 0,
-					size_t chunk = 4096, int deflate_level = 1,
+					size_t chunk = 1048576, int deflate_level = 1,
 					int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_AttNC(const string dataSet, const string attName,
@@ -119,7 +114,7 @@ public:
 
 	template<typename T>
 	void write_DefHypVecNC(const string dataSet, nc_type xtype, int grpid = 0,
-			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
+			size_t chunk = 1048576, int deflate_level = 1, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_PutHypVecNC(const string dataSet, vector<T> &vec,
 		size_t idx, size_t len, int grpid = 0);
@@ -132,11 +127,11 @@ public:
 	template<typename T>
 	void write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,
 			int grpid = 0,
-			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
+			size_t chunk = 1048576, int deflate_level = 1, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_DefHypMatNC(const string dataSet, const string rowY, const string colX, nc_type xtype,
 			int grpid = 0,
-			size_t chunk = 4096, int deflate_level = 1, int shuffle = NC_SHUFFLE);
+			size_t chunk = 1048576, int deflate_level = 1, int shuffle = NC_SHUFFLE);
 	template<typename T>
 	void write_PutHypMatNC(const string dataSet, VecMat<T> &vm,
 		size_t rcIdx[2], size_t len[2], int grpid = 0);

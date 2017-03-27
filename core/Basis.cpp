@@ -46,7 +46,7 @@ void Basis::shrinkage(vector<MatrixSparse>& y, vector<MatrixSparse>& x, const ve
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " Basis::shrinkage" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " Basis::shrinkage" << endl;
     }
 
     if (!y.size()) y.resize(x.size());

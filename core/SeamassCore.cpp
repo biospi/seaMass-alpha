@@ -47,7 +47,9 @@ SeamassCore::SeamassCore(Input& input, const Output& seed) : iteration_(0)
 	vector<short> scales(seed.scales.size());
 	init(input, scales);
 
-	// todo
+    throw runtime_error("not implemented yet");
+
+    // todo
 	/*cout << seed.weights.size() << endl;
 	for (ii i = 0; i < seed.weights.size(); i++)
 	{
@@ -59,7 +61,7 @@ SeamassCore::SeamassCore(Input& input, const Output& seed) : iteration_(0)
 SeamassCore::~SeamassCore()
 {
 	delete optimizer_;
-	//delete inner_optimizer_;
+	delete inner_optimizer_;
 
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
@@ -70,18 +72,14 @@ SeamassCore::~SeamassCore()
 
 void SeamassCore::notice()
 {
-	cout << endl;
 	cout << "seaMass - Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
 	cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
 	cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
-	cout << endl;
 }
 
 
 void SeamassCore::init(Input& input, const std::vector<short>& scales)
 {
-    resetElapsedTime();
-    
 	// for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
 	// this is conservative, 4 times might be ok, but 2 times isn't enough
 	//merge_bins(mzs, intensities, 0.125 / rc_mz);
@@ -90,13 +88,13 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	// Create our tree of bases
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "Initialising overcomplete tree of basis functions ..." << endl;
+        cout << getTimeStamp() << "  Initialising overcomplete tree of basis functions ..." << endl;
     }
-	if (input.spectrumIndex.size() <= 2)
+	if (input.binCountsIndex.size() <= 2)
 	{
 		dimensions_ = 1;
 
-        new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::NO);
+        new BasisBsplineMz(bases_, input.binCounts, input.binCountsIndex, input.binEdges, scales[0], Basis::Transient::NO);
         
 		while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6)
 		{
@@ -107,7 +105,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	{
 		dimensions_ = 2;
 
-        new BasisBsplineMz(bases_, input.binCounts, input.spectrumIndex, input.binEdges, scales[0], Basis::Transient::YES);
+        new BasisBsplineMz(bases_, input.binCounts, input.binCountsIndex, input.binEdges, scales[0], Basis::Transient::YES);
         Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], Basis::Transient::NO);
  
         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6; i++)
@@ -125,7 +123,7 @@ void SeamassCore::init(Input& input, const std::vector<short>& scales)
 	}
     
     // INIT OPTIMISER
-	inner_optimizer_ = new OptimizerSrl(bases_, input.binCounts, input.spectrumIndex);
+	inner_optimizer_ = new OptimizerSrl(bases_, input.binCounts, input.binCountsIndex);
 	optimizer_ = new OptimizerAccelerationEve1(inner_optimizer_);
 	optimizer_->init((fp)shrinkage_);
 }
@@ -150,7 +148,7 @@ bool SeamassCore::step()
 		}
 
         cout << getTimeStamp();
-        cout << " it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
+        cout << "   it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
         cout << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_ << endl;
 	}
 
@@ -171,7 +169,7 @@ bool SeamassCore::step()
 			}
 		}
         cout << getTimeStamp();
-		cout << " it: " << setw(5) << iteration_;
+		cout << "   it: " << setw(5) << iteration_;
 		cout << " shrink: ";
 		cout.unsetf(ios::floatfield); 
 		cout << setprecision(4) << setw(6) << shrinkage_;
@@ -216,12 +214,14 @@ ii SeamassCore::getIteration() const
 
 void SeamassCore::getOutput(Output& output) const
 {
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << " " << iteration_ << " getOutput" << endl;
+        cout << getTimeStamp() << "  Getting output ..." << endl;
     }
 
-	output.scales.resize(dimensions_);
+    throw runtime_error("not implemented yet");
+
+	/*output.scales.resize(dimensions_);
 	output.offsets.resize(dimensions_);
 	output.baselineScale.resize(dimensions_);
 	output.baselineOffset.resize(dimensions_);
@@ -257,37 +257,33 @@ void SeamassCore::getOutput(Output& output) const
 						index /= meshInfo.extent[d];
 					}
 				}
-			}*/
+			}
 		}
-	}
+	}*/
 }
 
 
 void SeamassCore::getOutputBinCounts(std::vector<fp>& binCounts) const
 {
-    if (getDebugLevel() % 10 >= 2)
-    {
-        cout << getTimeStamp() << " " << iteration_ << " getOutputBinCounts" << endl;
-    }
+    if (getDebugLevel() % 10 >= 1)
+        cout << getTimeStamp() << "  Deriving restored bin counts ..." << endl;
 
-	MatrixSparse f;
-	//optimizer_->synthesis(f);
-	f.output(binCounts.data());
+	vector<MatrixSparse> f;
+	optimizer_->synthesis(f);
+	f[0].output(binCounts.data());
 }
 
 
 void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 {
-    if (getDebugLevel() % 10 >= 2)
-    {
-        cout << getTimeStamp() << " " << iteration_ << " getOutputControlPoints" << endl;
-    }
+    if (getDebugLevel() % 10 >= 1)
+        cout << getTimeStamp() << "  Deriving control points ..." << endl;
 
 	const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 
 	vector<MatrixSparse> c(1);
 	optimizer_->synthesis(c, dimensions_ - 1);
-	controlPoints.coeffs.resize(meshInfo.size());
+    vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
 	c[0].output(controlPoints.coeffs.data());
 
 	controlPoints.scale = meshInfo.scale;
@@ -296,91 +292,20 @@ void SeamassCore::getOutputControlPoints(ControlPoints& controlPoints) const
 }
 
 
-/*double CatmullRomInterpolate(
-	double y0, double y1,
-	double y2, double y3,
-	double mu)
+void SeamassCore::getOutputControlPoints1d(ControlPoints& controlPoints) const
 {
-	double a0, a1, a2, a3, mu2;
+    if (getDebugLevel() % 10 >= 1)
+        cout << getTimeStamp() << "  Deriving 1D control points ..." << endl;
 
-	mu2 = mu*mu;
-	a0 = -0.5*y0 + 1.5*y1 - 1.5*y2 + 0.5*y3;
-	a1 = y0 - 2.5*y1 + 2 * y2 - 0.5*y3;
-	a2 = -0.5*y0 + 0.5*y2;
-	a3 = y1;
+    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[0])->getGridInfo();
 
-	return a0*mu*mu2 + a1*mu2 + a2*mu + a3;
+    vector<MatrixSparse> c(1);
+    optimizer_->synthesis(c, 0);
+    vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
+    c[0].output(controlPoints.coeffs.data());
+
+    controlPoints.scale = meshInfo.scale;
+    controlPoints.offset = meshInfo.offset;
+    controlPoints.extent = meshInfo.extent;
+    controlPoints.extent.push_back(meshInfo.count);
 }
-
-
-void remove_zeros(vector< vector<double> >& mzs, vector< vector<double> >& intensities)
-{
-	for (ii j = 0; j < intensities.size(); j++)
-	{
-		ii shift = 0;
-		for (ii i = 0; i < intensities[j].size(); i++)
-		{
-			if (intensities[j][i] <= 0.0)
-			{
-				shift++;
-			}
-			else if (shift > 0)
-			{
-				intensities[j][i - shift] = intensities[j][i];
-				mzs[j][i - shift] = mzs[j][i];
-			}
-		}
-		intensities[j].resize(intensities[j].size() - shift);
-		mzs[j].resize(mzs[j].size() - shift);
-	}
-}
-
-
-void merge_bins(vector< vector<fp> >& mzs,
-	vector< vector<fp> >& intensities,
-	double width)
-{
-#pragma omp parallel for
-	for (ii j = 0; j < mzs.size(); j++)
-	{
-		double w = 0;
-		double v = 0;
-		ii n = 0;
-		ii k = 1;
-		for (ii i = 1; i < mzs[j].size();)
-		{
-			w += mzs[j][i] - mzs[j][i - 1];
-			n++;
-
-			if (w > width || i == mzs[j].size() - 1)
-			{
-				if (n == 1)
-				{
-					mzs[j][k] = mzs[j][i];
-					intensities[j][k - 1] = intensities[j][i - 1];
-					i++;
-				}
-				else
-				{
-					mzs[j][k] = mzs[j][i - 1];
-					intensities[j][k - 1] = (fp)v;
-				}
-
-				w = 0;
-				v = 0;
-				n = 0;
-				k++;
-			}
-			else
-			{
-				i++;
-			}
-
-			if (i < intensities[j].size()) v += intensities[j][i - 1];
-		}
-
-		if (k != 1) mzs[j].resize(k);
-		intensities[j].resize(k - 1);
-	}
-}
-*/
