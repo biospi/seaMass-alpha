@@ -188,7 +188,6 @@ void MatrixSparseMKL::init(const MatrixMKL& a)
 }
 
 
-// we are not deallocating is0_ at the moment...
 void MatrixSparseMKL::wrap(const MatrixSparseMKL& a, ii row)
 {
     assert(a.is1_);
@@ -203,6 +202,7 @@ void MatrixSparseMKL::wrap(const MatrixSparseMKL& a, ii row)
     
     m_ = 1;
     n_ = a.n();
+    // we are not deallocating this at the moment... (and valgrind spots the small leak)
     is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * 2, 64));
     is0_[0] = 0;
     is1_ = is0_ + 1;
@@ -853,8 +853,11 @@ void MatrixSparseMKL::mul(fp beta)
         cout.unsetf(ios::floatfield);
         cout << setprecision(8) << beta << " := ..." << endl;
     }
-    
-    ippsMulC_32f_I(beta, vs_, nnz());
+
+    if (is1_)
+    {
+        ippsMulC_32f_I(beta, vs_, is1_[m_ - 1]);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -880,8 +883,11 @@ void MatrixSparseMKL::mul(const MatrixSparseMKL& a)
     assert(n_ == a.n_);
     assert(nnz() == a.nnz());
     for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
-    
-    vsMul(nnz(), vs_, a.vs_, vs_);
+
+    if (is1_)
+    {
+        vsMul(is1_[m_ - 1], vs_, a.vs_, vs_);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -903,8 +909,11 @@ void MatrixSparseMKL::sqr()
         cout << getTimeStamp() << "       (X" << *this << ")^2 := ..." << endl;
     }
     
-    vsSqr(nnz(), vs_, vs_);
-    
+    if (is1_)
+    {
+        vsSqr(is1_[m_ - 1], vs_, vs_);
+    }
+
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "       ... X" << *this << endl;
@@ -924,8 +933,11 @@ void MatrixSparseMKL::sqrt()
     {
         cout << getTimeStamp() << "       sqrt(X" << *this << ") := ..." << endl;
     }
-    
-    vsSqrt(nnz(), vs_, vs_);
+
+    if (is1_)
+    {
+        vsSqrt(is1_[m_ - 1], vs_, vs_);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -947,8 +959,11 @@ void MatrixSparseMKL::setNonzeros(fp v)
     {
         cout << getTimeStamp() << "       (X" << *this << " != 0.0) ? " << v << " : 0.0 := ..." << endl;
     }
-    
-    ippsSet_32f(v, vs_, nnz());
+
+    if (is1_)
+    {
+        ippsSet_32f(v, vs_, is1_[m_ - 1]);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -972,8 +987,11 @@ void MatrixSparseMKL::addNonzeros(fp beta)
         cout.unsetf(ios::floatfield);
         cout << setprecision(8) << beta << " := ..." << endl;
     }
-    
-    ippsAddC_32f_I(beta, vs_, nnz());
+
+    if (is1_)
+    {
+        ippsAddC_32f_I(beta, vs_, is1_[m_ - 1]);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -995,8 +1013,15 @@ void MatrixSparseMKL::lnNonzeros()
         cout << getTimeStamp() << "       ln(X" << *this << ") := ..." << endl;
     }
     
-    vsLn(nnz(), vs_, vs_);
-    
+    if (is1_)
+    {
+#ifdef NDEBUG
+        vsLn(is1_[m_ - 1], vs_, vs_); // for some reason this causes valgrind to crash
+#else
+        for (ii i = 0; i < is1_[m_ - 1]; i++) vs_[i] = log(vs_[i]);
+#endif
+    }
+
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "       ... X" << *this << endl;
@@ -1016,9 +1041,12 @@ void MatrixSparseMKL::expNonzeros()
     {
         cout << getTimeStamp() << "       exp(X" << *this << ") := ..." << endl;
     }
-    
-    vsExp(nnz(), vs_, vs_);
-    
+
+    if (is1_)
+    {
+        vsExp(is1_[m_ - 1], vs_, vs_);
+    }
+
     if (getDebugLevel() % 10 >= 4)
     {
         cout << getTimeStamp() << "       ... X" << *this << endl;
@@ -1038,8 +1066,11 @@ void MatrixSparseMKL::pow(fp power)
     {
         cout << getTimeStamp() << "       X" << *this << "^" << power << " := ..." << endl;
     }
-    
-    vsPowx(nnz(), vs_, power, vs_);
+
+    if (is1_)
+    {
+        vsPowx(is1_[m_ - 1], vs_, power, vs_);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -1062,7 +1093,11 @@ fp MatrixSparseMKL::sum() const
     }
     
     fp sum = 0.0;
-    ippsSum_32f(vs_, nnz(), &sum, ippAlgHintFast);
+
+    if (is1_)
+    {
+        ippsSum_32f(vs_, is1_[m_ - 1], &sum, ippAlgHintFast);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -1081,8 +1116,11 @@ void MatrixSparseMKL::divNonzeros(const fp* a_vs)
     {
         cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
     }
-    
-    vsDiv(nnz(), vs_, a_vs, vs_);
+
+    if (is1_)
+    {
+        vsDiv(is1_[m_ - 1], vs_, a_vs, vs_);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -1103,8 +1141,11 @@ void MatrixSparseMKL::div2Nonzeros(const fp* a_vs)
     {
         cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
     }
-    
-    vsDiv(nnz(), a_vs, vs_, vs_);
+
+    if (is1_)
+    {
+        vsDiv(is1_[m_ - 1], a_vs, vs_, vs_);
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
@@ -1128,8 +1169,11 @@ fp MatrixSparseMKL::sumSqrs() const
     }
     
     fp sum = 0.0;
-    ippsNorm_L2_32f(vs_, nnz(), &sum);
-    sum *= sum;
+    if (is1_)
+    {
+        ippsNorm_L2_32f(vs_, is1_[m_ - 1], &sum);
+        sum *= sum;
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {
@@ -1151,8 +1195,11 @@ fp MatrixSparseMKL::sumSqrDiffsNonzeros(const fp* a_vs) const
     }
     
     fp sum = 0.0;
-    ippsNormDiff_L2_32f(vs_, a_vs, nnz(), &sum);
-    sum *= sum;
+    if (is1_)
+    {
+        ippsNormDiff_L2_32f(vs_, a_vs, is1_[m_ - 1], &sum);
+        sum *= sum;
+    }
     
     if (getDebugLevel() % 10 >= 4)
     {
