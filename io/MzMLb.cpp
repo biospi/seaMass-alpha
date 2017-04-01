@@ -80,7 +80,7 @@ void OutmzMLb::writeVecData(vector<float>& _data)
     mzMLbFileOut.write_CatHypVecNC("spectrum_MS_1000515_float",_data);
 }
 
-void OutmzMLb::writeXmlData(vector<MetadataMzmlbSpectrum> *spec)
+void OutmzMLb::writeXmlData(vector<MzmlbSpectrumMetadata> *spec)
 {
     //vector<size_t> mzMLSize;
     for(size_t i = 0; i < spec->size(); ++i)

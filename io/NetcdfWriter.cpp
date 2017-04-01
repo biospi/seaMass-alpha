@@ -43,34 +43,34 @@ NetcdfWriter::~NetcdfWriter()
 
 void NetcdfWriter::writeSmi(SeamassCore::Input& input)
 {
-    if (getDebugLevel() % 10 >= 1)
+    if (getDebugLevel() % 10 >= 2)
         cout << getTimeStamp() << "  Writing " << fileName_ << " ..." << endl;
 
     if (input.startTimes.size() > 0) {
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    startTimes ..." << endl;
         write("startTimes", input.startTimes);
-        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    startTimes" << endl;
-    }
+     }
 
     if (input.finishTimes.size() > 0) {
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    finishTimes ..." << endl;
         write("finishTimes", input.finishTimes);
-        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    finishTimes" << endl;
     }
 
     if (input.exposures.size() > 0) {
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    exposures ..." << endl;
         write("exposures", input.exposures);
-        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    exposures" << endl;
     }
 
     if (input.binCountsIndex.size() > 0) {
+        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    binCountsIndex ..." << endl;
         write("binCountsIndex", input.binCountsIndex);
-        if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    binCountsIndex" << endl;
     }
 
-    write("binCounts", input.binCounts);
     if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    binCounts" << endl;
+    write("binCounts", input.binCounts);
 
-    write("binEdges", input.binEdges);
     if (getDebugLevel() % 10 >= 3) cout << getTimeStamp() << "    binEdges" << endl;
+    write("binEdges", input.binEdges);
 }
 
 void NetcdfWriter::writeSmv(SeamassCore::Output& output, ii shrinkage, ii tolerance, ii page_size)
@@ -88,7 +88,7 @@ void NetcdfWriter::writeSmv(SeamassCore::Output& output, ii shrinkage, ii tolera
 
 void NetcdfWriter::writeSmo(SeamassCore::ControlPoints& controlPoints)
 {
-    if (getDebugLevel() % 10 >= 1)
+    if (getDebugLevel() % 10 >= 2)
         cout << getTimeStamp() << "  Writing " << fileName_ << " ..." << endl;
 
     VecMat<fp> cpMat(controlPoints.extent[1], controlPoints.extent[0], controlPoints.coeffs);

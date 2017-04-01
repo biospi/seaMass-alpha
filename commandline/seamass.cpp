@@ -34,7 +34,7 @@ using namespace std;
 namespace po = boost::program_options;
 
 
-int main(int argc, const char * const* argv)
+int main(int argc, const char * const * argv)
 {
 #ifdef NDEBUG
 	try
@@ -54,7 +54,7 @@ int main(int argc, const char * const* argv)
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "seamass [OPTIONS...] [MZMLB]\n"
+            "seamass [OPTIONS...] [MZMLB FILE]\n"
             "seamass <-m mz_scale> <-s st_scale> <-l lambda> <-t tol> <file>"
         );
 
@@ -227,7 +227,7 @@ int main(int argc, const char * const* argv)
             if (getDebugLevel() % 10 == 0) cout << endl;
          }
 
-        //vector<MetadataMzmlbSpectrum> *spcPtr = msFile.getSpectrumMetaData();
+        //vector<MzmlbSpectrumMetadata> *spcPtr = msFile.getSpectrumMetaData();
         //outmzMLb.writeXmlData(spcPtr);
     }
 #ifdef NDEBUG

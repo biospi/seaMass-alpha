@@ -32,30 +32,29 @@ using namespace std;
 namespace po = boost::program_options;
 
 
-int main(int argc, char *argv[])
+int main(int argc, const char * const * argv)
 {
-#ifndef NDEBUG
+#ifdef NDEBUG
 	try
 #endif
 	{
-		string fileName;
+		string filePath;
 		int debugLevel;
 
-		po::options_description general("Usage\n"
-												"-----\n"
-												"mzmlb2smi [OPTIONS...] [MZMLB]\n"
-												"mzmlb2smi <-f inFile>\n");
+        po::options_description general(
+            "Usage\n"
+            "-----\n"
+            "mzmlb2smi [OPTIONS...] [MZMLB FILE]\n"
+            "mzmlb2smi <file>"
+        );
 
 		general.add_options()
-				("help,h", "Produce help message")
-				("file,f", po::value<string>(&fileName),
-				 "input file in mzMLb format"
-						 "guidelines: Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format")
-				("debug_level,d", po::value<int>(&debugLevel)->default_value(0),
-				 "debug level"
-						 "guidelines: 1+ for convergence stats, 2+ for performance stats, 3+ to write intermediate iterations to disk, 4 for all math"
-						 "default: 0");
-
+            ("help,h", "Produce help message")
+			("file,f", po::value<string>(&filePath),
+             "Input file in mzMLb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format.")
+			("debug_level,d", po::value<int>(&debugLevel)->default_value(0),
+             "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra, ")
+        ;
 
 		po::options_description desc;
 		desc.add(general);
@@ -67,31 +66,33 @@ int main(int argc, char *argv[])
 		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
 		po::notify(vm);
 
-		if(vm.count("help"))
-		{
-			cout << desc << endl;
-			return 0;
-		}
-		if(!vm.count("file"))
-		{
-			throw runtime_error("Error: Valid mzMLb input file was not given");
-		}
+        if(vm.count("help") || !vm.count("file")) {
+            cout << desc << endl;
+            return 0;
+        }
 
 		setDebugLevel(debugLevel);
 
-        if (getDebugLevel() % 10 == 0) cout << "Reading " << fileName << endl;
-        DatasetMzmlb msFile(fileName);
-		SeamassCore::Input input;
-		string id;
-		for (int i = 0; msFile.next(input, id); i++)
+        DatasetMzmlb msFile(filePath);
+        string fileName = boost::filesystem::path(filePath).stem().string();
+        bool success = true;
+		for (int i = 0; success; i++)
 		{
-			string smiFileName = boost::filesystem::change_extension(fileName, "").string() + "." + id + ".smi";
-			if (getDebugLevel() % 10 == 0) cout << "Writing " << smiFileName << endl;
-			NetcdfWriter netcdfWriter(smiFileName);
-			netcdfWriter.writeSmi(input);
+            SeamassCore::Input input;
+            string id;
+            success = msFile.next(input, id);
+
+            if (success)
+            {
+                string smiFileName = fileName + "." + id + ".smi";
+                if (input.binCountsIndex.size() >= 1000 && getDebugLevel() % 10 >= 1)
+                    cout << getTimeStamp() << "  Writing " << smiFileName << " ..." << endl;
+                NetcdfWriter netcdfWriter(smiFileName);
+                netcdfWriter.writeSmi(input);
+            }
 		}
 	}
-#ifndef NDEBUG
+#ifdef NDEBUG
 	catch(exception& e)
 	{
 		cerr << e.what() << endl;

@@ -35,7 +35,7 @@ public:
     OutmzMLb(string _filename, DatasetMzmlb& inputFile);
     ~OutmzMLb();
     void writeVecData(vector<float>& _data);
-    void writeXmlData(vector<MetadataMzmlbSpectrum>* spec);
+    void writeXmlData(vector<MzmlbSpectrumMetadata>* spec);
 private:
     //size_t getIndex(xml::xml_document &scan);
     //void setIndex(size_t idx);

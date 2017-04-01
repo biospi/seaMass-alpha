@@ -29,27 +29,24 @@
 #include "../kernel/FileNetcdf.hpp"
 
 
-struct MetadataMzmlbSpectrum
+struct MzmlbSpectrumMetadata
 {
-    size_t mzmlSpectrumIndex;
-    string id;
+    size_t mzmlSpectrumIndex; // index of spectrum in original mzML <SpectrumList> tag
+    std::string id; // id differentiates which set of spectra this spectrum is in for seaMass
 
 	bool isProfileMode;
-	bool isPositivePolarity;
 
-	double startTime;
+    double startTime;
 	double finishTime;
+    string startTimeString;
+
+    std::string config;
 
     enum DataType { Unknown, IonCount, IonCurrent } dataType;
 
 	size_t defaultArrayLength;
-
-	//double mz0;
-	//double mz1;
-
     std::string mzsDataset;
     size_t mzsOffset;
-
     std::string intensitiesDataset;
 	size_t intensitiesOffset;
 };
@@ -64,13 +61,14 @@ public:
     virtual bool next(SeamassCore::Input& output, std::string& id);
 
 private:
-    static bool startTimeOrder(const MetadataMzmlbSpectrum &lhs, const MetadataMzmlbSpectrum &rhs);
-    static bool seamassOrder(const MetadataMzmlbSpectrum &lhs, const MetadataMzmlbSpectrum &rhs);
+    static bool startTimeOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs);
+    static bool seamassOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs);
 
     FileNetcdf file_;
 
-    vector<MetadataMzmlbSpectrum> metadata_; // this will be sorted for 'next()'
-    size_t spectrumIndex_;
+    vector<MzmlbSpectrumMetadata> metadata_; // this will be sorted for 'next()'
+    li spectrumIndex_;
+    li lastSpectrumIndex_;
 };
 
 

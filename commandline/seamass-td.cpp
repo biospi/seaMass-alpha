@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 		smo.write_output_control_points(controlPoints);
 	}
 
-    vector<MetadataMzmlbSpectrum> *spcPtr = msFile.getSpectrumMetaData();
+    vector<MzmlbSpectrumMetadata> *spcPtr = msFile.getSpectrumMetaData();
     outmzMLb.writeXmlData(spcPtr);*/
 
 	return 0;
