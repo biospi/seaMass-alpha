@@ -20,11 +20,12 @@
 //
 
 
-#ifndef _SEAMASS_CORE_OPTIMIZERACCELERATIONEVE1_HPP_
-#define _SEAMASS_CORE_OPTIMIZERACCELERATIONEVE1_HPP_
+#ifndef SEAMASS_ASRL_OPTIMIZERACCELERATIONEVE1_HPP
+#define SEAMASS_ASRL_OPTIMIZERACCELERATIONEVE1_HPP
 
 
 #include "Optimizer.hpp"
+
 
 /**
 * OptimizerAccelerationEve1 accelerates a wrapped Optimizer with 1st Order Exponential Vector Extrapolation (EVE1)

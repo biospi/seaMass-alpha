@@ -12,7 +12,7 @@ set(SOURCE_FILES
 add_executable(smimage ${HEADER_FILES} ${SOURCE_FILES}
 )
 
-target_include_directories(seamass PUBLIC
+target_include_directories(smimage PUBLIC
 	${Boost_INCLUDE_DIRS}
 )
 target_link_libraries(smimage LINK_PUBLIC

@@ -10,10 +10,11 @@ if(OPENMP_FOUND)
 endif()
 
 add_subdirectory(kernel)
+add_subdirectory(asrl)
+add_subdirectory(io)
 add_subdirectory(core)
 add_subdirectory(topdown)
-add_subdirectory(io)
-add_subdirectory(commandline)
 add_subdirectory(smpeak)
 add_subdirectory(smimage)
+add_subdirectory(commandline)
 

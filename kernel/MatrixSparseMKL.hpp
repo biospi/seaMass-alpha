@@ -25,7 +25,6 @@
 
 
 #include "MatrixMKL.hpp"
-
 #include <vector>
 
 

@@ -21,12 +21,9 @@
 
 
 #include "OptimizerSrl.hpp"
-#include <algorithm>
 #include <iostream>
 #include <iomanip>
-#include <math.h>
-
-
+#include <cmath>
 using namespace std;
 
 

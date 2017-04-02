@@ -19,8 +19,8 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SMPEAK_IOMATH_HPP_
-#define SMPEAK_IOMATH_HPP_
+#ifndef SEAMASS_KERNEL_VECMAT_HPP
+#define SEAMASS_KERNEL_VECMAT_HPP
 
 #include <vector>
 #include <cmath>
@@ -51,4 +51,4 @@ private:
 
 #include "VecMat.tpp"
 
-#endif /* SMPEAK_IOMATH_HPP_ */
+#endif

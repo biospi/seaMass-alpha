@@ -20,14 +20,11 @@
 //
 
 
-#ifndef _SEAMASS_MATH_MKL_HPP_
-#define _SEAMASS_MATH_MKL_HPP_
+#ifndef SEAMASS_KERNEL_MKL_HPP
+#define SEAMASS_KERNEL_MKL_HPP
 
-
-//#include "MatrixMKL.hpp" //Not sure why you have included this here... Recursive?!?!
 
 #include <string>
-
 //#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
 #include <mkl.h>
 #include <mkl_spblas.h>

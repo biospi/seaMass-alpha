@@ -20,22 +20,28 @@
 //
 
 
-#include "Optimizer.hpp"
-#include <algorithm>
-#include <iostream>
-#include <iomanip>
+#ifndef SEAMASS_ASRL_OPTIMIZER_HPP
+#define SEAMASS_ASRL_OPTIMIZER_HPP
 
 
-using namespace std;
+#include "Basis.hpp"
 
 
-Optimizer::Optimizer()
+class Optimizer
 {
-}
+public:    
+	Optimizer();
+	virtual ~Optimizer();
+    
+	virtual void init(fp lamba) = 0;
+	virtual fp step() = 0;
+    virtual void synthesis(std::vector<MatrixSparse>& f, ii basis = -1) = 0;
+
+	virtual std::vector< std::vector<MatrixSparse> >& xs() = 0;
+	virtual const std::vector<Basis*>& getBases() const = 0;
+	virtual ii getIteration() const = 0;
+};
 
 
-Optimizer::~Optimizer()
-{
-}
-
+#endif
 

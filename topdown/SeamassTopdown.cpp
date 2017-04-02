@@ -22,8 +22,8 @@
 
 #include "SeamassTopdown.hpp"
 
-#include "../core/OptimizerSrl.hpp"
-#include "../core/OptimizerAccelerationEve1.hpp"
+#include "../asrl/OptimizerSrl.hpp"
+#include "../asrl/OptimizerAccelerationEve1.hpp"
 
 #include "BasisChargeDistribution.hpp"
 

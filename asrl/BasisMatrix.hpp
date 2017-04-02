@@ -20,34 +20,31 @@
 //
 
 
-#ifndef SEAMASS_KERNEL_MATRIXMKL_HPP
-#define SEAMASS_KERNEL_MATRIXMKL_HPP
+#ifndef SEAMASS_ASRL_BASISMATRIX_HPP
+#define SEAMASS_ASRL_BASISMATRIX_HPP
 
 
-#include "MKL.hpp"
+#include "Basis.hpp"
 
 
-class MatrixMKL
+class BasisMatrix : public Basis
 {
 public:
-	MatrixMKL();
-	~MatrixMKL();
-    
-    void init(ii m, ii n, const fp* vs); // deep copy from vs
-    void free();
-    
-    ii m() const;
-    ii n() const;
-    li size() const;
-    fp* vs() const;
- 
-private:
-	li m_; // rows
-	ii n_; // columns
-	fp* vs_; // data
-};
+	BasisMatrix(std::vector<Basis*>& bases, ii m, ii n, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ, Transient transient);
+	virtual ~BasisMatrix();
 
-std::ostream& operator<<(std::ostream& os, const MatrixMKL& mat);
+    void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
+    void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA = false) const;
+    void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
+
+	virtual ii getM() const;
+	virtual ii getN() const;
+
+private:
+	MatrixSparse aT_;
+    ii aTnnzRows_;
+	MatrixSparse a_;
+};
 
 
 #endif

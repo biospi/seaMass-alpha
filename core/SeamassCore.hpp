@@ -24,8 +24,8 @@
 #define _SEAMASS_CORE_SEAMASSCORE_HPP_
 
 
-#include "Basis.hpp"
-#include "OptimizerSrl.hpp"
+#include "../asrl/Basis.hpp"
+#include "../asrl/OptimizerSrl.hpp"
 
 
 //void remove_zeros(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities);

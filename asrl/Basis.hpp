@@ -20,11 +20,9 @@
 //
 
 
-#ifndef _SEAMASS_CORE_BASIS_HPP_
-#define _SEAMASS_CORE_BASIS_HPP_
+#ifndef SEAMASS_ASRL_BASIS_HPP
+#define SEAMASS_ASRL_BASIS_HPP
 
-
-#include <vector>
 
 #include "../kernel/Matrix.hpp"
 

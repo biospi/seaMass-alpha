@@ -20,28 +20,16 @@
 //
 
 
-#ifndef _SEAMASS_CORE_OPTIMIZER_HPP_
-#define _SEAMASS_CORE_OPTIMIZER_HPP_
+#include "Optimizer.hpp"
 
 
-#include "Basis.hpp"
-
-
-class Optimizer
+Optimizer::Optimizer()
 {
-public:    
-	Optimizer();
-	virtual ~Optimizer();
-    
-	virtual void init(fp lamba) = 0;
-	virtual fp step() = 0;
-    virtual void synthesis(std::vector<MatrixSparse>& f, ii basis = -1) = 0;
-
-	virtual std::vector< std::vector<MatrixSparse> >& xs() = 0;
-	virtual const std::vector<Basis*>& getBases() const = 0;
-	virtual ii getIteration() const = 0;
-};
+}
 
 
-#endif
+Optimizer::~Optimizer()
+{
+}
+
 
