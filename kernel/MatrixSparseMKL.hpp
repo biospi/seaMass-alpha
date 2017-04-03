@@ -64,7 +64,7 @@ public:
     void add(fp alpha, bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b);
 	void matmul(bool transposeA, const MatrixSparseMKL& a, const MatrixSparseMKL& b, bool accumulate, bool denseOutput = false);
     void mul(fp beta);
-    void mul(const MatrixSparseMKL& a);
+    void mul(const fp* a_vs);
     void sqr();
     void sqrt();
     void pow(fp power);
@@ -72,6 +72,7 @@ public:
     // operate only on non-zero elements
     void setNonzeros(fp v);
 	void addNonzeros(fp beta);
+	void addNonzeros(const fp* a_vs);
 	void lnNonzeros();
     void expNonzeros();
     void divNonzeros(const fp* a_vs);

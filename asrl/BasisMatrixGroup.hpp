@@ -19,33 +19,29 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-
-#ifndef SEAMASS_ASRL_BASISMATRIX_HPP
-#define SEAMASS_ASRL_BASISMATRIX_HPP
-
-
-#include "Basis.hpp"
+#ifndef SEAMASS_ASRL_BASISMATRIXGROUP_HPP
+#define SEAMASS_ASRL_BASISMATRIXGROUP_HPP
 
 
-class BasisMatrix : public Basis
+#include "BasisMatrix.hpp"
+
+
+class BasisMatrixGroup : public BasisMatrix
 {
 public:
-	BasisMatrix(std::vector<Basis*>& bases, ii m, ii n, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ, Transient transient);
-	virtual ~BasisMatrix();
+    BasisMatrixGroup(std::vector<Basis*>& bases, ii aM, ii aN, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ,
+                     ii gM, std::vector<fp>& gV, std::vector<ii>& gI, std::vector<ii>& gJ, Transient transient);
+    virtual ~BasisMatrixGroup();
 
-    void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
-    void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA = false) const;
-	void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
+    void groupSynthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
 
-	virtual ii getM() const;
-	virtual ii getN() const;
+    void shrinkage(std::vector<MatrixSparse>& y, std::vector<MatrixSparse>& x, const std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& l1l2, fp lambda) const;
+
 
 private:
-	MatrixSparse aT_;
-    ii aTnnzRows_;
-	MatrixSparse a_;
+    MatrixSparse gT_;
+    MatrixSparse g_;
 };
 
 
-#endif
-
+#endif //SEAMASS_BASISMATRIXGROUP_HPP

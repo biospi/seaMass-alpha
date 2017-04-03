@@ -11,7 +11,7 @@ add_library(seamass_asrl
         OptimizerAccelerationEve1.cpp
         SeamassAsrl.hpp
         SeamassAsrl.cpp
-        )
+        BasisMatrixGroup.cpp BasisMatrixGroup.hpp)
 
 target_link_libraries(seamass_asrl
         seamass_kernel

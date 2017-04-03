@@ -54,10 +54,11 @@ public:
 
 	struct Output {
 		std::vector<fp> xs;
-		std::vector<fp> ys; // Gx = y
+		std::vector<fp> aXs; // Ax
+		std::vector<fp> gXs; // Gx
 	};
 
-	SeamassAsrl(Input& input, double shrinkage, double tolerance);
+	SeamassAsrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance);
 	virtual ~SeamassAsrl();
 
 	bool step();
@@ -70,6 +71,7 @@ private:
 	Optimizer* innerOptimizer_;
 	Optimizer* optimizer_;
 	double shrinkage_;
+	bool taperShrinkage_;
 	double tolerance_;
 	int iteration_;
 };

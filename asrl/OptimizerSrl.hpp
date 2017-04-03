@@ -51,7 +51,7 @@ private:
 
 	std::vector< std::vector<MatrixSparse> > xs_;
 	std::vector< std::vector<MatrixSparse> > l2s_;
-	std::vector< std::vector<MatrixSparse> > l1l2sPlusLambda_;
+	std::vector< std::vector<MatrixSparse> > l1l2s_;
     
     double synthesisDuration_;
     double errorDuration_;

@@ -27,7 +27,7 @@
 using namespace std;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCounts, const vector<li> spectrumIndex, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), xs_(bases_.size()), l2s_(bases_.size()), l1l2sPlusLambda_(bases_.size()), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCounts, const vector<li> spectrumIndex, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), xs_(bases_.size()), l2s_(bases_.size()), l1l2s_(bases_.size()), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -106,28 +106,28 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
             {
                 t[k].init(1, b_[k].n(), (fp)1.0);
             }
-			bases_[i]->analysis(l1l2sPlusLambda_[0], t, false);
+			bases_[i]->analysis(l1l2s_[0], t, false);
 		}
 		else
 		{
-			bases_[i]->analysis(l1l2sPlusLambda_[i], l1l2sPlusLambda_[bases_[i]->getParentIndex()], false);
+			bases_[i]->analysis(l1l2s_[i], l1l2s_[bases_[i]->getParentIndex()], false);
 		}
 	}
 	for (ii i = 0; i < (ii)bases_.size(); i++)
 	{
 		if (bases_[i]->getTransient() == Basis::Transient::NO)
 		{
-            for (size_t k = 0; k < l1l2sPlusLambda_[i].size(); k++)
+            for (size_t k = 0; k < l1l2s_[i].size(); k++)
             {
-                l1l2sPlusLambda_[i][k].sort();
-                l1l2sPlusLambda_[i][k].divNonzeros(l2s_[i][k].vs());
+                l1l2s_[i][k].sort();
+                l1l2s_[i][k].divNonzeros(l2s_[i][k].vs());
             }
         }
 		else
 		{
-            for (size_t k = 0; k < l1l2sPlusLambda_[i].size(); k++)
+            for (size_t k = 0; k < l1l2s_[i].size(); k++)
             {
-                l1l2sPlusLambda_[i][k].free();
+                l1l2s_[i][k].free();
             }
 		}
 	}
@@ -171,7 +171,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
                 // remove unneeded l1l2sPlusLambda
                 MatrixSparse l1l2PlusLambda;
                 l1l2PlusLambda.copy(xs_[i][k]);
-                l1l2PlusLambda.subsetCopy(l1l2sPlusLambda_[i][k]);
+                l1l2PlusLambda.subsetCopy(l1l2s_[i][k]);
                 
                 // normalise and prune xs
                 MatrixSparse x;
@@ -184,7 +184,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
                 MatrixSparse t;
                 t.copy(xs_[i][k]);
                 t.subsetCopy(l1l2PlusLambda);
-                l1l2sPlusLambda_[i][k].copy(t);
+                l1l2s_[i][k].copy(t);
                 
                 // remove unneeded l2s
                 t.copy(xs_[i][k]);
@@ -215,16 +215,16 @@ void OptimizerSrl::init(fp lambda)
         cout << getTimeStamp() << "   lambda=" << lambda << endl;
     }
 
-    for (ii i = 0; i < (ii)bases_.size(); i++)
+    /*for (ii i = 0; i < (ii)bases_.size(); i++)
     {
         if (bases_[i]->getTransient() == Basis::Transient::NO)
         {
-            for (size_t k = 0; k < l1l2sPlusLambda_[i].size(); k++)
+            for (size_t k = 0; k < l1l2s_[i].size(); k++)
             {
-                l1l2sPlusLambda_[i][k].addNonzeros(lambda - lambda_);
+                l1l2s_[i][k].addNonzeros(lambda - lambda_);
             }
         }
-    }
+    }*/
     
 	lambda_ = lambda;
 	iteration_ = 0;
@@ -318,7 +318,7 @@ fp OptimizerSrl::step()
 		{
 			if (bases_[i]->getTransient() == Basis::Transient::NO)
 			{
-				bases_[i]->shrinkage(ys[i], xs_[i], xEs[i], l1l2sPlusLambda_[i]);
+				bases_[i]->shrinkage(ys[i], xs_[i], xEs[i], l1l2s_[i], lambda_);
 			}
 			vector<MatrixSparse>().swap(xEs[i]);
 		}
@@ -365,8 +365,8 @@ fp OptimizerSrl::step()
                     
                     MatrixSparse t;
                     t.copy(xs_[i][k]);
-                    t.subsetCopy(l1l2sPlusLambda_[i][k]);
-                    l1l2sPlusLambda_[i][k].copy(t);
+                    t.subsetCopy(l1l2s_[i][k]);
+                    l1l2s_[i][k].copy(t);
                     
                     t.copy(xs_[i][k]);
                     t.subsetCopy(l2s_[i][k]);

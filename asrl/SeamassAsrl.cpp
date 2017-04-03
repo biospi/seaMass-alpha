@@ -21,7 +21,7 @@
 
 
 #include "SeamassAsrl.hpp"
-#include "BasisMatrix.hpp"
+#include "BasisMatrixGroup.hpp"
 #include "OptimizerSrl.hpp"
 #include "OptimizerAccelerationEve1.hpp"
 #include <iostream>
@@ -37,14 +37,21 @@ void SeamassAsrl::notice()
 }
 
 
-SeamassAsrl::SeamassAsrl(Input& input, double shrinkage, double tolerance) : shrinkage_(shrinkage), tolerance_(tolerance), iteration_(0)
+SeamassAsrl::SeamassAsrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance) : shrinkage_(shrinkage), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
 {
     if (getDebugLevel() % 10 >= 1)
     {
         cout << getTimeStamp() << "  Initialising basis functions ..." << endl;
     }
 
-    new BasisMatrix(bases_, input.aM, input.aN, input.aVs, input.aIs, input.aJs, BasisMatrix::Transient::NO);
+    if (input.gN == 0)
+    {
+        new BasisMatrix(bases_, input.aM, input.aN, input.aVs, input.aIs, input.aJs, BasisMatrix::Transient::NO);
+    }
+    else
+    {
+        new BasisMatrixGroup(bases_, input.aM, input.aN, input.aVs, input.aIs, input.aJs, input.gM, input.gVs, input.gIs, input.gJs, BasisMatrix::Transient::NO);
+    }
 
     vector<li> dummy; // remove and allow sending from input.xs
     innerOptimizer_ = new OptimizerSrl(bases_, input.bs, dummy);
@@ -110,7 +117,7 @@ bool SeamassAsrl::step()
 
 	if (grad <= tolerance_)
 	{
-		if (shrinkage_ == 0)
+		if (shrinkage_ == 0 || !taperShrinkage_)
 		{
 			if (getDebugLevel() % 10 == 0) cout << "o" << endl;
 			return false;
@@ -150,4 +157,18 @@ void SeamassAsrl::getOutput(Output& output) const
 
     output.xs.resize(optimizer_->xs()[0][0].size());
     optimizer_->xs()[0][0].output(output.xs.data());
+
+	vector<MatrixSparse> aXs;
+	bases_[0]->synthesis(aXs, optimizer_->xs()[0], false);
+	output.aXs.resize(aXs[0].size());
+	aXs[0].output(output.aXs.data());
+
+	BasisMatrixGroup* basisMatrixGroup = dynamic_cast<BasisMatrixGroup*>(bases_[0]);
+	if (basisMatrixGroup)
+	{
+		vector<MatrixSparse> gXs;
+		basisMatrixGroup->groupSynthesis(gXs, optimizer_->xs()[0], false);
+		output.gXs.resize(gXs[0].size());
+		gXs[0].output(output.gXs.data());
+	}
 }

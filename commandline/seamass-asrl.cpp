@@ -42,13 +42,14 @@ int main(int argc, const char * const * argv)
                 "Usage\n"
                 "-----\n"
                 "seamass-asrl [OPTIONS...] [SAI FILE]\n"
-                "seamass-asrl <-g> <-l lambda> <-t tol> <file>"
+                "seamass-asrl <-g> <-l lambda> <-no_taper> <-t tol> <file>"
         );
 
         string filePath;
         int shrinkageExponent;
         int toleranceExponent;
         int debugLevel;
+        bool noTaperLambda;
 
         general.add_options()
                 ("help,h",
@@ -57,6 +58,8 @@ int main(int argc, const char * const * argv)
                  "HDF5 or NetCDF4 input file in SAI format.")
                 ("lambda,l", po::value<int>(&shrinkageExponent)->default_value(0),
                  "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Use around 0.")
+                ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
+                 "Use this to stop tapering of lambda to 0 before finishing.")
                 ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
                  "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
                 ("debug,d", po::value<int>(&debugLevel)->default_value(0),
@@ -111,9 +114,9 @@ int main(int argc, const char * const * argv)
             try
             {
                 vector<ii> gExtent(2);
-                fileIn.read_AttNC("extent", fileIn.read_VarIDNC("G_v"), aExtent);
+                fileIn.read_AttNC("extent", fileIn.read_VarIDNC("G_v"), gExtent);
                 input.gM = gExtent[0]; input.gN = gExtent[1];
-            }
+           }
             catch(runtime_error& e) {}
             if (input.gM > 0 && input.gN > 0)
             {
@@ -124,7 +127,7 @@ int main(int argc, const char * const * argv)
         }
 
         // optimise!
-        SeamassAsrl asrl(input, shrinkage, tolerance);
+        SeamassAsrl asrl(input, shrinkage, !noTaperLambda, tolerance);
         do
         {
             if (getDebugLevel() >= 10)
@@ -137,10 +140,15 @@ int main(int argc, const char * const * argv)
                     ostringstream oss;
                     oss << "." << setfill('0') << setw(4) << asrl.getIteration() << ".sao";
                     string fileName = boost::filesystem::path(filePath).stem().string() + oss.str();
+
                     if (getDebugLevel() % 10 >= 1)
                         cout << getTimeStamp() << "  Writing " << fileName << " ..." << endl;
+
                     FileNetcdf fileOut(fileName, NC_NETCDF4);
                     fileOut.write_VecNC("x", output.xs, sizeof(output.xs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+                    fileOut.write_VecNC("Ax", output.aXs, sizeof(output.aXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+                    if (output.gXs.size() > 0)
+                        fileOut.write_VecNC("Gx", output.gXs, sizeof(output.gXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
                 }
             }
         }
@@ -152,10 +160,15 @@ int main(int argc, const char * const * argv)
         {
             // open and write output file
             string fileName = boost::filesystem::path(filePath).stem().string() + ".sao";
+
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "Writing " << fileName << " ..." << endl;
+
             FileNetcdf fileOut(fileName, NC_NETCDF4);
             fileOut.write_VecNC("x", output.xs, sizeof(output.xs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+            fileOut.write_VecNC("Ax", output.aXs, sizeof(output.aXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+            if (output.gXs.size() > 0)
+                fileOut.write_VecNC("Gx", output.gXs, sizeof(output.gXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
         }
 
         cout << endl;
