@@ -169,11 +169,21 @@ int main(int argc, char** argv){
 	}
 	else
 	{
+		vector<double> finishTimes;
+		vector<double> rtBuff;
 		smiInput.read_VecNC("startTimes",raw.rt);
+		smiInput.read_VecNC("finishTimes",finishTimes);
+		for(size_t i =0; i < finishTimes.size(); ++i)
+		{
+			rtBuff.push_back(raw.rt[i]);
+			rtBuff.push_back(finishTimes[i]);
+		}
+		raw.rt.clear();
+		raw.rt=rtBuff;
 		raw.N = raw.rt.size();
 		smiInput.read_VecNC("binEdges",raw.mz);
 		smiInput.read_VecNC("binCounts",raw.sc);
-		smiInput.read_VecNC("spectrumIndex",raw.sci);
+		smiInput.read_VecNC("binCountsIndex",raw.sci);
 		smiInput.read_VecNC("exposures",raw.exp);
 	}
 
@@ -203,8 +213,11 @@ int main(int argc, char** argv){
 	raw.calRange();
 
 	raw.rti.resize(raw.N,-1);
-	for(size_t i=0; i < raw.N-1; ++i)
-		raw.rti[i]=i;
+	//for(size_t i=0; i < raw.N-1; ++i)
+	//	raw.rti[i]=i;
+	//for(size_t i=0; i < raw.N/2-1; ++i)
+	for(size_t i=0; i < raw.N; i=i+2)
+		raw.rti[i]=i/2;
 
 	// Clip Box if needed
 	// Min MZ Value
@@ -252,7 +265,8 @@ int main(int argc, char** argv){
 
 	if(data2D)
 	{
-		for (size_t idx = rtidxBegin; idx <= rtidxEnd; ++idx) {
+		//for (size_t idx = rtidxBegin; idx <= rtidxEnd; ++idx) {
+		for (size_t idx = rtidxBegin; idx <= rtidxEnd; idx=idx+2) {
 			double scaleRT = 0.0;
 			double drt = fabs(raw.rt[idx + 1] - raw.rt[idx]);
 			double yn = (raw.rt[idx] - imgBox.rt[0]) / imgBox.drt;

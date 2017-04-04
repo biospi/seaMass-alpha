@@ -35,7 +35,7 @@ public:
     OutmzMLb(string _filename, DatasetMzmlb& inputFile);
     ~OutmzMLb();
     void writeVecData(vector<float>& _data);
-    void writeXmlData(vector<MzmlbSpectrumMetadata>* spec);
+    void writeXmlData(vector<DatasetMzmlb::MzmlbSpectrumMetadata>* spec);
 private:
     //size_t getIndex(xml::xml_document &scan);
     //void setIndex(size_t idx);
@@ -53,15 +53,15 @@ private:
     vector<char> mzMLBuff;
     vector<double> mz;
     vector<unsigned long long int> specIdx;
-    vector<unsigned long long int> chroIdx;
+    //vector<unsigned long long int> chroIdx;
     vector<unsigned long long int> newSpecIdx;
     vector<unsigned long long int> newChroIdx;
     vector<float> chroBinCounts;
     vector<double> chroMz;
     FileNetcdf input;
     FileNetcdf mzMLbFileOut;
-    DatasetMzmlb *msInputFile;
-    Dataset *specFile;
+    //DatasetMzmlb *msInputFile;
+    //Dataset *specFile;
     size_t idxOffSet;
     vector<char> versionID;
     //xml::xml_document mzMLXML;

@@ -48,6 +48,8 @@ int main(int argc, const char * const * argv)
         int shrinkageExponent;
         int toleranceExponent;
         int debugLevel;
+		bool centriod=false;
+		double threshold;
 
         // *******************************************************************
 
@@ -80,6 +82,8 @@ int main(int argc, const char * const * argv)
              "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Use around 0.")
             ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
              "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+			("centroid,c", "Centroid mode Peak transformation along M/Z")
+			("threshold,r",po::value<double>(&threshold)->default_value(10.0), "Threshold Level for Peak Counts. Default = 10")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
              "4 to output all maths, +10 to write intermediate results to disk.")
@@ -107,11 +111,16 @@ int main(int argc, const char * const * argv)
         if(!vm.count("st_scale"))
             scales[1] = numeric_limits<short>::max();
 
+		if(vm.count("centroid"))
+		{
+			centriod = true;
+		}
+
         cout << endl << getThreadInfo() << endl << endl;
         setDebugLevel(debugLevel);
 
         DatasetMzmlb msFile(inFile);
-        OutmzMLb outmzMLb(inFile, msFile);
+        //OutmzMLb outmzMLb(inFile, msFile);
         SeamassCore::Input input;
         string id;
         double tolerance = pow(2.0, (double)toleranceExponent);
@@ -169,6 +178,12 @@ int main(int argc, const char * const * argv)
                 sm.getOutputControlPoints(controlPoints);
                 netcdfWriter2d.writeSmo(controlPoints);
             }
+
+
+
+			msFile.writeData(sm,input,centriod);
+
+			//outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
 
             // write seaMass outputBinCounts to new mzMLb file
             /*vector<fp> outputBinCounts(input.binCounts.size());

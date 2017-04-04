@@ -27,49 +27,65 @@
 #include <string>
 #include "Dataset.hpp"
 #include "../kernel/FileNetcdf.hpp"
+#include <pugixml.hpp>
 
-
-struct MzmlbSpectrumMetadata
-{
-    size_t mzmlSpectrumIndex; // index of spectrum in original mzML <SpectrumList> tag
-    std::string id; // id differentiates which set of spectra this spectrum is in for seaMass
-
-	bool isProfileMode;
-
-    double startTime;
-	double finishTime;
-    string startTimeString;
-
-    std::string config;
-
-    enum DataType { Unknown, IonCount, IonCurrent } dataType;
-
-	size_t defaultArrayLength;
-    std::string mzsDataset;
-    size_t mzsOffset;
-    std::string intensitiesDataset;
-	size_t intensitiesOffset;
-};
+namespace xml = pugi;
 
 
 class DatasetMzmlb: public Dataset
 {
 public:
-    DatasetMzmlb(std::string &filename);
+	struct MzmlbSpectrumMetadata{
+		size_t mzmlSpectrumIndex; // index of spectrum in original mzML <SpectrumList> tag
+    	std::string id; // id differentiates which set of spectra this spectrum is in for seaMass
+
+		bool isProfileMode;
+
+		double startTime;
+		double finishTime;
+		string startTimeString;
+
+		std::string config;
+
+		enum DataType { Unknown, IonCount, IonCurrent } dataType;
+
+		size_t defaultArrayLength;
+		std::string mzsDataset;
+		size_t mzsOffset;
+		std::string intensitiesDataset;
+		size_t intensitiesOffset;
+	};
+
+	DatasetMzmlb(std::string &filename);
     virtual ~DatasetMzmlb();
 
     virtual bool next(SeamassCore::Input& output, std::string& id);
+	virtual void writeData(SeamassCore &sm_, SeamassCore::Input &input_, bool centriod_);
 
 private:
     static bool startTimeOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs);
     static bool seamassOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs);
 
+    template<typename T>
+    T getXmlValue(xml::xml_document &scan, string xpath, string attrib);
+    template<typename T>
+    void setXmlValue(xml::xml_document &scan, string xpath, string attrib,T value);
+	void writeVecData(vector<float>& _data);
+    //void writeXmlData(vector<MzmlbSpectrumMetadata>* metedata_);
+	void writeXmlData();
+	size_t idxMzmlOffSet_;
+	vector<uli> specIdx_;
+	vector<uli> newSpecIdx_;
+
     FileNetcdf file_;
+	FileNetcdf fileOut_;
 
     vector<MzmlbSpectrumMetadata> metadata_; // this will be sorted for 'next()'
     li spectrumIndex_;
     li lastSpectrumIndex_;
+	li extent_;
 };
 
+#include "DatasetMzmlb.tpp"
 
 #endif

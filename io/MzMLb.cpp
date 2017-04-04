@@ -25,19 +25,20 @@
 OutmzMLb::OutmzMLb(string _filename, DatasetMzmlb& inputFile) : filename(_filename)
 {
     idxOffSet=0;
-    msInputFile = &inputFile;
-    specFile = msInputFile;
+    //msInputFile = &inputFile;
+    //specFile = msInputFile;
     //FileNetcdf input(filename);
     input.open(filename);
-    vector<InfoGrpVar> dataSet;
     //input.read_VecNC("mzML",mzMLBuff_);
     input.read_VecNC("mzML_spectrumIndex",specIdx);
-    input.read_VecNC("mzML_chromatogramIndex",chroIdx);
+    //input.read_VecNC("mzML_chromatogramIndex",chroIdx);
     input.read_VecNC("chromatogram_MS_1000595_double",chroMz);
     input.read_VecNC("chromatogram_MS_1000515_float",chroBinCounts);
 
-    input.read_VecNC("spectrum_MS_1000514_double",mz);
+    //input.read_VecNC("spectrum_MS_1000514_double",mz);
     input.search_Group("mzML");
+
+	vector<InfoGrpVar> dataSet;
     dataSet = input.get_Info();
     input.read_AttNC("version",dataSet[0].varid,versionID,dataSet[0].grpid);
     size_t loc[1]={0};
@@ -80,7 +81,7 @@ void OutmzMLb::writeVecData(vector<float>& _data)
     mzMLbFileOut.write_CatHypVecNC("spectrum_MS_1000515_float",_data);
 }
 
-void OutmzMLb::writeXmlData(vector<MzmlbSpectrumMetadata> *spec)
+void OutmzMLb::writeXmlData(vector<DatasetMzmlb::MzmlbSpectrumMetadata> *spec)
 {
     //vector<size_t> mzMLSize;
     for(size_t i = 0; i < spec->size(); ++i)

@@ -17,6 +17,7 @@ set(SOURCE_FILES
 )
 set(TEMPLATE_FILES
 	mzMLxml.tpp
+	DatasetMzmlb.tpp
 )
 
 source_group("Template Files" FILES ${TEMPLATE_FILES})
