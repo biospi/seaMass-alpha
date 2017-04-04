@@ -35,6 +35,40 @@ BasisMatrixGroup::BasisMatrixGroup(std::vector<Basis*>& bases, ii aM, ii aN, std
         cout << " ..." << endl;
     }
 
+    /*vector<fp> t = gV;
+
+    for (ii i = 0; i < gM; i++)
+    {
+        ii count = 0;
+        for (ii nz = 0; nz < gV.size(); nz++)
+        {
+            if (gI[nz] == i) count++;
+        }
+        for (ii nz = 0; nz < gV.size(); nz++)
+        {
+            if (gI[nz] == i) gV[nz] /= count;
+        }
+    }
+
+    for (ii i = 0; i < gV.size(); i++)
+    {
+        cout << t[i] << "," << gV[i] << "," << gI[i] << "," << gJ[i] << endl;
+    }*/
+
+    //exit(0);
+
+    /*vector<fp> tV(aN);
+    vector<ii> tI(aN);
+    vector<ii> tJ(aN);
+    for (ii i = 0; i < aN; i++)
+    {
+        tV[i] = 1.0;
+        tI[i] = i;
+        tJ[i] = i;
+    }
+    gT_.init(aN, aN, (ii)tV.size(), tV.data(), tJ.data(), tI.data());
+    g_.copy(gT_, true);*/
+
     gT_.init(aN, gM, (ii)aV.size(), gV.data(), gJ.data(), gI.data());
     g_.copy(gT_, true);
 }
@@ -71,23 +105,44 @@ void BasisMatrixGroup::shrinkage(std::vector<MatrixSparse>& y, std::vector<Matri
 
     for (size_t k = 0; k < y.size(); k++)
     {
-        MatrixSparse gx;
-        gx.matmul(false, x[k], gT_, false);
+        // Gx
+        MatrixSparse gX;
+        gX.matmul(false, x[k], gT_, false);
 
-        MatrixSparse gxgT;
-        gxgT.matmul(false, gx, g_, false);
-        gxgT.sort();
+        //for (ii nz = 0; nz < gT_.nnz(); nz++)
+        //{
+        //    cout << gT_.vs()[nz] << endl;
+        //}
+        //for (ii nz = 0; nz < gXgT.nnz(); nz++)
+        //{
+        //    cout << gXgT.vs()[nz] << endl;
+        //}
+        //exit(0);
 
-        MatrixSparse gxgT2;
-        gxgT2.copy(x[k]);
-        gxgT2.subsetCopy(gxgT);
+        // GxGt
+        MatrixSparse t;
+        t.matmul(false, gX, g_, false);
+        t.sort();
+        MatrixSparse& gXgT = gX;
+        gXgT.copy(x[k]);
+        gXgT.subsetCopy(t);
 
-        MatrixSparse l1l2PlusLambdas;
+        //for (ii nz = 0; nz < x[k].nnz(); nz++)
+        //{
+        //    cout << x[k].vs()[nz] << "," << gXgT.vs()[nz] << endl;
+        //}
+        //exit(0);
+
+        // x./GxGt
+        MatrixSparse& l1l2PlusLambdas = t;
         l1l2PlusLambdas.copy(x[k]);
-        l1l2PlusLambdas.divNonzeros(gxgT2.vs());
+        l1l2PlusLambdas.divNonzeros(gXgT.vs());
+
+        // lambda * x./GxGt + l1l2
         l1l2PlusLambdas.mul(lambda);
         l1l2PlusLambdas.addNonzeros(l1l2[k].vs());
 
+        // y = x * xE / (lambda * x./GxGt + l1l2)
         y[k].copy(x[k]);
         y[k].divNonzeros(l1l2PlusLambdas.vs());
         y[k].mul(xE[k].vs());
