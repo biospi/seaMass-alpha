@@ -41,7 +41,7 @@ public:
     virtual ~Dataset() {};
 
     virtual bool next(SeamassCore::Input& output, std::string& id) = 0;
-	virtual void writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool centriod_) = 0;
+	virtual void writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool centriod_, double threshold_) = 0;
 };
 
 

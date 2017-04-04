@@ -119,10 +119,12 @@ public:
 	void write_PutHypVecNC(const string dataSet, vector<T> &vec,
 		size_t idx, size_t len, int grpid = 0);
 	template<typename T>
-	void write_PutHypVecNC(const string dataSet, T *vec,
+	void write_PutHypVecNC(const string dataSet, T* vec,
 		size_t idx, size_t len, int grpid = 0);
+	template<typename T>
+	void write_CatHypVecNC(const string dataSet, vector<T> &vec, int grpid = 0);
     template<typename T>
-    void write_CatHypVecNC(const string dataSet, vector<T> &vec, int grpid = 0);
+    void write_CatHypVecNC(const string dataSet, T* vec,size_t len,int grpid = 0);
 
 	template<typename T>
 	void write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,

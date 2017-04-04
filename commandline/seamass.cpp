@@ -48,7 +48,7 @@ int main(int argc, const char * const * argv)
         int shrinkageExponent;
         int toleranceExponent;
         int debugLevel;
-		bool centriod=false;
+		bool centroid=false;
 		double threshold;
 
         // *******************************************************************
@@ -113,7 +113,7 @@ int main(int argc, const char * const * argv)
 
 		if(vm.count("centroid"))
 		{
-			centriod = true;
+			centroid = true;
 		}
 
         cout << endl << getThreadInfo() << endl << endl;
@@ -179,9 +179,7 @@ int main(int argc, const char * const * argv)
                 netcdfWriter2d.writeSmo(controlPoints);
             }
 
-
-
-			msFile.writeData(sm,input,centriod);
+			msFile.writeData(sm,input,centroid,threshold);
 
 			//outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
 

@@ -23,12 +23,10 @@
 #include <iterator>
 #include <boost/program_options.hpp>
 #include <pugixml.hpp>
-//#include <omp.h>
 
 #include "../kernel/VecMat.hpp"
 #include "../kernel/FileNetcdf.hpp"
 #include "../core/SeamassCore.hpp"
-#include "../core/Bspline.hpp"
 #include "../io/mzMLxml.hpp"
 
 #include "SMData.hpp"
@@ -371,11 +369,11 @@ int main(int argc, char **argv)
 
 				BsplineData<rtIdxData> bsData(A,dhA,d2hA);
 
-				PeakManager<PeakData,BsplineData,Centroid1D,rtIdxData> centriodPeak(bsData,threshold);
-				centriodPeak.execute();
+				PeakManager<PeakData,BsplineData,Centroid1D,rtIdxData> centroidPeak(bsData,threshold);
+				centroidPeak.execute();
 
-				localPeaks.addPeakArray(centriodPeak.peak->getPeakData());
-				localPeaks.updateFalseData(centriodPeak.peak->getFalsePeaks(),centriodPeak.peak->getFalseWidths());
+				localPeaks.addPeakArray(centroidPeak.peak->getPeakData());
+				localPeaks.updateFalseData(centroidPeak.peak->getFalsePeaks(),centroidPeak.peak->getFalseWidths());
 				#pragma omp atomic
 					++run;
 			}
@@ -426,11 +424,11 @@ int main(int argc, char **argv)
 
 		BsplineData<> bsData(A,dhA,d2hA);
 
-		PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold);
-		centriodPeak.execute();
-		centriodPeak.peak->getPeakMat(mzPeak, pkPeak, dataMatLen[0], mzpkVecSize);
+		PeakManager<PeakData,BsplineData,Centroid2D> centroidPeak(bsData,threshold);
+		centroidPeak.execute();
+		centroidPeak.peak->getPeakMat(mzPeak, pkPeak, dataMatLen[0], mzpkVecSize);
 
-		if(debug) centriodPeak.peak->dumpPeakData(smoFileName, NC_FLOAT);
+		if(debug) centroidPeak.peak->dumpPeakData(smoFileName, NC_FLOAT);
 	}
 	else if(process == PEAKPICK)
 	{

@@ -27,14 +27,12 @@
 #include <pugixml.hpp>
 #include "mzMLxml.hpp"
 
-/*
 #include "../smpeak/SMData.hpp"
 #include "../smpeak/MathOperator.hpp"
 #include "../smpeak/BsplineData.hpp"
 #include "../smpeak/PeakOperator.hpp"
 #include "../smpeak/PeakData.hpp"
 #include "../smpeak/PeakManager.hpp"
-*/
 
 namespace xml = pugi;
 
@@ -350,7 +348,7 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
 
 	// Setup and start saving mzMLb output file...
 	if(mzML.size() > 0) vector<char>().swap(mzML);
-    idxMzmlOffSet_=0;
+    idxDataArrayOffSet_=0;
 	vector<InfoGrpVar> dataSet;
 	vector<double> chroMz;
 	vector<fp> chroBinCounts;
@@ -623,97 +621,50 @@ bool DatasetMzmlb::seamassOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpe
     }
 }
 
-void DatasetMzmlb::writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool centriod_)
+void DatasetMzmlb::writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool centriod_, double threshold_)
 {
 	if(centriod_ == true)
 	{
-		/*
 		VecMat<double> mzPeak;
 		VecMat<float> pkPeak;
 		vector<size_t> mzpkVecSize;
 
-		vector<uli> dims(2,0);
-		vector<size_t> hypIdx(2);
-		vector<size_t> rdLen(2);
+		SeamassCore::ControlPoints contpts;
+		sm_.getOutputControlPoints1d(contpts);
+		uli dims[2];
+		double mzRes;
+		double rtRes;
+		vector<ii> offset=contpts.offset;
+		mzRes=double(contpts.scale[0]);
+		if(contpts.scale.size() > 1)
+			rtRes=double(contpts.scale[1]);
+		else
+			rtRes=0;
 
-		rdLen[0]=1;
-		rdLen[1]=dataMatLen[1];
-		dims[0]=uli(rdLen[0]);
-		dims[1]=uli(rdLen[1]);
-		hypIdx[1]=0; // = Always read from first Column;
+		VecMat<float> rawCoeff(contpts.extent[1],contpts.extent[0],contpts.coeffs);
+		rawCoeff.getDims(dims);
 
-		PeakData<> totalPeaks;
-		//vector<PeakData<> *> peakThreads(omp_get_max_threads());
-		vector<PeakData<> *> peakThreads(1);
+		SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+		SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+		SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 
-		cout<<"Extract Peaks from Mass Spec Data"<<endl;
-		// Manual reduction of STL container as STLs are not thread safe...
-		int run=0;
-		#pragma omp parallel
+		for(size_t i = 0; i < A.rt.size(); ++i)
 		{
-			//int nthrd=omp_get_num_threads();
-			int nthrd=1;
-			PeakData<> localPeaks;
-			//int thrdid=omp_get_thread_num();
-			int thrdid=0;
-			peakThreads[thrdid] = &localPeaks;
-			run=0;
-
-			#pragma omp for firstprivate(hypIdx,rdLen) schedule(dynamic)
-			for(ii rt_idx = 0; rt_idx < dataMatLen[0]; ++rt_idx)
-			{
-				vector<float> rawCoeff;
-				hypIdx[0]=rt_idx;
-
-				if(thrdid == 0)
-					cout<<"\r"<<"Processing Scan: "<<dataMatLen[0]<<"/"<<run<<flush;
-
-				smoDF.read_HypVecNC(dataSetList[0].varName,rawCoeff,&hypIdx[0],&rdLen[0],
-									dataSetList[0].grpid);
-
-				SMData1D<OpUnitS> A(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
-				SMData1D<OpNablaHS> dhA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
-				SMData1D<OpNabla2HS> d2hA(&dims[0],&offset[0],mzRes,rtRaw[rt_idx],rawCoeff);
-
-				BsplineData<rtIdxData> bsData(A,dhA,d2hA);
-
-				PeakManager<PeakData,BsplineData,Centroid1D,rtIdxData> centriodPeak(bsData,threshold);
-				centriodPeak.execute();
-
-				localPeaks.addPeakArray(centriodPeak.peak->getPeakData());
-				localPeaks.updateFalseData(centriodPeak.peak->getFalsePeaks(),centriodPeak.peak->getFalseWidths());
-				#pragma omp atomic
-				++run;
-			}
-
-			#pragma omp single
-			{
-				cout<<"\r"<<"Processing Scan: "<<dataMatLen[0]<<"/"<<dataMatLen[0]<<endl;
-				cout<<"Gathering Peaks from all threads..."<<endl;
-				for(int i = 0; i < nthrd; ++i)
-				{
-					//if(debug)
-					cout<<"Thread ["<<i<<"] peaks found: "<<peakThreads[i]->numOfPeaks()<<endl;
-					totalPeaks.addPeakArray(peakThreads[i]->getPeakData());
-					totalPeaks.updateFalseData(peakThreads[i]->getFalsePeaks(),peakThreads[i]->getFalseWidths());
-					peakThreads[i]->clear();
-				}
-			}
+			A.rt[i] = metadata_[i].startTime;
+			dhA.rt[i] = metadata_[i].startTime;
+			d2hA.rt[i] = metadata_[i].startTime;
 		}
 
-		totalPeaks.getPeakMat(mzPeak, pkPeak, dataMatLen[0], mzpkVecSize);
-		cout<<"Total Peaks found - "<<"["<<totalPeaks.numOfPeaks()<<"]"<<endl;
-		//if(totalPeaks.getFalsePeaks() > 0 || debug == true)
-		if(totalPeaks.getFalsePeaks() > 0)
-			cout<<"Total insignificant false Peaks detected - "
-				<<"["<<totalPeaks.getFalsePeaks()<<"] Peaks Ignored"<<endl;
-		//if(totalPeaks.getFalsePeaks() > 0 || debug == true)
-		if(totalPeaks.getFalsePeaks() > 0)
-			cout<<"Total false Peak detected with incorrect Peak Widths - "
-				<<"["<<totalPeaks.getFalseWidths()<<"] Peaks Ignored"<<endl;
+		BsplineData<> bsData(A,dhA,d2hA);
 
-		//if(debug) totalPeaks.dumpPeakData(smoFileName,NC_FLOAT);
-	*/
+		PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold_);
+		centriodPeak.execute();
+		centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
+
+		writePeakData(mzPeak,pkPeak,mzpkVecSize);
+		writePeakXmlData(mzpkVecSize);
+
+		//if(debug) centriodPeak.peak->dumpPeakData('seamassPeakPckDump.smp", NC_FLOAT);
 	}
 	else
 	{
@@ -747,12 +698,11 @@ void DatasetMzmlb::writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool 
 	}
 }
 
-void DatasetMzmlb::writeVecData(vector<float>& _data)
+void DatasetMzmlb::writeVecData(vector<float>& data_)
 {
-	fileOut_.write_CatHypVecNC("spectrum_MS_1000515_float",_data);
+	fileOut_.write_CatHypVecNC("spectrum_MS_1000515_float",data_);
 }
 
-//void DatasetMzmlb::writeXmlData(vector<DatasetMzmlb::MzmlbSpectrumMetadata> *metedata_)
 void DatasetMzmlb::writeXmlData()
 {
 	vector<char> mzML;
@@ -764,50 +714,43 @@ void DatasetMzmlb::writeXmlData()
 		{
 			if(mzML.size() > 0) vector<char>().swap(mzML);
 
-			xml::xml_document mzMLScan;
+			xml::xml_document mzmlXmlScan;
 			vector<double> mzScan;
 			size_t idx = metadata_[i].mzmlSpectrumIndex;
-			//size_t loc[1] = {specIdx_[idx]};
-			//size_t len[1] = {specIdx_[idx + 1] - specIdx_[idx]};
 			size_t loc = size_t(specIdx_[idx]);
 			size_t len = size_t(specIdx_[idx + 1] - specIdx_[idx]);
 			file_.read_HypVecNC("mzML",mzML,&loc,&len);
 
 			size_t xmlSize = sizeof(char) * mzML.size();
-			xml::xml_parse_result result = mzMLScan.load_buffer_inplace(&mzML[0],xmlSize);
+			xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
 
-			size_t index = getXmlValue<size_t>(mzMLScan,"spectrum","index");
-			size_t arrayLen = getXmlValue<size_t>(mzMLScan,"spectrum","defaultArrayLength");
-			size_t mzOffSet = getXmlValue<size_t>(mzMLScan,
+			size_t index = getXmlValue<size_t>(mzmlXmlScan,"spectrum","index");
+			size_t arrayLen = getXmlValue<size_t>(mzmlXmlScan,"spectrum","defaultArrayLength");
+			size_t mzOffSet = getXmlValue<size_t>(mzmlXmlScan,
 												  "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
 												  "offset");
-			//size_t intenOffSet = getXmlValue<size_t>(mzMLScan,
-			//										 "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
-			//										 "offset");
 
 			file_.read_HypVecNC("spectrum_MS_1000514_double", mzScan, &mzOffSet,
 								&arrayLen);
-
-			//arrayLen = mzScan.size();
 
 			mzScan.erase(mzScan.begin());
 			mzScan.erase(mzScan.end() - 1);
 
 			arrayLen = mzScan.size();
 
-			setXmlValue<size_t>(mzMLScan, "spectrum", "index", i);
-			setXmlValue<size_t>(mzMLScan, "spectrum", "defaultArrayLength", arrayLen);
+			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "index", i);
+			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
 
-			setXmlValue<size_t>(mzMLScan,
+			setXmlValue<size_t>(mzmlXmlScan,
 								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
-								"offset", idxMzmlOffSet_);
-			setXmlValue<size_t>(mzMLScan,
+								"offset", idxDataArrayOffSet_);
+			setXmlValue<size_t>(mzmlXmlScan,
 								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
-								"offset", idxMzmlOffSet_);
-			idxMzmlOffSet_ += arrayLen;
+								"offset", idxDataArrayOffSet_);
+			idxDataArrayOffSet_ += arrayLen;
 
 			stringstream newmzML;
-			mzMLScan.print(newmzML);
+			mzmlXmlScan.print(newmzML);
 			string output = newmzML.str();
 			vector<char>().swap(mzML);
 			mzML.assign(output.begin(), output.end());
@@ -817,38 +760,102 @@ void DatasetMzmlb::writeXmlData()
 			fileOut_.write_CatHypVecNC("spectrum_MS_1000514_double", mzScan);
 		}
 	}
-
 	if(spectrumIndex_ >= metadata_.size())
 	{
-		string subxml("</spectrumList>\n");
-
-		if(mzML.size() > 0) vector<char>().swap(mzML);
-		mzML.assign(subxml.begin(),subxml.end());
-		fileOut_.write_CatHypVecNC("mzML",mzML);
-
-		vector<size_t> lenTotal=file_.read_DimNC("mzML");
-		size_t loc = specIdx_.back();
-		size_t len = lenTotal[0]-loc;
-		file_.read_HypVecNC("mzML", mzML, &loc, &len);
-
-		subxml.clear();
-		subxml.assign(mzML.begin(),mzML.end());
-		subxml = subxml.substr(subxml.find("<chromatogramList"));
-
-		mzML.clear();
-		mzML.assign(subxml.begin(),subxml.end());
-
-		vector<uli> newChroIdx_;
-		vector<size_t > pos;
-		findVecString(mzML,pos,"<chromatogram ","</chromatogram>");
-		lenTotal.clear();
-		lenTotal = fileOut_.read_DimNC("mzML");
-		newChroIdx_.push_back(lenTotal[0]+pos[0]);
-		newChroIdx_.push_back(lenTotal[0]+pos[1]);
-
-		fileOut_.write_CatHypVecNC("mzML",mzML);
-
-		fileOut_.write_VecNC("mzML_spectrumIndex",newSpecIdx_,NC_INT64);
-		fileOut_.write_VecNC("mzML_chromatogramIndex",newChroIdx_,NC_INT64);
+		writeChromatogramXmlEnd();
 	}
 }
+
+void DatasetMzmlb::writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_,
+								 vector<size_t>& mzpkVecSize_)
+{
+	for(size_t i = 0; i < mzpkVecSize_.size(); ++i)
+	{
+		fileOut_.write_CatHypVecNC("spectrum_MS_1000514_double",mzPeak_.m[i],mzpkVecSize_[i]);
+		fileOut_.write_CatHypVecNC("spectrum_MS_1000515_float",pkPeak_.m[i],mzpkVecSize_[i]);
+	}
+}
+
+void DatasetMzmlb::writePeakXmlData(vector<size_t>& mzpkVecSize_)
+{
+	vector<char> mzML;
+
+	if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
+	{
+		li offset=spectrumIndex_ - extent_;
+		size_t j=0;
+		for(size_t i = size_t(offset); i < spectrumIndex_; ++i, ++j)
+		{
+			if(mzML.size() > 0) vector<char>().swap(mzML);
+
+			xml::xml_document mzmlXmlScan;
+			size_t idx = metadata_[i].mzmlSpectrumIndex;
+			size_t loc = size_t(specIdx_[idx]);
+			size_t len = size_t(specIdx_[idx + 1] - specIdx_[idx]);
+			file_.read_HypVecNC("mzML",mzML,&loc,&len);
+
+			size_t xmlSize = sizeof(char) * mzML.size();
+			xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
+
+			size_t arrayLen = mzpkVecSize_[j];
+
+			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "index", i);
+			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
+
+			setXmlValue<size_t>(mzmlXmlScan,
+								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
+								"offset", idxDataArrayOffSet_);
+			setXmlValue<size_t>(mzmlXmlScan,
+								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
+								"offset", idxDataArrayOffSet_);
+			idxDataArrayOffSet_ += arrayLen;
+
+			stringstream newmzML;
+			mzmlXmlScan.print(newmzML);
+			string output = newmzML.str();
+			vector<char>().swap(mzML);
+			mzML.assign(output.begin(), output.end());
+
+			newSpecIdx_.push_back(newSpecIdx_[i] + mzML.size());
+			fileOut_.write_CatHypVecNC("mzML", mzML);
+		}
+	}
+	if(spectrumIndex_ >= metadata_.size())
+	{
+		writeChromatogramXmlEnd();
+	}
+}
+
+void DatasetMzmlb::writeChromatogramXmlEnd(){
+	vector<char> mzML;
+	string subxml("</spectrumList>\n");
+
+	mzML.assign(subxml.begin(), subxml.end());
+	fileOut_.write_CatHypVecNC("mzML", mzML);
+
+	vector<size_t> lenTotal = file_.read_DimNC("mzML");
+	size_t loc = specIdx_.back();
+	size_t len = lenTotal[0] - loc;
+	file_.read_HypVecNC("mzML", mzML, &loc, &len);
+
+	subxml.clear();
+	subxml.assign(mzML.begin(), mzML.end());
+	subxml = subxml.substr(subxml.find("<chromatogramList"));
+
+	mzML.clear();
+	mzML.assign(subxml.begin(), subxml.end());
+
+	vector<uli> newChroIdx_;
+	vector<size_t> pos;
+	findVecString(mzML, pos, "<chromatogram ", "</chromatogram>");
+	lenTotal.clear();
+	lenTotal = fileOut_.read_DimNC("mzML");
+	newChroIdx_.push_back(lenTotal[0] + pos[0]);
+	newChroIdx_.push_back(lenTotal[0] + pos[1]);
+
+	fileOut_.write_CatHypVecNC("mzML", mzML);
+
+	fileOut_.write_VecNC("mzML_spectrumIndex", newSpecIdx_, NC_INT64);
+	fileOut_.write_VecNC("mzML_chromatogramIndex", newChroIdx_, NC_INT64);
+}
+

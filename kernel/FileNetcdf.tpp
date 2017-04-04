@@ -938,7 +938,7 @@ void FileNetcdf::write_PutHypVecNC(const string dataSet, vector<T> &vec,
 }
 
 template<typename T>
-void FileNetcdf::write_PutHypVecNC(const string dataSet, T *vec,
+void FileNetcdf::write_PutHypVecNC(const string dataSet, T* vec,
                        size_t idx, size_t len, int grpid)
 {
     if(grpid == 0) grpid = ncid;
@@ -975,7 +975,27 @@ void FileNetcdf::write_CatHypVecNC(const string dataSet, vector<T> &vec, int grp
         err(retval);
 }
 
+template<typename T>
+void FileNetcdf::write_CatHypVecNC(const string dataSet,T* vec,size_t len,int grpid)
+{
+    if(grpid == 0) grpid = ncid;
 
+    int dimid;
+    int varid;
+    size_t idx;
+
+    if((retval = nc_inq_dimid(grpid, dataSet.c_str(), &dimid) ))
+        err(retval);
+
+    if((retval = nc_inq_dim(grpid, dimid, NULL, &idx) ))
+        err(retval);
+
+    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        err(retval);
+
+    if ((retval = nc_put_vara(grpid, varid, &idx, &len, vec) ))
+        err(retval);
+}
 
 template<typename T>
 void FileNetcdf::write_DefHypMatNC(const string dataSet, size_t dims[], nc_type xtype,

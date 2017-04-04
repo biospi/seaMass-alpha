@@ -60,7 +60,7 @@ public:
     virtual ~DatasetMzmlb();
 
     virtual bool next(SeamassCore::Input& output, std::string& id);
-	virtual void writeData(SeamassCore &sm_, SeamassCore::Input &input_, bool centriod_);
+	virtual void writeData(SeamassCore &sm_, SeamassCore::Input &input_, bool centriod_, double threshold_);
 
 private:
     static bool startTimeOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs);
@@ -70,12 +70,17 @@ private:
     T getXmlValue(xml::xml_document &scan, string xpath, string attrib);
     template<typename T>
     void setXmlValue(xml::xml_document &scan, string xpath, string attrib,T value);
-	void writeVecData(vector<float>& _data);
-    //void writeXmlData(vector<MzmlbSpectrumMetadata>* metedata_);
+
+	void writeVecData(vector<fp>& data_);
 	void writeXmlData();
-	size_t idxMzmlOffSet_;
+	size_t idxDataArrayOffSet_;
 	vector<uli> specIdx_;
 	vector<uli> newSpecIdx_;
+
+	void writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_,
+					   vector<size_t>& mzpkVecSize_);
+	void writePeakXmlData(vector<size_t>& mzpkVecSize_);
+	void writeChromatogramXmlEnd();
 
     FileNetcdf file_;
 	FileNetcdf fileOut_;
@@ -84,6 +89,7 @@ private:
     li spectrumIndex_;
     li lastSpectrumIndex_;
 	li extent_;
+
 };
 
 #include "DatasetMzmlb.tpp"

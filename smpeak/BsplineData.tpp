@@ -23,6 +23,7 @@
 #define SMPEAK_BSPLINEDATA_TPP_
 
 #include "BsplineData.hpp"
+#include "../core/Bspline.hpp"
 
 template<typename T>
 BasisPatch<T>::BasisPatch()

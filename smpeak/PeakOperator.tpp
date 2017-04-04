@@ -23,6 +23,10 @@
 #define SMPEAK_PEAKOPERATOR_TPP_
 
 #include "PeakOperator.hpp"
+#include "SMData.hpp"
+#include "MathOperator.hpp"
+#include "BsplineData.hpp"
+#include <iostream>
 
 template<typename T, typename R>
 void MathOp<T,R>::calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
