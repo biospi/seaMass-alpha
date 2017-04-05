@@ -40,7 +40,7 @@ Basis::~Basis()
 }
 
 
-void Basis::shrinkage(vector<MatrixSparse>& y, vector<MatrixSparse>& x, const vector<MatrixSparse>& xE, const vector<MatrixSparse>& l1l2, fp lambda) const
+void Basis::shrinkage(vector<MatrixSparse>& y, const vector<MatrixSparse>& x, const vector<MatrixSparse>& xE, const vector<MatrixSparse>& l1l2, fp lambda) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
@@ -57,6 +57,8 @@ void Basis::shrinkage(vector<MatrixSparse>& y, vector<MatrixSparse>& x, const ve
         y[k].copy(x[k]);
         y[k].divNonzeros(l1l2PlusLambda.vs());
         y[k].mul(xE[k].vs());
+
+        // y = xE * x / (l1l2 + lambda)
     }
 }
 
