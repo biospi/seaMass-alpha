@@ -27,7 +27,6 @@
 
 #include "../io/NetcdfWriter.hpp"
 #include "../io/DatasetMzmlb.hpp"
-#include "../io/MzMLb.hpp"
 
 
 using namespace std;
@@ -120,7 +119,6 @@ int main(int argc, const char * const * argv)
         setDebugLevel(debugLevel);
 
         DatasetMzmlb msFile(inFile);
-        //OutmzMLb outmzMLb(inFile, msFile);
         SeamassCore::Input input;
         string id;
         double tolerance = pow(2.0, (double)toleranceExponent);
@@ -181,8 +179,6 @@ int main(int argc, const char * const * argv)
 
 			msFile.writeData(sm,input,centroid,threshold);
 
-			//outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
-
             // write seaMass outputBinCounts to new mzMLb file
             /*vector<fp> outputBinCounts(input.binCounts.size());
             cout << outputBinCounts.size() << endl;
@@ -210,7 +206,6 @@ int main(int argc, const char * const * argv)
                     }
                 }
             }
-            outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
 
             // write SMV file
             ostringstream oss;
@@ -239,9 +234,6 @@ int main(int argc, const char * const * argv)
 
             if (getDebugLevel() % 10 == 0) cout << endl;
          }
-
-        //vector<MzmlbSpectrumMetadata> *spcPtr = msFile.getSpectrumMetaData();
-        //outmzMLb.writeXmlData(spcPtr);
     }
 #ifdef NDEBUG
     catch(exception& e)

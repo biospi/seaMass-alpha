@@ -5,14 +5,12 @@ set(HEADER_FILES
 	Dataset.cpp
 	DatasetMzmlb.hpp
 	mzMLxml.hpp
-	MzMLb.hpp
 	NetcdfWriter.hpp
 )
 set(SOURCE_FILES
 	Dataset.cpp
 	DatasetMzmlb.cpp
 	mzMLxml.cpp
-	MzMLb.cpp
 	NetcdfWriter.cpp
 )
 set(TEMPLATE_FILES
