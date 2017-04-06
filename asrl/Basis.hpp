@@ -20,11 +20,9 @@
 //
 
 
-#ifndef _SEAMASS_CORE_BASIS_HPP_
-#define _SEAMASS_CORE_BASIS_HPP_
+#ifndef SEAMASS_ASRL_BASIS_HPP
+#define SEAMASS_ASRL_BASIS_HPP
 
-
-#include <vector>
 
 #include "../kernel/Matrix.hpp"
 
@@ -38,7 +36,7 @@ public:
 
     virtual void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const = 0;
 	virtual void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA) const = 0;
-	virtual void shrinkage(std::vector<MatrixSparse>& y, std::vector<MatrixSparse>& x, const std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& l1l2PlusLambda) const;
+	virtual void shrinkage(std::vector<MatrixSparse>& y, const std::vector<MatrixSparse>& x, const std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& l1l2, fp lambda) const;
     virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0) = 0;
 
 	virtual ii getM() const = 0;

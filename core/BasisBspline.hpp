@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "Basis.hpp"
+#include "../asrl/Basis.hpp"
 
 
 class BasisBspline : public Basis

@@ -1,29 +1,19 @@
-set(HEADER_FILES
-	Bspline.hpp
-	Basis.hpp
-	BasisBspline.hpp
-	BasisBsplineMz.hpp
-	BasisBsplineScantime.hpp
-	BasisBsplineScale.hpp
-	Optimizer.hpp
-	OptimizerSrl.hpp
-	OptimizerAccelerationEve1.hpp
-	SeamassCore.hpp
-)
 set(SOURCE_FILES
-	Bspline.cpp
-	Basis.cpp
-	BasisBspline.cpp
-	BasisBsplineMz.cpp
-	BasisBsplineScantime.cpp
-	BasisBsplineScale.cpp
-	Optimizer.cpp
-	OptimizerSrl.cpp
-	OptimizerAccelerationEve1.cpp
-	SeamassCore.cpp
+		Bspline.hpp
+		Bspline.cpp
+        BasisBspline.hpp
+        BasisBspline.cpp
+        BasisBsplineMz.hpp
+        BasisBsplineMz.cpp
+        BasisBsplineScantime.cpp
+        BasisBsplineScantime.hpp
+        BasisBsplineScale.cpp
+        BasisBsplineScale.hpp
+        SeamassCore.cpp
+        SeamassCore.hpp
 )
 
-add_library(seamass_core ${HEADER_FILES} ${SOURCE_FILES})
+add_library(seamass_core ${SOURCE_FILES})
 target_link_libraries(seamass_core
-    seamass_kernel
+    seamass_asrl
 )

@@ -20,34 +20,27 @@
 //
 
 
-#ifndef SEAMASS_KERNEL_MATRIXMKL_HPP
-#define SEAMASS_KERNEL_MATRIXMKL_HPP
+#ifndef SEAMASS_ASRL_OPTIMIZER_HPP
+#define SEAMASS_ASRL_OPTIMIZER_HPP
 
 
-#include "MKL.hpp"
+#include "Basis.hpp"
 
 
-class MatrixMKL
+class Optimizer
 {
-public:
-	MatrixMKL();
-	~MatrixMKL();
+public:    
+	Optimizer();
+	virtual ~Optimizer();
     
-    void init(ii m, ii n, const fp* vs); // deep copy from vs
-    void free();
-    
-    ii m() const;
-    ii n() const;
-    li size() const;
-    fp* vs() const;
- 
-private:
-	li m_; // rows
-	ii n_; // columns
-	fp* vs_; // data
-};
+	virtual void init(fp lamba) = 0;
+	virtual fp step() = 0;
+    virtual void synthesis(std::vector<MatrixSparse>& f, ii basis = -1) = 0;
 
-std::ostream& operator<<(std::ostream& os, const MatrixMKL& mat);
+	virtual std::vector< std::vector<MatrixSparse> >& xs() = 0;
+	virtual const std::vector<Basis*>& getBases() const = 0;
+	virtual ii getIteration() const = 0;
+};
 
 
 #endif

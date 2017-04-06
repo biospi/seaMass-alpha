@@ -121,7 +121,7 @@ fp OptimizerAccelerationEve1::step()
                     MatrixSparse cLogU0;
                     cLogU0.copy(u0s_[i][k]);
                     cLogU0.lnNonzeros();
-                    cLogU0.mul(x0s_[i][k]); // (x[k-1] . log u[k-2])
+                    cLogU0.mul(x0s_[i][k].vs()); // (x[k-1] . log u[k-2])
                     denominator += cLogU0.sumSqrs();  // (x[k-1] . log u[k-2]) T (x[k-1] . log u[k-2])
                     
                     // update to new gradient vector 'u0s'
@@ -138,8 +138,8 @@ fp OptimizerAccelerationEve1::step()
                     MatrixSparse c1LogU;
                     c1LogU.copy(u0s_[i][k]);
                     c1LogU.lnNonzeros();
-                    c1LogU.mul(xs()[i][k]); // (x[k] . log u[k-1])
-                    c1LogU.mul(t); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
+                    c1LogU.mul(xs()[i][k].vs()); // (x[k] . log u[k-1])
+                    c1LogU.mul(t.vs()); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
                     numerator += c1LogU.sum(); // (x[k] . log u[k-1]) T (x[k-1] . log u[k-2])
                 }
 			}
@@ -164,7 +164,7 @@ fp OptimizerAccelerationEve1::step()
                     
                     y0s_[i][k].divNonzeros(t.vs());
                     y0s_[i][k].pow(aThresh);
-                    y0s_[i][k].mul(xs()[i][k]); // x[k] . (x[k] / x[k-1])^a
+                    y0s_[i][k].mul(xs()[i][k].vs()); // x[k] . (x[k] / x[k-1])^a
                     
                     x0s_[i][k].copy(xs()[i][k]); // previous 'xs' saved as 'x0s' for next iteration
                     xs()[i][k].copy(y0s_[i][k]); // extrapolated 'xs' for this iteration

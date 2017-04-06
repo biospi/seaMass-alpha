@@ -24,8 +24,6 @@
 
 
 #include <iostream>
-
-
 using namespace std;
 
 
@@ -42,7 +40,7 @@ Basis::~Basis()
 }
 
 
-void Basis::shrinkage(vector<MatrixSparse>& y, vector<MatrixSparse>& x, const vector<MatrixSparse>& xE, const vector<MatrixSparse>& l1l2PlusLambda) const
+void Basis::shrinkage(vector<MatrixSparse>& y, const vector<MatrixSparse>& x, const vector<MatrixSparse>& xE, const vector<MatrixSparse>& l1l2, fp lambda) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
@@ -52,9 +50,15 @@ void Basis::shrinkage(vector<MatrixSparse>& y, vector<MatrixSparse>& x, const ve
     if (!y.size()) y.resize(x.size());
     for (size_t k = 0; k < y.size(); k++)
     {
+        MatrixSparse l1l2PlusLambda;
+        l1l2PlusLambda.copy(l1l2[k]);
+        l1l2PlusLambda.addNonzeros(lambda);
+
         y[k].copy(x[k]);
-        y[k].divNonzeros(l1l2PlusLambda[k].vs());
-        y[k].mul(xE[k]);
+        y[k].divNonzeros(l1l2PlusLambda.vs());
+        y[k].mul(xE[k].vs());
+
+        // y = xE * x / (l1l2 + lambda)
     }
 }
 

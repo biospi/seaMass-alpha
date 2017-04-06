@@ -24,7 +24,7 @@
 #define _SEAMASS_TOPDOWN_BASISCHARGEDISTRIBUTION_HPP_
 
 
-#include "../core/Basis.hpp"
+#include "../asrl/Basis.hpp"
 #include "../core/Bspline.hpp"
 
 

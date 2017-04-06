@@ -20,8 +20,8 @@
 //
 
 
-#ifndef _SEAMASS_CORE_OPTIMIZERSRL_HPP_
-#define _SEAMASS_CORE_OPTIMIZERSRL_HPP_
+#ifndef SEAMASS_ASRL_OPTIMIZERSRL_HPP
+#define SEAMASS_ASRL_OPTIMIZERSRL_HPP
 
 
 #include "Optimizer.hpp"
@@ -51,7 +51,7 @@ private:
 
 	std::vector< std::vector<MatrixSparse> > xs_;
 	std::vector< std::vector<MatrixSparse> > l2s_;
-	std::vector< std::vector<MatrixSparse> > l1l2sPlusLambda_;
+	std::vector< std::vector<MatrixSparse> > l1l2s_;
     
     double synthesisDuration_;
     double errorDuration_;

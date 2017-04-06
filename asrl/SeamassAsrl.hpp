@@ -20,57 +20,62 @@
 //
 
 
-#ifndef _SEAMASS_CORE_SEAMASSTOPDOWN_HPP_
-#define _SEAMASS_CORE_SEAMASSTOPDOWN_HPP_
+#ifndef SEAMASS_ASRL_SEAMASSASRL_HPP
+#define SEAMASS_ASRL_SEAMASSASRL_HPP
 
 
-#include "../asrl/Basis.hpp"
-#include "../asrl/Optimizer.hpp"
+#include "Optimizer.hpp"
 
 
 /**
-* SeamassTopdown deconvolution of the input spectrum.
+* SeamassAsrl performs Accelerated Sparse Richardson Lucy optimisation on the input.
 */
-class SeamassTopdown
+class SeamassAsrl
 {
 public:
 	static void notice();
 
 	struct Input {
-		std::vector<fp> binCounts;
-		ii scale;
-		ii offset;
+		// Ax = b
+		ii aM, aN;
+		std::vector<fp> aVs;
+		std::vector<ii> aIs;
+		std::vector<ii> aJs;
+
+		std::vector<fp> xs; // if not zero size, used as starting estimate
+		std::vector<fp> bs;
+
+		// GROUPS
+		ii gM, gN; // if gM = 0 then we do not use group sparse inference
+		std::vector<fp> gVs;
+		std::vector<ii> gIs;
+		std::vector<ii> gJs;
 	};
 
 	struct Output {
-		std::vector<fp> weights;
-		std::vector< std::vector<ii> > scales;
-		std::vector< std::vector<li> > offsets;
-		std::vector<ii> baselineScale;
-		std::vector<ii> baselineOffset;
-		std::vector<ii> baselineExtent;
+		std::vector<fp> xs;
+		std::vector<fp> aXs; // Ax
+		std::vector<fp> gXs; // Gx
 	};
 
-	SeamassTopdown(Input& input, ii maxMass, ii binsPerDalton, double shrinkage, double tolerance, ii debugLevel = 0);
-	virtual ~SeamassTopdown();
+	SeamassAsrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance);
+	virtual ~SeamassAsrl();
 
 	bool step();
 	ii getIteration() const;
 
-private:
-	void init(Input& input, ii maxMass, ii binsPerDalton);
+	void getOutput(Output& output) const;
 
-	MatrixSparse b_;
-	ii dimensions_;
+private:
 	std::vector<Basis*> bases_;
-	Optimizer* inner_optimizer_;
+	Optimizer* innerOptimizer_;
 	Optimizer* optimizer_;
 	double shrinkage_;
+	bool taperShrinkage_;
 	double tolerance_;
-	ii iteration_;
-	ii debugLevel_;
+	int iteration_;
 };
 
 
-#endif // _SEAMASS_HPP_
+#endif
 

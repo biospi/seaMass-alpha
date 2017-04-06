@@ -872,21 +872,16 @@ void MatrixSparseMKL::mul(fp beta)
 }
 
 
-void MatrixSparseMKL::mul(const MatrixSparseMKL& a)
+void MatrixSparseMKL::mul(const fp* a_vs)
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       X" << *this << " * A" << a << " := ..." << endl;
+        cout << getTimeStamp() << "       X" << *this << " * A := ..." << endl;
     }
     
-    assert(m_ == a.m_);
-    assert(n_ == a.n_);
-    assert(nnz() == a.nnz());
-    for (ii nz = 0; nz < nnz(); nz++) assert(js_[nz] == a.js_[nz]);
-
-    if (is1_)
+   if (is1_)
     {
-        vsMul(is1_[m_ - 1], vs_, a.vs_, vs_);
+        vsMul(is1_[m_ - 1], vs_, a_vs, vs_);
     }
     
     if (getDebugLevel() % 10 >= 4)
@@ -997,6 +992,31 @@ void MatrixSparseMKL::addNonzeros(fp beta)
     {
         cout << getTimeStamp() << "       ... X" << *this << endl;
         
+        if (getDebugLevel() >= 14)
+        {
+            ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";
+            write(oss.str());
+        }
+    }
+}
+
+
+void MatrixSparseMKL::addNonzeros(const fp* a_vs)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
+    }
+
+    if (is1_)
+    {
+        vsAdd(is1_[m_ - 1], vs_, a_vs, vs_);
+    }
+
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "       ... X" << *this << endl;
+
         if (getDebugLevel() >= 14)
         {
             ostringstream oss; oss << setw(9) << setfill('0') << getId() << ".csr";

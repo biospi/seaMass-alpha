@@ -19,36 +19,29 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-
-#ifndef SEAMASS_KERNEL_MATRIXMKL_HPP
-#define SEAMASS_KERNEL_MATRIXMKL_HPP
-
-
-#include "MKL.hpp"
+#ifndef SEAMASS_ASRL_BASISMATRIXGROUP_HPP
+#define SEAMASS_ASRL_BASISMATRIXGROUP_HPP
 
 
-class MatrixMKL
+#include "BasisMatrix.hpp"
+
+
+class BasisMatrixGroup : public BasisMatrix
 {
 public:
-	MatrixMKL();
-	~MatrixMKL();
-    
-    void init(ii m, ii n, const fp* vs); // deep copy from vs
-    void free();
-    
-    ii m() const;
-    ii n() const;
-    li size() const;
-    fp* vs() const;
- 
+    BasisMatrixGroup(std::vector<Basis*>& bases, ii aM, ii aN, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ,
+                     ii gM, std::vector<fp>& gV, std::vector<ii>& gI, std::vector<ii>& gJ, Transient transient);
+    virtual ~BasisMatrixGroup();
+
+    void groupSynthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
+
+    void shrinkage(std::vector<MatrixSparse>& y, const std::vector<MatrixSparse>& x, const std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& l1l2, fp lambda) const;
+
+
 private:
-	li m_; // rows
-	ii n_; // columns
-	fp* vs_; // data
+    MatrixSparse gT_;
+    MatrixSparse ggT_;
 };
 
-std::ostream& operator<<(std::ostream& os, const MatrixMKL& mat);
 
-
-#endif
-
+#endif //SEAMASS_BASISMATRIXGROUP_HPP

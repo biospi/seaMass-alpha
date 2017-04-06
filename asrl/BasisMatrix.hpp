@@ -20,22 +20,32 @@
 //
 
 
-#include "Optimizer.hpp"
-#include <algorithm>
-#include <iostream>
-#include <iomanip>
+#ifndef SEAMASS_ASRL_BASISMATRIX_HPP
+#define SEAMASS_ASRL_BASISMATRIX_HPP
 
 
-using namespace std;
+#include "Basis.hpp"
 
 
-Optimizer::Optimizer()
+class BasisMatrix : public Basis
 {
-}
+public:
+	BasisMatrix(std::vector<Basis*>& bases, ii m, ii n, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ, Transient transient);
+	virtual ~BasisMatrix();
+
+    void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
+    void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA = false) const;
+	void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
+
+	virtual ii getM() const;
+	virtual ii getN() const;
+
+private:
+	MatrixSparse aT_;
+    ii aTnnzRows_;
+	MatrixSparse a_;
+};
 
 
-Optimizer::~Optimizer()
-{
-}
-
+#endif
 
