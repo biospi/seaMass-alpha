@@ -40,7 +40,7 @@ public:
 
 private:
     MatrixSparse gT_;
-    MatrixSparse ggT_;
+    MatrixSparse g_;
 };
 
 

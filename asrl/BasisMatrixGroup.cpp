@@ -35,10 +35,8 @@ BasisMatrixGroup::BasisMatrixGroup(std::vector<Basis*>& bases, ii aM, ii aN, std
         cout << " ..." << endl;
     }
 
-    MatrixSparse t;
-    t.init(gM, aN, (ii)aV.size(), gV.data(), gI.data(), gJ.data());
-    gT_.copy(t, true);
-    ggT_.matmul(true, t, t, false);
+    g_.init(gM, aN, (ii)aV.size(), gV.data(), gI.data(), gJ.data());
+    gT_.copy(g_, true);
 }
 
 
@@ -74,12 +72,15 @@ void BasisMatrixGroup::shrinkage(std::vector<MatrixSparse>& y, const std::vector
     for (size_t k = 0; k < y.size(); k++)
     {
         // y = groupNorm(x)
+        MatrixSparse t;
+        t.copy(x[k]);
+        t.sqr();
+        y[k].matmul(false, t, gT_, false);
+        t.matmul(false, y[k], g_, false);
+        t.sort();
         y[k].copy(x[k]);
-        y[k].sqr();
-        MatrixSparse t1;
-        t1.matmul(false, y[k], ggT_, false);
-        t1.sort();
-        y[k].subsetCopy(t1);
+        y[k].subsetCopy(t);
+        y[k].sqrt();
 
         // y = x * groupNorm(x)^-1)
         y[k].div2Nonzeros(x[k].vs());
