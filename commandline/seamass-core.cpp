@@ -118,19 +118,20 @@ int main(int argc, const char * const * argv)
         cout << endl << getThreadInfo() << endl << endl;
         setDebugLevel(debugLevel);
 
-        DatasetMzmlb msFile(inFile);
+        //DatasetMzmlb msFile(inFile);
+        Dataset* msFile = FileFactory::createFileObj(inFile);
         SeamassCore::Input input;
         string id;
         double tolerance = pow(2.0, (double)toleranceExponent);
         double shrinkage = pow(2.0, (double)shrinkageExponent);
-        while (msFile.next(input, id))
+        while (msFile->next(input, id))
         {
             //if (id != "pos_411.25") continue;
 
+            string smo1dFileName,smo2dFileName;
             if (getDebugLevel() % 10 == 0) cout << "Processing " << id << endl;
 
             SeamassCore sm(input, scales, shrinkage, tolerance);
-
             do
             {
                 if (getDebugLevel() >= 10)
@@ -139,7 +140,14 @@ int main(int argc, const char * const * argv)
                     ostringstream oss; oss << "." << setfill('0') << setw(4) << sm.getIteration();
 
                     // get 1D control points for centroiding and write to smo1D file
-                    string smo1dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + oss.str() + ".smo1D";
+                    if(id.empty())
+                    {
+                        smo1dFileName = boost::filesystem::change_extension(inFile, ".").string() + oss.str() + "smo1D";
+                    }
+                    else
+                    {
+                        smo1dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + oss.str() + ".smo1D";
+                    }
                     if (getDebugLevel() % 10 == 0) cout << "Writing " << smo1dFileName << endl;
                     NetcdfWriter netcdfWriter(smo1dFileName);
                     SeamassCore::ControlPoints controlPoints;
@@ -149,7 +157,14 @@ int main(int argc, const char * const * argv)
                     // write smo 2D file if necessary
                     if (controlPoints.extent[1] > 1)
                     {
-                        string smo2dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + oss.str() + ".smo2D";
+                        if(id.empty())
+                        {
+                            smo2dFileName = boost::filesystem::change_extension(inFile, ".").string() + oss.str() + "smo2D";
+                        }
+                        else
+                        {
+                            smo2dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + oss.str() + ".smo2D";
+                        }
                         if (getDebugLevel() % 10 == 0) cout << "Writing " << smo2dFileName << endl;
                         NetcdfWriter netcdfWriter2d(smo2dFileName);
                         sm.getOutputControlPoints(controlPoints);
@@ -160,7 +175,14 @@ int main(int argc, const char * const * argv)
             while (sm.step());
 
             // get 1D control points for centroiding and write to smo1D file
-            string smo1dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + ".smo1D";
+            if(id.empty())
+            {
+                smo1dFileName = boost::filesystem::change_extension(inFile, ".").string() + "smo1D";
+            }
+            else
+            {
+                smo1dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + ".smo1D";
+            }
             if (getDebugLevel() % 10 == 0) cout << "Writing " << smo1dFileName << endl;
             NetcdfWriter netcdfWriter(smo1dFileName);
             SeamassCore::ControlPoints controlPoints;
@@ -170,14 +192,22 @@ int main(int argc, const char * const * argv)
             // write smo 2D file if necessary
             if (controlPoints.extent[1] > 1)
             {
-                string smo2dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + ".smo2D";
+                if(id.empty())
+                {
+                    smo2dFileName = boost::filesystem::change_extension(inFile, ".").string() + "smo2D";
+                }
+                else
+                {
+                    smo2dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + ".smo2D";
+                }
+                smo2dFileName = boost::filesystem::change_extension(inFile, ".").string() + id + ".smo2D";
                 if (getDebugLevel() % 10 == 0) cout << "Writing " << smo2dFileName << endl;
                 NetcdfWriter netcdfWriter2d(smo2dFileName);
                 sm.getOutputControlPoints(controlPoints);
                 netcdfWriter2d.writeSmo(controlPoints);
             }
 
-			msFile.writeData(sm,input,centroid,threshold);
+			msFile->writeData(sm,input,centroid,threshold);
 
             // write seaMass outputBinCounts to new mzMLb file
             /*vector<fp> outputBinCounts(input.binCounts.size());

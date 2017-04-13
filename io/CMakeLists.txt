@@ -6,12 +6,14 @@ set(HEADER_FILES
 	DatasetMzmlb.hpp
 	mzMLxml.hpp
 	NetcdfWriter.hpp
+	DatasetSmi.hpp
 )
 set(SOURCE_FILES
 	Dataset.cpp
 	DatasetMzmlb.cpp
 	mzMLxml.cpp
 	NetcdfWriter.cpp
+	DatasetSmi.cpp
 )
 set(TEMPLATE_FILES
 	mzMLxml.tpp

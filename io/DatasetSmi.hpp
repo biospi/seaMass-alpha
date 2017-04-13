@@ -19,28 +19,27 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+#ifndef SEAMASS_DATASETSMI_HPP
+#define SEAMASS_DATASETSMI_HPP
+
 #include "Dataset.hpp"
-
-#include "DatasetMzmlb.hpp"
-#include "DatasetSmi.hpp"
-#include <boost/filesystem/convenience.hpp>
+#include "../kernel/FileNetcdf.hpp"
 
 
-using namespace std;
-
-
-Dataset* FileFactory::createFileObj(string filename)
+class DatasetSmi: public Dataset
 {
-    string ext = boost::filesystem::extension(filename);
+public:
+	DatasetSmi(std::string &filename_);
+	virtual ~DatasetSmi();
 
-    if(ext == ".mzMLb")
-    {
-        return new DatasetMzmlb(filename);
-    }
-    else if(ext == ".smi")
-    {
-        return new DatasetSmi(filename);
-    }
+	virtual bool next(SeamassCore::Input& output_, std::string& id_);
+	virtual void writeData(SeamassCore &sm_, SeamassCore::Input &input_, bool centriod_, double threshold_);
 
-    return NULL;
-}
+private:
+	FileNetcdf file_;
+	FileNetcdf fileOut_;
+	bool processed;
+};
+
+
+#endif //SEAMASS_DATASETSMI_HPP
