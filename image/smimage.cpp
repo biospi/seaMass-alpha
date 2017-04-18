@@ -39,9 +39,9 @@ int main(int argc, char** argv){
 	pair<ui,ui> xyview;
 	bool rescaleExp = false;
 
-	po::options_description usage("Usage: smimage [OPTION...] [SMI FILE]\n"
-			"Example: smimage -m [200,300] -r [20,140] -o [3000,1000] --ms2 datafile.smi\n"
-			"         smimage -o [,500] -m[,300] -r [12,] -f datafile.smj\n\n"
+	po::options_description usage("Usage: image [OPTION...] [SMI FILE]\n"
+			"Example: image -m [200,300] -r [20,140] -o [3000,1000] --ms2 datafile.smi\n"
+			"         image -o [,500] -m[,300] -r [12,] -f datafile.smj\n\n"
 			"Options");
 
 	usage.add_options()
@@ -160,8 +160,8 @@ int main(int argc, char** argv){
 		raw.N = 2;
 		raw.rt.push_back(1);
 		raw.rt.push_back(2);
-		smiInput.read_VecNC("binEdges",raw.mz);
-		smiInput.read_VecNC("binCounts",raw.sc);
+		smiInput.read_VecNC("locations",raw.mz);
+		smiInput.read_VecNC("counts",raw.sc);
 		smiInput.read_VecNC("exposures",raw.exp);
 		raw.sci.push_back(0);
 		raw.sci.push_back(lli(raw.mz.size())-1);
@@ -181,9 +181,9 @@ int main(int argc, char** argv){
 		raw.rt.clear();
 		raw.rt=rtBuff;
 		raw.N = raw.rt.size();
-		smiInput.read_VecNC("binEdges",raw.mz);
-		smiInput.read_VecNC("binCounts",raw.sc);
-		smiInput.read_VecNC("binCountsIndex",raw.sci);
+		smiInput.read_VecNC("locations",raw.mz);
+		smiInput.read_VecNC("counts",raw.sc);
+		smiInput.read_VecNC("countsIndex",raw.sci);
 		smiInput.read_VecNC("exposures",raw.exp);
 	}
 

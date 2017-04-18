@@ -19,8 +19,8 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_MZMLBINPUTFILE_HPP
-#define SEAMASS_MZMLBINPUTFILE_HPP
+#ifndef SEAMASS_DATASETMZMLB_HPP
+#define SEAMASS_DATASETMZMLB_HPP
 
 
 #include <vector>
@@ -35,7 +35,8 @@ namespace xml = pugi;
 class DatasetMzmlb: public Dataset
 {
 public:
-	struct MzmlbSpectrumMetadata{
+	struct SpectrumMetadata
+	{
 		size_t mzmlSpectrumIndex; // index of spectrum in original mzML <SpectrumList> tag
     	std::string id; // id differentiates which set of spectra this spectrum is in for seaMass
 
@@ -59,12 +60,17 @@ public:
 	DatasetMzmlb(std::string &filename);
     virtual ~DatasetMzmlb();
 
-    virtual bool next(SeamassCore::Input& output, std::string& id);
-	virtual void writeData(SeamassCore &sm_, SeamassCore::Input &input_, bool centriod_, double threshold_);
+    virtual bool read(Seamass::Input &input, std::string &id);
+    virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id) { return false; }
+
+	virtual void write(const Seamass::Input& input, const std::string& id) {}
+    virtual void write(const Seamass::Input& input, const Seamass::Output& output, const std::string& id);
+
+	virtual void writeData(Seamass &sm_, Seamass::Input &input_, std::string id, bool centriod_, double threshold_);
 
 private:
-    static bool startTimeOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs);
-    static bool seamassOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs);
+    static bool startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
+    static bool seamassOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
 
     template<typename T>
     T getXmlValue(xml::xml_document &scan, string xpath, string attrib);
@@ -85,7 +91,7 @@ private:
     FileNetcdf file_;
 	FileNetcdf fileOut_;
 
-    vector<MzmlbSpectrumMetadata> metadata_; // this will be sorted for 'next()'
+    vector<SpectrumMetadata> metadata_; // this will be sorted for 'next()'
     li spectrumIndex_;
     li lastSpectrumIndex_;
 	li extent_;

@@ -21,20 +21,15 @@
 
 
 #include "BasisBsplineScale.hpp"
-
 #include "Bspline.hpp"
-
-#include <limits>
 #include <iomanip>
 #include <cmath>
-#include <iostream>
-
-
 using namespace std;
+using namespace kernel;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Transient transient, int order)
+BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, Transient transient, int order)
     : BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
 {
     if (getDebugLevel() % 10 >= 2)
@@ -53,7 +48,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
     if (getDebugLevel() % 10 >= 2)
     {
         cout << getTimeStamp() << "     parent=" << getParentIndex() << endl;
-        cout << getTimeStamp() << "     dimension=" << dimension_ << endl;
+        cout << getTimeStamp() << "     dimension=" << (int) dimension_ << endl;
         cout << getTimeStamp() << "     " << gridInfo() << endl;
     }
     
@@ -77,9 +72,9 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
 	// create A as a temporary COO matrix
     ii m = parentGridInfo.extent[dimension_];
     ii n = gridInfo().extent[dimension_];
-	vector<fp> acoo(nh * n);
-	vector<ii> rowind(nh * n);
-	vector<ii> colind(nh * n);
+	vector<ii> is(nh * n);
+	vector<ii> js(nh * n);
+    vector<fp> vs(nh * n);
 
 	ii nnz = 0;
 	ii offset = order + ((parentGridInfo.offset[dimension_] + 1) % 2);
@@ -87,24 +82,21 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension, Trans
 	{
 		for (ii i = 0; i < nh; i++)
 		{
-			rowind[nnz] = 2 * j + i - offset;
-			if (rowind[nnz] < 0 || rowind[nnz] >= m) continue;
-			acoo[nnz] = hs[i];
-			colind[nnz] = j;
+			is[nnz] = 2 * j + i - offset;
+			if (is[nnz] < 0 || is[nnz] >= m) continue;
+			vs[nnz] = hs[i];
+			js[nnz] = j;
 
-            //cout << rowind[nnz] << "," << colind[nnz] << ":" << acoo[nnz] << endl;
-			nnz++;
+ 			nnz++;
 		}
 	}
 
     // create A
-    aT_.init(n, m, nnz, acoo.data(), colind.data(), rowind.data());
+    aT_.copy(n, m, js, is, vs);
     aTnnzRows_ = n;
     
     if (dimension == 0)
-    {
         a_.copy(aT_, true);
-    }
 }
 
 

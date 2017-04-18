@@ -32,10 +32,11 @@
 
 
 using namespace std;
+using namespace kernel;
 
 
 BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex,
-                               const std::vector<double>& binEdges, short scale, Transient transient, int order)
+                               const std::vector<double>& binEdges, char scale, Transient transient, int order)
 	: BasisBspline(bases, 1, transient)
 {
     if (getDebugLevel() % 10 >= 1)
@@ -85,13 +86,13 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	}
     
 	ii scaleAuto = (ii) floor(log2(1.0 / mzDiff / 60.0 / 1.0033548378));
-	if (scale == numeric_limits<short>::max())
+	if (scale == numeric_limits<char>::max())
 	{
 		scale = scaleAuto;
         
         if (getDebugLevel() % 10 >= 1)
         {
-            cout << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << scale << endl;
+            cout << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << (int) scale << endl;
         }
 	}
 
@@ -108,7 +109,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
     {
         cout << getTimeStamp() << "     range=" << fixed << setprecision(3) << mzMin << ":"; cout.unsetf(std::ios::floatfield);
         cout << mzDiff << ":" << fixed << mzMax << "Th" << endl;
-        cout << getTimeStamp() << "     scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per 1.0033548378Th)" << endl;
+        cout << getTimeStamp() << "     scale=" << fixed << setprecision(1) << (int) scale << " (" << bpi << " bases per 1.0033548378Th)" << endl;
         cout << getTimeStamp() << "     " << gridInfo() << endl;
     }
    
@@ -120,10 +121,10 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 	Bspline bspline(order, 65536); // bspline basis function lookup table
 	for (ii k = 0; k < (ii)bei.size() - 1; k++)
 	{
-        vector<fp> acoo;
-        vector<ii> rowind;
-        vector<ii> colind;
-        
+        vector<ii> is;
+        vector<ii> js;
+        vector<fp> vs;
+
         for (ii i = bei[k]; i < bei[k + 1] - 1; i++)
 		{
 			if (binCounts[i - bei[k] + bci[k]] >= 0.0)
@@ -147,15 +148,15 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 					// basis coefficient b is _integral_ of area under b-spline basis
 					fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-					acoo.push_back(b);
-					rowind.push_back(i - bei[k]);
-					colind.push_back(x - gridInfo().offset[0]);
+					vs.push_back(b);
+					is.push_back(i - bei[k]);
+					js.push_back(x - gridInfo().offset[0]);
 				}
 			}
 		}
         
         // create A
-        aTs_[k].init(getGridInfo().n(), bci[k + 1] - bci[k], (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+        aTs_[k].copy(getGridInfo().n(), bci[k + 1] - bci[k], js, is, vs);
         aTnnzRows_[k] = getGridInfo().n();
         
         as_[k].copy(aTs_[k], true);
@@ -172,7 +173,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
 
 	if (scaleAuto != scale)
 	{
-		cerr << "WARNING: scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
+		cerr << "WARNING: mz_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
 	}
 }
 
@@ -193,7 +194,7 @@ void BasisBsplineMz::synthesis(vector<MatrixSparse>& f, const vector<MatrixSpars
     for (size_t k = 0; k < f.size(); k++)
     {
         MatrixSparse t;
-        t.wrap(x[0], k);
+        t.init(x[0], k);
         
         f[k].matmul(false, t, aTs_[k], accumulate, true);
         
@@ -229,7 +230,7 @@ void BasisBsplineMz::analysis(vector<MatrixSparse>& xE, const vector<MatrixSpars
     }
     
     xE.resize(1);
-    xE[0].init(xEs);
+    xE[0].copy(xEs);
     
     if (getDebugLevel() % 10 >= 3)
     {

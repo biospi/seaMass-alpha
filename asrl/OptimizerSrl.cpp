@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <cmath>
 using namespace std;
+using namespace kernel;
 
 
 OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCounts, const vector<li> spectrumIndex, fp pruneThreshold) : bases_(bases), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), xs_(bases_.size()), l2s_(bases_.size()), l1l2s_(bases_.size()), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
@@ -64,7 +65,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
 			vector<MatrixSparse> t(b_.size());
             for (size_t k = 0; k < t.size(); k++)
             {
-                t[k].init(1, b_[k].n(), (fp)1.0);
+                t[k].copy(1, b_[k].n(), (fp) 1.0);
             }
 			bases_[i]->analysis(l2s_[0], t, true);
 		}
@@ -87,7 +88,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
 		{
             for (size_t k = 0; k < l2s_[i].size(); k++)
             {
-                l2s_[i][k].free();
+                l2s_[i][k].init();
             }
 		}
 	}
@@ -104,7 +105,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
             vector<MatrixSparse> t(b_.size());
             for (size_t k = 0; k < t.size(); k++)
             {
-                t[k].init(1, b_[k].n(), (fp)1.0);
+                t[k].copy(1, b_[k].n(), (fp) 1.0);
             }
 			bases_[i]->analysis(l1l2s_[0], t, false);
 		}
@@ -127,7 +128,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
 		{
             for (size_t k = 0; k < l1l2s_[i].size(); k++)
             {
-                l1l2s_[i][k].free();
+                l1l2s_[i][k].init();
             }
 		}
 	}
@@ -146,7 +147,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
             vector<MatrixSparse> t(b_.size());
             for (size_t k = 0; k < t.size(); k++)
             {
-                t[k].init(b_[k]);
+                t[k].copy(b_[k]);
                 sumB += t[k].sum();
             }
             
@@ -171,7 +172,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
                 // remove unneeded l1l2sPlusLambda
                 MatrixSparse l1l2PlusLambda;
                 l1l2PlusLambda.copy(xs_[i][k]);
-                l1l2PlusLambda.subsetCopy(l1l2s_[i][k]);
+                l1l2PlusLambda.copySubset(l1l2s_[i][k]);
                 
                 // normalise and prune xs
                 MatrixSparse x;
@@ -183,12 +184,12 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
                 // remove unneeded l12sPlusLambda again (after pruning)
                 MatrixSparse t;
                 t.copy(xs_[i][k]);
-                t.subsetCopy(l1l2PlusLambda);
+                t.copySubset(l1l2PlusLambda);
                 l1l2s_[i][k].copy(t);
                 
                 // remove unneeded l2s
                 t.copy(xs_[i][k]);
-                t.subsetCopy(l2s_[i][k]);
+                t.copySubset(l2s_[i][k]);
                 l2s_[i][k].copy(t);
             }
 		}
@@ -196,7 +197,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const vector<fp> binCoun
 		{
             for (size_t k = 0; k < xs_[i].size(); k++)
             {
-                xs_[i][k].free();
+                xs_[i][k].init();
             }
 		}
 	}
@@ -297,7 +298,7 @@ fp OptimizerSrl::step()
                 
                 MatrixSparse t;
                 t.copy(xs_[i][k]);
-                t.subsetCopy(xEs[i][k]);
+                t.copySubset(xEs[i][k]);
                 xEs[i][k].copy(t);
                 
                 xEs[i][k].divNonzeros(l2s_[i][k].vs());
@@ -361,15 +362,15 @@ fp OptimizerSrl::step()
                 for (size_t k = 0; k < xs_[i].size(); k++)
                 {
                     xs_[i][k].prune(ys[i][k], pruneThreshold_);
-                    ys[i][k].free();
+                    ys[i][k].init();
                     
                     MatrixSparse t;
                     t.copy(xs_[i][k]);
-                    t.subsetCopy(l1l2s_[i][k]);
+                    t.copySubset(l1l2s_[i][k]);
                     l1l2s_[i][k].copy(t);
                     
                     t.copy(xs_[i][k]);
-                    t.subsetCopy(l2s_[i][k]);
+                    t.copySubset(l2s_[i][k]);
                     l2s_[i][k].copy(t);
                 }
 			}
@@ -468,7 +469,7 @@ void OptimizerSrl::synthesis(vector<MatrixSparse>& f, ii basis)
 
         for (size_t k = 0; k < ts[i].size(); k++)
         {
-            ts[i][k].free();
+            ts[i][k].init();
         }
 	}
 }
@@ -489,4 +490,16 @@ const std::vector<Basis*>& OptimizerSrl::getBases() const
 std::vector< std::vector<MatrixSparse> >& OptimizerSrl::xs()
 {
 	return xs_;
+}
+
+
+std::vector< std::vector<MatrixSparse> >& OptimizerSrl::l2s()
+{
+    return l2s_;
+}
+
+
+std::vector< std::vector<MatrixSparse> >& OptimizerSrl::l1l2s()
+{
+    return l1l2s_;
 }

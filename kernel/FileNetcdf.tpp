@@ -30,7 +30,7 @@
 template<typename T>
 void FileNetcdf::read_VecNC(const string dataSet, vector<T> &vecData, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -39,25 +39,25 @@ void FileNetcdf::read_VecNC(const string dataSet, vector<T> &vecData, int grpid)
 	size_t N=1;
 	nc_type typId;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	for(int i = 0; i < ndim; ++i)
@@ -65,14 +65,14 @@ void FileNetcdf::read_VecNC(const string dataSet, vector<T> &vecData, int grpid)
 
 	vecData.resize(N);
 
-	if (( retval = nc_get_var(grpid, varid, &vecData[0]) ))
-		err(retval);
+	if (( retval_ = nc_get_var(grpid, varid, &vecData[0]) ))
+		err(retval_);
 }
 
 template<typename T>
 void FileNetcdf::read_VecNC(const string dataSet, T *vecData, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -81,25 +81,25 @@ void FileNetcdf::read_VecNC(const string dataSet, T *vecData, int grpid)
 	size_t N=1;
 	nc_type typId;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	for(int i = 0; i < ndim; ++i)
@@ -107,15 +107,15 @@ void FileNetcdf::read_VecNC(const string dataSet, T *vecData, int grpid)
 
 	vecData = new T[N];
 
-	if (( retval = nc_get_var(grpid, varid, &vecData[0]) ))
-		err(retval);
+	if (( retval_ = nc_get_var(grpid, varid, &vecData[0]) ))
+		err(retval_);
 }
 
 
 template<typename T>
 void FileNetcdf::read_MatNC(const string dataSet, VecMat<T> &vm, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -123,37 +123,37 @@ void FileNetcdf::read_MatNC(const string dataSet, VecMat<T> &vm, int grpid)
 	vector<size_t> dimSize;
 	nc_type typId;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	vm.set(dimSize[0],dimSize[1]);
 
-	if (( retval = nc_get_var(grpid, varid, &vm.v[0]) ))
-		err(retval);
+	if (( retval_ = nc_get_var(grpid, varid, &vm.v[0]) ))
+		err(retval_);
 }
 
 template<typename T>
 void FileNetcdf::read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -163,25 +163,25 @@ void FileNetcdf::read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid)
 	nc_type typId;
 	vector<T> vecbuff;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	for(int i = 0; i < ndim; ++i)
@@ -191,8 +191,8 @@ void FileNetcdf::read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid)
 
 	vm.set(dimSize[1],dimSize[0]);
 
-	if (( retval = nc_get_var(grpid, varid, &vecbuff[0]) ))
-		err(retval);
+	if (( retval_ = nc_get_var(grpid, varid, &vecbuff[0]) ))
+		err(retval_);
 
 	for(int i=0; i < dimSize[0]; ++i)
 	{
@@ -206,7 +206,7 @@ void FileNetcdf::read_MatNCT(const string dataSet, VecMat<T> &vm, int grpid)
 template<typename T>
 void FileNetcdf::read_MatNC(const string dataSet, vector<vector<T> > &vm, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -216,25 +216,25 @@ void FileNetcdf::read_MatNC(const string dataSet, vector<vector<T> > &vm, int gr
 	nc_type typId;
 	vector<T> vecbuff;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	for(int i = 0; i < ndim; ++i)
@@ -246,8 +246,8 @@ void FileNetcdf::read_MatNC(const string dataSet, vector<vector<T> > &vm, int gr
 	for(size_t i = 0; i < dimSize[0] ; ++i)
 		vm[i].resize(dimSize[1]);
 
-	if (( retval = nc_get_var(grpid, varid, &vecbuff[0]) ))
-		err(retval);
+	if (( retval_ = nc_get_var(grpid, varid, &vecbuff[0]) ))
+		err(retval_);
 
 	for(int i=0; i < dimSize[0]; ++i)
 	{
@@ -261,7 +261,7 @@ void FileNetcdf::read_MatNC(const string dataSet, vector<vector<T> > &vm, int gr
 template<typename T>
 void FileNetcdf::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -271,25 +271,25 @@ void FileNetcdf::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int g
 	nc_type typId;
 	vector<T> vecbuff;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	for(int i = 0; i < ndim; ++i)
@@ -301,8 +301,8 @@ void FileNetcdf::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int g
 	for(size_t i = 0; i < dimSize[1] ; ++i)
 		vm[i].resize(dimSize[0]);
 
-	if (( retval = nc_get_var(grpid, varid, &vecbuff[0]) ))
-		err(retval);
+	if (( retval_ = nc_get_var(grpid, varid, &vecbuff[0]) ))
+		err(retval_);
 
 	for(int i=0; i < dimSize[0]; ++i)
 	{
@@ -316,7 +316,7 @@ void FileNetcdf::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int g
 template<typename T>
 vector<size_t> FileNetcdf::read_DimNC(const string dataSet, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -324,25 +324,25 @@ vector<size_t> FileNetcdf::read_DimNC(const string dataSet, int grpid)
 	vector<size_t> dimSize;
 	nc_type typId;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	return dimSize;
@@ -352,18 +352,18 @@ vector<size_t> FileNetcdf::read_DimNC(const string dataSet, int grpid)
 template<typename T>
 void FileNetcdf::read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	nc_type xtype;
 	size_t len;
 
-	if(( retval = nc_inq_att(grpid, varid, attName.c_str(), &xtype, &len) ))
-		err(retval);
+	if(( retval_ = nc_inq_att(grpid, varid, attName.c_str(), &xtype, &len) ))
+		err(retval_);
 
 	attVal.resize(len);
 
-	if(( retval =  nc_get_att(grpid, varid, attName.c_str(), &attVal[0]) ))
-		err(retval);
+	if(( retval_ =  nc_get_att(grpid, varid, attName.c_str(), &attVal[0]) ))
+		err(retval_);
 }
 
 
@@ -371,7 +371,7 @@ template<typename T>
 void FileNetcdf::read_HypVecNC(const string dataSet, vector<T> &vm,
 		size_t *rcIdx, size_t *len, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -379,37 +379,37 @@ void FileNetcdf::read_HypVecNC(const string dataSet, vector<T> &vm,
 	size_t dimSize;
 	nc_type typId;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid) ))
+		err(retval_);
 
-	if ((retval = nc_inq_dimlen(grpid, dimid, &dimSize) ))
-		err(retval);
+	if ((retval_ = nc_inq_dimlen(grpid, dimid, &dimSize) ))
+		err(retval_);
 
 	vm.resize(*len);
 
 	if(typeid(vector<float>) == typeid(vm))
 	{
-		if (( retval = nc_get_vara_float(grpid, varid, rcIdx, len, reinterpret_cast<float*>(&vm[0])) ))
-			err(retval);
+		if (( retval_ = nc_get_vara_float(grpid, varid, rcIdx, len, reinterpret_cast<float*>(&vm[0])) ))
+			err(retval_);
 	}
 	else if(typeid(vector<double>) == typeid(vm))
 	{
-		if (( retval = nc_get_vara_double(grpid, varid, rcIdx, len, reinterpret_cast<double*>(&vm[0])) ))
-			err(retval);
+		if (( retval_ = nc_get_vara_double(grpid, varid, rcIdx, len, reinterpret_cast<double*>(&vm[0])) ))
+			err(retval_);
 	}
 	else
 	{
-		if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm[0]) ))
-			err(retval);
+		if (( retval_ = nc_get_vara(grpid, varid, rcIdx, len, &vm[0]) ))
+			err(retval_);
 	}
 }
 
@@ -417,7 +417,7 @@ template<typename T>
 void FileNetcdf::read_HypMatNC(const string dataSet, VecMat<T> &vm,
 		size_t *rcIdx, size_t *len, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int ndim;
@@ -426,25 +426,25 @@ void FileNetcdf::read_HypMatNC(const string dataSet, VecMat<T> &vm,
 	size_t N=1;
 	nc_type typId;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if((retval = nc_inq_vartype(grpid, varid, &typId) ))
-		err(retval);
+	if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
+		err(retval_);
 
-	if((retval = nc_inq_varndims(grpid,varid,&ndim) ))
-		err(retval);
+	if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+		err(retval_);
 
 	dimid.resize(ndim);
 	dimSize.resize(ndim);
 
-	if((retval = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-		err(retval);
+	if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+		err(retval_);
 
 	for(int i = 0; i < ndim; ++i)
 	{
-		if ((retval = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-			err(retval);
+		if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+			err(retval_);
 	}
 
 	for(int i = 0; i < ndim; ++i)
@@ -458,18 +458,18 @@ void FileNetcdf::read_HypMatNC(const string dataSet, VecMat<T> &vm,
 
 	if(typeid(vector<float>) == typeid(vm.v))
 	{
-		if (( retval = nc_get_vara_float(grpid, varid, rcIdx, len, reinterpret_cast<float*>(&vm.v[0])) ))
-			err(retval);
+		if (( retval_ = nc_get_vara_float(grpid, varid, rcIdx, len, reinterpret_cast<float*>(&vm.v[0])) ))
+			err(retval_);
 	}
 	else if(typeid(vector<double>) == typeid(vm.v))
 	{
-		if (( retval = nc_get_vara_double(grpid, varid, rcIdx, len, reinterpret_cast<double*>(&vm.v[0])) ))
-			err(retval);
+		if (( retval_ = nc_get_vara_double(grpid, varid, rcIdx, len, reinterpret_cast<double*>(&vm.v[0])) ))
+			err(retval_);
 	}
 	else
 	{
-		if (( retval = nc_get_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
-			err(retval);
+		if (( retval_ = nc_get_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
+			err(retval_);
 	}
 
 }
@@ -478,7 +478,7 @@ void FileNetcdf::read_HypMatNC(const string dataSet, VecMat<T> &vm,
 template<typename T>
 T FileNetcdf::search_Group(size_t level, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int nGrps;
 	vector<int> ngrpids;
@@ -495,21 +495,21 @@ T FileNetcdf::search_Group(size_t level, int grpid)
 	{
 		size_t cidx=strGrpL;
 		// How many Groups
-		if(( retval = nc_inq_grps(grpid, &nGrps, NULL) ))
-			err(retval);
+		if(( retval_ = nc_inq_grps(grpid, &nGrps, NULL) ))
+			err(retval_);
 
 		if(nGrps > 0 )
 		{
 			ngrpids.resize(nGrps);
-			if(( retval = nc_inq_grps(grpid, NULL, &ngrpids[0]) ))
-				err(retval);
+			if(( retval_ = nc_inq_grps(grpid, NULL, &ngrpids[0]) ))
+				err(retval_);
 		}
 
-		if(( retval = nc_inq_grpname_len(grpid, &strGrpL)))
-			err(retval);
+		if(( retval_ = nc_inq_grpname_len(grpid, &strGrpL)))
+			err(retval_);
 		strGrp.resize(strGrpL);
-		if(( retval = nc_inq_grpname_full(grpid,NULL,&strGrp[0])))
-			err(retval);
+		if(( retval_ = nc_inq_grpname_full(grpid,NULL,&strGrp[0])))
+			err(retval_);
 
 		ds=strGrpL-cidx;
 
@@ -522,11 +522,11 @@ T FileNetcdf::search_Group(size_t level, int grpid)
 
 
 template<typename T>
-int FileNetcdf::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
+int FileNetcdf::write_VecNC(const string dataSet, const vector<T> &vec, nc_type xtype,
 			int grpid, bool unlim,
 			size_t chunks, int deflate_level, int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int dimid;
@@ -550,29 +550,29 @@ int FileNetcdf::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 		deflate = 1;
 
 	// Define the dimensions.
-	if((retval = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
-		err(retval);
+	if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
+		err(retval_);
 
 	// Define the variable.
-	if((retval = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+	if((retval_ = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
 	                         &dimid, &varid)))
-		err(retval);
+		err(retval_);
 
-	if((retval = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
-		err(retval);
-	if((retval = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+	if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+		err(retval_);
+	if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
 	                                 deflate_level)))
-		err(retval);
+		err(retval_);
 
 	if(unlim == true)
 	{
 		T attVal[1] = {0};
-		if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-			err(retval);
+		if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+			err(retval_);
 	}
 
-	if((retval = nc_enddef(grpid)))
-		err(retval);
+	if((retval_ = nc_enddef(grpid)))
+		err(retval_);
 
 	// No need to explicitly end define mode for netCDF-4 files. Write
 	// the data to the file.
@@ -581,13 +581,13 @@ int FileNetcdf::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 	{
 		N=vec.size();
 		size_t cIdx=0;
-		if((retval = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
-			err(retval);
+		if((retval_ = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
+			err(retval_);
 	}
 	else
 	{
-		if((retval = nc_put_var(grpid, varid, &vec[0])))
-			err(retval);
+		if((retval_ = nc_put_var(grpid, varid, &vec[0])))
+			err(retval_);
 	}
 
 	return varid;
@@ -595,11 +595,11 @@ int FileNetcdf::write_VecNC(const string dataSet, vector<T> &vec, nc_type xtype,
 
 
 template<typename T>
-int FileNetcdf::write_VecNC(const string dataSet, T *vec, size_t len, nc_type xtype,
+int FileNetcdf::write_VecNC(const string dataSet, const T *vec, size_t len, nc_type xtype,
 			int grpid, bool unlim,
 			size_t chunks, int deflate_level, int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int dimid;
@@ -623,29 +623,29 @@ int FileNetcdf::write_VecNC(const string dataSet, T *vec, size_t len, nc_type xt
 		deflate = 1;
 
 	// Define the dimensions.
-	if((retval = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
-		err(retval);
+	if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
+		err(retval_);
 
 	// Define the variable.
-	if((retval = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+	if((retval_ = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
 	                         &dimid, &varid)))
-		err(retval);
+		err(retval_);
 
-	if((retval = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
-		err(retval);
-	if((retval = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+	if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+		err(retval_);
+	if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
 	                                 deflate_level)))
-		err(retval);
+		err(retval_);
 
 	if(unlim == true)
 	{
 		T attVal[1] = {0};
-		if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-			err(retval);
+		if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+			err(retval_);
 	}
 
-	if((retval = nc_enddef(grpid)))
-		err(retval);
+	if((retval_ = nc_enddef(grpid)))
+		err(retval_);
 
 	// No need to explicitly end define mode for netCDF-4 files. Write
 	// the data to the file.
@@ -654,13 +654,13 @@ int FileNetcdf::write_VecNC(const string dataSet, T *vec, size_t len, nc_type xt
 	{
 		N=len;
 		size_t cIdx=0;
-		if((retval = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
-			err(retval);
+		if((retval_ = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
+			err(retval_);
 	}
 	else
 	{
-		if((retval = nc_put_var(grpid, varid, &vec[0])))
-			err(retval);
+		if((retval_ = nc_put_var(grpid, varid, &vec[0])))
+			err(retval_);
 	}
 
 	return varid;
@@ -668,11 +668,11 @@ int FileNetcdf::write_VecNC(const string dataSet, T *vec, size_t len, nc_type xt
 
 
 template<typename T>
-int FileNetcdf::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
+int FileNetcdf::write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type xtype,
 			int grpid, const string rowY, const string colX,
 			size_t chunk, int deflate_level, int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int dimid[2];
@@ -697,66 +697,66 @@ int FileNetcdf::write_MatNC(const string dataSet, VecMat<T> &vm, nc_type xtype,
 	{
 		int tmpvar;
 		int tmpdims[1];
-		if((retval = nc_inq_varid(grpid,rowY.c_str(),&tmpvar) ))
-			err(retval);
-		if((retval = nc_inq_vardimid(grpid,tmpvar,tmpdims) ))
-			err(retval);
+		if((retval_ = nc_inq_varid(grpid,rowY.c_str(),&tmpvar) ))
+			err(retval_);
+		if((retval_ = nc_inq_vardimid(grpid,tmpvar,tmpdims) ))
+			err(retval_);
 		dimid[0]=tmpdims[0];
 
 	}
 	else
 	{
 		string dimName1 = dataSet+"_row";
-		if((retval = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
-			err(retval);
+		if((retval_ = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
+			err(retval_);
 	}
 
 	if(colX.size() != 0)
 	{
 		int tmpvar;
 		int tmpdims[1];
-		if((retval = nc_inq_varid(grpid,colX.c_str(),&tmpvar) ))
-			err(retval);
-		if((retval = nc_inq_vardimid(grpid,tmpvar,tmpdims) ))
-			err(retval);
+		if((retval_ = nc_inq_varid(grpid,colX.c_str(),&tmpvar) ))
+			err(retval_);
+		if((retval_ = nc_inq_vardimid(grpid,tmpvar,tmpdims) ))
+			err(retval_);
 		dimid[1]=tmpdims[0];
 
 	}
 	else{
 		string dimName2 = dataSet+"_col";
-		if((retval = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
-			err(retval);
+		if((retval_ = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
+			err(retval_);
 	}
 
 	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
-	if(N[1] < chunk) chunk = N[1];
+	if(N[0] < chunk) chunk = N[0];
 	chunks[0] = 1;
 	chunks[1] = chunk;
 
 	// Define the variable.
-	if((retval = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
-	   err(retval);
+	if((retval_ = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
+	   err(retval_);
 
-	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-	   err(retval);
+	if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	   err(retval_);
 
-	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-	   err(retval);
+	if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	   err(retval_);
 
-	if((retval = nc_enddef(grpid)))
-		err(retval);
+	if((retval_ = nc_enddef(grpid)))
+		err(retval_);
 
 	// No need to explicitly end define mode for netCDF-4 files. Write
 	// the data to the file.
-	if((retval = nc_put_var(grpid, varid, &vm.v[0])))
-	   err(retval);
+	if((retval_ = nc_put_var(grpid, varid, &vm.v[0])))
+	   err(retval_);
 
 	return varid;
 }
 
 
 template<typename T,typename X, typename Y>
-int FileNetcdf::write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type ztype,
+int FileNetcdf::write_MatAxisNC(const string dataSet, const VecMat<T> &vm, nc_type ztype,
 				   vector<X> colAxisX, nc_type xtype,
 				   vector<Y> rowAxisY, nc_type ytype,
 				   const string colX, const string rowY,
@@ -764,7 +764,7 @@ int FileNetcdf::write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type zty
 				   size_t chunk, int deflate_level,
 				   int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int dimid[2];
@@ -807,10 +807,10 @@ int FileNetcdf::write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type zty
 	{
 		dimName2=colX;
 	}
-	if((retval = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
-		err(retval);
-	if((retval = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
-		err(retval);
+	if((retval_ = nc_def_dim(grpid,dimName1.c_str(),N[0],&dimid[0])))
+		err(retval_);
+	if((retval_ = nc_def_dim(grpid,dimName2.c_str(),N[1],&dimid[1])))
+		err(retval_);
 
 	// Chunking for Axis Data
 	if(colAxisX.size() < chunk) xchunk=colAxisX.size()-1;
@@ -823,41 +823,41 @@ int FileNetcdf::write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type zty
 	chunks[1] = chunk;
 
 	// Define Axises variables.
-	if((retval = nc_def_var(grpid,dimName1.c_str(),ytype,vecDim,&dimid[0],&axisVarid[0])))
-	   err(retval);
-	if((retval = nc_def_var_chunking(grpid,axisVarid[0],NC_CHUNKED,&ychunk)))
-	   err(retval);
-	if((retval = nc_def_var_deflate(grpid,axisVarid[0],shuffle,deflate,deflate_level)))
-	   err(retval);
+	if((retval_ = nc_def_var(grpid,dimName1.c_str(),ytype,vecDim,&dimid[0],&axisVarid[0])))
+	   err(retval_);
+	if((retval_ = nc_def_var_chunking(grpid,axisVarid[0],NC_CHUNKED,&ychunk)))
+	   err(retval_);
+	if((retval_ = nc_def_var_deflate(grpid,axisVarid[0],shuffle,deflate,deflate_level)))
+	   err(retval_);
 
-	if((retval = nc_def_var(grpid,dimName2.c_str(),xtype,vecDim,&dimid[1],&axisVarid[1])))
-	   err(retval);
-	if((retval = nc_def_var_chunking(grpid,axisVarid[1],NC_CHUNKED,&xchunk)))
-	   err(retval);
-	if((retval = nc_def_var_deflate(grpid,axisVarid[1],shuffle,deflate,deflate_level)))
-	   err(retval);
+	if((retval_ = nc_def_var(grpid,dimName2.c_str(),xtype,vecDim,&dimid[1],&axisVarid[1])))
+	   err(retval_);
+	if((retval_ = nc_def_var_chunking(grpid,axisVarid[1],NC_CHUNKED,&xchunk)))
+	   err(retval_);
+	if((retval_ = nc_def_var_deflate(grpid,axisVarid[1],shuffle,deflate,deflate_level)))
+	   err(retval_);
 
 
 	// Define the Matrix variable.
-	if((retval = nc_def_var(grpid,dataSet.c_str(),ztype,ndim,&dimid[0],&varid)))
-	   err(retval);
+	if((retval_ = nc_def_var(grpid,dataSet.c_str(),ztype,ndim,&dimid[0],&varid)))
+	   err(retval_);
 
-	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-	   err(retval);
+	if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	   err(retval_);
 
-	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-	   err(retval);
+	if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	   err(retval_);
 
-	if((retval = nc_enddef(grpid)))
-		err(retval);
+	if((retval_ = nc_enddef(grpid)))
+		err(retval_);
 
 	// Write the data to the file.
-	if((retval = nc_put_var(grpid, axisVarid[0], &rowAxisY[0])))
-		err(retval);
-	if((retval = nc_put_var(grpid, axisVarid[1], &colAxisX[0])))
-		err(retval);
-	if((retval = nc_put_var(grpid, varid, &vm.v[0])))
-	   err(retval);
+	if((retval_ = nc_put_var(grpid, axisVarid[0], &rowAxisY[0])))
+		err(retval_);
+	if((retval_ = nc_put_var(grpid, axisVarid[1], &colAxisX[0])))
+		err(retval_);
+	if((retval_ = nc_put_var(grpid, varid, &vm.v[0])))
+	   err(retval_);
 
 	return varid;
 }
@@ -865,20 +865,27 @@ int FileNetcdf::write_MatAxisNC(const string dataSet, VecMat<T> &vm, nc_type zty
 
 template<typename T>
 void FileNetcdf::write_AttNC(const string dataSet, const string attName,
-			vector<T> &attVal, nc_type xtype, int grpid)
+							 const vector<T> &attVal, nc_type xtype, int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	size_t len;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if (dataSet == "")
+	{
+		varid = NC_GLOBAL;
+	}
+	else
+	{
+		if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+			err(retval_);
+	}
 
 	len = attVal.size();
 
-	if((retval = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
-		err(retval);
+	if((retval_ = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
+		err(retval_);
 }
 
 
@@ -886,7 +893,7 @@ template<typename T>
 void FileNetcdf::write_DefHypVecNC(const string dataSet, nc_type xtype, int grpid,
                        size_t chunk, int deflate_level, int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
     int dimid;
 	int varid;
@@ -900,101 +907,101 @@ void FileNetcdf::write_DefHypVecNC(const string dataSet, nc_type xtype, int grpi
 		deflate = 1;
 
 	// Define the dimensions.
-	if((retval = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
-		err(retval);
+	if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
+		err(retval_);
 
 	// Define the variable.
-	if((retval = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+	if((retval_ = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
 	                         &dimid, &varid)))
-		err(retval);
+		err(retval_);
 
-	if((retval = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunk)))
-		err(retval);
-	if((retval = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+	if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunk)))
+		err(retval_);
+	if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
 	                                 deflate_level)))
-		err(retval);
+		err(retval_);
 
     T attVal[1] = {0};
-    if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-        err(retval);
+    if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+        err(retval_);
 
-	if((retval = nc_enddef(grpid)))
-		err(retval);
+	if((retval_ = nc_enddef(grpid)))
+		err(retval_);
 }
 
 template<typename T>
-void FileNetcdf::write_PutHypVecNC(const string dataSet, vector<T> &vec,
+void FileNetcdf::write_PutHypVecNC(const string dataSet, const vector<T> &vec,
                        size_t idx, size_t len, int grpid)
 {
-    if(grpid == 0) grpid = ncid;
+    if(grpid == 0) grpid = ncid_;
 
     int varid;
 
-    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-        err(retval);
+    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        err(retval_);
 
-    if ((retval = nc_put_vara(grpid, varid, idx, len, &vec[0]) ))
-        err(retval);
+    if ((retval_ = nc_put_vara(grpid, varid, idx, len, &vec[0]) ))
+        err(retval_);
 }
 
 template<typename T>
-void FileNetcdf::write_PutHypVecNC(const string dataSet, T* vec,
+void FileNetcdf::write_PutHypVecNC(const string dataSet, const T* vec,
                        size_t idx, size_t len, int grpid)
 {
-    if(grpid == 0) grpid = ncid;
+    if(grpid == 0) grpid = ncid_;
 
     int varid;
 
-    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-        err(retval);
+    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        err(retval_);
 
-    if ((retval = nc_put_vara(grpid, varid, idx, len, vec) ))
-        err(retval);
+    if ((retval_ = nc_put_vara(grpid, varid, idx, len, vec) ))
+        err(retval_);
 }
 
 template<typename T>
-void FileNetcdf::write_CatHypVecNC(const string dataSet, vector<T> &vec, int grpid)
+void FileNetcdf::write_CatHypVecNC(const string dataSet, const vector<T> &vec, int grpid)
 {
-    if(grpid == 0) grpid = ncid;
+    if(grpid == 0) grpid = ncid_;
 
     size_t len = vec.size();
     int dimid;
     int varid;
     size_t idx;
 
-    if((retval = nc_inq_dimid(grpid, dataSet.c_str(), &dimid) ))
-        err(retval);
+    if((retval_ = nc_inq_dimid(grpid, dataSet.c_str(), &dimid) ))
+        err(retval_);
 
-    if((retval = nc_inq_dim(grpid, dimid, NULL, &idx) ))
-        err(retval);
+    if((retval_ = nc_inq_dim(grpid, dimid, NULL, &idx) ))
+        err(retval_);
 
-    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-        err(retval);
+    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        err(retval_);
 
-    if ((retval = nc_put_vara(grpid, varid, &idx, &len, &vec[0]) ))
-        err(retval);
+    if ((retval_ = nc_put_vara(grpid, varid, &idx, &len, &vec[0]) ))
+        err(retval_);
 }
 
 template<typename T>
-void FileNetcdf::write_CatHypVecNC(const string dataSet,T* vec,size_t len,int grpid)
+void FileNetcdf::write_CatHypVecNC(const string dataSet, const T* vec,size_t len,int grpid)
 {
-    if(grpid == 0) grpid = ncid;
+    if(grpid == 0) grpid = ncid_;
 
     int dimid;
     int varid;
     size_t idx;
 
-    if((retval = nc_inq_dimid(grpid, dataSet.c_str(), &dimid) ))
-        err(retval);
+    if((retval_ = nc_inq_dimid(grpid, dataSet.c_str(), &dimid) ))
+        err(retval_);
 
-    if((retval = nc_inq_dim(grpid, dimid, NULL, &idx) ))
-        err(retval);
+    if((retval_ = nc_inq_dim(grpid, dimid, NULL, &idx) ))
+        err(retval_);
 
-    if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-        err(retval);
+    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+        err(retval_);
 
-    if ((retval = nc_put_vara(grpid, varid, &idx, &len, vec) ))
-        err(retval);
+    if ((retval_ = nc_put_vara(grpid, varid, &idx, &len, vec) ))
+        err(retval_);
 }
 
 template<typename T>
@@ -1002,7 +1009,7 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, size_t dims[], nc_type 
 			int grpid,
 			size_t chunk, int deflate_level, int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int dimid[2];
@@ -1018,10 +1025,10 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, size_t dims[], nc_type 
 		deflate = 1;
 
 	// Define the dimensions.
-	if((retval = nc_def_dim(grpid,dimName1.c_str(),dims[0],&dimid[0])))
-		err(retval);
-	if((retval = nc_def_dim(grpid,dimName2.c_str(),dims[1],&dimid[1])))
-		err(retval);
+	if((retval_ = nc_def_dim(grpid,dimName1.c_str(),dims[0],&dimid[0])))
+		err(retval_);
+	if((retval_ = nc_def_dim(grpid,dimName2.c_str(),dims[1],&dimid[1])))
+		err(retval_);
 
 	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
 	if(dims[1] < chunk)
@@ -1033,21 +1040,21 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, size_t dims[], nc_type 
 	chunks[1] = chunk;
 
 	// Define the variable.
-	if((retval = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
-	   err(retval);
+	if((retval_ = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
+	   err(retval_);
 
-	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-	   err(retval);
+	if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	   err(retval_);
 
-	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-	   err(retval);
+	if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	   err(retval_);
 
 	T attVal[1] = {0};
-	if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-		err(retval);
+	if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+		err(retval_);
 
-	if((retval = nc_enddef(grpid)))
-		err(retval);
+	if((retval_ = nc_enddef(grpid)))
+		err(retval_);
 }
 
 template<typename T>
@@ -1055,7 +1062,7 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, const string rowY, cons
 		nc_type xtype, int grpid,
 		size_t chunk, int deflate_level, int shuffle)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 	int dimid[2];
@@ -1073,21 +1080,21 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, const string rowY, cons
 	int cordvar;
 	int corddims[1];
 
-	if ((retval = nc_inq_varid(grpid,rowY.c_str(),&cordvar) ))
-		err(retval);
-	if ((retval = nc_inq_vardimid(grpid,cordvar,corddims) ))
-		err(retval);
+	if ((retval_ = nc_inq_varid(grpid,rowY.c_str(),&cordvar) ))
+		err(retval_);
+	if ((retval_ = nc_inq_vardimid(grpid,cordvar,corddims) ))
+		err(retval_);
 	dimid[0]=corddims[0];
-	if ((retval = nc_inq_dimlen(grpid, dimid[0], &dims[0]) ))
-		err(retval);
+	if ((retval_ = nc_inq_dimlen(grpid, dimid[0], &dims[0]) ))
+		err(retval_);
 
-	if ((retval = nc_inq_varid(grpid,colX.c_str(),&cordvar) ))
-		err(retval);
-	if ((retval = nc_inq_vardimid(grpid,cordvar,corddims) ))
-		err(retval);
+	if ((retval_ = nc_inq_varid(grpid,colX.c_str(),&cordvar) ))
+		err(retval_);
+	if ((retval_ = nc_inq_vardimid(grpid,cordvar,corddims) ))
+		err(retval_);
 	dimid[1]=corddims[0];
-	if ((retval = nc_inq_dimlen(grpid, dimid[1], &dims[1]) ))
-		err(retval);
+	if ((retval_ = nc_inq_dimlen(grpid, dimid[1], &dims[1]) ))
+		err(retval_);
 
 	//if(N[0]*N[1] < chunk) chunk = N[0]*N[1];
 	if(dims[1] < chunk)
@@ -1099,52 +1106,52 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, const string rowY, cons
 	chunks[1] = chunk;
 
 	// Define the variable.
-	if((retval = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
-	   err(retval);
+	if((retval_ = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
+	   err(retval_);
 
-	if((retval = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-	   err(retval);
+	if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+	   err(retval_);
 
-	if((retval = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-	   err(retval);
+	if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+	   err(retval_);
 
 
 	T attVal[1] = {0};
-	if((retval = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-		err(retval);
+	if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+		err(retval_);
 
-	if((retval = nc_enddef(grpid)))
-		err(retval);
+	if((retval_ = nc_enddef(grpid)))
+		err(retval_);
 }
 
 template<typename T>
-void FileNetcdf::write_PutHypMatNC(const string dataSet, VecMat<T> &vm,
+void FileNetcdf::write_PutHypMatNC(const string dataSet, const VecMat<T> &vm,
 		size_t rcIdx[2], size_t len[2], int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if ((retval = nc_put_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
-		err(retval);
+	if ((retval_ = nc_put_vara(grpid, varid, rcIdx, len, &vm.v[0]) ))
+		err(retval_);
 }
 
 template<typename T>
-void FileNetcdf::write_PutHypMatNC(const string dataSet, T *vm,
+void FileNetcdf::write_PutHypMatNC(const string dataSet, const T *vm,
 		size_t rcIdx[2], size_t len[2], int grpid)
 {
-	if(grpid == 0) grpid = ncid;
+	if(grpid == 0) grpid = ncid_;
 
 	int varid;
 
-	if((retval = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-		err(retval);
+	if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+		err(retval_);
 
-	if ((retval = nc_put_vara(grpid, varid, rcIdx, len, vm) ))
-		err(retval);
+	if ((retval_ = nc_put_vara(grpid, varid, rcIdx, len, vm) ))
+		err(retval_);
 }
 
 

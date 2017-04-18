@@ -26,14 +26,13 @@
 #include <cassert>
 #include <pugixml.hpp>
 #include "mzMLxml.hpp"
-
-#include "../smpeak/SMData.hpp"
-#include "../smpeak/MathOperator.hpp"
-#include "../smpeak/BsplineData.hpp"
-#include "../smpeak/PeakOperator.hpp"
-#include "../smpeak/PeakData.hpp"
-#include "../smpeak/PeakManager.hpp"
-
+#include "../peak/SMData.hpp"
+#include "../peak/MathOperator.hpp"
+#include "../peak/BsplineData.hpp"
+#include "../peak/PeakOperator.hpp"
+#include "../peak/PeakData.hpp"
+#include "../peak/PeakManager.hpp"
+using namespace kernel;
 namespace xml = pugi;
 
 
@@ -58,16 +57,16 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
     {
         vector<char> buffer;
         size_t offset = 0;
-        size_t extent = mzML_spectrumIndex.front();
+        size_t extent = (size_t) mzML_spectrumIndex.front();
         file_.read_HypVecNC("mzML", buffer, &offset, &extent);
         mzML.insert(mzML.end(), buffer.begin(), buffer.end());
 
-        offset = mzML_spectrumIndex.back();
+        offset = (size_t) mzML_spectrumIndex.back();
         extent = mzML_chromatogramIndex.front() - offset;
         file_.read_HypVecNC("mzML", buffer, &offset, &extent);
         mzML.insert(mzML.end(), buffer.begin(), buffer.end());
 
-        offset = mzML_chromatogramIndex.back();
+        offset = (size_t) mzML_chromatogramIndex.back();
         vector<size_t> dims = file_.read_DimNC("mzML");
         extent = dims[0] - offset;
         file_.read_HypVecNC("mzML", buffer, &offset, &extent);
@@ -80,14 +79,14 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
     xml::xml_parse_result result = mzmlDoc.load_buffer_inplace(&mzML[0], sizeof(char) * mzML.size());
     if (!result) throw runtime_error("Error: In mzMLb input - " + string(result.description()));
 
-    map<string, MzmlbSpectrumMetadata::DataType> dataTypes;
+    map<string, SpectrumMetadata::DataType> dataTypes;
     nodes = mzmlDoc.select_nodes("mzML/instrumentConfigurationList/instrumentConfiguration");
     for(xml::xpath_node_set::const_iterator itr = nodes.begin(); itr != nodes.end(); ++itr)
     {
         string id;
         istringstream(itr->node().attribute("id").value()) >> id;
 
-        MzmlbSpectrumMetadata::DataType dataType = MzmlbSpectrumMetadata::Unknown;
+        SpectrumMetadata::DataType dataType = SpectrumMetadata::Unknown;
         xml::xpath_node_set detectors = itr->node().select_nodes("componentList/detector");
         for(xml::xpath_node_set::const_iterator itrDetectors = detectors.begin(); itrDetectors != detectors.end(); ++itrDetectors)
         {
@@ -97,8 +96,8 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
             {
                 if (getDebugLevel() % 10 >= 1)
                     cout << getTimeStamp() << " Detector: electron multiplier (ion count)" << endl;
-                if (dataType == MzmlbSpectrumMetadata::Unknown || dataType == MzmlbSpectrumMetadata::IonCount)
-                    dataType = MzmlbSpectrumMetadata::IonCount;
+                if (dataType == SpectrumMetadata::Unknown || dataType == SpectrumMetadata::IonCount)
+                    dataType = SpectrumMetadata::IonCount;
                 else
                     throw runtime_error("Error: Inconsistent <detector> types found in mzMLb");
             }
@@ -108,8 +107,8 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
             {
                 if (getDebugLevel() % 10 >= 1)
                     cout << getTimeStamp() << " Detector: photomultiplier (ion count)" << endl;
-                if (dataType == MzmlbSpectrumMetadata::Unknown || dataType == MzmlbSpectrumMetadata::IonCount)
-                    dataType = MzmlbSpectrumMetadata::IonCount;
+                if (dataType == SpectrumMetadata::Unknown || dataType == SpectrumMetadata::IonCount)
+                    dataType = SpectrumMetadata::IonCount;
                 else
                     throw runtime_error("Error: Inconsistent <detector> types found in mzMLb");
             }
@@ -119,8 +118,8 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
             {
                 if (getDebugLevel() % 10 >= 1)
                     cout << getTimeStamp() << " Detector: inductive (ion current)" << endl;
-                if (dataType == MzmlbSpectrumMetadata::Unknown || dataType == MzmlbSpectrumMetadata::IonCurrent)
-                    dataType = MzmlbSpectrumMetadata::IonCurrent;
+                if (dataType == SpectrumMetadata::Unknown || dataType == SpectrumMetadata::IonCurrent)
+                    dataType = SpectrumMetadata::IonCurrent;
                 else
                     throw runtime_error("Error: Inconsistent <detector> types found in mzMLb");
             }
@@ -130,7 +129,7 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
     }
 
     // query default detector
-    MzmlbSpectrumMetadata::DataType defaultDataType = dataTypes[mzmlDoc.select_node("mzML/run").node().attribute("defaultInstrumentConfigurationRef").value()];
+    SpectrumMetadata::DataType defaultDataType = dataTypes[mzmlDoc.select_node("mzML/run").node().attribute("defaultInstrumentConfigurationRef").value()];
 
     // query number of spectra to create "metadata_" structure
 	li ns;
@@ -176,14 +175,14 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
         // capture polarity
         nodes = mzmlDoc.select_nodes("spectrum/cvParam[@accession='MS:1000129']");
         if (!nodes.empty())
-            metadata_[i].id = "neg";
+            metadata_[i].id = "n";
         else
         {
             nodes = mzmlDoc.select_nodes("spectrum/cvParam[@accession='MS:1000130']");
             if (!nodes.empty())
-                metadata_[i].id = "pos";
+                metadata_[i].id = "p";
             else
-                metadata_[i].id = "unk";
+                metadata_[i].id = "u";
         }
 
         // capture scan info (we can only process files with one scan per spectra, so for us scan = spectrum)
@@ -216,7 +215,7 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
             xml::xpath_node_set presetScanConfigs = nodes.first().node().select_nodes("cvParam[@accession='MS:1000616']");
             if(!presetScanConfigs.empty())
             {
-                metadata_[i].config += "_";
+                metadata_[i].config += "-";
                 metadata_[i].config += presetScanConfigs.first().node().attribute("value").value();
             }
         }
@@ -227,8 +226,11 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
         if(!nodes.empty())
         {
             // capture precursor mz
-            metadata_[i].id += "_";
-            metadata_[i].id += nodes.first().node().attribute("value").value();
+            string precursor = nodes.first().node().attribute("value").value();
+            replace(precursor.begin(), precursor.end(), '.', '-');
+
+            metadata_[i].id += "-";
+            metadata_[i].id += precursor;
         }
 
         // capture dataset and offset of mzs
@@ -288,7 +290,7 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
         metadata_.resize(metadata_.size() - 1);
 
         // remove centroided spectra as we do not process these
-        vector<MzmlbSpectrumMetadata>::iterator iter = metadata_.begin();
+        vector<SpectrumMetadata>::iterator iter = metadata_.begin();
         while (iter != metadata_.end())
         {
             if (iter->isProfileMode)
@@ -334,7 +336,9 @@ DatasetMzmlb::DatasetMzmlb(string& fileName) : spectrumIndex_(0), lastSpectrumIn
             {
                 for (ii j = offset; j < offset + extent; j++)
                 {
-                    metadata_[j].id += "_";
+                    replace(metadata_[j].startTimeString.begin(), metadata_[j].startTimeString.end(), '.', '-');
+
+                    metadata_[j].id += "-";
                     metadata_[j].id += metadata_[j].startTimeString;
                 }
             }
@@ -388,7 +392,7 @@ DatasetMzmlb::~DatasetMzmlb()
 }
 
 
-bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
+bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
 {
     // display total progress update
     if(spectrumIndex_ / 1000 > lastSpectrumIndex_ / 1000 || spectrumIndex_ >= metadata_.size())
@@ -404,17 +408,17 @@ bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
     }
 
     // clear out
-    vector<li>().swap(out.binCountsIndex);
+    vector<li>().swap(out.countsIndex);
     vector<double>().swap(out.startTimes);
     vector<double>().swap(out.finishTimes);
     vector<fp>().swap(out.exposures);
-    vector<fp>().swap(out.binCounts);
-    vector<double>().swap(out.binEdges);
+    vector<fp>().swap(out.counts);
+    vector<double>().swap(out.locations);
 
 	if (spectrumIndex_ >= metadata_.size()) return false;
 
     // determine next set of spectra
-    id = metadata_[spectrumIndex_].id;
+    id = "b_" + metadata_[spectrumIndex_].id;
     bool done = false;
     li offset = spectrumIndex_;
     for (; !done; spectrumIndex_++)
@@ -422,7 +426,7 @@ bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
         // if at the end or any metadata is different in the next spectrum, we have come to the end of this channel
         if (spectrumIndex_ == metadata_.size() - 1 || metadata_[spectrumIndex_].id != metadata_[spectrumIndex_ + 1].id)
         {
-            out.binCountsIndex.push_back((li)out.binCounts.size());
+            out.countsIndex.push_back((li)out.counts.size());
             done = true;
         }
     }
@@ -488,12 +492,12 @@ bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
     // For IonCurrent data, it converts the sampled data to binned counts by treating the
     //   mz values as the bin edges, and using trapezoid rule to integrate intensity values
     //
-    out.binCountsIndex.resize(extent_ + 1);
+    out.countsIndex.resize(extent_ + 1);
     out.exposures.resize(extent_);
 
     for (ii i = 0; i < extent_; i++)
     {
-        out.binCountsIndex[i] = (li) out.binCounts.size();
+        out.countsIndex[i] = (li) out.counts.size();
 
         // load intensities
         vector<fp> intensities;
@@ -505,14 +509,14 @@ bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
         }
 
         switch (metadata_[offset + i].dataType) {
-            case MzmlbSpectrumMetadata::Unknown:
-            case MzmlbSpectrumMetadata::IonCount: // ToF, Quad, Ion trap etc
+            case SpectrumMetadata::Unknown:
+            case SpectrumMetadata::IonCount: // ToF, Quad, Ion trap etc
             {
                 if (intensities.size() == 0) // if empty we MUST add a zero bin!
                 {
-                    out.binEdges.push_back(mz0);
-                    out.binCounts.push_back(0.0);
-                    out.binEdges.push_back(mz1);
+                    out.locations.push_back(mz0);
+                    out.counts.push_back(0.0);
+                    out.locations.push_back(mz1);
 
                     out.exposures[i] = 1.0;
                 }
@@ -531,8 +535,8 @@ bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
                     if (intensities.front() == 0.0) // only use the first m/z if the intensity is zero
                     {
                         double frontEdge = mz0 < mzs[i].front() ? mz0 : mzs[i].front();
-                        out.binEdges.push_back(frontEdge);
-                        out.binCounts.push_back(0.0);
+                        out.locations.push_back(frontEdge);
+                        out.counts.push_back(0.0);
                     }
 
                     // use all the intensities except first and last
@@ -540,39 +544,39 @@ bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
                     {
                         if (intensities[k] != 0.0 || intensities[k - 1] != 0.0) // merge zeros
                         {
-                            out.binEdges.push_back(0.5 * (mzs[i][k - 1] + mzs[i][k]));
-                            out.binCounts.push_back(((fp) intensities[k]) * out.exposures[i]);
+                            out.locations.push_back(0.5 * (mzs[i][k - 1] + mzs[i][k]));
+                            out.counts.push_back(((fp) intensities[k]) * out.exposures[i]);
                         }
                     }
-                    out.binEdges.push_back(0.5 * (mzs[i][mzs[i].size() - 2] + mzs[i].back()));
+                    out.locations.push_back(0.5 * (mzs[i][mzs[i].size() - 2] + mzs[i].back()));
 
                     if (intensities.back() == 0.0) // only use the last m/z if the intensity is zero
                     {
-                        out.binCounts.push_back(0.0);
+                        out.counts.push_back(0.0);
                         double backEdge = mz1 > mzs[i].back() ? mz1 : mzs[i].back();
-                        out.binEdges.push_back(backEdge);
+                        out.locations.push_back(backEdge);
                     }
                 }
             } break;
-            case MzmlbSpectrumMetadata::IonCurrent: // Orbitrap, FT-ICR etc
+            case SpectrumMetadata::IonCurrent: // Orbitrap, FT-ICR etc
             {
                 if (intensities.front() == 0.0 && mz0 < mzs[i].front())
                 {
-                    out.binEdges.push_back(mz0);
-                    out.binCounts.push_back(0.0);
+                    out.locations.push_back(mz0);
+                    out.counts.push_back(0.0);
                 }
 
                 for (ii k = 0; k < (ii) intensities.size() - 1; k++)
                 {
-                    out.binEdges.push_back(mzs[i][k]);
-                    out.binCounts.push_back((fp) ((mzs[i][k + 1] - mzs[i][k]) * 0.5 * (intensities[k + 1] + intensities[k])));
+                    out.locations.push_back(mzs[i][k]);
+                    out.counts.push_back((fp) ((mzs[i][k + 1] - mzs[i][k]) * 0.5 * (intensities[k + 1] + intensities[k])));
                 }
-                out.binEdges.push_back(mzs[i][mzs[i].size() - 1]);
+                out.locations.push_back(mzs[i][mzs[i].size() - 1]);
 
                 if (intensities.back() == 0.0 && mz1 > mzs[i].back())
                 {
-                    out.binCounts.push_back(0.0);
-                    out.binEdges.push_back(mz1);
+                    out.counts.push_back(0.0);
+                    out.locations.push_back(mz1);
                 }
 
                 out.exposures[i] = 1.0;
@@ -590,19 +594,27 @@ bool DatasetMzmlb::next(SeamassCore::Input& out, std::string& id)
                 cout << getTimeStamp() << "   " << setw(1 + (int)(log10((float)extent_))) << (i+1) << "/" << extent_ << endl;
         }
     }
-    out.binCountsIndex.back() = (li)out.binCounts.size();
+    out.countsIndex.back() = (li)out.counts.size();
+
+    out.type = Seamass::Input::Type::Binned;
 
     return true;
 }
 
 
-bool DatasetMzmlb::startTimeOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs)
+void DatasetMzmlb::write(const Seamass::Input& input, const Seamass::Output& output, const std::string& id)
+{
+    throw runtime_error("not implemented!");
+}
+
+
+bool DatasetMzmlb::startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs)
 {
 	return lhs.startTime < rhs.startTime;
 }
 
 
-bool DatasetMzmlb::seamassOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpectrumMetadata &rhs)
+bool DatasetMzmlb::seamassOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs)
 {
     if (lhs.config == rhs.config)
     {
@@ -621,15 +633,19 @@ bool DatasetMzmlb::seamassOrder(const MzmlbSpectrumMetadata &lhs, const MzmlbSpe
     }
 }
 
-void DatasetMzmlb::writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool centriod_, double threshold_)
+
+void DatasetMzmlb::writeData(Seamass& sm_, Seamass::Input& input_, string id, bool centriod_, double threshold_)
 {
-	if(centriod_ == true)
+    if ((extent_ > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
+        cout << getTimeStamp() << "  Writing=" << id << " ..." << endl;
+
+    if(centriod_ == true)
 	{
 		VecMat<double> mzPeak;
 		VecMat<float> pkPeak;
 		vector<size_t> mzpkVecSize;
 
-		SeamassCore::ControlPoints contpts;
+		Seamass::ControlPoints contpts;
 		sm_.getOutputControlPoints1d(contpts);
 		uli dims[2];
 		double mzRes;
@@ -668,28 +684,28 @@ void DatasetMzmlb::writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool 
 	}
 	else
 	{
-		vector<fp> binCounts(input_.binCounts.size());
-		sm_.getOutputBinCounts(binCounts); // retrieve seaMass processed binCounts
+		vector<fp> binCounts(input_.counts.size());
+		sm_.getOutputBinCounts(binCounts); // retrieve seaMass processed counts
 		// convert ion counts into ion density (counts per Th) and scale by exposures
     	if (input_.exposures.size() > 0)
 		{
-    		if (input_.binCountsIndex.size() > 0)
+    		if (input_.countsIndex.size() > 0)
     		{
     			// 2D data
-    			for (li j = 0; j < (li)input_.binCountsIndex.size() - 1; j++)
+    			for (li j = 0; j < (li)input_.countsIndex.size() - 1; j++)
     			{
-    				for (li i = input_.binCountsIndex[j]; i < input_.binCountsIndex[j + 1]; i++)
+    				for (li i = input_.countsIndex[j]; i < input_.countsIndex[j + 1]; i++)
        	         	{
-						binCounts[i] /= (fp) (input_.binEdges[i + j + 1] - input_.binEdges[i + j]) * input_.exposures[j];
+						binCounts[i] /= (fp) (input_.locations[i + j + 1] - input_.locations[i + j]) * input_.exposures[j];
 					}
 				}
 			}
 			else
 			{
 				// 1D data
-				for (li i = 0; i < (li)input_.binCounts.size(); i++)
+				for (li i = 0; i < (li)input_.counts.size(); i++)
 				{
-					binCounts[i] /= (fp) (input_.binEdges[i + 1] - input_.binEdges[i]) * input_.exposures[0];
+					binCounts[i] /= (fp) (input_.locations[i + 1] - input_.locations[i]) * input_.exposures[0];
 				}
 			}
 		}

@@ -20,8 +20,8 @@
 //
 
 
-#ifndef _SEAMASS_CORE_BASISBSPLINE_HPP_
-#define _SEAMASS_CORE_BASISBSPLINE_HPP_
+#ifndef SEAMASS_CORE_BASISBSPLINE_HPP
+#define SEAMASS_CORE_BASISBSPLINE_HPP
 
 
 #include <vector>
@@ -34,13 +34,13 @@ class BasisBspline : public Basis
 public:
 	struct GridInfo
 	{
-		short dimensions;  	      // dimension of each b-spline coefficients grid
-		std::vector<short> scale; // dyadic scale for each dimension
+		char dimensions;  	      // dimension of each b-spline coefficients grid
+		std::vector<char> scale; // dyadic scale for each dimension
 		std::vector<ii> offset;   // coefficient offset for each dimension
 		std::vector<ii> extent;   // number of coefficients for each dimension (make up the columns)
 		ii count;                 // number of grids
 
-		GridInfo(short dimensions_);
+		GridInfo(char dimensions_);
 		~GridInfo();
 
 		ii m() const;           // number of rows in resulting matrix
@@ -50,7 +50,7 @@ public:
 		void operator=(const GridInfo& gridInfo);
 	};
 
-	BasisBspline(std::vector<Basis*>& bases, short dimensions, Transient transient, int parentIndex = -1);
+	BasisBspline(std::vector<Basis*>& bases, char dimensions, Transient transient, int parentIndex = -1);
 	virtual ~BasisBspline();
 
 	ii getM() const;
@@ -65,6 +65,7 @@ private:
 };
 
 std::ostream& operator<<(std::ostream& os, const BasisBspline::GridInfo& gridInfo);
+
 
 #endif
 

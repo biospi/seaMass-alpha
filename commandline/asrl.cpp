@@ -20,12 +20,13 @@
 //
 
 
-#include "../asrl/SeamassAsrl.hpp"
+#include "../asrl/Asrl.hpp"
 #include "../kernel/FileNetcdf.hpp"
 #include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
 #include <iomanip>
 using namespace std;
+using namespace kernel;
 namespace po = boost::program_options;
 
 
@@ -35,14 +36,11 @@ int main(int argc, const char * const * argv)
 	try
 #endif
 	{
-        cout << endl;
-        SeamassAsrl::notice();
-
         po::options_description general(
                 "Usage\n"
                 "-----\n"
-                "seamass-asrl [OPTIONS...] [SAI FILE]\n"
-                "seamass-asrl <-g> <-l lambda> <-no_taper> <-t tol> <file>"
+                "asrl [OPTIONS...] [SAI FILE]\n"
+                "asrl <-l lambda> <-no_taper> <-t tol> <file>"
         );
 
         string filePath;
@@ -76,22 +74,24 @@ int main(int argc, const char * const * argv)
 		po::variables_map vm;
 		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
 		po::notify(vm);
-        
+
+        cout << endl;
+        Asrl::notice();
+        initKernel(debugLevel);
+
 		if(vm.count("help") || !vm.count("file"))
 		{
 			cout << desc << endl;
 			return 0;
 		}
 
-        cout << endl << getThreadInfo() << endl << endl;
-        setDebugLevel(debugLevel);
         double tolerance = pow(2.0, (double)toleranceExponent);
         double shrinkage = pow(2.0, (double)shrinkageExponent);
 
         // read input file
         if (getDebugLevel() % 10 >= 1)
             cout << getTimeStamp() << "Reading " << filePath << " ..." << endl;
-        SeamassAsrl::Input input;
+        Asrl::Input input;
         {
             FileNetcdf fileIn(filePath);
 
@@ -127,13 +127,13 @@ int main(int argc, const char * const * argv)
         }
 
         // optimise!
-        SeamassAsrl asrl(input, shrinkage, !noTaperLambda, tolerance);
+        Asrl asrl(input, shrinkage, !noTaperLambda, tolerance);
         do
         {
             if (getDebugLevel() >= 10)
             {
                 // write intermediate results
-                SeamassAsrl::Output output;
+                Asrl::Output output;
                 asrl.getOutput(output);
                 if (output.xs.size() > 0)
                 {
@@ -154,7 +154,7 @@ int main(int argc, const char * const * argv)
         }
         while (asrl.step());
 
-        SeamassAsrl::Output output;
+        Asrl::Output output;
         asrl.getOutput(output);
         if (output.xs.size() > 0)
         {

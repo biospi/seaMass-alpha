@@ -19,27 +19,32 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_DATASETSMI_HPP
-#define SEAMASS_DATASETSMI_HPP
+#ifndef SEAMASS_DATASETSEAMASSCORE_HPP
+#define SEAMASS_DATASETSEAMASSCORE_HPP
+
 
 #include "Dataset.hpp"
 #include "../kernel/FileNetcdf.hpp"
 
 
-class DatasetSmi: public Dataset
+class DatasetSeamass: public Dataset
 {
 public:
-	DatasetSmi(std::string &filename_);
-	virtual ~DatasetSmi();
+	DatasetSeamass(std::string &fileName, bool onlyWrite = false);
+	virtual ~DatasetSeamass();
 
-	virtual bool next(SeamassCore::Input& output_, std::string& id_);
-	virtual void writeData(SeamassCore &sm_, SeamassCore::Input &input_, bool centriod_, double threshold_);
+	virtual bool read(Seamass::Input &input, std::string &id);
+	virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id);
+
+    virtual void write(const Seamass::Input& input, const std::string& id);
+    virtual void write(const Seamass::Input& input, const Seamass::Output& output, const std::string& id);
 
 private:
-	FileNetcdf file_;
-	FileNetcdf fileOut_;
-	bool processed;
+    std::string fileName_;
+    FileNetcdf* fileIn_;
+	FileNetcdf* fileOut_;
+ 	bool processed_;
 };
 
 
-#endif //SEAMASS_DATASETSMI_HPP
+#endif

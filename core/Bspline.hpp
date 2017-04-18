@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include "../kernel/Matrix.hpp"
+#include "../kernel/kernel.hpp"
 
 
 class Bspline

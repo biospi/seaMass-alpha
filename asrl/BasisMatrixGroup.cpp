@@ -23,6 +23,7 @@
 #include "BasisMatrixGroup.hpp"
 #include <iostream>
 using namespace std;
+using namespace kernel;
 
 
 BasisMatrixGroup::BasisMatrixGroup(std::vector<Basis*>& bases, ii aM, ii aN, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ,
@@ -35,7 +36,7 @@ BasisMatrixGroup::BasisMatrixGroup(std::vector<Basis*>& bases, ii aM, ii aN, std
         cout << " ..." << endl;
     }
 
-    g_.init(gM, aN, (ii)aV.size(), gV.data(), gI.data(), gJ.data());
+    g_.copy(gM, aN, gI, gJ, gV);
     gT_.copy(g_, true);
 }
 
@@ -79,7 +80,7 @@ void BasisMatrixGroup::shrinkage(std::vector<MatrixSparse>& y, const std::vector
         t.matmul(false, y[k], g_, false);
         t.sort();
         y[k].copy(x[k]);
-        y[k].subsetCopy(t);
+        y[k].copySubset(t);
         y[k].sqrt();
 
         // y = x * groupNorm(x)^-1)

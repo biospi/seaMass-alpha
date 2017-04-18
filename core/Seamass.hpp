@@ -20,54 +20,62 @@
 //
 
 
-#ifndef _SEAMASS_CORE_SEAMASSCORE_HPP_
-#define _SEAMASS_CORE_SEAMASSCORE_HPP_
+#ifndef SEAMASS_CORE_SEAMASSCORE_HPP
+#define SEAMASS_CORE_SEAMASSCORE_HPP
 
 
 #include "../asrl/Basis.hpp"
 #include "../asrl/OptimizerSrl.hpp"
 
 
-//void remove_zeros(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities);
-//void merge_bins(std::vector< std::vector<fp> >& mzs, std::vector< std::vector<fp> >& intensities, double width);
-
-
 /**
 * SeamassCore fitting of a 1-d curve or multi-dimensional surface to the input spectr(um|a).
 */
-class SeamassCore
+class Seamass
 {
 public:
 	static void notice();
 
 	struct Input {
-		std::vector<fp> binCounts;
-		std::vector<li> binCountsIndex;
-		std::vector<double> binEdges;
+        enum class Type { Binned, Sampled, Centroided } type;
+		std::vector<fp> counts;
+		std::vector<li> countsIndex;
+		std::vector<double> locations;
 		std::vector<double> startTimes;
 		std::vector<double> finishTimes;
 		std::vector<fp> exposures;
 	};
 
-	struct Output {
-		std::vector<fp> weights;
-		std::vector< std::vector<short> > scales;
-		std::vector< std::vector<li> > offsets;
-		std::vector<short> baselineScale;
-		std::vector<ii> baselineOffset;
-		std::vector<ii> baselineExtent;
-	};
+	struct Output
+    {
+        std::vector<char> scale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
+        double shrinkage;        // shrinkage used
+        double tolerance;        // tolerance used
+
+        std::vector<MatrixSparse> xs;
+        std::vector<MatrixSparse> l2s;
+        std::vector<MatrixSparse> l1l2s;
+
+        /*std::vector<char> baselineScale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
+        std::vector<ii> baselineOffset;  // offset of finest basis functions
+        std::vector<ii> baselineExtent;  // extent of finest basis functions
+        double shrinkage;                // shrinkage used
+        double tolerance;                // tolerance used
+        std::vector< std::vector<char> > scales; // scales of each basis function for each dimension
+        std::vector< std::vector<ii> > offsets; // offsets of each basis functions for each dimension
+        std::vector<fp> weights;         // weight of each basis functions (i.e. xs)*/
+ 	};
 
 	struct ControlPoints {
 		std::vector<fp> coeffs;
-		std::vector<short> scale;
+		std::vector<char> scale;
 		std::vector<ii> offset;
 		std::vector<ii> extent;
 	};
 
-	SeamassCore(Input& input, const std::vector<short>& scales, double shrinkage, double tolerance);
-	SeamassCore(Input& input, const Output& seed);
-	virtual ~SeamassCore();
+	Seamass(const Input& input, const std::vector<char>& scale, double shrinkage, double tolerance);
+	Seamass(const Input& input, const Output& seed);
+	virtual ~Seamass();
 
 	bool step();
 	ii getIteration() const;
@@ -85,13 +93,14 @@ public:
 	void getOutputControlPoints(ControlPoints& controlPoints) const;
 
 private:
-	void init(Input& input, const std::vector<short>& scales);
+	void init(const Input& input, const std::vector<char>& scales);
 
-	short dimensions_;
+	char dimensions_;
 	std::vector<Basis*> bases_;
-	Optimizer* inner_optimizer_;
+	Optimizer* innerOptimizer_;
 	Optimizer* optimizer_;
 	double shrinkage_;
+    double shrinkageStart_;
 	double tolerance_;
 	int iteration_;
 };

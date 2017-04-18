@@ -28,7 +28,7 @@
 using namespace std;
 
 
-BasisBspline::BasisBspline(std::vector<Basis*>& bases, short dimensions, Transient transient, int parentIndex)
+BasisBspline::BasisBspline(std::vector<Basis*>& bases, char dimensions, Transient transient, int parentIndex)
 	: Basis(bases, transient, parentIndex), gridInfo_(dimensions)
 {
 }
@@ -39,7 +39,7 @@ BasisBspline::~BasisBspline()
 }
 
 
-BasisBspline::GridInfo::GridInfo(short dimensions_)
+BasisBspline::GridInfo::GridInfo(char dimensions_)
 	: dimensions(dimensions_), scale(dimensions_), offset(dimensions_), extent(dimensions_), count(0)
 {
 }
@@ -120,7 +120,7 @@ operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
 	os << ",scale=[";
 	for (ii i = 0; i < gridInfo.dimensions; i++)
 	{
-		os << gridInfo.scale[i];
+		os << (int) gridInfo.scale[i];
 		if (i < gridInfo.dimensions - 1) os << ",";
 	}
 	os << "]";

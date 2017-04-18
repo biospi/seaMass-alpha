@@ -1,35 +1,26 @@
 find_package(Boost 1.54 COMPONENTS filesystem REQUIRED)
 find_package(PugiXML REQUIRED)
 
-set(HEADER_FILES
-	Dataset.cpp
-	DatasetMzmlb.hpp
-	mzMLxml.hpp
-	NetcdfWriter.hpp
-	DatasetSmi.hpp
-)
-set(SOURCE_FILES
-	Dataset.cpp
-	DatasetMzmlb.cpp
-	mzMLxml.cpp
-	NetcdfWriter.cpp
-	DatasetSmi.cpp
-)
-set(TEMPLATE_FILES
-	mzMLxml.tpp
-	DatasetMzmlb.tpp
-)
-
-source_group("Template Files" FILES ${TEMPLATE_FILES})
-add_library(seamass_io ${HEADER_FILES} ${SOURCE_FILES} ${TEMPLATE_FILES})
+add_library(seamass_io
+        Dataset.cpp
+        DatasetMzmlb.hpp
+        mzMLxml.hpp
+        DatasetSeamass.hpp
+        Dataset.cpp
+        DatasetMzmlb.cpp
+        mzMLxml.cpp
+        DatasetSeamass.cpp
+        mzMLxml.tpp
+        DatasetMzmlb.tpp
+		)
 target_include_directories(seamass_io PUBLIC
-	${Boost_INCLUDE_DIR}
-	${PugiXML_INCLUDE_DIR}
-)
+        ${Boost_INCLUDE_DIR}
+        ${PugiXML_INCLUDE_DIR}
+        )
 target_link_libraries(seamass_io
-	seamass_core
-	seamass_kernel
-	${Boost_LIBRARY}
-	${PugiXML_LIBRARIES}
-)
+        seamass_core
+        seamass_kernel
+        ${Boost_LIBRARY}
+        ${PugiXML_LIBRARIES}
+        )
 

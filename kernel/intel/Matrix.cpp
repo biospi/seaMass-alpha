@@ -20,30 +20,80 @@
 //
 
 
-#ifndef SEAMASS_KERNEL_MKL_HPP
-#define SEAMASS_KERNEL_MKL_HPP
+#include "Matrix.hpp"
+#include "MatrixSparse.hpp"
+#include <iomanip>
+#include <iostream>
+#include <cmath>
+#include <cstring>
+using namespace std;
 
 
-#include <string>
-//#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
-#include <mkl.h>
-#include <mkl_spblas.h>
+Matrix::Matrix()
+	: m_(0), n_(0), vs_(0)
+{
+}
 
 
-typedef float fp; // fp is the selected floating point precision (float or double)
-typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
-typedef MKL_INT64 li; // li is always 64 bit
+Matrix::~Matrix()
+{
+	free();
+}
 
 
-std::string getThreadInfo();
-li getId();
-void resetElapsedTime();
-double getElapsedTime();
-li getUsedMemory();
-std::string getTimeStamp();
-void setDebugLevel(int debugLevel);
-int getDebugLevel();
+void Matrix::init(ii m, ii n, const fp* vs)
+{
+	free();
+
+	m_ = m;
+	n_ = n;
+    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * m_ * n_, 64));
+    memcpy(vs_, vs, sizeof(fp) * m_ * n_);
+}
 
 
-#endif
+void Matrix::free()
+{
+	m_ = 0;
+	n_ = 0;
+    mkl_free(vs_);
+}
 
+
+li Matrix:: size() const
+{
+	return (li)m_ * n_;
+}
+
+
+ii Matrix::m() const
+{
+	return m_;
+}
+
+
+ii Matrix::n() const
+{
+	return n_;
+}
+
+
+fp* Matrix::vs() const
+{
+	return vs_;
+}
+
+
+ostream& operator<<(ostream& os, const Matrix& a)
+{
+	if (a.m() == 0)
+	{
+		os << "[]";
+	}
+	else
+	{
+		os << "[" << a.m() << "," << a.n() << "]";
+	}
+
+	return  os;
+}

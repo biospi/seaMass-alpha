@@ -31,7 +31,7 @@
 /*class BasisChargeDistribution : public Basis
 {
 public:
-	BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, ii scale, ii offset, ii maxMass, ii binsPerDalton, bool isTransient = false);
+	BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& counts, ii scale, ii offset, ii maxMass, ii binsPerDalton, bool isTransient = false);
 
 	~BasisChargeDistribution();
 

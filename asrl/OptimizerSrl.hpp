@@ -39,7 +39,10 @@ public:
 
 	ii getIteration() const;
 	const std::vector<Basis*>& getBases() const;
+
 	std::vector< std::vector<MatrixSparse> >& xs();
+	std::vector< std::vector<MatrixSparse> >& l2s();
+	std::vector< std::vector<MatrixSparse> >& l1l2s();
 
 private:
 	const std::vector<Basis*>& bases_;

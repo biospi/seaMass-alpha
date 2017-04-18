@@ -20,16 +20,17 @@
 //
 
 
-#include "SeamassAsrl.hpp"
+#include "Asrl.hpp"
 #include "BasisMatrixGroup.hpp"
 #include "OptimizerSrl.hpp"
 #include "OptimizerAccelerationEve1.hpp"
 #include <iostream>
 #include <iomanip>
 using namespace std;
+using namespace kernel;
 
 
-void SeamassAsrl::notice()
+void Asrl::notice()
 {
 	cout << "seaMass-ASRL : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
 	cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
@@ -37,7 +38,7 @@ void SeamassAsrl::notice()
 }
 
 
-SeamassAsrl::SeamassAsrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance) : shrinkage_(shrinkage), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
+Asrl::Asrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance) : shrinkage_(shrinkage), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -60,14 +61,14 @@ SeamassAsrl::SeamassAsrl(Input& input, double shrinkage, bool taperShrinkage, do
 }
 
 
-SeamassAsrl::~SeamassAsrl()
+Asrl::~Asrl()
 {
 	delete optimizer_;
 	delete innerOptimizer_;
 }
 
 
-bool SeamassAsrl::step()
+bool Asrl::step()
 {
 	if (iteration_ == 0 && getDebugLevel() % 10 >= 1)
 	{
@@ -144,24 +145,24 @@ bool SeamassAsrl::step()
 }
 
 
-ii SeamassAsrl::getIteration() const
+ii Asrl::getIteration() const
 {
 	return iteration_;
 }
 
 
-void SeamassAsrl::getOutput(Output& output) const
+void Asrl::getOutput(Output& output) const
 {
     if (getDebugLevel() % 10 >= 1)
          cout << getTimeStamp() << "  Getting output ..." << endl;
 
     output.xs.resize(optimizer_->xs()[0][0].size());
-    optimizer_->xs()[0][0].output(output.xs.data());
+    optimizer_->xs()[0][0].exportTo(output.xs.data());
 
 	vector<MatrixSparse> aXs;
 	bases_[0]->synthesis(aXs, optimizer_->xs()[0], false);
 	output.aXs.resize(aXs[0].size());
-	aXs[0].output(output.aXs.data());
+    aXs[0].exportTo(output.aXs.data());
 
 	BasisMatrixGroup* basisMatrixGroup = dynamic_cast<BasisMatrixGroup*>(bases_[0]);
 	if (basisMatrixGroup)
@@ -169,6 +170,6 @@ void SeamassAsrl::getOutput(Output& output) const
 		vector<MatrixSparse> gXs;
 		basisMatrixGroup->groupSynthesis(gXs, optimizer_->xs()[0], false);
 		output.gXs.resize(gXs[0].size());
-		gXs[0].output(output.gXs.data());
+        gXs[0].exportTo(output.gXs.data());
 	}
 }

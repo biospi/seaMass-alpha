@@ -21,21 +21,17 @@
 
 
 #include "BasisBsplineScantime.hpp"
-
 #include "Bspline.hpp"
-
 #include <limits>
 #include <iomanip>
 #include <cmath>
-#include <iostream>
-
-
 using namespace std;
+using namespace kernel;
 
 
 // todo: support ion mobility
 BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-                                           const std::vector<fp>& exposures, short scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
+                                           const std::vector<fp>& exposures, char scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -59,13 +55,13 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 	}
 
 	ii scaleAuto = (ii)floor(log2(1.0 / scantimeDiff));
-	if (scale == numeric_limits<short>::max())
+	if (scale == numeric_limits<char>::max())
 	{
 		scale = scaleAuto;
         
         if (getDebugLevel() % 10 >= 1)
         {
-            cout << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << scale << endl;
+            cout << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << (int) scale << endl;
         }
 	}
     
@@ -88,14 +84,14 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         cout << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
         cout.unsetf(std::ios::floatfield);
         cout << scantimeDiff << ":" << fixed << scantimeMax << "seconds" << endl;
-        cout << getTimeStamp() << "     scale=" << fixed << setprecision(1) << scale << " (" << bpi << " bases per second)" << endl;
+        cout << getTimeStamp() << "     scale=" << fixed << setprecision(1) << (int) scale << " (" << bpi << " bases per second)" << endl;
         cout << getTimeStamp() << "     " << gridInfo() << endl;
     }
 
     // populate coo matrix
-    vector<fp> acoo;
-    vector<ii> rowind;
-    vector<ii> colind;
+    vector<ii> is;
+    vector<ii> js;
+    vector<fp> vs;
 	Bspline bspline(order, 65536); // bspline basis function lookup table
 	for (ii i = 0; i < startTimes.size(); i++)
     {
@@ -118,14 +114,14 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 			// basis coefficient b is _integral_ of area under b-spline basis
 			fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-			acoo.push_back(b);
-			rowind.push_back(i);
-			colind.push_back(x - gridInfo().offset[1]);
+			is.push_back(i);
+			js.push_back(x - gridInfo().offset[1]);
+            vs.push_back(b);
         }
     }
 
 	// create transformation matrix 'a'
-    aT_.init(getGridInfo().m(), parentGridInfo.m(), (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+    aT_.copy(getGridInfo().m(), parentGridInfo.m(),  js, is, vs);
     aTnnzRows_ = getGridInfo().m();
 
 	if (scaleAuto != scale)

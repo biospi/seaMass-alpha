@@ -20,34 +20,18 @@
 //
 
 
-#ifndef SEAMASS_KERNEL_MATRIXMKL_HPP
-#define SEAMASS_KERNEL_MATRIXMKL_HPP
+#ifndef SEAMASS_KERNEL_INTEL_TYPES_HPP
+#define SEAMASS_KERNEL_INTEL_TYPES_HPP
 
 
-#include "MKL.hpp"
+//#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
+#include <mkl.h>
+#include <mkl_spblas.h>
 
 
-class MatrixMKL
-{
-public:
-	MatrixMKL();
-	~MatrixMKL();
-    
-    void init(ii m, ii n, const fp* vs); // deep copy from vs
-    void free();
-    
-    ii m() const;
-    ii n() const;
-    li size() const;
-    fp* vs() const;
- 
-private:
-	li m_; // rows
-	ii n_; // columns
-	fp* vs_; // data
-};
-
-std::ostream& operator<<(std::ostream& os, const MatrixMKL& mat);
+typedef float fp; // fp is the selected floating point precision (float or double)
+typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
+typedef MKL_INT64 li; // li is always 64 bit
 
 
 #endif

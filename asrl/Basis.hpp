@@ -24,7 +24,8 @@
 #define SEAMASS_ASRL_BASIS_HPP
 
 
-#include "../kernel/Matrix.hpp"
+#include "../kernel/kernel.hpp"
+#include <vector>
 
 
 class Basis

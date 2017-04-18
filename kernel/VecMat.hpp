@@ -34,13 +34,13 @@ template<typename T = float>
 struct VecMat
 {
 	VecMat(void);
-	VecMat(uli _r, uli _c, vector<T> &_vec);
+	VecMat(uli _r, uli _c, const vector<T> &_vec);
 	VecMat(uli _r, uli _c);
 	vector<T> v; // Vector of Matrix data.
 	T** m; // Data Matrix
-	void set(uli _r, uli _c, vector<T> &_vec);
+	void set(uli _r, uli _c, const vector<T> &_vec);
 	void set(uli _r, uli _c);
-	void getDims(uli dims[]);
+	void getDims(uli dims[]) const;
 	void clear(void);
 private:
 	vector<T*> matIdx;

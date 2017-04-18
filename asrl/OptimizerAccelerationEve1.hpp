@@ -49,9 +49,12 @@ public:
     fp step();
     void synthesis(std::vector<MatrixSparse>& f, ii basis = -1);
     
-    std::vector< std::vector<MatrixSparse> >& xs();
     const std::vector<Basis*>& getBases() const;
     ii getIteration() const;
+
+	std::vector< std::vector<MatrixSparse> >& xs();
+	std::vector< std::vector<MatrixSparse> >& l2s();
+	std::vector< std::vector<MatrixSparse> >& l1l2s();
 
 private:
 	Optimizer* optimizer_;

@@ -20,83 +20,36 @@
 //
 
 
-#include "MatrixMKL.hpp"
+#ifndef SEAMASS_KERNEL_INTEL_MATRIX_HPP
+#define SEAMASS_KERNEL_INTEL_MATRIX_HPP
 
-#include "MatrixSparseMKL.hpp"
 
-#include <iomanip>
+#include "types.hpp"
 #include <iostream>
-#include <cmath>
-#include <cstring>
-
-using namespace std;
 
 
-MatrixMKL::MatrixMKL()
-	: m_(0), n_(0), vs_(0)
+class Matrix
 {
-}
+public:
+	Matrix();
+	~Matrix();
+    
+    void init(ii m, ii n, const fp* vs); // deep copy from vs
+    void free();
+    
+    ii m() const;
+    ii n() const;
+    li size() const;
+    fp* vs() const;
+ 
+private:
+	li m_; // rows
+	ii n_; // columns
+	fp* vs_; // data
+};
+
+std::ostream& operator<<(std::ostream& os, const Matrix& mat);
 
 
-MatrixMKL::~MatrixMKL()
-{
-	free();
-}
+#endif
 
-
-void MatrixMKL::init(ii m, ii n, const fp* vs)
-{
-	free();
-
-	m_ = m;
-	n_ = n;
-    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * m_ * n_, 64));
-    memcpy(vs_, vs, sizeof(fp) * m_ * n_);
-}
-
-
-void MatrixMKL::free()
-{
-	m_ = 0;
-	n_ = 0;
-    mkl_free(vs_);
-}
-
-
-li MatrixMKL:: size() const
-{
-	return (li)m_ * n_;
-}
-
-
-ii MatrixMKL::m() const
-{
-	return m_;
-}
-
-
-ii MatrixMKL::n() const
-{
-	return n_;
-}
-
-
-fp* MatrixMKL::vs() const
-{
-	return vs_;
-}
-
-
-ostream& operator<<(ostream& os, const MatrixMKL& a)
-{
-	if (a.m() == 0)
-	{
-		os << "[]";
-	}
-	else
-	{
-		os << "[" << a.m() << "," << a.n() << "]";
-	}
-
-	return  os;
-}

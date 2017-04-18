@@ -20,15 +20,26 @@
 //
 
 
-#ifndef _SEAMASS_MATH_MATRIX_HPP_
-#define _SEAMASS_MATH_MATRIX_HPP_
+#ifndef SEAMASS_KERNEL_INTEL_KERNEL_HPP
+#define SEAMASS_KERNEL_INTEL_KERNEL_HPP
 
 
-#include "MatrixSparseMKL.hpp"
+#include "types.hpp"
+#include "MatrixSparse.hpp"
+#include <string>
 
 
-typedef MatrixSparseMKL MatrixSparse;
-typedef MatrixMKL Matrix;
+namespace kernel
+{
+    void initKernel(int debugLevel);
+    int getDebugLevel();
+    li getId();
+
+    double getElapsedTime();
+    li getUsedMemory();
+    std::string getTimeStamp();
+}
+
 
 
 #endif

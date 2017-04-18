@@ -20,15 +20,12 @@
 //
 
 
-#include <limits>
-#include <boost/program_options.hpp>
-#include <boost/filesystem/convenience.hpp>
-//#include <omp.h>
-
-#include "../io/NetcdfWriter.hpp"
 #include "../io/DatasetMzmlb.hpp"
-
+#include "../io/DatasetSeamass.hpp"
+#include <boost/filesystem/convenience.hpp>
+#include <boost/program_options.hpp>
 using namespace std;
+using namespace kernel;
 namespace po = boost::program_options;
 
 
@@ -44,16 +41,17 @@ int main(int argc, const char * const * argv)
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "mzmlb2smi [OPTIONS...] [MZMLB FILE]\n"
-            "mzmlb2smi <file>"
+            "Converts an mzMLb file to file(s) into binned seaMass binary format (.b_<id>.smb).\n"
+            "\n"
+            "mzmlb2bins [OPTIONS...] <file>\n"
         );
 
 		general.add_options()
             ("help,h", "Produce help message")
 			("file,f", po::value<string>(&filePath),
              "Input file in mzMLb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format.")
-			("debug_level,d", po::value<int>(&debugLevel)->default_value(0),
-             "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra, ")
+			("debug,d", po::value<int>(&debugLevel)->default_value(0),
+             "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra.")
         ;
 
 		po::options_description desc;
@@ -66,30 +64,27 @@ int main(int argc, const char * const * argv)
 		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
 		po::notify(vm);
 
-        if(vm.count("help") || !vm.count("file")) {
+        cout << endl;
+        cout << "mzmlb2smb : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
+        cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
+        cout << endl;
+        initKernel(debugLevel);
+
+        if(vm.count("help") || !vm.count("file"))
+        {
             cout << desc << endl;
             return 0;
         }
 
-		setDebugLevel(debugLevel);
-
-        DatasetMzmlb msFile(filePath);
-        string fileName = boost::filesystem::path(filePath).stem().string();
-        bool success = true;
-		for (int i = 0; success; i++)
-		{
-            SeamassCore::Input input;
-            string id;
-            success = msFile.next(input, id);
-
-            if (success)
-            {
-                string smiFileName = fileName + "." + id + ".smi";
-                if (input.binCountsIndex.size() >= 1000 && getDebugLevel() % 10 >= 1)
-                    cout << getTimeStamp() << "  Writing " << smiFileName << " ..." << endl;
-                NetcdfWriter netcdfWriter(smiFileName);
-                netcdfWriter.writeSmi(input);
-            }
+        DatasetMzmlb datasetIn(filePath);
+        string fileName = boost::filesystem::path(filePath).filename().string();
+        Seamass::Input input;
+        string id;
+        while(datasetIn.read(input, id))
+        {
+            DatasetSeamass datasetOut(fileName, true);
+            datasetOut.write(input, id);
 		}
 	}
 #ifdef NDEBUG

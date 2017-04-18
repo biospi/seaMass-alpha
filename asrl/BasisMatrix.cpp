@@ -23,6 +23,7 @@
 #include "BasisMatrix.hpp"
 #include <iostream>
 using namespace std;
+using namespace kernel;
 
 
 BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, ii m, ii n, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ, Transient transient) : Basis(bases, transient)
@@ -34,7 +35,7 @@ BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, ii m, ii n, std::vector<fp>
         cout << " ..." << endl;
     }
 
-    aT_.init(n, m, (ii)aV.size(), aV.data(), aJ.data(), aI.data());
+    aT_.copy(n, m, aJ, aI, aV);
     aTnnzRows_ = m;
     a_.copy(aT_, true);
 }

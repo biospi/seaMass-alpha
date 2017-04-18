@@ -38,13 +38,13 @@ protonMass_ = 1.007276466879; // in Daltons
 
 
 BasisChargeDistribution::
-BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, ii scale, ii offset, ii maxMass, ii binsPerDalton, bool transient)
+BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& counts, ii scale, ii offset, ii maxMass, ii binsPerDalton, bool transient)
 	: Basis(bases, transient)
 {
 	// min and max mz of input stream
 	double binWidth = pow(2.0, scale) / 60.0 / 1.0033548378;
 	double mz0 = offset * binWidth;
-	double mz1 = (offset + binCounts.size()) * binWidth;
+	double mz1 = (offset + counts.size()) * binWidth;
 
 	// min mass of output
 	double minMass = mz0 - protonMass_;
@@ -54,30 +54,30 @@ BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCo
 	li yExtent = maxMass * binsPerDalton - yOffset;
 
 	// output bin edges (mass in Daltons)
-	vector<double> binEdges(yExtent + 1);
-	binEdges[0] = minMass;
-	for (li y = 1; y < (li)binEdges.size(); y++)
+	vector<double> locations(yExtent + 1);
+	locations[0] = minMass;
+	for (li y = 1; y < (li)locations.size(); y++)
 	{
-		binEdges[y] = (yOffset + y) / (double) binsPerDalton;
+		locations[y] = (yOffset + y) / (double) binsPerDalton;
 	}
 
 	// minimum and maximum charge state z that could appear at each bin edge
-	groupZOffsets_.resize(binEdges.size());
-	vector<short> groupZOffsets1(binEdges.size());
-	for (li y = 0; y < (li)binEdges.size(); y++)
+	groupZOffsets_.resize(locations.size());
+	vector<short> groupZOffsets1(locations.size());
+	for (li y = 0; y < (li)locations.size(); y++)
 	{
-		groupZOffsets_[y] = (short)ceil(binEdges[y] / (mz1 - protonMass_));
-		groupZOffsets1[y] = (short)floor(binEdges[y] / (mz0 - protonMass_));
+		groupZOffsets_[y] = (short)ceil(locations[y] / (mz1 - protonMass_));
+		groupZOffsets1[y] = (short)floor(locations[y] / (mz0 - protonMass_));
 	}
 
 	/*for (li y = 0; y < 5; y++)
 	{
-		cout << y << ":" << setprecision(20) << binEdges[y] << " -> " << groupZOffsets1[y] << ":" << groupZOffsets_[y] << endl;
+		cout << y << ":" << setprecision(20) << locations[y] << " -> " << groupZOffsets1[y] << ":" << groupZOffsets_[y] << endl;
 	}
 	cout << "..." << endl;
-	for (li y = binEdges.size() - 5; y < (li)binEdges.size(); y++)
+	for (li y = locations.size() - 5; y < (li)locations.size(); y++)
 	{
-		cout << y << ":" << setprecision(20) << binEdges[y] << " -> " << groupZOffsets1[y] << ":" << groupZOffsets_[y] << endl;
+		cout << y << ":" << setprecision(20) << locations[y] << " -> " << groupZOffsets1[y] << ":" << groupZOffsets_[y] << endl;
 	}*/
 
 	// groupXOffsets_ contains start indices to each group of coefficients, followed by total number of coefficients
@@ -110,7 +110,7 @@ BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCo
 	{
 		for (li x = groupXOffsets_[y], z = groupZOffsets_[y]; x < groupXOffsets_[y + 1]; x++, z++)
 		{
-			ii i = (ii)(((binEdges[y] / z + protonMass_) - mz0) / binWidth);
+			ii i = (ii)(((locations[y] / z + protonMass_) - mz0) / binWidth);
 
 			acoo.push_back(1.0);
 			rowind.push_back(i);
@@ -124,8 +124,8 @@ BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& binCo
 	}
 	cout << minRow << "," << maxRow << endl;
 	cout << minCol << "," << maxCol << endl;
-	cout << binCounts.size() << "," << groupXOffsets_[groupXOffsets_.size() - 1] << endl;
-	a_.init(binCounts.size(), groupXOffsets_[groupXOffsets_.size() - 1], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+	cout << counts.size() << "," << groupXOffsets_[groupXOffsets_.size() - 1] << endl;
+	a_.init(counts.size(), groupXOffsets_[groupXOffsets_.size() - 1], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
 
 //#ifndef NDEBUG
 	cout << " " << getIndex() << " BasisChargeDistribution";

@@ -26,7 +26,7 @@
 
 #include "../kernel/VecMat.hpp"
 #include "../kernel/FileNetcdf.hpp"
-#include "../core/SeamassCore.hpp"
+#include "../core/Seamass.hpp"
 #include "../io/mzMLxml.hpp"
 
 #include "SMData.hpp"
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	bool debug;
 	typedef pair<int,double> rtIdxData;
 
-	po::options_description general("Usage: smpeak [OPTION...] [SMO FILE]\n"
+	po::options_description general("Usage: peak [OPTION...] [SMO FILE]\n"
 			"Options");
 
 	general.add_options()
@@ -73,13 +73,13 @@ int main(int argc, char **argv)
 
 	po::options_description examples("Eamples:\n"
 			"Centroid mode:\n"
-			"\tsmpeak -c -s [SMO FILE] -z [mzMLb3 FILE]\n"
-			"\tsmpeak -s [SMO FILE] -z [mzMLb3 FILE]\n"
-			"\tsmpeak -c [SMO FILE] -z [mzMLb3 FILE]\n"
-			"\tsmpeak [SMO FILE] -z [mzMLb3 FILE]\n"
+			"\tpeak -c -s [SMO FILE] -z [mzMLb3 FILE]\n"
+			"\tpeak -s [SMO FILE] -z [mzMLb3 FILE]\n"
+			"\tpeak -c [SMO FILE] -z [mzMLb3 FILE]\n"
+			"\tpeak [SMO FILE] -z [mzMLb3 FILE]\n"
 			"2D Peak Pick mode:\n"
-			"\tsmpeak -p -s [SMO FILE]\n"
-			"\tsmpeak -p [SMO FILE]\n"
+			"\tpeak -p -s [SMO FILE]\n"
+			"\tpeak -p [SMO FILE]\n"
 			"Default mode if -c or -p not given - Centroid");
 
 	po::options_description cmdline;

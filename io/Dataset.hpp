@@ -19,11 +19,11 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef _SEAMASS_INPUTFILE_HPP_
-#define _SEAMASS_INPUTFILE_HPP_
+#ifndef SEAMASS_DATASET_HPP
+#define SEAMASS_DATASET_HPP
 
 
-#include "../core/SeamassCore.hpp"
+#include "../core/Seamass.hpp"
 
 
 class Dataset;
@@ -31,18 +31,21 @@ class Dataset;
 class FileFactory
 {
 public:
-    static Dataset* createFileObj(std::string fName);
+    static Dataset* createFileObj(std::string fileName);
 };
 
 
 class Dataset
 {
 public:
-    virtual ~Dataset() {};
+   virtual ~Dataset();
 
-    virtual bool next(SeamassCore::Input& output, std::string& id) = 0;
-	virtual void writeData(SeamassCore& sm_, SeamassCore::Input& input_, bool centriod_, double threshold_) = 0;
+    virtual bool read(Seamass::Input &input, std::string &id) = 0;
+	virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id) = 0;
+
+	virtual void write(const Seamass::Input& input, const std::string& id) = 0;
+	virtual void write(const Seamass::Input& input, const Seamass::Output& output, const std::string& id) = 0;
 };
 
 
-#endif // _SEAMASS_INPUTFILE_HPP_
+#endif

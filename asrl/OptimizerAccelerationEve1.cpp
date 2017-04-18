@@ -27,6 +27,7 @@
 
 
 using namespace std;
+using namespace kernel;
 
 
 OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer) : optimizer_(optimizer), accelerationDuration_(0.0)
@@ -95,7 +96,7 @@ fp OptimizerAccelerationEve1::step()
                     // can now calcaulte first gradient vector 'u0s'
                     MatrixSparse t;
                     t.copy(xs()[i][k]);
-                    t.subsetCopy(y0s_[i][k]);
+                    t.copySubset(y0s_[i][k]);
                     
                     u0s_[i][k].copy(xs()[i][k]);
                     u0s_[i][k].divNonzeros(t.vs());
@@ -128,11 +129,11 @@ fp OptimizerAccelerationEve1::step()
                     u0s_[i][k].copy(xs()[i][k]);
                     MatrixSparse t;
                     t.copy(xs()[i][k]);
-                    t.subsetCopy(y0s_[i][k]);
+                    t.copySubset(y0s_[i][k]);
                     u0s_[i][k].divNonzeros(t.vs());
                     
                     t.copy(xs()[i][k]);
-                    t.subsetCopy(cLogU0);
+                    t.copySubset(cLogU0);
                     
                     // using new gradient vector 'u0s'
                     MatrixSparse c1LogU;
@@ -160,7 +161,7 @@ fp OptimizerAccelerationEve1::step()
                     
                     MatrixSparse t;
                     t.copy(xs()[i][k]);
-                    t.subsetCopy(x0s_[i][k]);
+                    t.copySubset(x0s_[i][k]);
                     
                     y0s_[i][k].divNonzeros(t.vs());
                     y0s_[i][k].pow(aThresh);
@@ -216,6 +217,18 @@ const std::vector<Basis*>& OptimizerAccelerationEve1::getBases() const
 std::vector< std::vector<MatrixSparse> >& OptimizerAccelerationEve1::xs()
 {
 	return optimizer_->xs();
+}
+
+
+std::vector< std::vector<MatrixSparse> >& OptimizerAccelerationEve1::l2s()
+{
+    return optimizer_->l2s();
+}
+
+
+std::vector< std::vector<MatrixSparse> >& OptimizerAccelerationEve1::l1l2s()
+{
+    return optimizer_->l1l2s();
 }
 
 

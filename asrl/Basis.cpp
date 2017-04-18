@@ -25,6 +25,7 @@
 
 #include <iostream>
 using namespace std;
+using namespace kernel;
 
 
 Basis::Basis(vector<Basis*>& bases, Transient transient, int parentIndex)

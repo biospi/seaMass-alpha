@@ -20,8 +20,8 @@
 //
 
 
-#ifndef SEAMASS_ASRL_SEAMASSASRL_HPP
-#define SEAMASS_ASRL_SEAMASSASRL_HPP
+#ifndef SEAMASS_ASRL_ASRL_HPP
+#define SEAMASS_ASRL_ASRL_HPP
 
 
 #include "Optimizer.hpp"
@@ -30,7 +30,7 @@
 /**
 * SeamassAsrl performs Accelerated Sparse Richardson Lucy optimisation on the input.
 */
-class SeamassAsrl
+class Asrl
 {
 public:
 	static void notice();
@@ -58,8 +58,8 @@ public:
 		std::vector<fp> gXs; // Gx
 	};
 
-	SeamassAsrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance);
-	virtual ~SeamassAsrl();
+	Asrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance);
+	virtual ~Asrl();
 
 	bool step();
 	ii getIteration() const;

@@ -9,8 +9,8 @@ set(SOURCE_FILES
         BasisBsplineScantime.hpp
         BasisBsplineScale.cpp
         BasisBsplineScale.hpp
-        SeamassCore.cpp
-        SeamassCore.hpp
+        Seamass.cpp
+        Seamass.hpp
 )
 
 add_library(seamass_core ${SOURCE_FILES})

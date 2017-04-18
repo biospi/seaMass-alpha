@@ -24,7 +24,7 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
 
-#include "../kernel/Matrix.hpp"
+#include "../kernel/kernel.hpp"
 #include "../kernel/VecMat.hpp"
 #include "../kernel/FileNetcdf.hpp"
 #include "../topdown/SeamassTopdown.hpp"
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 	input.offset = offset[0];
 
 	FileNetcdf outFile("input.smr", NC_NETCDF4);
-	outFile.write_VecNC("binCounts", input.binCounts, NC_FLOAT);
+	outFile.write_VecNC("counts", input.binCounts, NC_FLOAT);
 
 	SeamassTopdown sm(input, maxMass, binsPerDalton, shrinkage, tolerance, debugLevel);
 	do
@@ -193,11 +193,11 @@ int main(int argc, char **argv)
 				NetcdfWriter smv(oss.str());
 
 				// save back input but with bin_counts now containing the residuals
-				vector<fp> originalBinCounts = input.binCounts;
-				sm.getOutputBinCounts(input.binCounts);
-				for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
+				vector<fp> originalBinCounts = input.counts;
+				sm.getOutputBinCounts(input.counts);
+				for (ii i = 0; i < input.counts.size(); i++) input.counts[i] = originalBinCounts[i] - input.counts[i];
 				smv.write_input(input);
-				input.binCounts = originalBinCounts;
+				input.counts = originalBinCounts;
 
 				// write RTree
 				SeaMass::Output output;
@@ -229,16 +229,16 @@ int main(int argc, char **argv)
 				{
 					for (li i = input.spectrumIndex[j]; i < input.spectrumIndex[j + 1]; i++)
 					{
-						outputBinCounts[i] /= (fp) (input.binEdges[i + j + 1] - input.binEdges[i + j]) * input.exposures[j];
+						outputBinCounts[i] /= (fp) (input.locations[i + j + 1] - input.locations[i + j]) * input.exposures[j];
 					}
 				}
 			}
 			else
 			{
 				// 1D data
-				for (li i = 0; i < (li)input.binCounts.size(); i++)
+				for (li i = 0; i < (li)input.counts.size(); i++)
 				{
-					outputBinCounts[i] /= (fp) (input.binEdges[i + 1] - input.binEdges[i]) * input.exposures[0];
+					outputBinCounts[i] /= (fp) (input.locations[i + 1] - input.locations[i]) * input.exposures[0];
 				}
 			}
 		}
@@ -248,9 +248,9 @@ int main(int argc, char **argv)
 		ostringstream oss;
 		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
 		NetcdfWriter smv(oss.str());
-		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
-		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts 
-		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
+		vector<fp> originalBinCounts = input.counts; // save original input.counts
+		sm.getOutputBinCounts(input.counts); // retrieve seaMass processed outputBinCounts
+		for (ii i = 0; i < input.counts.size(); i++) input.counts[i] = originalBinCounts[i] - input.counts[i]; // compute residuals
 		smv.write_input(input); // write residuals to smv
 		// write RTree
 		//SeaMass::Output output;
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 		smo.write_output_control_points(controlPoints);
 	}
 
-    vector<MzmlbSpectrumMetadata> *spcPtr = msFile.getSpectrumMetaData();
+    vector<SpectrumMetadata> *spcPtr = msFile.getSpectrumMetaData();
     outmzMLb.writeXmlData(spcPtr);*/
 
 	return 0;
