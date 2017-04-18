@@ -147,7 +147,7 @@ void initKernel(int debugLevel)
 #else
         cout << "non-OpenMP build";
 #endif
-        cout << endl;
+        cout << endl << endl;
     }
 }
 

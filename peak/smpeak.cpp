@@ -26,8 +26,7 @@
 
 #include "../kernel/VecMat.hpp"
 #include "../kernel/FileNetcdf.hpp"
-#include "../core/Seamass.hpp"
-#include "../io/mzMLxml.hpp"
+#include "../core/DatasetMzmlb.hpp"
 
 #include "SMData.hpp"
 #include "MathOperator.hpp"
@@ -38,6 +37,13 @@
 
 namespace po = boost::program_options;
 namespace xml = pugi;
+
+void mzMLdump(const string fileName, string data)
+{
+	ofstream out(fileName.c_str());
+	out<<data.c_str();
+	out.close();
+}
 
 int main(int argc, char **argv)
 {

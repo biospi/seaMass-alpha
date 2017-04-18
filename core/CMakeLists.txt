@@ -1,6 +1,8 @@
-set(SOURCE_FILES
-		Bspline.hpp
-		Bspline.cpp
+find_package(PugiXML REQUIRED)
+
+add_library(seamass_core
+        Bspline.hpp
+        Bspline.cpp
         BasisBspline.hpp
         BasisBspline.cpp
         BasisBsplineMz.hpp
@@ -11,9 +13,18 @@ set(SOURCE_FILES
         BasisBsplineScale.hpp
         Seamass.cpp
         Seamass.hpp
-)
-
-add_library(seamass_core ${SOURCE_FILES})
+        Dataset.cpp
+        DatasetMzmlb.hpp
+        DatasetSeamass.hpp
+        Dataset.cpp
+        DatasetMzmlb.cpp
+        DatasetSeamass.cpp
+        DatasetMzmlb.tpp
+        )
+target_include_directories(seamass_core PUBLIC
+        ${PugiXML_INCLUDE_DIR}
+        )
 target_link_libraries(seamass_core
-    seamass_asrl
-)
+        seamass_asrl
+        ${PugiXML_LIBRARIES}
+        )

@@ -19,10 +19,11 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_DATASETMZMLB_TPP
-#define SEAMASS_DATASETMZMLB_TPP
+#ifndef SEAMASS_IO_DATASETMZMLB_TPP
+#define SEAMASS_IO_DATASETMZMLB_TPP
 
 #include "DatasetMzmlb.hpp"
+
 
 template<typename T>
 T DatasetMzmlb::getXmlValue(xml::xml_document &scan, string xpath, string attrib)
@@ -33,6 +34,7 @@ T DatasetMzmlb::getXmlValue(xml::xml_document &scan, string xpath, string attrib
 	istringstream(tool.first().node().attribute(attrib.c_str()).value())>>value;
 	return value;
 }
+
 
 template<typename T>
 void DatasetMzmlb::setXmlValue(xml::xml_document &scan, string xpath, string attrib, T value)
@@ -45,5 +47,31 @@ void DatasetMzmlb::setXmlValue(xml::xml_document &scan, string xpath, string att
 	string newVal(buff.str());
 	tool.first().node().attribute(attrib.c_str()).set_value(newVal.c_str());
 }
+
+
+template<typename T>
+void findVecString(vector<char> &vecStr, vector<T> &vec,
+                   const string subStr, const string endSubStr)
+{
+    size_t nSub = subStr.length();
+    string str(&vecStr[0]);
+    if(vec.size()>0) vec.resize(0);
+
+    for(size_t i=0; i < (vecStr.size() - nSub);)
+    {
+        size_t pos=str.find(subStr,i);
+        if(pos == string::npos)
+        {
+            pos = str.find(endSubStr,i);
+            vec.push_back(pos);
+            i=vecStr.size();
+        }
+        else{
+            vec.push_back(pos);
+            i=pos+nSub;
+        }
+    }
+}
+
 
 #endif //SEAMASS_DATASETMZMLB_TPP

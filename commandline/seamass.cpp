@@ -24,7 +24,7 @@
 #include <iomanip>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include "../io/DatasetSeamass.hpp"
+#include "../core/DatasetSeamass.hpp"
 using namespace std;
 using namespace kernel;
 namespace po = boost::program_options;
@@ -36,7 +36,7 @@ int main(int argc, const char * const * argv)
 	try
 #endif
 	{
-        string fileName;
+        string filePathIn;
         vector<char> scale(2);
         int shrinkageExponent;
         int toleranceExponent;
@@ -54,7 +54,7 @@ int main(int argc, const char * const * argv)
         general.add_options()
             ("help,h",
              "Produce this help message")
-            ("file,f", po::value<string>(&fileName),
+            ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML/vendor format to mzMLb.")
             ("mz_scale,m", po::value<char>(&scale[0]),
              "Output m/z resolution given as \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\". "
@@ -84,6 +84,7 @@ int main(int argc, const char * const * argv)
 
         cout << endl;
         Seamass::notice();
+        cout << endl;
         initKernel(debugLevel);
 
         if(vm.count("help") || !vm.count("file"))
@@ -91,7 +92,6 @@ int main(int argc, const char * const * argv)
 			cout << desc << endl;
 			return 0;
 		}
-        cout << endl;
 
         if(!vm.count("mz_scale"))
             scale[0] = numeric_limits<char>::max();
@@ -99,7 +99,8 @@ int main(int argc, const char * const * argv)
         if(!vm.count("st_scale"))
             scale[1] = numeric_limits<char>::max();
 
-       Dataset* dataset = FileFactory::createFileObj(fileName);
+        string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
+        Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::InputOutput);
         if (!dataset)
             throw runtime_error("ERROR: Input file is missing or incorrect");
 
@@ -123,9 +124,9 @@ int main(int argc, const char * const * argv)
                     seamassCore.getOutput(output);
 
                     // write intermediate output in seaMass format
-                    DatasetSeamass datasetOut(fileName, true);
-                    ostringstream oss; oss << id << "_" << setfill('0') << setw(4) << seamassCore.getIteration();
-                    datasetOut.write(input, output, oss.str());
+                    ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamassCore.getIteration();
+                    DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                    datasetOut.write(input, output, id);
                 }
             }
             while (seamassCore.step());
@@ -140,6 +141,7 @@ int main(int argc, const char * const * argv)
         }
 
         delete dataset;
+        cout << endl;
     }
 #ifdef NDEBUG
     catch(exception& e)

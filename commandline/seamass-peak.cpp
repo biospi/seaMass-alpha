@@ -24,7 +24,7 @@
 #include <iomanip>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include "../io/DatasetSeamass.hpp"
+#include "../core/DatasetSeamass.hpp"
 #include "../peak/SMData.hpp"
 #include "../peak/MathOperator.hpp"
 #include "../peak/BsplineData.hpp"
@@ -42,7 +42,7 @@ int main(int argc, const char * const * argv)
 	try
 #endif
 	{
-        string fileName;
+        string filePathIn;
         vector<char> scales(2);
         int shrinkageExponent;
         int toleranceExponent;
@@ -55,7 +55,7 @@ int main(int argc, const char * const * argv)
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "Centroids seamass output and writes the result to a new mzMLb or smb file.\n"
+            "Peak detects 'seamass' output and writes the result to a new mzMLb or smb file.\n"
             "\n"
             "centroid [OPTIONS...] <file>\n"
         );
@@ -63,7 +63,7 @@ int main(int argc, const char * const * argv)
         general.add_options()
             ("help,h",
              "Produce this help message")
-            ("file,f", po::value<string>(&fileName),
+            ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
 			("threshold,t", po::value<double>(&threshold)->default_value(10.0),
              "Minimum ion counts in a peak. Default is 10.")
@@ -82,7 +82,7 @@ int main(int argc, const char * const * argv)
 		po::notify(vm);
 
         cout << endl;
-        cout << "centroid : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "seaMass-peak : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
@@ -93,7 +93,6 @@ int main(int argc, const char * const * argv)
 			cout << desc << endl;
 			return 0;
 		}
-        cout << endl;
 
         if(!vm.count("mz_scale"))
             scales[0] = numeric_limits<char>::max();
@@ -101,7 +100,8 @@ int main(int argc, const char * const * argv)
         if(!vm.count("st_scale"))
             scales[1] = numeric_limits<char>::max();
 
-        Dataset* dataset = FileFactory::createFileObj(fileName);
+        string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
+        Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::Input);
         if (!dataset)
             throw runtime_error("ERROR: Input file is missing or incorrect");
 
@@ -165,13 +165,14 @@ int main(int argc, const char * const * argv)
                 input.counts.insert(input.counts.end(), pkPeak.v.begin(), pkPeak.v.end());
                 input.countsIndex.push_back(input.counts.size());
             }
-            dataset->write(input, "centroided");
+            dataset->write(input, id);
 
             if (getDebugLevel() % 10 == 0)
                 cout << endl;
         }
 
         delete dataset;
+        cout << endl;
     }
 #ifdef NDEBUG
     catch(exception& e)

@@ -20,14 +20,16 @@
 //
 
 #include "DatasetSeamass.hpp"
-#include <boost/filesystem/convenience.hpp>
 using namespace kernel;
 
 
-DatasetSeamass::DatasetSeamass(std::string &fileName, bool onlyWrite) : fileName_(fileName), fileIn_(0), fileOut_(0), processed_(false)
+DatasetSeamass::DatasetSeamass(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType) : fileIn_(0), fileOut_(0), finished_(false)
 {
-	if (!onlyWrite)
-		fileIn_ = new FileNetcdf(fileName);
+	if (!filePathIn.empty())
+		fileIn_ = new FileNetcdf(filePathIn);
+
+    if (!filePathStemOut.empty())
+        fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".smv" : ".smb"), NC_NETCDF4);
 }
 
 
@@ -35,21 +37,18 @@ DatasetSeamass::~DatasetSeamass()
 {
 	if (fileIn_)
 		delete fileIn_;
+
+    if (fileOut_)
+        delete fileOut_;
 }
 
 
 bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 {
-	if (!fileIn_)
-		throw runtime_error("BUG: not expecting to read a file");
-
-	if(processed_ == true)
-		return false;
-
     input = Seamass::Input();
 
-	if (getDebugLevel() % 10 >= 2)
-		cout << getTimeStamp() << "  Reading file " << fileName_ << " ..." << endl;
+	if(finished_ == true)
+		return false;
 
     if (fileIn_->read_VarIDNC("countsIndex") != -1)
         fileIn_->read_VecNC("counts", input.counts);
@@ -88,24 +87,53 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 
     id = "";
 
-	return processed_ = true;
+	return finished_ = true;
+}
+
+
+void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
+{
+    if (input.startTimes.size() > 0)
+        fileOut_->write_VecNC("startTimes", input.startTimes, NC_DOUBLE);
+
+    if (input.finishTimes.size() > 0)
+        fileOut_->write_VecNC("finishTimes", input.finishTimes, NC_DOUBLE);
+
+    if (input.exposures.size() > 0)
+        fileOut_->write_VecNC("exposures", input.exposures, sizeof(input.counts[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+
+    if (input.countsIndex.size() > 0)
+        fileOut_->write_VecNC("countsIndex", input.countsIndex, sizeof(input.countsIndex[0]) == 4 ? NC_INT : NC_INT64);
+
+    if (input.counts.size() > 0)
+        fileOut_->write_VecNC("counts", input.counts, sizeof(input.counts[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+
+    if (input.locations.size() > 0)
+    {
+        switch (input.type)
+        {
+            case Seamass::Input::Type::Binned:
+                fileOut_->write_VecNC("binLocations", input.locations, NC_DOUBLE);
+                break;
+            case Seamass::Input::Type::Sampled:
+                fileOut_->write_VecNC("sampleLocations", input.locations, NC_DOUBLE);
+                break;
+            case Seamass::Input::Type::Centroided:
+                fileOut_->write_VecNC("centroidLocations", input.locations, NC_DOUBLE);
+                break;
+            default:
+                throw runtime_error("BUG: input has no type");
+        }
+    }
 }
 
 
 bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::string &id)
 {
-	if (!fileIn_)
-		throw runtime_error("BUG: not expecting to read a file");
-
     output = Seamass::Output();
 
-	if(processed_ == true)
-		return false;
-
-	if (getDebugLevel() % 10 >= 2)
-		cout << getTimeStamp() << "  Reading file " << fileName_ << " ..." << endl;
-
-    read(input, id);
+    if (!read(input, id))
+        return false;
 
     int grpid = fileIn_->open_Group("seamass");
 
@@ -197,73 +225,12 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
 
     id = "";
 
-    return processed_ = true;
+    return finished_ = true;
 }
 
 
-void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
+void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id)
 {
-    bool closeFileOut = false;
-    if (!fileOut_)
-    {
-        string fileNameOut = boost::filesystem::path(fileName_).stem().string() + (id == "" ? "" : ".") + id + ".smb";
-        fileOut_ = new FileNetcdf(fileNameOut, NC_NETCDF4);
-        closeFileOut = true;
-
-        if (getDebugLevel() % 10 >= 2)
-            cout << getTimeStamp() << "  Writing file " << fileNameOut << " ..." << endl;
-    }
-
-	if (input.startTimes.size() > 0)
-		fileOut_->write_VecNC("startTimes", input.startTimes, NC_DOUBLE);
-
-	if (input.finishTimes.size() > 0)
-		fileOut_->write_VecNC("finishTimes", input.finishTimes, NC_DOUBLE);
-
-	if (input.exposures.size() > 0)
-		fileOut_->write_VecNC("exposures", input.exposures, sizeof(input.counts[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-
-	if (input.countsIndex.size() > 0)
-		fileOut_->write_VecNC("countsIndex", input.countsIndex, sizeof(input.countsIndex[0]) == 4 ? NC_INT : NC_INT64);
-
-	fileOut_->write_VecNC("counts", input.counts, sizeof(input.counts[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-
-    switch (input.type)
-    {
-        case Seamass::Input::Type::Binned:
-            fileOut_->write_VecNC("binLocations", input.locations, NC_DOUBLE);
-            break;
-        case Seamass::Input::Type::Sampled:
-            fileOut_->write_VecNC("sampleLocations", input.locations, NC_DOUBLE);
-            break;
-        case Seamass::Input::Type::Centroided:
-            fileOut_->write_VecNC("centroidLocations", input.locations, NC_DOUBLE);
-            break;
-        default:
-            throw runtime_error("BUG: input has no type");
-    }
-
-    if (closeFileOut)
-    {
-        delete fileOut_;
-        fileOut_ = 0;
-    }
-}
-
-
-void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output& output, const std::string& id)
-{
-    bool closeFileOut = false;
-    if (!fileOut_)
-    {
-        string fileNameOut = boost::filesystem::path(fileName_).stem().string() + (id == "" ? "" : ".") + id + ".smv";
-        fileOut_ = new FileNetcdf(fileNameOut, NC_NETCDF4);
-        closeFileOut = true;
-
-        if (getDebugLevel() % 10 >= 2)
-            cout << getTimeStamp() << "  Writing file " << fileNameOut << " ..." << endl;
-    }
-
     write(input, id);
 
     int grpid = fileOut_->create_Group("seamass");
@@ -328,12 +295,6 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output& o
             fileOut_->write_VecNC(oss2.str(), output.offsets[d], sizeof(output.offsets[0]) == 4 ? NC_INT : NC_INT64, grpid);
         }
 	}*/
-
-    if (closeFileOut)
-    {
-        delete fileOut_;
-        fileOut_ = 0;
-    }
 }
 
 

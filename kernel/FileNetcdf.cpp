@@ -229,9 +229,12 @@ void FileNetcdf::write(const MatrixSparse& a, const string name, int grpid)
         vector<fp> vs;
         a.exportTo(is, js, vs);
 
-        write_VecNC("i", is, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        write_VecNC("j", js, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        write_VecNC("v", vs, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpidMat);
+        if (vs.size() > 0)
+        {
+            write_VecNC("i", is, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+            write_VecNC("j", js, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+            write_VecNC("v", vs, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpidMat);
+        }
     }
 }
 
@@ -269,7 +272,7 @@ void FileNetcdf::read(MatrixSparse& a, const string name, int grpid)
 
 void FileNetcdf::err(int e)
 {
-    throw runtime_error("ERROR: " + string(nc_strerror(e)));
+    throw runtime_error("ERROR: " + string(nc_strerror(e)) + " processing " + fileName_);
 }
 
 

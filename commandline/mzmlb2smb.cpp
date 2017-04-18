@@ -20,8 +20,8 @@
 //
 
 
-#include "../io/DatasetMzmlb.hpp"
-#include "../io/DatasetSeamass.hpp"
+#include "../core/DatasetMzmlb.hpp"
+#include "../core/DatasetSeamass.hpp"
 #include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
 using namespace std;
@@ -35,7 +35,7 @@ int main(int argc, const char * const * argv)
 	try
 #endif
 	{
-		string filePath;
+		string filePathIn;
 		int debugLevel;
 
         po::options_description general(
@@ -48,7 +48,7 @@ int main(int argc, const char * const * argv)
 
 		general.add_options()
             ("help,h", "Produce help message")
-			("file,f", po::value<string>(&filePath),
+			("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format.")
 			("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra.")
@@ -77,15 +77,17 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
-        DatasetMzmlb datasetIn(filePath);
-        string fileName = boost::filesystem::path(filePath).filename().string();
+        DatasetMzmlb datasetIn(filePathIn, "");
         Seamass::Input input;
         string id;
         while(datasetIn.read(input, id))
         {
-            DatasetSeamass datasetOut(fileName, true);
+            string fileStemOut = boost::filesystem::path(filePathIn).stem().string() + (id == "" ? "" : ".") + id;
+            DatasetSeamass datasetOut("", fileStemOut, Dataset::WriteType::Input);
             datasetOut.write(input, id);
 		}
+
+        cout << endl;
 	}
 #ifdef NDEBUG
 	catch(exception& e)

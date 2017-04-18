@@ -19,32 +19,30 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_DATASET_HPP
-#define SEAMASS_DATASET_HPP
+#ifndef SEAMASS_DATASETSEAMASS_HPP
+#define SEAMASS_DATASETSEAMASS_HPP
 
 
-#include "../core/Seamass.hpp"
+#include "Dataset.hpp"
+#include "../kernel/FileNetcdf.hpp"
 
 
-class Dataset;
-
-class FileFactory
+class DatasetSeamass: public Dataset
 {
 public:
-    static Dataset* createFileObj(std::string fileName);
-};
+	DatasetSeamass(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+	virtual ~DatasetSeamass();
 
+	virtual bool read(Seamass::Input &input, std::string &id);
+    virtual void write(const Seamass::Input &input, const std::string &id);
 
-class Dataset
-{
-public:
-   virtual ~Dataset();
+    virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id);
+    virtual void write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id);
 
-    virtual bool read(Seamass::Input &input, std::string &id) = 0;
-	virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id) = 0;
-
-	virtual void write(const Seamass::Input& input, const std::string& id) = 0;
-	virtual void write(const Seamass::Input& input, const Seamass::Output& output, const std::string& id) = 0;
+private:
+    FileNetcdf* fileIn_;
+	FileNetcdf* fileOut_;
+ 	bool finished_;
 };
 
 

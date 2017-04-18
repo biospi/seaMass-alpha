@@ -18,7 +18,7 @@ target_include_directories(mzmlb2smb PUBLIC
         ${Boost_INCLUDE_DIRS}
         )
 target_link_libraries (mzmlb2smb LINK_PUBLIC
-        seamass_io
+        seamass_core
         ${Boost_LIBRARIES}
         )
 
@@ -29,18 +29,18 @@ target_include_directories(seamass PUBLIC
         ${Boost_INCLUDE_DIRS}
         )
 target_link_libraries (seamass LINK_PUBLIC
-        seamass_io
+        seamass_core
         ${Boost_LIBRARIES}
         )
 
-add_executable(centroid
-        centroid.cpp
+add_executable(seamass-peak
+        seamass-peak.cpp
         )
-target_include_directories(centroid PUBLIC
+target_include_directories(seamass-peak PUBLIC
         ${Boost_INCLUDE_DIRS}
         )
-target_link_libraries (centroid LINK_PUBLIC
-        seamass_io
+target_link_libraries (seamass-peak LINK_PUBLIC
+        seamass_core
         ${Boost_LIBRARIES}
         )
 
@@ -51,7 +51,7 @@ target_include_directories(smb2mzmlb PUBLIC
         ${Boost_INCLUDE_DIRS}
         )
 target_link_libraries (smb2mzmlb LINK_PUBLIC
-        seamass_io
+        seamass_core
         ${Boost_LIBRARIES}
         )
 

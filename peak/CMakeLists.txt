@@ -20,9 +20,7 @@ target_include_directories(peak PUBLIC
 		${PugiXML_INCLUDE_DIR}
 		)
 target_link_libraries(peak
-		seamass_io
 		seamass_core
-		seamass_kernel
 		${Boost_LIBRARIES}
 		${PugiXML_LIBRARIES}
 		)

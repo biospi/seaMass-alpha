@@ -23,23 +23,26 @@
 
 #include "DatasetMzmlb.hpp"
 #include "DatasetSeamass.hpp"
-#include <boost/filesystem/convenience.hpp>
-
+#
 
 using namespace std;
 
 
-Dataset* FileFactory::createFileObj(string fileName)
+Dataset* FileFactory::createFileObj(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType)
 {
-    string ext = boost::filesystem::extension(fileName);
+    size_t pos = filePathIn.find_last_of(".");
+    if (pos != string::npos)
+    {
+        string ext = filePathIn.substr(pos);
 
-    if(ext == ".smb" || ext == ".smv")
-    {
-        return new DatasetSeamass(fileName);
-    }
-    else if(ext == ".mzMLb" || ext == ".mzMLv")
-    {
-        return new DatasetMzmlb(fileName);
+        if(ext == ".smb" || ext == ".smv")
+        {
+            return new DatasetSeamass(filePathIn, filePathStemOut, writeType);
+        }
+        else if(ext == ".mzMLb" || ext == ".mzMLv")
+        {
+            return new DatasetMzmlb(filePathIn, filePathStemOut, writeType);
+        }
     }
 
     return 0;

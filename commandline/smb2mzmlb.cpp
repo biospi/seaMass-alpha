@@ -20,8 +20,8 @@
 //
 
 
-#include "../io/DatasetMzmlb.hpp"
-#include "../io/DatasetSeamass.hpp"
+#include "../core/DatasetMzmlb.hpp"
+#include "../core/DatasetSeamass.hpp"
 #include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
 using namespace std;
@@ -35,20 +35,20 @@ int main(int argc, const char * const * argv)
 	try
 #endif
 	{
-		string filePath;
+		string filePathIn;
 		int debugLevel;
 
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "Converts an mzMLb file to file(s) into binned seaMass binary format (.b_<id>.smb).\n"
+            "Converts a set of smb files back to an mzMLb file, given the original mzMLb file.\n"
             "\n"
             "mzmlb2bins [OPTIONS...] <file>\n"
         );
 
 		general.add_options()
             ("help,h", "Produce help message")
-			("file,f", po::value<string>(&filePath),
+			("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format.")
 			("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra.")
@@ -65,7 +65,7 @@ int main(int argc, const char * const * argv)
 		po::notify(vm);
 
         cout << endl;
-        cout << "mzmlb2smb : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "smb2mzmlb : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
@@ -77,15 +77,21 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
-        DatasetMzmlb datasetIn(filePath);
-        string fileName = boost::filesystem::path(filePath).filename().string();
+        boost::filesystem::path fileNameOut = boost::filesystem::path(filePathIn).filename();
+        if (equivalent(fileNameOut, filePathIn))
+            throw runtime_error("ERROR: Make sure the input mzMLb file is not in the working directory.");
+
+        Dataset* dataset = FileFactory::createFileObj(filePathIn, fileNameOut.replace_extension("").string(), Dataset::WriteType::Input);
+        if (!dataset)
+            throw runtime_error("ERROR: Input file is missing or incorrect");
+
         Seamass::Input input;
         string id;
-        while(datasetIn.read(input, id))
+        while(dataset->read(input, id))
         {
-            DatasetSeamass datasetOut(fileName, true);
-            datasetOut.write(input, id);
+            dataset->write(input, id);
 		}
+        delete dataset;
 	}
 #ifdef NDEBUG
 	catch(exception& e)
