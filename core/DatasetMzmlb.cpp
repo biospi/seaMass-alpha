@@ -619,50 +619,29 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
     {
         vector<double> mzs;
         vector<fp> intensities;
-        bool isCentroided;
+        bool isCentroided = false;
         switch (input.type)
         {
             case Seamass::Input::Type::Binned:
             {
-                /*vector<fp> binCounts(input_.counts.size());
-                sm_.getOutputBinCounts(binCounts); // retrieve seaMass processed counts
-                // convert ion counts into ion density (counts per Th) and scale by exposures
-                if (input_.exposures.size() > 0)
+                fp exposure = input.exposures.size() > 0 ? input.exposures[i] : 0.0;
+
+                for (ii ci = input.countsIndex[i]; ci < input.countsIndex[i + 1]; ci++)
                 {
-                    if (input_.countsIndex.size() > 0)
-                    {
-                        // 2D data
-                        for (li j = 0; j < (li)input_.countsIndex.size() - 1; j++)
-                        {
-                            for (li i = input_.countsIndex[j]; i < input_.countsIndex[j + 1]; i++)
-                            {
-                                binCounts[i] /= (fp) (input_.locations[i + j + 1] - input_.locations[i + j]) * input_.exposures[j];
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // 1D data
-                        for (li i = 0; i < (li)input_.counts.size(); i++)
-                        {
-                            binCounts[i] /= (fp) (input_.locations[i + 1] - input_.locations[i]) * input_.exposures[0];
-                        }
-                    }
+                    ii li = ci + i;
+                    mzs.push_back(0.5 * (input.locations[li] + input.locations[li + 1]));
+                    intensities.push_back(exposure * input.counts[ci] / (input.locations[li + 1] - input.locations[li]));
                 }
-                writeVecData(binCounts); // write to mzMLb
-                writeXmlData();*/
-            } break;
-            case Seamass::Input::Type::Sampled:
-            {
-                //writeVecData(binCounts); // write to mzMLb
-                //writeXmlData();
-            } break;
+
+            }   break;
             case Seamass::Input::Type::Centroided:
-            {
-                //writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_,vector<size_t>& mzpkVecSize_);
-                writeXmlData();
-                //writePeakXmlData(vector<size_t>& mzpkVecSize_);  // TODO: CHANGE SPECTRUM TYPE CVPARAM TO CENTROID
-            } break;
+                isCentroided = true;
+            case Seamass::Input::Type::Sampled:
+                vector<double>(input.locations.begin() + input.countsIndex[i],
+                               input.locations.begin() + input.countsIndex[i + 1]).swap(mzs);
+                vector<fp>(input.locations.begin() + input.countsIndex[i],
+                           input.locations.begin() + input.countsIndex[i + 1]).swap(intensities);
+                break;
             default:
                 throw runtime_error("BUG: input has no type");
         }
