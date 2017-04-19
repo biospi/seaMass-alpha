@@ -36,6 +36,7 @@ int main(int argc, const char * const * argv)
 #endif
 	{
 		string filePathIn;
+        string dirPathIn;
 		int debugLevel;
 
         po::options_description general(
@@ -50,6 +51,8 @@ int main(int argc, const char * const * argv)
             ("help,h", "Produce help message")
 			("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format.")
+            ("dir,i", po::value<string>(&dirPathIn)->default_value("."),
+             "Input directory containing files in smb format [default=.]")
 			("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra.")
         ;
@@ -77,21 +80,29 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
+        boost::filesystem::path smbPathStem = boost::filesystem::path(dirPathIn) / boost::filesystem::path(filePathIn).stem();
+
         boost::filesystem::path fileNameOut = boost::filesystem::path(filePathIn).filename();
         if (equivalent(fileNameOut, filePathIn))
             throw runtime_error("ERROR: Make sure the input mzMLb file is not in the working directory.");
 
-        Dataset* dataset = FileFactory::createFileObj(filePathIn, fileNameOut.replace_extension("").string(), Dataset::WriteType::Input);
-        if (!dataset)
-            throw runtime_error("ERROR: Input file is missing or incorrect");
+        DatasetMzmlb datasetMzmlb(filePathIn, fileNameOut.replace_extension("").string(), Dataset::WriteType::Input);
 
         Seamass::Input input;
         string id;
-        while(dataset->read(input, id))
+        while(datasetMzmlb.read(input, id))
         {
-            dataset->write(input, id);
+            // replace input with smb file input if available
+            try
+            {
+                DatasetSeamass datasetSeamass(smbPathStem.string() + "." + id + ".smb", "");
+                string nullId;
+                datasetSeamass.read(input, nullId);
+            }
+            catch (runtime_error r) {}
+
+            datasetMzmlb.write(input, id);
 		}
-        delete dataset;
 	}
 #ifdef NDEBUG
 	catch(exception& e)
