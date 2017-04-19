@@ -360,9 +360,11 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         fileOut_->write_DefHypVecNC<char>("mzML",NC_UBYTE);
         fileOut_->write_DefHypVecNC<double>("spectrum_MS_1000514_double",NC_DOUBLE);
         fileOut_->write_DefHypVecNC<float>("spectrum_MS_1000515_float",NC_FLOAT);
+	    fileOut_->write_DefHypVecNC<li>("mzML_spectrumIndex",NC_INT64);
 
         fileOut_->write_CatHypVecNC("mzML",mzML);
-        newSpecIdx_.push_back(mzML.size());
+        newMzmlIndex_ = mzML.size();
+	    fileOut_->write_CatHypVecNC("mzML_spectrumIndex", &newMzmlIndex_,1);
 
         string s = "mzMLb 0.5";
         fileOut_->write_AttNC("mzML", "version", vector<char>(s.c_str(), s.c_str() + s.length() + 1), NC_CHAR);
@@ -646,7 +648,7 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
                 throw runtime_error("BUG: input has no type");
         }
 
-        //writeSpectrum(i + offset, mzs, intensities, isCentroided);
+        writeXmlSpectrum(i + offset, mzs, intensities, isCentroided);
     }
 }
 
@@ -689,6 +691,7 @@ bool DatasetMzmlb::seamassOrder(const SpectrumMetadata &lhs, const SpectrumMetad
 }
 
 
+/*
 void DatasetMzmlb::writeVecData(vector<float>& data_)
 {
 	fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",data_);
@@ -819,7 +822,59 @@ void DatasetMzmlb::writePeakXmlData(vector<size_t>& mzpkVecSize_)
 		writeChromatogramXmlEnd();
 	}
 }
+*/
 
+void DatasetMzmlb::writeXmlSpectrum(li offset_, vector<double> &mzs_,
+                                    vector<fp> &intensities_, bool isCentroided_)
+{
+	vector<char> mzML;
+	if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
+	{
+		if(mzML.size() > 0) vector<char>().swap(mzML);
+
+		xml::xml_document mzmlXmlScan;
+		size_t idx = metadata_[offset_].mzmlSpectrumIndex;
+		size_t loc = size_t(specIdx_[idx]);
+		size_t len = size_t(specIdx_[idx + 1] - specIdx_[idx]);
+		fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
+
+		size_t xmlSize = sizeof(char) * mzML.size();
+		xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
+
+		size_t arrayLen = mzs_.size();
+		if (isCentroided_ == true)
+		{
+			setXmlValue<string>(mzmlXmlScan,"spectrum/cvParam[@accession='MS:1000128']","name","centroid spectrum");
+			setXmlValue<string>(mzmlXmlScan,"spectrum/cvParam[@accession='MS:1000128']","accession","MS:1000127");
+		}
+
+		setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
+
+		setXmlValue<size_t>(mzmlXmlScan,
+							"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
+							"offset", idxDataArrayOffSet_);
+		setXmlValue<size_t>(mzmlXmlScan,
+							"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
+							"offset", idxDataArrayOffSet_);
+		idxDataArrayOffSet_ += arrayLen;
+
+		stringstream newmzML;
+		mzmlXmlScan.print(newmzML);
+		string output = newmzML.str();
+		vector<char>().swap(mzML);
+		mzML.assign(output.begin(), output.end());
+
+		newMzmlIndex_ += mzML.size();
+		fileOut_->write_CatHypVecNC("mzML", mzML);
+		fileOut_->write_CatHypVecNC("spectrum_MS_1000514_double",mzs_);
+		fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",intensities_);
+		fileOut_->write_CatHypVecNC("mzML_spectrumIndex", &newMzmlIndex_,1);
+	}
+	if(spectrumIndex_ >= metadata_.size())
+	{
+		writeChromatogramXmlEnd();
+	}
+}
 
 void DatasetMzmlb::writeChromatogramXmlEnd()
 {
@@ -851,6 +906,5 @@ void DatasetMzmlb::writeChromatogramXmlEnd()
 
 	fileOut_->write_CatHypVecNC("mzML", mzML);
 
-	fileOut_->write_VecNC("mzML_spectrumIndex", newSpecIdx_, NC_INT64);
 	fileOut_->write_VecNC("mzML_chromatogramIndex", newChroIdx_, NC_INT64);
 }

@@ -77,21 +77,22 @@ private:
 
     // Ranjeet's writing stuff
     size_t idxDataArrayOffSet_;
-    vector<uli> specIdx_;
-    vector<uli> newSpecIdx_;
+    vector<li> specIdx_;
+	li newMzmlIndex_;
 
-    void writeVecData(vector<fp>& data_);
-    void writeXmlData();
+    //void writeVecData(vector<fp>& data_);
+    //void writeXmlData();
+	void writeXmlSpectrum(li offset_, vector<double> &mzs_, vector<fp> &intensities_, bool isCentroided_);
 
-	void writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_, vector<size_t>& mzpkVecSize_);
-	void writePeakXmlData(vector<size_t>& mzpkVecSize_);
+	//void writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_, vector<size_t>& mzpkVecSize_);
+	//void writePeakXmlData(vector<size_t>& mzpkVecSize_);
 
     template<typename T>
     T getXmlValue(xml::xml_document &scan, string xpath, string attrib);
     template<typename T>
     void setXmlValue(xml::xml_document &scan, string xpath, string attrib,T value);
 
-     void writeChromatogramXmlEnd();
+    void writeChromatogramXmlEnd();
 };
 
 
