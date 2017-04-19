@@ -614,51 +614,60 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
     if ((n > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
         cout << getTimeStamp() << "  Writing=" << id << " ..." << endl;
 
-    switch (input.type)
+    li offset = spectrumIndex_ - extent_;
+    for (ii i = 0; i < n; ++i)
     {
-        case Seamass::Input::Type::Binned:
+        vector<double> mzs;
+        vector<fp> intensities;
+        bool isCentroided;
+        switch (input.type)
         {
-            /*vector<fp> binCounts(input_.counts.size());
-            sm_.getOutputBinCounts(binCounts); // retrieve seaMass processed counts
-            // convert ion counts into ion density (counts per Th) and scale by exposures
-            if (input_.exposures.size() > 0)
+            case Seamass::Input::Type::Binned:
             {
-                if (input_.countsIndex.size() > 0)
+                /*vector<fp> binCounts(input_.counts.size());
+                sm_.getOutputBinCounts(binCounts); // retrieve seaMass processed counts
+                // convert ion counts into ion density (counts per Th) and scale by exposures
+                if (input_.exposures.size() > 0)
                 {
-                    // 2D data
-                    for (li j = 0; j < (li)input_.countsIndex.size() - 1; j++)
+                    if (input_.countsIndex.size() > 0)
                     {
-                        for (li i = input_.countsIndex[j]; i < input_.countsIndex[j + 1]; i++)
+                        // 2D data
+                        for (li j = 0; j < (li)input_.countsIndex.size() - 1; j++)
                         {
-                            binCounts[i] /= (fp) (input_.locations[i + j + 1] - input_.locations[i + j]) * input_.exposures[j];
+                            for (li i = input_.countsIndex[j]; i < input_.countsIndex[j + 1]; i++)
+                            {
+                                binCounts[i] /= (fp) (input_.locations[i + j + 1] - input_.locations[i + j]) * input_.exposures[j];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // 1D data
+                        for (li i = 0; i < (li)input_.counts.size(); i++)
+                        {
+                            binCounts[i] /= (fp) (input_.locations[i + 1] - input_.locations[i]) * input_.exposures[0];
                         }
                     }
                 }
-                else
-                {
-                    // 1D data
-                    for (li i = 0; i < (li)input_.counts.size(); i++)
-                    {
-                        binCounts[i] /= (fp) (input_.locations[i + 1] - input_.locations[i]) * input_.exposures[0];
-                    }
-                }
-            }
-            writeVecData(binCounts); // write to mzMLb
-            writeXmlData();*/
-        } break;
-        case Seamass::Input::Type::Sampled:
-        {
-            //writeVecData(binCounts); // write to mzMLb
-            //writeXmlData();
-        } break;
-        case Seamass::Input::Type::Centroided:
-        {
-            //writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_,vector<size_t>& mzpkVecSize_);
-            writeXmlData();
-            //writePeakXmlData(vector<size_t>& mzpkVecSize_);  // TODO: CHANGE SPECTRUM TYPE CVPARAM TO CENTROID
-       } break;
-        default:
-            throw runtime_error("BUG: input has no type");
+                writeVecData(binCounts); // write to mzMLb
+                writeXmlData();*/
+            } break;
+            case Seamass::Input::Type::Sampled:
+            {
+                //writeVecData(binCounts); // write to mzMLb
+                //writeXmlData();
+            } break;
+            case Seamass::Input::Type::Centroided:
+            {
+                //writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_,vector<size_t>& mzpkVecSize_);
+                writeXmlData();
+                //writePeakXmlData(vector<size_t>& mzpkVecSize_);  // TODO: CHANGE SPECTRUM TYPE CVPARAM TO CENTROID
+            } break;
+            default:
+                throw runtime_error("BUG: input has no type");
+        }
+
+        //writeSpectrum(i + offset, mzs, intensities, isCentroided);
     }
 }
 
