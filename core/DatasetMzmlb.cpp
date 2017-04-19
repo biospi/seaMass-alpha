@@ -624,7 +624,7 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
         {
             case Seamass::Input::Type::Binned:
             {
-                fp exposure = input.exposures.size() > 0 ? input.exposures[i] : 0.0;
+                fp exposure = input.exposures.size() > 0 ? input.exposures[i] : 1.0;
 
                 for (ii ci = input.countsIndex[i]; ci < input.countsIndex[i + 1]; ci++)
                 {
