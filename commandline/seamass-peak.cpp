@@ -159,11 +159,24 @@ int main(int argc, const char * const * argv)
             vector<fp>().swap(input.counts);
             vector<li>().swap(input.countsIndex);
             input.countsIndex.push_back(0);
+
+            uli peakDims[2];
+            mzPeak.getDims(peakDims);
             for (ii i = 0; i < mzpkVecSize.size(); i++)
             {
-                input.locations.insert(input.locations.end(), mzPeak.v.begin(), mzPeak.v.end());
-                input.counts.insert(input.counts.end(), pkPeak.v.begin(), pkPeak.v.end());
-                input.countsIndex.push_back(input.counts.size());
+                if (mzpkVecSize[i]>0)
+                {
+                    li idxOffset=li(i*peakDims[1]);
+                    input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
+                                           mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+                    input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
+                                        pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+                    input.countsIndex.push_back(input.counts.size());
+                }
+				else
+                {
+	                input.countsIndex.push_back(input.counts.size());
+                }
             }
             dataset->write(input, id);
 
