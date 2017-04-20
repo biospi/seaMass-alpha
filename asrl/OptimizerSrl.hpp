@@ -29,10 +29,10 @@
 
 class OptimizerSrl : public Optimizer
 {
-public:    
-    OptimizerSrl(const std::vector<Basis*>& bases, const std::vector<Matrix>& b, fp pruneThreshold = (fp)0.001);
+public:
+    OptimizerSrl(const std::vector<Basis*>& bases, const std::vector<Matrix>& b, bool seed = true, fp pruneThreshold = (fp)0.001);
     virtual ~OptimizerSrl();
-    
+
     virtual void setLambda(fp lambda, fp lambdaGroup = fp(0.0));
     virtual ii getIteration() const;
     virtual const std::vector<Basis*>& getBases() const;

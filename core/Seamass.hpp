@@ -93,7 +93,7 @@ public:
     void getOutputControlPoints(ControlPoints& controlPoints) const;
 
 private:
-    void init(const Input& input, const std::vector<char>& scales);
+    void init(const Input& input, const std::vector<char>& scales, bool seed);
 
     char dimensions_;
     std::vector<Basis*> bases_;

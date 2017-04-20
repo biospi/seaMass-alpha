@@ -46,18 +46,24 @@ void Seamass::notice()
 
 Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, fp tolerance) : lambda_(lambda), lambdaStart_(lambda), tolerance_(tolerance), iteration_(0)
 {
-    init(input, scale);
+    init(input, scale, true);
 }
 
 
 Seamass::Seamass(const Input& input, const Output& seed) : lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), iteration_(0)
 {
-    init(input, seed.scale);
+    init(input, seed.scale, false);
 
+    // import seed
     for (ii k = 0; k < (ii)bases_.size(); k++)
     {
+        optimizer_->xs()[k].resize(1);
         optimizer_->xs()[k][0].copy(seed.xs[k]);
+
+        optimizer_->l2s()[k].resize(1);
         optimizer_->l2s()[k][0].copy(seed.l2s[k]);
+
+        optimizer_->l1l2s()[k].resize(1);
         optimizer_->l1l2s()[k][0].copy(seed.l1l2s[k]);
     }
 }
@@ -73,7 +79,7 @@ Seamass::~Seamass()
 }
 
 
-void Seamass::init(const Input& input, const std::vector<char>& scales)
+void Seamass::init(const Input& input, const std::vector<char>& scales, bool seed)
 {
     // for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
     // this is conservative, 4 times might be ok, but 2 times isn't enough
@@ -131,9 +137,9 @@ void Seamass::init(const Input& input, const std::vector<char>& scales)
             b_[i].copy(1, input.countsIndex[i + 1] - input.countsIndex[i], &input.counts.data()[input.countsIndex[i]]);
         }
     }
-    
+
     // INIT OPTIMISER
-    innerOptimizer_ = new OptimizerSrl(bases_, b_);
+    innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
     optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
     optimizer_->setLambda((fp) lambda_);
 }
