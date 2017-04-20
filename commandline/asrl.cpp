@@ -148,9 +148,9 @@ int main(int argc, const char * const * argv)
 
                 FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
                 fileOut.write(output.xT[0], "Xt");
-                fileOut.write(output.aTxT[0], "AtXt");
-                if (output.gTxT.size() > 0)
-                    fileOut.write(output.gTxT[0], "GtXt");
+                fileOut.write(output.xTaT[0], "XtAt");
+                if (output.xTgT.size() > 0)
+                    fileOut.write(output.xTgT[0], "XtGt");
             }
         }
         while (asrl.step());
@@ -166,9 +166,9 @@ int main(int argc, const char * const * argv)
 
         FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
         fileOut.write(output.xT[0], "Xt");
-        fileOut.write(output.aTxT[0], "AtXt");
-        if (output.gTxT.size() > 0)
-            fileOut.write(output.gTxT[0], "GtXt");
+        fileOut.write(output.xTaT[0], "XtAt");
+        if (output.xTgT.size() > 0)
+            fileOut.write(output.xTgT[0], "XtGt");
 
         cout << endl;
     }
