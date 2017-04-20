@@ -31,26 +31,24 @@
 class Basis
 {
 public:
-    enum class Transient { NO, YES };
-	Basis(std::vector<Basis*>& bases, Transient transient, int parentIndex = -1);
-	virtual ~Basis();
+    Basis(std::vector<Basis*>& bases, bool transient, int parentIndex = -1);
+    virtual ~Basis();
 
-    virtual void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const = 0;
-	virtual void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA) const = 0;
-	virtual void shrinkage(std::vector<MatrixSparse>& y, const std::vector<MatrixSparse>& x, const std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& l1l2, fp lambda) const;
+    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const = 0;
+    virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA) const = 0;
     virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0) = 0;
 
-	virtual ii getM() const = 0;
-	virtual ii getN() const = 0;
+    virtual void synthesiseGroups(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
+    virtual const std::vector<MatrixSparse>* getGroups(bool transpose) const;
 
-	int getIndex() const;
-	int getParentIndex() const;
-	Transient getTransient() const;
+    int getIndex() const;
+    int getParentIndex() const;
+    bool isTransient() const;
 
 private:
-	int index_;       // index of this basis in the serialised tree
-	int parentIndex_; // parent node
-	Transient transient_; // if transient, coefficients not part of fitting
+    int index_;       // index of this basis in the serialised tree
+    int parentIndex_; // parent node
+    bool transient_; // if transient, coefficients not part of fitting
 };
 
 

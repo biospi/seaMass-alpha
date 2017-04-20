@@ -191,7 +191,7 @@ BasisIsotopeDistribution(vector<Basis*>& bases, BasisChargeDistribution* _parent
 
 	// create A
 	delete factors;
-	a.init(parent->get_cos().back(), nc / ns, acoo, rowind, colind);
+	a.setLambda(parent->get_cos().back(), nc / ns, acoo, rowind, colind);
 
 	cout << get_index() << " BasisIsotopeDistribution ";
 	cout << " A=";
@@ -208,7 +208,7 @@ BasisIsotopeDistribution::~BasisIsotopeDistribution()
 
 void
 BasisIsotopeDistribution::
-synthesis(vector<fp>& fs, const vector<fp>& cs, bool accum) const
+synthesise(vector<fp>& fs, const vector<fp>& cs, bool accum) const
 {
 	for (ii j = 0; j < ns; j++)
 	{
@@ -219,7 +219,7 @@ synthesis(vector<fp>& fs, const vector<fp>& cs, bool accum) const
 
 void
 BasisIsotopeDistribution::
-analysis(vector<fp>& es, const vector<fp>& fs) const
+analyse(vector<fp>& es, const vector<fp>& fs) const
 {
 	for (ii j = 0; j < ns; j++)
 	{

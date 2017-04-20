@@ -33,9 +33,9 @@ namespace po = boost::program_options;
 int main(int argc, const char * const * argv)
 {
 #ifdef NDEBUG
-	try
+    try
 #endif
-	{
+    {
         string filePathIn;
         vector<char> scale(2);
         int shrinkageExponent;
@@ -76,11 +76,11 @@ int main(int argc, const char * const * argv)
         desc.add(general);
 
         po::positional_options_description pod;
-		pod.add("file", 1);
+        pod.add("file", 1);
 
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
-		po::notify(vm);
+        po::variables_map vm;
+        po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
+        po::notify(vm);
 
         cout << endl;
         Seamass::notice();
@@ -88,10 +88,10 @@ int main(int argc, const char * const * argv)
         initKernel(debugLevel);
 
         if(vm.count("help") || !vm.count("file"))
-		{
-			cout << desc << endl;
-			return 0;
-		}
+        {
+            cout << desc << endl;
+            return 0;
+        }
 
         if(!vm.count("mz_scale"))
             scale[0] = numeric_limits<char>::max();
@@ -106,8 +106,8 @@ int main(int argc, const char * const * argv)
 
         Seamass::Input input;
         string id;
-        double tolerance = pow(2.0, (double)toleranceExponent);
-        double shrinkage = pow(2.0, (double)shrinkageExponent);
+        fp tolerance = pow(2.0, fp(toleranceExponent));
+        fp shrinkage = pow(2.0, fp(shrinkageExponent));
 
         while (dataset->read(input, id))
         {
@@ -151,5 +151,5 @@ int main(int argc, const char * const * argv)
         return 1;
     }
 #endif
-	return 0;
+    return 0;
 }

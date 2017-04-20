@@ -20,8 +20,8 @@
 //
 
 
-#ifndef _SEAMASS_CORE_BASISBSPLINESCANTIME_HPP_
-#define _SEAMASS_CORE_BASISBSPLINESCANTIME_HPP_
+#ifndef SEAMASS_CORE_BASISBSPLINESCANTIME_HPP
+#define SEAMASS_CORE_BASISBSPLINESCANTIME_HPP
 
 
 #include "BasisBspline.hpp"
@@ -30,16 +30,16 @@
 class BasisBsplineScantime : public BasisBspline
 {
 public:
-	BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-		const std::vector<fp>& exposures, char scale, Transient transient, ii order = 3);
-	virtual ~BasisBsplineScantime();
+    BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
+        const std::vector<fp>& exposures, char scale, bool transient, ii order = 3);
+    virtual ~BasisBsplineScantime();
 
-    void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
-    void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA = false) const;
-    void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
+    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
+    virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false) const;
+    virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
 
 private:
-	MatrixSparse aT_;
+    MatrixSparse aT_;
     ii aTnnzRows_;
 };
 

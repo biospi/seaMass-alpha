@@ -32,12 +32,12 @@ namespace po = boost::program_options;
 int main(int argc, const char * const * argv)
 {
 #ifdef NDEBUG
-	try
+    try
 #endif
-	{
-		string filePathIn;
+    {
+        string filePathIn;
         string dirPathIn;
-		int debugLevel;
+        int debugLevel;
 
         po::options_description general(
             "Usage\n"
@@ -47,25 +47,25 @@ int main(int argc, const char * const * argv)
             "mzmlb2bins [OPTIONS...] <file>\n"
         );
 
-		general.add_options()
+        general.add_options()
             ("help,h", "Produce help message")
-			("file,f", po::value<string>(&filePathIn),
+            ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format.")
             ("dir,i", po::value<string>(&dirPathIn)->default_value("."),
              "Input directory containing files in smb format [default=.]")
-			("debug,d", po::value<int>(&debugLevel)->default_value(0),
+            ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra.")
         ;
 
-		po::options_description desc;
-		desc.add(general);
+        po::options_description desc;
+        desc.add(general);
 
-		po::positional_options_description pod;
-		pod.add("file", 1);
+        po::positional_options_description pod;
+        pod.add("file", 1);
 
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
-		po::notify(vm);
+        po::variables_map vm;
+        po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
+        po::notify(vm);
 
         cout << endl;
         cout << "smb2mzmlb : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
@@ -90,27 +90,38 @@ int main(int argc, const char * const * argv)
 
         Seamass::Input input;
         string id;
+        int injected = 0;
         while(datasetMzmlb.read(input, id))
         {
             // replace input with smb file input if available
             try
             {
-                DatasetSeamass datasetSeamass(smbPathStem.string() + "." + id + ".smb", "");
+                string smbPathFile = smbPathStem.string() + "." + id + ".smb";
+                DatasetSeamass datasetSeamass(smbPathFile, "");
                 string nullId;
                 datasetSeamass.read(input, nullId);
+
+                if (input.countsIndex.size() > 1 && getDebugLevel() % 10 >= 1 || getDebugLevel() % 10 >= 2)
+                    cout << getTimeStamp() << "  Injected " << smbPathFile << endl;
+                injected++;
             }
             catch (runtime_error r) {}
 
             datasetMzmlb.write(input, id);
-		}
-	}
+        }
+
+        if (getDebugLevel() % 10 >= 1)
+            cout << getTimeStamp() << " ";
+        cout << "Injected " << injected << " smb file" << (injected == 1 ? "" : "s") << endl;
+        cout << endl;
+    }
 #ifdef NDEBUG
-	catch(exception& e)
-	{
-		cerr << e.what() << endl;
-		return 1;
-	}
+    catch(exception& e)
+    {
+        cerr << e.what() << endl;
+        return 1;
+    }
 #endif
 
-	return 0;
+    return 0;
 }

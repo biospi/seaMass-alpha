@@ -19,18 +19,11 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+
 #include "DatasetMzmlb.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <map>
-//#include <cassert>
-//#include <pugixml.hpp>
-//#include "../peak/SMData.hpp"
-//#include "../peak/MathOperator.hpp"
-//#include "../peak/BsplineData.hpp"
-//#include "../peak/PeakOperator.hpp"
-//#include "../peak/PeakData.hpp"
-//#include "../peak/PeakManager.hpp"
 using namespace kernel;
 namespace xml = pugi;
 
@@ -76,8 +69,8 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
     }
 
     // parse
-	xml::xml_document mzmlDoc;
-	xml::xpath_node_set nodes;
+    xml::xml_document mzmlDoc;
+    xml::xpath_node_set nodes;
     xml::xml_parse_result result = mzmlDoc.load_buffer_inplace(&mzML[0], sizeof(char) * mzML.size());
     if (!result) throw runtime_error("Error: In mzMLb input - " + string(result.description()));
 
@@ -134,8 +127,8 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
     SpectrumMetadata::DataType defaultDataType = dataTypes[mzmlDoc.select_node("mzML/run").node().attribute("defaultInstrumentConfigurationRef").value()];
 
     // query number of spectra to create "metadata_" structure
-	li ns;
-	istringstream(mzmlDoc.child("mzML").child("run").child("spectrumList").attribute("count").value()) >> ns;
+    li ns;
+    istringstream(mzmlDoc.child("mzML").child("run").child("spectrumList").attribute("count").value()) >> ns;
     metadata_.resize(ns);
 
     for (li i = 0; i < ns; i++)
@@ -401,7 +394,7 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
     out = Seamass::Input();
 
     // return if we are finished
-	if (spectrumIndex_ >= metadata_.size()) return false;
+    if (spectrumIndex_ >= metadata_.size()) return false;
 
     // determine next set of spectra
     id = metadata_[spectrumIndex_].id;
@@ -424,8 +417,8 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
     out.startTimes.resize(extent_);
     out.finishTimes.resize(extent_);
     vector< vector<double> > mzs(extent_);
-	for (li i = 0; i < extent_; i++)
-	{
+    for (li i = 0; i < extent_; i++)
+    {
         out.startTimes[i] = metadata_[offset + i].startTime;
         out.finishTimes[i] = metadata_[offset + i].finishTime;
 
@@ -665,7 +658,7 @@ void DatasetMzmlb::write(const Seamass::Input &input, const Seamass::Output &out
 
 bool DatasetMzmlb::startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs)
 {
-	return lhs.startTime < rhs.startTime;
+    return lhs.startTime < rhs.startTime;
 }
 
 
@@ -691,166 +684,166 @@ bool DatasetMzmlb::seamassOrder(const SpectrumMetadata &lhs, const SpectrumMetad
 
 void DatasetMzmlb::writeVecData(vector<float>& data_)
 {
-	fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",data_);
+    fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",data_);
 }
 
 
 void DatasetMzmlb::writeXmlData()
 {
-	vector<char> mzML;
+    vector<char> mzML;
 
-	if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
-	{
-		li offset=spectrumIndex_ - extent_;
-		for(size_t i = size_t(offset); i < spectrumIndex_; ++i)
-		{
-			if(mzML.size() > 0) vector<char>().swap(mzML);
+    if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
+    {
+        li offset=spectrumIndex_ - extent_;
+        for(size_t i = size_t(offset); i < spectrumIndex_; ++i)
+        {
+            if(mzML.size() > 0) vector<char>().swap(mzML);
 
-			xml::xml_document mzmlXmlScan;
-			vector<double> mzScan;
-			size_t idx = metadata_[i].mzmlSpectrumIndex;
-			size_t loc = size_t(specIdx_[idx]);
-			size_t len = size_t(specIdx_[idx + 1] - specIdx_[idx]);
-			fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
+            xml::xml_document mzmlXmlScan;
+            vector<double> mzScan;
+            size_t idx = metadata_[i].mzmlSpectrumIndex;
+            size_t loc = size_t(specIdx_[idx]);
+            size_t len = size_t(specIdx_[idx + 1] - specIdx_[idx]);
+            fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
 
-			size_t xmlSize = sizeof(char) * mzML.size();
-			xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
+            size_t xmlSize = sizeof(char) * mzML.size();
+            xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
 
-			size_t index = getXmlValue<size_t>(mzmlXmlScan,"spectrum","index");
-			size_t arrayLen = getXmlValue<size_t>(mzmlXmlScan,"spectrum","defaultArrayLength");
-			size_t mzOffSet = getXmlValue<size_t>(mzmlXmlScan,
-												  "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
-												  "offset");
+            size_t index = getXmlValue<size_t>(mzmlXmlScan,"spectrum","index");
+            size_t arrayLen = getXmlValue<size_t>(mzmlXmlScan,"spectrum","defaultArrayLength");
+            size_t mzOffSet = getXmlValue<size_t>(mzmlXmlScan,
+                                                  "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
+                                                  "offset");
 
-			fileIn_.read_HypVecNC("spectrum_MS_1000514_double", mzScan, &mzOffSet,
-								&arrayLen);
+            fileIn_.read_HypVecNC("spectrum_MS_1000514_double", mzScan, &mzOffSet,
+                                &arrayLen);
 
-			//mzScan.erase(mzScan.begin());   // REMOVING FIRST POINT? TODO: DO THIS ONLY FOR BINNED DATA
-			//mzScan.erase(mzScan.end() - 1); // REMOVING LAST POINT? TODO: DO THIS ONLY FOR BINNED DATA
+            //mzScan.erase(mzScan.begin());   // REMOVING FIRST POINT? TODO: DO THIS ONLY FOR BINNED DATA
+            //mzScan.erase(mzScan.end() - 1); // REMOVING LAST POINT? TODO: DO THIS ONLY FOR BINNED DATA
 
-			arrayLen = mzScan.size();
+            arrayLen = mzScan.size();
 
-			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "index", i);
-			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
+            setXmlValue<size_t>(mzmlXmlScan, "spectrum", "index", i);
+            setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
 
-			setXmlValue<size_t>(mzmlXmlScan,
-								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
-								"offset", idxDataArrayOffSet_);
-			setXmlValue<size_t>(mzmlXmlScan,
-								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
-								"offset", idxDataArrayOffSet_);
-			idxDataArrayOffSet_ += arrayLen;
+            setXmlValue<size_t>(mzmlXmlScan,
+                                "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
+                                "offset", idxDataArrayOffSet_);
+            setXmlValue<size_t>(mzmlXmlScan,
+                                "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
+                                "offset", idxDataArrayOffSet_);
+            idxDataArrayOffSet_ += arrayLen;
 
-			stringstream newmzML;
-			mzmlXmlScan.print(newmzML);
-			string output = newmzML.str();
-			vector<char>().swap(mzML);
-			mzML.assign(output.begin(), output.end());
+            stringstream newmzML;
+            mzmlXmlScan.print(newmzML);
+            string output = newmzML.str();
+            vector<char>().swap(mzML);
+            mzML.assign(output.begin(), output.end());
 
-			newSpecIdx_.push_back(newSpecIdx_[i] + mzML.size());
-			fileOut_->write_CatHypVecNC("mzML", mzML);
-			fileOut_->write_CatHypVecNC("spectrum_MS_1000514_double", mzScan);
-		}
-	}
-	if(spectrumIndex_ >= metadata_.size())
-	{
-		writeChromatogramXmlEnd();
-	}
+            newSpecIdx_.push_back(newSpecIdx_[i] + mzML.size());
+            fileOut_->write_CatHypVecNC("mzML", mzML);
+            fileOut_->write_CatHypVecNC("spectrum_MS_1000514_double", mzScan);
+        }
+    }
+    if(spectrumIndex_ >= metadata_.size())
+    {
+        writeChromatogramXmlEnd();
+    }
 }
 
 
 void DatasetMzmlb::writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_,
-								 vector<size_t>& mzpkVecSize_)
+                                 vector<size_t>& mzpkVecSize_)
 {
-	for(size_t i = 0; i < mzpkVecSize_.size(); ++i)
-	{
-		fileOut_->write_CatHypVecNC("spectrum_MS_1000514_double",mzPeak_.m[i],mzpkVecSize_[i]);
-		fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",pkPeak_.m[i],mzpkVecSize_[i]);
-	}
+    for(size_t i = 0; i < mzpkVecSize_.size(); ++i)
+    {
+        fileOut_->write_CatHypVecNC("spectrum_MS_1000514_double",mzPeak_.m[i],mzpkVecSize_[i]);
+        fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",pkPeak_.m[i],mzpkVecSize_[i]);
+    }
 }
 
 
 void DatasetMzmlb::writePeakXmlData(vector<size_t>& mzpkVecSize_)
 {
-	vector<char> mzML;
+    vector<char> mzML;
 
-	if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
-	{
-		li offset=spectrumIndex_ - extent_;
-		size_t j=0;
-		for(size_t i = size_t(offset); i < spectrumIndex_; ++i, ++j)
-		{
-			if(mzML.size() > 0) vector<char>().swap(mzML);
+    if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
+    {
+        li offset=spectrumIndex_ - extent_;
+        size_t j=0;
+        for(size_t i = size_t(offset); i < spectrumIndex_; ++i, ++j)
+        {
+            if(mzML.size() > 0) vector<char>().swap(mzML);
 
-			xml::xml_document mzmlXmlScan;
-			size_t idx = metadata_[i].mzmlSpectrumIndex;
-			size_t loc = size_t(specIdx_[idx]);
-			size_t len = size_t(specIdx_[idx + 1] - specIdx_[idx]);
-			fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
+            xml::xml_document mzmlXmlScan;
+            size_t idx = metadata_[i].mzmlSpectrumIndex;
+            size_t loc = size_t(specIdx_[idx]);
+            size_t len = size_t(specIdx_[idx + 1] - specIdx_[idx]);
+            fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
 
-			size_t xmlSize = sizeof(char) * mzML.size();
-			xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
+            size_t xmlSize = sizeof(char) * mzML.size();
+            xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
 
-			size_t arrayLen = mzpkVecSize_[j];
+            size_t arrayLen = mzpkVecSize_[j];
 
-			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "index", i);
-			setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
+            setXmlValue<size_t>(mzmlXmlScan, "spectrum", "index", i);
+            setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
 
-			setXmlValue<size_t>(mzmlXmlScan,
-								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
-								"offset", idxDataArrayOffSet_);
-			setXmlValue<size_t>(mzmlXmlScan,
-								"spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
-								"offset", idxDataArrayOffSet_);
-			idxDataArrayOffSet_ += arrayLen;
+            setXmlValue<size_t>(mzmlXmlScan,
+                                "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000514_double']",
+                                "offset", idxDataArrayOffSet_);
+            setXmlValue<size_t>(mzmlXmlScan,
+                                "spectrum/binaryDataArrayList/binaryDataArray/binary[@externalDataset='spectrum_MS_1000515_float']",
+                                "offset", idxDataArrayOffSet_);
+            idxDataArrayOffSet_ += arrayLen;
 
-			stringstream newmzML;
-			mzmlXmlScan.print(newmzML);
-			string output = newmzML.str();
-			vector<char>().swap(mzML);
-			mzML.assign(output.begin(), output.end());
+            stringstream newmzML;
+            mzmlXmlScan.print(newmzML);
+            string output = newmzML.str();
+            vector<char>().swap(mzML);
+            mzML.assign(output.begin(), output.end());
 
-			newSpecIdx_.push_back(newSpecIdx_[i] + mzML.size());
-			fileOut_->write_CatHypVecNC("mzML", mzML);
-		}
-	}
-	if(spectrumIndex_ >= metadata_.size())
-	{
-		writeChromatogramXmlEnd();
-	}
+            newSpecIdx_.push_back(newSpecIdx_[i] + mzML.size());
+            fileOut_->write_CatHypVecNC("mzML", mzML);
+        }
+    }
+    if(spectrumIndex_ >= metadata_.size())
+    {
+        writeChromatogramXmlEnd();
+    }
 }
 
 
 void DatasetMzmlb::writeChromatogramXmlEnd()
 {
-	vector<char> mzML;
-	string subxml("</spectrumList>\n");
+    vector<char> mzML;
+    string subxml("</spectrumList>\n");
 
-	mzML.assign(subxml.begin(), subxml.end());
-	fileOut_->write_CatHypVecNC("mzML", mzML);
+    mzML.assign(subxml.begin(), subxml.end());
+    fileOut_->write_CatHypVecNC("mzML", mzML);
 
-	vector<size_t> lenTotal = fileIn_.read_DimNC("mzML");
-	size_t loc = specIdx_.back();
-	size_t len = lenTotal[0] - loc;
-	fileIn_.read_HypVecNC("mzML", mzML, &loc, &len);
+    vector<size_t> lenTotal = fileIn_.read_DimNC("mzML");
+    size_t loc = specIdx_.back();
+    size_t len = lenTotal[0] - loc;
+    fileIn_.read_HypVecNC("mzML", mzML, &loc, &len);
 
-	subxml.clear();
-	subxml.assign(mzML.begin(), mzML.end());
-	subxml = subxml.substr(subxml.find("<chromatogramList"));
+    subxml.clear();
+    subxml.assign(mzML.begin(), mzML.end());
+    subxml = subxml.substr(subxml.find("<chromatogramList"));
 
-	mzML.clear();
-	mzML.assign(subxml.begin(), subxml.end());
+    mzML.clear();
+    mzML.assign(subxml.begin(), subxml.end());
 
-	vector<uli> newChroIdx_;
-	vector<size_t> pos;
-	findVecString(mzML, pos, "<chromatogram ", "</chromatogram>");
-	lenTotal.clear();
-	lenTotal = fileOut_->read_DimNC("mzML");
-	newChroIdx_.push_back(lenTotal[0] + pos[0]);
-	newChroIdx_.push_back(lenTotal[0] + pos[1]);
+    vector<uli> newChroIdx_;
+    vector<size_t> pos;
+    findVecString(mzML, pos, "<chromatogram ", "</chromatogram>");
+    lenTotal.clear();
+    lenTotal = fileOut_->read_DimNC("mzML");
+    newChroIdx_.push_back(lenTotal[0] + pos[0]);
+    newChroIdx_.push_back(lenTotal[0] + pos[1]);
 
-	fileOut_->write_CatHypVecNC("mzML", mzML);
+    fileOut_->write_CatHypVecNC("mzML", mzML);
 
-	fileOut_->write_VecNC("mzML_spectrumIndex", newSpecIdx_, NC_INT64);
-	fileOut_->write_VecNC("mzML_chromatogramIndex", newChroIdx_, NC_INT64);
+    fileOut_->write_VecNC("mzML_spectrumIndex", newSpecIdx_, NC_INT64);
+    fileOut_->write_VecNC("mzML_chromatogramIndex", newChroIdx_, NC_INT64);
 }

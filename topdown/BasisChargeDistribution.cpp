@@ -125,7 +125,7 @@ BasisChargeDistribution(std::vector<Basis*>& bases, const std::vector<fp>& count
 	cout << minRow << "," << maxRow << endl;
 	cout << minCol << "," << maxCol << endl;
 	cout << counts.size() << "," << groupXOffsets_[groupXOffsets_.size() - 1] << endl;
-	a_.init(counts.size(), groupXOffsets_[groupXOffsets_.size() - 1], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
+	a_.setLambda(counts.size(), groupXOffsets_[groupXOffsets_.size() - 1], (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
 
 //#ifndef NDEBUG
 	cout << " " << getIndex() << " BasisChargeDistribution";
@@ -156,10 +156,10 @@ ii BasisChargeDistribution::getN() const
 
 void
 BasisChargeDistribution::
-synthesis(Matrix& f, const Matrix& x, bool accumulate) const
+synthesise(Matrix& f, const Matrix& x, bool accumulate) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisChargeDistribution::synthesis" << endl;
+	cout << " " << getIndex() << " BasisChargeDistribution::synthesise" << endl;
 #endif
 
 	f.mul(a_, x, accumulate, false, false);
@@ -168,10 +168,10 @@ synthesis(Matrix& f, const Matrix& x, bool accumulate) const
 
 void
 BasisChargeDistribution::
-analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
+analyse(Matrix& xE, const Matrix& fE, bool sqrA) const
 {
 #ifndef NDEBUG
-	cout << " " << getIndex() << " BasisChargeDistribution::analysis" << endl;
+	cout << " " << getIndex() << " BasisChargeDistribution::analyse" << endl;
 #endif
 
 	if (sqrA)

@@ -19,8 +19,10 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+
 #ifndef SEAMASS_IO_DATASETMZMLB_TPP
 #define SEAMASS_IO_DATASETMZMLB_TPP
+
 
 #include "DatasetMzmlb.hpp"
 
@@ -28,24 +30,24 @@
 template<typename T>
 T DatasetMzmlb::getXmlValue(xml::xml_document &scan, string xpath, string attrib)
 {
-	T value;
-	xml::xpath_node_set tool;
-	tool = scan.select_nodes(xpath.c_str());
-	istringstream(tool.first().node().attribute(attrib.c_str()).value())>>value;
-	return value;
+    T value;
+    xml::xpath_node_set tool;
+    tool = scan.select_nodes(xpath.c_str());
+    istringstream(tool.first().node().attribute(attrib.c_str()).value())>>value;
+    return value;
 }
 
 
 template<typename T>
 void DatasetMzmlb::setXmlValue(xml::xml_document &scan, string xpath, string attrib, T value)
 {
-	xml::xpath_node_set tool;
-	tool = scan.select_nodes(xpath.c_str());
+    xml::xpath_node_set tool;
+    tool = scan.select_nodes(xpath.c_str());
 
-	ostringstream buff;
-	buff << value;
-	string newVal(buff.str());
-	tool.first().node().attribute(attrib.c_str()).set_value(newVal.c_str());
+    ostringstream buff;
+    buff << value;
+    string newVal(buff.str());
+    tool.first().node().attribute(attrib.c_str()).set_value(newVal.c_str());
 }
 
 

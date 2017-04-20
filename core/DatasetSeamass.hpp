@@ -19,6 +19,7 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+
 #ifndef SEAMASS_DATASETSEAMASS_HPP
 #define SEAMASS_DATASETSEAMASS_HPP
 
@@ -30,10 +31,10 @@
 class DatasetSeamass: public Dataset
 {
 public:
-	DatasetSeamass(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
-	virtual ~DatasetSeamass();
+    DatasetSeamass(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+    virtual ~DatasetSeamass();
 
-	virtual bool read(Seamass::Input &input, std::string &id);
+    virtual bool read(Seamass::Input &input, std::string &id);
     virtual void write(const Seamass::Input &input, const std::string &id);
 
     virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id);
@@ -41,8 +42,8 @@ public:
 
 private:
     FileNetcdf* fileIn_;
-	FileNetcdf* fileOut_;
- 	bool finished_;
+    FileNetcdf* fileOut_;
+    bool finished_;
 };
 
 

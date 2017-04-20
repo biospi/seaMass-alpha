@@ -20,8 +20,8 @@
 //
 
 
-#ifndef SEAMASS_CORE_SEAMASSCORE_HPP
-#define SEAMASS_CORE_SEAMASSCORE_HPP
+#ifndef SEAMASS_CORE_SEAMASS_HPP
+#define SEAMASS_CORE_SEAMASS_HPP
 
 
 #include "../asrl/Basis.hpp"
@@ -34,19 +34,19 @@
 class Seamass
 {
 public:
-	static void notice();
+    static void notice();
 
-	struct Input {
+    struct Input {
         enum class Type { Binned, Sampled, Centroided } type;
-		std::vector<fp> counts;
-		std::vector<li> countsIndex;
-		std::vector<double> locations;
-		std::vector<double> startTimes;
-		std::vector<double> finishTimes;
-		std::vector<fp> exposures;
-	};
+        std::vector<fp> counts;
+        std::vector<li> countsIndex;
+        std::vector<double> locations;
+        std::vector<double> startTimes;
+        std::vector<double> finishTimes;
+        std::vector<fp> exposures;
+    };
 
-	struct Output
+    struct Output
     {
         std::vector<char> scale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
         double shrinkage;        // shrinkage used
@@ -64,47 +64,50 @@ public:
         std::vector< std::vector<char> > scales; // scales of each basis function for each dimension
         std::vector< std::vector<ii> > offsets; // offsets of each basis functions for each dimension
         std::vector<fp> weights;         // weight of each basis functions (i.e. xs)*/
- 	};
+    };
 
-	struct ControlPoints {
-		std::vector<fp> coeffs;
-		std::vector<char> scale;
-		std::vector<ii> offset;
-		std::vector<ii> extent;
-	};
+    struct ControlPoints {
+        std::vector<fp> coeffs;
+        std::vector<char> scale;
+        std::vector<ii> offset;
+        std::vector<ii> extent;
+    };
 
-	Seamass(const Input& input, const std::vector<char>& scale, double shrinkage, double tolerance);
-	Seamass(const Input& input, const Output& seed);
-	virtual ~Seamass();
+    Seamass(const Input& input, const std::vector<char>& scale, fp lambda, fp tolerance);
+    Seamass(const Input& input, const Output& seed);
+    virtual ~Seamass();
 
-	bool step();
-	ii getIteration() const;
+    bool step();
+    ii getIteration() const;
 
-	// get seaMass output (for smv file)
-	void getOutput(Output& output) const;
+    // get seaMass output (for smv file)
+    void getOutput(Output& output) const;
 
-	// get restored bin counts derived from seaMass output
-	void getOutputBinCounts(std::vector<fp>& binCounts) const;
+    // get restored bin counts derived from seaMass output
+    void getOutputBinCounts(std::vector<fp>& binCounts) const;
 
-	// get restored 1D control points (i.e. per spectra) derived from seaMass output
-	void getOutputControlPoints1d(ControlPoints& controlPoints) const;
+    // get restored 1D control points (i.e. per spectra) derived from seaMass output
+    void getOutputControlPoints1d(ControlPoints& controlPoints) const;
 
-	// get restored control points with dimension depending on input (i.e. 1D or 2D)
-	void getOutputControlPoints(ControlPoints& controlPoints) const;
+    // get restored control points with dimension depending on input (i.e. 1D or 2D)
+    void getOutputControlPoints(ControlPoints& controlPoints) const;
 
 private:
-	void init(const Input& input, const std::vector<char>& scales);
+    void init(const Input& input, const std::vector<char>& scales);
 
-	char dimensions_;
-	std::vector<Basis*> bases_;
-	Optimizer* innerOptimizer_;
-	Optimizer* optimizer_;
-	double shrinkage_;
-    double shrinkageStart_;
-	double tolerance_;
-	int iteration_;
+    char dimensions_;
+    std::vector<Basis*> bases_;
+    std::vector<Matrix> b_;
+
+    Optimizer* innerOptimizer_;
+    Optimizer* optimizer_;
+
+    fp lambda_;
+    fp lambdaStart_;
+    fp tolerance_;
+    int iteration_;
 };
 
 
-#endif // _SEAMASS_HPP_
+#endif
 

@@ -39,16 +39,16 @@ namespace po = boost::program_options;
 int main(int argc, const char * const * argv)
 {
 #ifdef NDEBUG
-	try
+    try
 #endif
-	{
+    {
         string filePathIn;
         vector<char> scales(2);
         int shrinkageExponent;
         int toleranceExponent;
         int debugLevel;
-		bool centroid;
-		double threshold;
+        bool centroid;
+        double threshold;
 
         // *******************************************************************
 
@@ -65,7 +65,7 @@ int main(int argc, const char * const * argv)
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
-			("threshold,t", po::value<double>(&threshold)->default_value(10.0),
+            ("threshold,t", po::value<double>(&threshold)->default_value(10.0),
              "Minimum ion counts in a peak. Default is 10.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level.")
@@ -75,11 +75,11 @@ int main(int argc, const char * const * argv)
         desc.add(general);
 
         po::positional_options_description pod;
-		pod.add("file", 1);
+        pod.add("file", 1);
 
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
-		po::notify(vm);
+        po::variables_map vm;
+        po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
+        po::notify(vm);
 
         cout << endl;
         cout << "seaMass-peak : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
@@ -88,11 +88,11 @@ int main(int argc, const char * const * argv)
         cout << endl;
         initKernel(debugLevel);
         
-		if(vm.count("help") || !vm.count("file"))
-		{
-			cout << desc << endl;
-			return 0;
-		}
+        if(vm.count("help") || !vm.count("file"))
+        {
+            cout << desc << endl;
+            return 0;
+        }
 
         if(!vm.count("mz_scale"))
             scales[0] = numeric_limits<char>::max();
@@ -173,9 +173,9 @@ int main(int argc, const char * const * argv)
                                         pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
                     input.countsIndex.push_back(input.counts.size());
                 }
-				else
+                else
                 {
-	                input.countsIndex.push_back(input.counts.size());
+                    input.countsIndex.push_back(input.counts.size());
                 }
             }
             dataset->write(input, id);
@@ -195,5 +195,5 @@ int main(int argc, const char * const * argv)
         return 1;
     }
 #endif
-	return 0;
+    return 0;
 }

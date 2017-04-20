@@ -22,33 +22,36 @@
 #ifndef SEAMASS_KERNEL_VECMAT_HPP
 #define SEAMASS_KERNEL_VECMAT_HPP
 
+
 #include <vector>
 #include <cmath>
-
 using namespace std;
+
 
 typedef long long int lli;
 typedef unsigned long long uli;
 
+
 template<typename T = float>
 struct VecMat
 {
-	VecMat(void);
-	VecMat(uli _r, uli _c, const vector<T> &_vec);
-	VecMat(uli _r, uli _c);
-	vector<T> v; // Vector of Matrix data.
-	T** m; // Data Matrix
-	void set(uli _r, uli _c, const vector<T> &_vec);
-	void set(uli _r, uli _c);
-	void getDims(uli dims[]) const;
-	void clear(void);
+    VecMat(void);
+    VecMat(uli _r, uli _c, const vector<T> &_vec);
+    VecMat(uli _r, uli _c);
+    vector<T> v; // Vector of Matrix data.
+    T** m; // Data Matrix
+    void set(uli _r, uli _c, const vector<T> &_vec);
+    void set(uli _r, uli _c);
+    void getDims(uli dims[]) const;
+    void clear(void);
 private:
-	vector<T*> matIdx;
-	uli row;
-	uli col;
+    vector<T*> matIdx;
+    uli row;
+    uli col;
 };
 
 
 #include "VecMat.tpp"
+
 
 #endif

@@ -66,10 +66,10 @@ void SeamassTopdown::init(Input& input, ii maxMass, ii binsPerDalton)
 {
 	/*BasisChargeDistribution* basisCharge = new BasisChargeDistribution(bases_, input.counts, input.scale, input.offset, maxMass, binsPerDalton);
 
-	b_.init((li)input.counts.size(), 1, input.counts.data());
+	b_.setLambda((li)input.counts.size(), 1, input.counts.data());
 	innerOptimizer_ = new OptimizerSrl(bases_, b_, debugLevel_);
 	optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_, debugLevel_);
-	optimizer_->init((fp)shrinkage_);*/
+	optimizer_->setLambda((fp)lambda_);*/
 }
 
 
@@ -107,14 +107,14 @@ bool SeamassTopdown::step()
 		cout << " it: " << setw(5) << iteration_;
 		cout << " shrink: ";
 		cout.unsetf(ios::floatfield); 
-		cout << setprecision(4) << setw(6) << shrinkage_;
+		cout << setprecision(4) << setw(6) << lambda_;
 		cout << " nnz: " << setw(10) << nnz;
 		cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
 	}
 
 	if (grad <= tolerance_)
 	{
-		if (shrinkage_ == 0)
+		if (lambda_ == 0)
 		{
 			if (debugLevel_ == 0) cout << "o" << endl;
 			return false;
@@ -122,8 +122,8 @@ bool SeamassTopdown::step()
 		else
 		{
 			if (debugLevel_ == 0) cout << "o" << flush;
-			shrinkage_ *= (shrinkage_ > 0.0625 ? 0.5 : 0.0);
-			optimizer_->init((fp)shrinkage_);
+			lambda_ *= (lambda_ > 0.0625 ? 0.5 : 0.0);
+			optimizer_->setLambda((fp)lambda_);
 		}
 	}
 	else

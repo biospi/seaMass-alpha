@@ -24,44 +24,41 @@
 #define SEAMASS_CORE_BASISBSPLINE_HPP
 
 
-#include <vector>
-
 #include "../asrl/Basis.hpp"
+#include <vector>
 
 
 class BasisBspline : public Basis
 {
 public:
-	struct GridInfo
-	{
-		char dimensions;  	      // dimension of each b-spline coefficients grid
-		std::vector<char> scale; // dyadic scale for each dimension
-		std::vector<ii> offset;   // coefficient offset for each dimension
-		std::vector<ii> extent;   // number of coefficients for each dimension (make up the columns)
-		ii count;                 // number of grids
+    struct GridInfo
+    {
+        char dimensions;         // dimension of each b-spline coefficients grid
+        std::vector<char> scale; // dyadic scale for each dimension
+        std::vector<ii> offset;  // coefficient offset for each dimension
+        std::vector<ii> extent;  // number of coefficients for each dimension (make up the columns)
+        ii count;                // number of grids
 
-		GridInfo(char dimensions_);
-		~GridInfo();
+        GridInfo(char dimensions_);
+        ~GridInfo();
 
-		ii m() const;           // number of rows in resulting matrix
+        ii m() const;           // number of rows in resulting matrix
         ii n() const;           // number of columns in resulting matrix
-		li size() const;        // number of coefficients across all grids
+        li size() const;        // number of coefficients across all grids
 
-		void operator=(const GridInfo& gridInfo);
-	};
+        void operator=(const GridInfo& gridInfo);
+    };
 
-	BasisBspline(std::vector<Basis*>& bases, char dimensions, Transient transient, int parentIndex = -1);
-	virtual ~BasisBspline();
+    BasisBspline(std::vector<Basis*>& bases, char dimensions, bool transient, int parentIndex = -1);
+    virtual ~BasisBspline();
 
-	ii getM() const;
-	ii getN() const;
-	const GridInfo& getGridInfo() const;
+    const GridInfo& getGridInfo() const;
 
 protected:
-	GridInfo& gridInfo();
+    GridInfo& gridInfo();
 
 private:
-	GridInfo gridInfo_;
+    GridInfo gridInfo_;
 };
 
 std::ostream& operator<<(std::ostream& os, const BasisBspline::GridInfo& gridInfo);

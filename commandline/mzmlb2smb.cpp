@@ -32,11 +32,11 @@ namespace po = boost::program_options;
 int main(int argc, const char * const * argv)
 {
 #ifdef NDEBUG
-	try
+    try
 #endif
-	{
-		string filePathIn;
-		int debugLevel;
+    {
+        string filePathIn;
+        int debugLevel;
 
         po::options_description general(
             "Usage\n"
@@ -46,23 +46,23 @@ int main(int argc, const char * const * argv)
             "mzmlb2smb [OPTIONS...] <file>\n"
         );
 
-		general.add_options()
+        general.add_options()
             ("help,h", "Produce help message")
-			("file,f", po::value<string>(&filePathIn),
+            ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML or vendor format.")
-			("debug,d", po::value<int>(&debugLevel)->default_value(0),
+            ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for stats on DIA output, 2+ for all output, 3+ for stats on input spectra.")
         ;
 
-		po::options_description desc;
-		desc.add(general);
+        po::options_description desc;
+        desc.add(general);
 
-		po::positional_options_description pod;
-		pod.add("file", 1);
+        po::positional_options_description pod;
+        pod.add("file", 1);
 
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
-		po::notify(vm);
+        po::variables_map vm;
+        po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
+        po::notify(vm);
 
         cout << endl;
         cout << "mzmlb2smb : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
@@ -85,19 +85,19 @@ int main(int argc, const char * const * argv)
             string fileStemOut = boost::filesystem::path(filePathIn).stem().string() + (id == "" ? "" : ".") + id;
             DatasetSeamass datasetOut("", fileStemOut, Dataset::WriteType::Input);
             datasetOut.write(input, id);
-		}
+        }
 
         cout << endl;
-	}
+    }
 #ifdef NDEBUG
-	catch(exception& e)
-	{
-	    cout << endl;
-		cerr << e.what() << endl;
-	    cout << endl;
-		return 1;
-	}
+    catch(exception& e)
+    {
+        cout << endl;
+        cerr << e.what() << endl;
+        cout << endl;
+        return 1;
+    }
 #endif
 
-	return 0;
+    return 0;
 }

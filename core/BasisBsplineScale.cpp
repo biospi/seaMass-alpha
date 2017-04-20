@@ -29,20 +29,20 @@ using namespace kernel;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, Transient transient, int order)
+BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool transient, int order)
     : BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
 {
     if (getDebugLevel() % 10 >= 2)
     {
         cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale";
-        if (getTransient() == Basis::Transient::YES) cout << " (transient)";
+        if (isTransient()) cout << " (transient)";
         cout << endl;
     }
 
-	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
-	gridInfo() = parentGridInfo;
-	gridInfo().scale[dimension_] = parentGridInfo.scale[dimension_] - 1;
-	gridInfo().offset[dimension_] = parentGridInfo.offset[dimension_] / 2;
+    const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
+    gridInfo() = parentGridInfo;
+    gridInfo().scale[dimension_] = parentGridInfo.scale[dimension_] - 1;
+    gridInfo().offset[dimension_] = parentGridInfo.offset[dimension_] / 2;
     gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_]) / 2 + 1 - gridInfo().offset[dimension_];
     
     if (getDebugLevel() % 10 >= 2)
@@ -52,44 +52,44 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, Transi
         cout << getTimeStamp() << "     " << gridInfo() << endl;
     }
     
-	ii stride = 1;
-	for (ii j = 0; j < dimension_; j++) stride *= gridInfo().extent[j];
+    ii stride = 1;
+    for (ii j = 0; j < dimension_; j++) stride *= gridInfo().extent[j];
 
-	// create our kernel
-	ii nh = order + 2;
-	vector<fp> hs(nh);
-	double sum = 0.0;
-	for (ii i = 0; i < nh; i++)
-	{
-		hs[i] = (fp) (1.0 / pow(2.0, (double)order) * Bspline::factorial(order + 1) / (double)(Bspline::factorial(i)*Bspline::factorial(order + 1 - i)));
-		sum += hs[i];
-	}
-	for (ii i = 0; i < nh; i++)
-	{
-		hs[i] /= (fp) sum;
-	}
+    // create our kernel
+    ii nh = order + 2;
+    vector<fp> hs(nh);
+    double sum = 0.0;
+    for (ii i = 0; i < nh; i++)
+    {
+        hs[i] = (fp) (1.0 / pow(2.0, (double)order) * Bspline::factorial(order + 1) / (double)(Bspline::factorial(i)*Bspline::factorial(order + 1 - i)));
+        sum += hs[i];
+    }
+    for (ii i = 0; i < nh; i++)
+    {
+        hs[i] /= (fp) sum;
+    }
 
-	// create A as a temporary COO matrix
+    // create A as a temporary COO matrix
     ii m = parentGridInfo.extent[dimension_];
     ii n = gridInfo().extent[dimension_];
-	vector<ii> is(nh * n);
-	vector<ii> js(nh * n);
+    vector<ii> is(nh * n);
+    vector<ii> js(nh * n);
     vector<fp> vs(nh * n);
 
-	ii nnz = 0;
-	ii offset = order + ((parentGridInfo.offset[dimension_] + 1) % 2);
-	for (ii j = 0; j < n; j++)
-	{
-		for (ii i = 0; i < nh; i++)
-		{
-			is[nnz] = 2 * j + i - offset;
-			if (is[nnz] < 0 || is[nnz] >= m) continue;
-			vs[nnz] = hs[i];
-			js[nnz] = j;
+    ii nnz = 0;
+    ii offset = order + ((parentGridInfo.offset[dimension_] + 1) % 2);
+    for (ii j = 0; j < n; j++)
+    {
+        for (ii i = 0; i < nh; i++)
+        {
+            is[nnz] = 2 * j + i - offset;
+            if (is[nnz] < 0 || is[nnz] >= m) continue;
+            vs[nnz] = hs[i];
+            js[nnz] = j;
 
- 			nnz++;
-		}
-	}
+            nnz++;
+        }
+    }
 
     // create A
     aT_.copy(n, m, js, is, vs);
@@ -107,11 +107,11 @@ BasisBsplineScale::~BasisBsplineScale()
 
 void
 BasisBsplineScale::
-synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulate) const
+synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesise" << endl;
     }
     
     if (!f.size()) f.resize(1);
@@ -132,11 +132,11 @@ synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulat
 }
 
 
-void BasisBsplineScale::analysis(vector<MatrixSparse>& xE, const vector<MatrixSparse>& fE, bool sqrA) const
+void BasisBsplineScale::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analysis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analyse" << endl;
     }
     
     if (!xE.size()) xE.resize(1);

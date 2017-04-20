@@ -3,8 +3,6 @@ add_library(seamass_asrl
         Basis.hpp
         BasisMatrix.cpp
         BasisMatrix.hpp
-        BasisMatrixGroup.cpp
-        BasisMatrixGroup.hpp
         Optimizer.cpp
         Optimizer.hpp
         OptimizerSrl.cpp

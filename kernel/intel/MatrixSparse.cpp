@@ -27,11 +27,11 @@
 #include <cassert>
 #include <cstring>
 #include <algorithm>
+#include <ippcore.h>
+#include <ipps.h>
 #if defined(_OPENMP)
   #include <omp.h>
 #endif
-#include <ippcore.h>
-#include <ipps.h>
 using namespace std;
 using namespace kernel;
 
@@ -95,12 +95,6 @@ ii MatrixSparse::nnzActual() const
     {
         return 0;
     }
-}
-
-
-ii* MatrixSparse::js() const
-{
-    return js_;
 }
 
 
@@ -282,7 +276,7 @@ void MatrixSparse::copy(ii m, ii n, const std::vector<ii> &is, const std::vector
 }
 
 
-void MatrixSparse::copy(ii m, ii n, fp v)
+void MatrixSparse::alloc(ii m, ii n, fp v)
 {
     init();
 
@@ -693,13 +687,13 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
     if (!is1_)
         accumulate = false;
 
-	if (!a.is1_ || !b.is1_)
-	{
+    if (!a.is1_ || !b.is1_)
+    {
         m_ = transposeA ? a.n() : a.m();
         n_ = b.n();
-	}
-	else
-	{
+    }
+    else
+    {
         if (denseOutput)
         {
             ii m = transposeA ? a.n() : a.m();
@@ -773,7 +767,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 isOwned_ = false;
             }
         }
-	}
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {
@@ -983,7 +977,7 @@ fp MatrixSparse::sumSqrs() const
         cout << setprecision(8) << sum << endl;
     }
 
-	return sum;
+    return sum;
 }
 
 
@@ -1013,12 +1007,12 @@ fp MatrixSparse::sumSqrDiffsNonzeros(const fp* a_vs) const
 
 ostream& operator<<(ostream& os, const MatrixSparse& a)
 {
-	if (a.m() == 0)
-	{
-		os << "[]";
-	}
-	else
-	{
+    if (a.m() == 0)
+    {
+        os << "[]";
+    }
+    else
+    {
         os << "[" << a.m_ << "," << a.n_ << "]:" << a.nnz();
         
         if (getDebugLevel() % 10 >= 4)
@@ -1029,7 +1023,7 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
         os << "/" << a.size() << ":";
         os.unsetf(ios::floatfield);
         os << setprecision(3) << 100.0 * a.nnz() / (double)a.size() << "%";
-	}
+    }
 
-	return  os;
+    return  os;
 }

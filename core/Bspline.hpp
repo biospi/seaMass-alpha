@@ -20,8 +20,8 @@
 //
 
 
-#ifndef _SEAMASS_CORE_BSPLINE_HPP_
-#define _SEAMASS_CORE_BSPLINE_HPP_
+#ifndef SEAMASS_CORE_BSPLINE_HPP
+#define SEAMASS_CORE_BSPLINE_HPP
 
 
 #include <vector>
@@ -32,18 +32,18 @@
 class Bspline
 {
 public:
-	Bspline(ii order, ii n);
-	double ibasis(double x);
+    Bspline(ii order, ii n);
+    double ibasis(double x);
 
-	static double m(double x, ii k, ii i, std::vector<fp>& ks);
-	static double m(double x, ii k, ii i);
-	static double im(double x, ii k);
-	static ii factorial(ii n);
+    static double m(double x, ii k, ii i, std::vector<fp>& ks);
+    static double m(double x, ii k, ii i);
+    static double im(double x, ii k);
+    static ii factorial(ii n);
 
 private:
-	ii order_;
-	ii n_;
-	std::vector<double> lookup_;
+    ii order_;
+    ii n_;
+    std::vector<double> lookup_;
 };
 
 

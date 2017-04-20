@@ -31,10 +31,11 @@
 class Matrix
 {
 public:
-	Matrix();
-	~Matrix();
-    
-    void init(ii m, ii n, const fp* vs); // deep copy from vs
+    Matrix();
+    ~Matrix();
+
+    void alloc(ii m, ii n);
+    void copy(ii m, ii n, const fp *vs); // deep copy from vs
     void free();
     
     ii m() const;
@@ -43,9 +44,9 @@ public:
     fp* vs() const;
  
 private:
-	li m_; // rows
-	ii n_; // columns
-	fp* vs_; // data
+    li m_; // rows
+    ii n_; // columns
+    fp* vs_; // data
 };
 
 std::ostream& operator<<(std::ostream& os, const Matrix& mat);

@@ -28,8 +28,8 @@
 using namespace std;
 
 
-BasisBspline::BasisBspline(std::vector<Basis*>& bases, char dimensions, Transient transient, int parentIndex)
-	: Basis(bases, transient, parentIndex), gridInfo_(dimensions)
+BasisBspline::BasisBspline(std::vector<Basis*>& bases, char dimensions, bool transient, int parentIndex)
+    : Basis(bases, transient, parentIndex), gridInfo_(dimensions)
 {
 }
 
@@ -40,18 +40,18 @@ BasisBspline::~BasisBspline()
 
 
 BasisBspline::GridInfo::GridInfo(char dimensions_)
-	: dimensions(dimensions_), scale(dimensions_), offset(dimensions_), extent(dimensions_), count(0)
+    : dimensions(dimensions_), scale(dimensions_), offset(dimensions_), extent(dimensions_), count(0)
 {
 }
 
 
 void BasisBspline::GridInfo::operator=(const BasisBspline::GridInfo& mi)
 {
-	dimensions = mi.dimensions;
-	scale = mi.scale;
-	offset = mi.offset;
-	extent = mi.extent;
-	count = mi.count;
+    dimensions = mi.dimensions;
+    scale = mi.scale;
+    offset = mi.offset;
+    extent = mi.extent;
+    count = mi.count;
 }
 
 
@@ -79,69 +79,57 @@ ii BasisBspline::GridInfo::n() const
 
 li BasisBspline::GridInfo::size() const
 {
-	li size = count;
-	for (ii i = 0; i < dimensions; i++)
-	{
-		size *= extent[i];
-	}
-	return size;
-}
-
-
-ii BasisBspline::getM() const
-{
-    return gridInfo_.m();
-}
-
-
-ii BasisBspline::getN() const
-{
-    return gridInfo_.n();
+    li size = count;
+    for (ii i = 0; i < dimensions; i++)
+    {
+        size *= extent[i];
+    }
+    return size;
 }
 
 
 const BasisBspline::GridInfo& BasisBspline::getGridInfo() const
 {
-	return gridInfo_;
+    return gridInfo_;
 }
 
 
 BasisBspline::GridInfo& BasisBspline::gridInfo()
 {
-	return gridInfo_;
+    return gridInfo_;
 }
 
 
 ostream&
 operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
 {
-	os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]:(count=" << gridInfo.count;
+    os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]:(count=" << gridInfo.count;
 
-	os << ",scale=[";
-	for (ii i = 0; i < gridInfo.dimensions; i++)
-	{
-		os << (int) gridInfo.scale[i];
-		if (i < gridInfo.dimensions - 1) os << ",";
-	}
-	os << "]";
+    os << ",scale=[";
+    for (ii i = 0; i < gridInfo.dimensions; i++)
+    {
+        os << (int) gridInfo.scale[i];
+        if (i < gridInfo.dimensions - 1) os << ",";
+    }
+    os << "]";
 
-	os << ",offset=[";
-	for (ii i = 0; i < gridInfo.dimensions; i++)
-	{
-		os << gridInfo.offset[i];
-		if (i < gridInfo.dimensions - 1) os << ",";
-	}
-	os << "]";
+    os << ",offset=[";
+    for (ii i = 0; i < gridInfo.dimensions; i++)
+    {
+        os << gridInfo.offset[i];
+        if (i < gridInfo.dimensions - 1) os << ",";
+    }
+    os << "]";
 
-	os << ",extent=[";
-	for (ii i = 0; i < gridInfo.dimensions; i++)
-	{
-		os << gridInfo.extent[i];
-		if (i < gridInfo.dimensions - 1) os << ",";
-	}
-	os << "])";
+    os << ",extent=[";
+    for (ii i = 0; i < gridInfo.dimensions; i++)
+    {
+        os << gridInfo.extent[i];
+        if (i < gridInfo.dimensions - 1) os << ",";
+    }
+    os << "])";
 
-	return os;
+    return os;
 }
 
 

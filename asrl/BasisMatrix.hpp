@@ -30,20 +30,22 @@
 class BasisMatrix : public Basis
 {
 public:
-	BasisMatrix(std::vector<Basis*>& bases, ii m, ii n, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ, Transient transient);
-	virtual ~BasisMatrix();
+    BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& a, std::vector<MatrixSparse>* g, bool transient);
+    virtual ~BasisMatrix();
 
-    void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
-    void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA = false) const;
-	void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
+    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
+    virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false) const;
+    virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
 
-	virtual ii getM() const;
-	virtual ii getN() const;
+    virtual const std::vector<MatrixSparse>* getGroups(bool transpose) const;
 
 private:
-	MatrixSparse aT_;
-    ii aTnnzRows_;
-	MatrixSparse a_;
+    std::vector<MatrixSparse>& a_;
+    std::vector<MatrixSparse> aT_;
+    std::vector<ii> aTnnzRows_;
+
+    const std::vector<MatrixSparse>* g_;
+    std::vector<MatrixSparse>* gT_;
 };
 
 

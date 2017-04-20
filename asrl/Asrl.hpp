@@ -33,47 +33,44 @@
 class Asrl
 {
 public:
-	static void notice();
+    static void notice();
 
-	struct Input {
-		// Ax = b
-		ii aM, aN;
-		std::vector<fp> aVs;
-		std::vector<ii> aIs;
-		std::vector<ii> aJs;
+    struct Input
+    {
+        std::vector<MatrixSparse> a; // from Ax = b
+        std::vector<MatrixSparse> x; // from Ax = b (leave x empty to autogenerate seed)
+        std::vector<Matrix> b;       // from Ax = b
+        std::vector<MatrixSparse> g; // Group indicator matrix
+    };
 
-		std::vector<fp> xs; // if not zero size, used as starting estimate
-		std::vector<fp> bs;
+    struct Output
+    {
+        std::vector<MatrixSparse> x;  // from Ax = b
+        std::vector<Matrix> aX;       // Ax
+        std::vector<MatrixSparse> gX; // Gx
+    };
 
-		// GROUPS
-		ii gM, gN; // if gM = 0 then we do not use group sparse inference
-		std::vector<fp> gVs;
-		std::vector<ii> gIs;
-		std::vector<ii> gJs;
-	};
+    Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance);
+    virtual ~Asrl();
 
-	struct Output {
-		std::vector<fp> xs;
-		std::vector<fp> aXs; // Ax
-		std::vector<fp> gXs; // Gx
-	};
+    bool step();
+    ii getIteration() const;
 
-	Asrl(Input& input, double shrinkage, bool taperShrinkage, double tolerance);
-	virtual ~Asrl();
-
-	bool step();
-	ii getIteration() const;
-
-	void getOutput(Output& output) const;
+    void getOutput(Output& output) const;
 
 private:
-	std::vector<Basis*> bases_;
-	Optimizer* innerOptimizer_;
-	Optimizer* optimizer_;
-	double shrinkage_;
-	bool taperShrinkage_;
-	double tolerance_;
-	int iteration_;
+    std::vector<Basis*> bases_;
+    const std::vector<Matrix>& b_;
+
+    Optimizer* innerOptimizer_;
+    Optimizer* optimizer_;
+
+    fp lambda_;
+    fp lambdaGroup_;
+    fp lambdaGroupStart_;
+    bool taperShrinkage_;
+    fp tolerance_;
+    int iteration_;
 };
 
 

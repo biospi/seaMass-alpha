@@ -21,79 +21,86 @@
 
 
 #include "Matrix.hpp"
-#include "MatrixSparse.hpp"
-#include <iomanip>
-#include <iostream>
-#include <cmath>
 #include <cstring>
 using namespace std;
 
 
 Matrix::Matrix()
-	: m_(0), n_(0), vs_(0)
+    : m_(0), n_(0), vs_(0)
 {
 }
 
 
 Matrix::~Matrix()
 {
-	free();
+    free();
 }
 
 
-void Matrix::init(ii m, ii n, const fp* vs)
+void Matrix::alloc(ii m, ii n)
 {
-	free();
+    free();
 
-	m_ = m;
-	n_ = n;
+    m_ = m;
+    n_ = n;
     vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * m_ * n_, 64));
+}
+
+
+void Matrix::copy(ii m, ii n, const fp *vs)
+{
+    alloc(m, n);
     memcpy(vs_, vs, sizeof(fp) * m_ * n_);
 }
 
 
 void Matrix::free()
 {
-	m_ = 0;
-	n_ = 0;
-    mkl_free(vs_);
+    m_ = 0;
+    n_ = 0;
+
+    if (vs_)
+    {
+        mkl_free(vs_);
+        vs_ = 0;
+    }
 }
 
 
 li Matrix:: size() const
 {
-	return (li)m_ * n_;
+    return (li)m_ * n_;
 }
 
 
 ii Matrix::m() const
 {
-	return m_;
+    return m_;
 }
 
 
 ii Matrix::n() const
 {
-	return n_;
+    return n_;
 }
 
 
 fp* Matrix::vs() const
 {
-	return vs_;
+    return vs_;
 }
 
 
 ostream& operator<<(ostream& os, const Matrix& a)
 {
-	if (a.m() == 0)
-	{
-		os << "[]";
-	}
-	else
-	{
-		os << "[" << a.m() << "," << a.n() << "]";
-	}
+    if (a.m() == 0)
+    {
+        os << "[]";
+    }
+    else
+    {
+        os << "[" << a.m() << "," << a.n() << "]";
+    }
 
-	return  os;
+    return  os;
 }

@@ -30,13 +30,13 @@
 class BasisBsplineMz : public BasisBspline
 {
 public:
-	BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex,
-                   const std::vector<double>& binEdges, char scale, Transient transient, int order = 3);
-	virtual ~BasisBsplineMz();
+    BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex,
+                   const std::vector<double>& binEdges, char scale, bool transient, int order = 3);
+    virtual ~BasisBsplineMz();
 
-	void synthesis(std::vector<MatrixSparse>& f, const std::vector<MatrixSparse>& x, bool accumulate) const;
-	void analysis(std::vector<MatrixSparse>& xE, const std::vector<MatrixSparse>& fE, bool sqrA = false) const;
-    void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
+    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
+    virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false) const;
+    virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
 
 private:
     std::vector<MatrixSparse> aTs_;

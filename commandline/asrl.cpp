@@ -33,9 +33,9 @@ namespace po = boost::program_options;
 int main(int argc, const char * const * argv)
 {
 #ifdef NDEBUG
-	try
+    try
 #endif
-	{
+    {
         po::options_description general(
                 "Usage\n"
                 "-----\n"
@@ -44,7 +44,8 @@ int main(int argc, const char * const * argv)
         );
 
         string filePath;
-        int shrinkageExponent;
+        int lambdaExponent;
+        int lambdaGroupExponent;
         int toleranceExponent;
         int debugLevel;
         bool noTaperLambda;
@@ -54,12 +55,15 @@ int main(int argc, const char * const * argv)
                  "Produce this help message")
                 ("file,f", po::value<string>(&filePath),
                  "HDF5 or NetCDF4 input file in SAI format.")
-                ("lambda,l", po::value<int>(&shrinkageExponent)->default_value(0),
-                 "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Use around 0.")
+                ("lambda,l", po::value<int>(&lambdaExponent)->default_value(0),
+                 "Amount of individual lambda given as \"L1_lambda = 2^lambda\". Use around 0.")
+                ("group_lambda,g", po::value<int>(&lambdaGroupExponent)->default_value(0),
+                 "Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\". "
+                 "Ignored if no groups are specified in the input. Use around 0.")
                 ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
                  "Use this to stop tapering of lambda to 0 before finishing.")
-                ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
-                 "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+                ("tol,t", po::value<int>(&toleranceExponent)->default_value(-15),
+                 "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -15.")
                 ("debug,d", po::value<int>(&debugLevel)->default_value(0),
                  "Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
                  "4 to output all maths, +10 to write intermediate results to disk.")
@@ -69,65 +73,64 @@ int main(int argc, const char * const * argv)
         desc.add(general);
 
         po::positional_options_description pod;
-		pod.add("file", 1);
+        pod.add("file", 1);
 
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
-		po::notify(vm);
+        po::variables_map vm;
+        po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
+        po::notify(vm);
 
         cout << endl;
         Asrl::notice();
         initKernel(debugLevel);
 
-		if(vm.count("help") || !vm.count("file"))
-		{
-			cout << desc << endl;
-			return 0;
-		}
-
-        double tolerance = pow(2.0, (double)toleranceExponent);
-        double shrinkage = pow(2.0, (double)shrinkageExponent);
+        if(vm.count("help") || !vm.count("file"))
+        {
+            cout << desc << endl;
+            return 0;
+        }
 
         // read input file
         if (getDebugLevel() % 10 >= 1)
             cout << getTimeStamp() << "Reading " << filePath << " ..." << endl;
+
+        FileNetcdf fileIn(filePath);
+
         Asrl::Input input;
+
+        input.a.resize(1);
+        fileIn.read(input.a[0], "A");
+
+        input.b.resize(1);
+        fileIn.read(input.b[0], "b");
+
+        try
         {
-            FileNetcdf fileIn(filePath);
-
-            vector<ii> aExtent(2);
-            fileIn.read_AttNC("extent", fileIn.read_VarIDNC("A_v"), aExtent);
-            input.aM = aExtent[0]; input.aN = aExtent[1];
-            fileIn.read_VecNC("A_v", input.aVs);
-            fileIn.read_VecNC("A_i", input.aIs);
-            fileIn.read_VecNC("A_j", input.aJs);
-
-            fileIn.read_VecNC("b", input.bs);
-
-            try
-            {
-                fileIn.read_VecNC("x", input.xs);
-            }
-            catch(runtime_error& e) {}
-
-            input.gN = 0;
-            try
-            {
-                vector<ii> gExtent(2);
-                fileIn.read_AttNC("extent", fileIn.read_VarIDNC("G_v"), gExtent);
-                input.gM = gExtent[0]; input.gN = gExtent[1];
-           }
-            catch(runtime_error& e) {}
-            if (input.gM > 0 && input.gN > 0)
-            {
-                fileIn.read_VecNC("G_v", input.gVs);
-                fileIn.read_VecNC("G_i", input.gIs);
-                fileIn.read_VecNC("G_j", input.gJs);
-            }
+            input.x.resize(1);
+            fileIn.read(input.x[0], "x");
+        }
+        catch(runtime_error& e)
+        {
+            input.x.resize(0);
         }
 
+        try
+        {
+            input.g.resize(1);
+            fileIn.read(input.g[0], "G");
+        }
+        catch(runtime_error& e)
+        {
+            input.g.resize(0);
+        }
+
+        double tolerance = pow(2.0, (double)toleranceExponent);
+        double lambda = pow(2.0, (double)lambdaExponent);
+        double lambdaGroup = input.g.size() > 0 ? lambdaGroup = pow(2.0, (double)lambdaGroupExponent) : 0.0;
+
+        string fileStemOut = boost::filesystem::path(filePath).stem().string();
+
         // optimise!
-        Asrl asrl(input, shrinkage, !noTaperLambda, tolerance);
+        Asrl asrl(input, lambda, lambdaGroup, !noTaperLambda, tolerance);
         do
         {
             if (getDebugLevel() >= 10)
@@ -135,41 +138,37 @@ int main(int argc, const char * const * argv)
                 // write intermediate results
                 Asrl::Output output;
                 asrl.getOutput(output);
-                if (output.xs.size() > 0)
-                {
-                    ostringstream oss;
-                    oss << "." << setfill('0') << setw(4) << asrl.getIteration() << ".sao";
-                    string fileName = boost::filesystem::path(filePath).stem().string() + oss.str();
 
-                    if (getDebugLevel() % 10 >= 1)
-                        cout << getTimeStamp() << "  Writing " << fileName << " ..." << endl;
+                ostringstream oss;
+                oss << "." << setfill('0') << setw(4) << asrl.getIteration() << ".sao";
+                string fileNameOut = fileStemOut + oss.str();
 
-                    FileNetcdf fileOut(fileName, NC_NETCDF4);
-                    fileOut.write_VecNC("x", output.xs, sizeof(output.xs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-                    fileOut.write_VecNC("Ax", output.aXs, sizeof(output.aXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-                    if (output.gXs.size() > 0)
-                        fileOut.write_VecNC("Gx", output.gXs, sizeof(output.gXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-                }
+                if (getDebugLevel() % 10 >= 1)
+                    cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
+
+                FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
+                fileOut.write(output.x[0], "x");
+                fileOut.write(output.aX[0], "Ax");
+                if (output.gX.size() > 0)
+                    fileOut.write(output.gX[0], "Gx");
             }
         }
         while (asrl.step());
 
         Asrl::Output output;
         asrl.getOutput(output);
-        if (output.xs.size() > 0)
-        {
-            // open and write output file
-            string fileName = boost::filesystem::path(filePath).stem().string() + ".sao";
+        ostringstream oss;
 
-            if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "Writing " << fileName << " ..." << endl;
+        string fileNameOut = fileStemOut + ".sao";
 
-            FileNetcdf fileOut(fileName, NC_NETCDF4);
-            fileOut.write_VecNC("x", output.xs, sizeof(output.xs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-            fileOut.write_VecNC("Ax", output.aXs, sizeof(output.aXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-            if (output.gXs.size() > 0)
-                fileOut.write_VecNC("Gx", output.gXs, sizeof(output.gXs[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
-        }
+        if (getDebugLevel() % 10 >= 1)
+            cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
+
+        FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
+        fileOut.write(output.x[0], "x");
+        fileOut.write(output.aX[0], "Ax");
+        if (output.gX.size() > 0)
+            fileOut.write(output.gX[0], "Gx");
 
         cout << endl;
     }
@@ -181,5 +180,5 @@ int main(int argc, const char * const * argv)
         return 1;
     }
 #endif
-	return 0;
+    return 0;
 }

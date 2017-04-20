@@ -11,7 +11,7 @@ add_library(seamass_kernel
         VecMat.tpp
         FileNetcdf.cpp
         FileNetcdf.hpp
-		FileNetcdf.tpp
+        FileNetcdf.tpp
         )
 target_include_directories(seamass_kernel PUBLIC
         ${netCDF_INCLUDE_DIR}

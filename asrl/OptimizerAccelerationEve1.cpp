@@ -22,10 +22,7 @@
 
 #include "OptimizerAccelerationEve1.hpp"
 #include <algorithm>
-#include <iostream>
 #include <iomanip>
-
-
 using namespace std;
 using namespace kernel;
 
@@ -33,14 +30,12 @@ using namespace kernel;
 OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer) : optimizer_(optimizer), accelerationDuration_(0.0)
 {
     if (getDebugLevel() % 10 >= 1)
-    {
         cout << getTimeStamp() << "  Initialising Biggs-Andrews Acceleration (EVE1) ..." << endl;
-    }
 
-	// temporaries required for acceleration
-	x0s_.resize(xs().size());
-	y0s_.resize(xs().size());
-	u0s_.resize(xs().size());
+    // temporaries required for acceleration
+    x0s_.resize(xs().size());
+    y0s_.resize(xs().size());
+    u0s_.resize(xs().size());
     for (size_t i = 0; i < xs().size(); i++)
     {
         x0s_[i].resize(xs()[i].size());
@@ -55,42 +50,40 @@ OptimizerAccelerationEve1::~OptimizerAccelerationEve1()
 }
 
 
-void OptimizerAccelerationEve1::init(fp lambda)
+void OptimizerAccelerationEve1::setLambda(fp lambda,fp lambdaGroup)
 {
-	optimizer_->init(lambda);
+    optimizer_->setLambda(lambda, lambdaGroup);
 }
 
 
 fp OptimizerAccelerationEve1::step()
 {
     if (getDebugLevel() % 10 >= 2)
-    {
         cout << getTimeStamp() << "    Acceleration ..." << endl;
-    }
-    
+
     double accelerationStart = getElapsedTime();
 
     fp a = 0.0;
-	if (getIteration() == 0)
-	{
-		for (ii i = 0; i < (ii)getBases().size(); i++)
-		{
-			if (getBases()[i]->getTransient() == Basis::Transient::NO)
-			{
-				// no extrapolation this iteration, just save 'xs'
+    if (getIteration() == 0)
+    {
+        for (ii i = 0; i < (ii)getBases().size(); i++)
+        {
+            if (!getBases()[i]->isTransient())
+            {
+                // no extrapolation this iteration, just save 'xs'
                 for (size_t k = 0; k < xs()[i].size(); k++)
                 {
                     y0s_[i][k].copy(xs()[i][k]);
                }
-			}
-		}
-	}
-	else if (getIteration() == 1)
-	{
-		for (ii i = 0; i < (ii)getBases().size(); i++)
-		{
-			if (getBases()[i]->getTransient() == Basis::Transient::NO)
-			{
+            }
+        }
+    }
+    else if (getIteration() == 1)
+    {
+        for (ii i = 0; i < (ii)getBases().size(); i++)
+        {
+            if (!getBases()[i]->isTransient())
+            {
                 for (size_t k = 0; k < xs()[i].size(); k++)
                 {
                     // can now calcaulte first gradient vector 'u0s'
@@ -104,18 +97,18 @@ fp OptimizerAccelerationEve1::step()
                     x0s_[i][k].copy(xs()[i][k]);
                     y0s_[i][k].copy(xs()[i][k]);
                 }
-			}
-		}
-	}
-	else
-	{
-		// calculate acceleration paramater 'a'
-		double numerator = 0.0;
-		double denominator = 0.0;
-		for (ii i = 0; i < (ii)getBases().size(); i++)
-		{
-			if (getBases()[i]->getTransient() == Basis::Transient::NO)
-			{
+            }
+        }
+    }
+    else
+    {
+        // calculate acceleration parameter 'a'
+        double numerator = 0.0;
+        double denominator = 0.0;
+        for (ii i = 0; i < (ii)getBases().size(); i++)
+        {
+            if (!getBases()[i]->isTransient())
+            {
                 for (size_t k = 0; k < xs()[i].size(); k++)
                 {
                     // using old gradient vector 'u0s'
@@ -143,17 +136,17 @@ fp OptimizerAccelerationEve1::step()
                     c1LogU.mul(t.vs()); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
                     numerator += c1LogU.sum(); // (x[k] . log u[k-1]) T (x[k-1] . log u[k-2])
                 }
-			}
-		}
-		a = (fp)(numerator / denominator);
-		fp aThresh = a > 0.0f ? a : 0.0f;
-		aThresh = aThresh < 1.0f ? aThresh : 1.0f;
+            }
+        }
+        a = (fp)(numerator / denominator);
+        fp aThresh = a > 0.0f ? a : 0.0f;
+        aThresh = aThresh < 1.0f ? aThresh : 1.0f;
 
-		// linear extrapolation of 'xs'
-		for (ii i = 0; i < (ii)getBases().size(); i++)
-		{
-            if (getBases()[i]->getTransient() == Basis::Transient::NO)
-			{
+        // linear extrapolation of 'xs'
+        for (ii i = 0; i < (ii)getBases().size(); i++)
+        {
+            if (!getBases()[i]->isTransient())
+            {
                 for (size_t k = 0; k < xs()[i].size(); k++)
                 {
                     // extrapolate 'xs' and save for next iteration as 'y0s'
@@ -170,9 +163,9 @@ fp OptimizerAccelerationEve1::step()
                     x0s_[i][k].copy(xs()[i][k]); // previous 'xs' saved as 'x0s' for next iteration
                     xs()[i][k].copy(y0s_[i][k]); // extrapolated 'xs' for this iteration
                }
-			}
-		}
-	}
+            }
+        }
+    }
     
     double accelerationDuration = getElapsedTime() - accelerationStart;
     
@@ -192,31 +185,32 @@ fp OptimizerAccelerationEve1::step()
         cout << setprecision(3) << accelerationDuration_ << endl;
     }
 
-	// now perform the optimizer iteration on the extrapolated 'xs'
-	return optimizer_->step();
+    // now perform the optimizer iteration on the extrapolated 'xs'
+    return optimizer_->step();
 }
 
-void OptimizerAccelerationEve1::synthesis(vector<MatrixSparse>& f, ii basis)
+
+void OptimizerAccelerationEve1::synthesise(vector<MatrixSparse> &f, ii basis)
 {
-	optimizer_->synthesis(f, basis);
+    optimizer_->synthesise(f, basis);
 }
 
 
 ii OptimizerAccelerationEve1::getIteration() const
 {
-	return optimizer_->getIteration();
+    return optimizer_->getIteration();
 }
 
 
 const std::vector<Basis*>& OptimizerAccelerationEve1::getBases() const
 {
-	return optimizer_->getBases();
+    return optimizer_->getBases();
 }
 
 
 std::vector< std::vector<MatrixSparse> >& OptimizerAccelerationEve1::xs()
 {
-	return optimizer_->xs();
+    return optimizer_->xs();
 }
 
 
@@ -232,69 +226,69 @@ std::vector< std::vector<MatrixSparse> >& OptimizerAccelerationEve1::l1l2s()
 }
 
 
-// quadratic vector extrapolation below (todo)
+// TODO: quadratic vector extrapolation below
 /*
-		else if (iteration_ == 1) // linear vector extrapolation this time, but save the qs
-		{
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for reduction(+:sum,sumd)
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
-							fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
+        else if (iteration_ == 1) // linear vector extrapolation this time, but save the qs
+        {
+            for (ii j = 0; j < (ii)bases_.size(); j++)
+            {
+                if (!bases_[j]->isTransient())
+                {
+                    #pragma omp parallel for reduction(+:sum,sumd)
+                    for (li i = 0; i < cs_[j].size(); i++)
+                    {
+                        if (cs_[j].vs_[i] > 0.0)
+                        {
+                            fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
+                            fp c1 = cEs[j].vs_[i] * powf(cEs[j].vs_[i] / c0s_[j].vs_[i], a);
 
-							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
+                            sum += cs_[j].vs_[i] * cs_[j].vs_[i];
+                            sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
 
-							// for this itteration
-							cs_[j].vs_[i] = c1;
+                            // for this itteration
+                            cs_[j].vs_[i] = c1;
 
-							// for next itteration
-							c0s_[j].vs_[i] = cEs[j].vs_[i];
-							q0s_[j].vs_[i] = q;
-						}
-					}
-					cEs[j].free();
-				}
-			}
-		}
-		else // quadratic vector extrapolation
-		{
-			for (ii j = 0; j < (ii)bases_.size(); j++)
-			{
-				if (!bases_[j]->isTransient())
-				{
-					#pragma omp parallel for reduction(+:sum,sumd)
-					for (li i = 0; i < cs_[j].size(); i++)
-					{
-						if (cs_[j].vs_[i] > 0.0)
-						{
-							fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
-							fp c1 = cEs[j].vs_[i] * powf(q, a) * powf(q / q0s_[j].vs_[i], 0.5f*a*a);
+                            // for next itteration
+                            c0s_[j].vs_[i] = cEs[j].vs_[i];
+                            q0s_[j].vs_[i] = q;
+                        }
+                    }
+                    cEs[j].free();
+                }
+            }
+        }
+        else // quadratic vector extrapolation
+        {
+            for (ii j = 0; j < (ii)bases_.size(); j++)
+            {
+                if (!bases_[j]->isTransient())
+                {
+                    #pragma omp parallel for reduction(+:sum,sumd)
+                    for (li i = 0; i < cs_[j].size(); i++)
+                    {
+                        if (cs_[j].vs_[i] > 0.0)
+                        {
+                            fp q = cEs[j].vs_[i] / c0s_[j].vs_[i];
+                            fp c1 = cEs[j].vs_[i] * powf(q, a) * powf(q / q0s_[j].vs_[i], 0.5f*a*a);
 
-							sum += cs_[j].vs_[i] * cs_[j].vs_[i];
-							sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
+                            sum += cs_[j].vs_[i] * cs_[j].vs_[i];
+                            sumd += (c1 - cs_[j].vs_[i])*(c1 - cs_[j].vs_[i]);
 
-							// for this itteration
-							cs_[j].vs_[i] = c1;
+                            // for this itteration
+                            cs_[j].vs_[i] = c1;
 
-							// for next itteration
-							c0s_[j].vs_[i] = cEs[j].vs_[i];
-							q0s_[j].vs_[i] = q;
-						}
-					}
-					cEs[j].free();
-				}
-			}
-		}
-	}
+                            // for next itteration
+                            c0s_[j].vs_[i] = cEs[j].vs_[i];
+                            q0s_[j].vs_[i] = q;
+                        }
+                    }
+                    cEs[j].free();
+                }
+            }
+        }
+    }
 
-	return sqrt(sumd) / sqrt(sum);
+    return sqrt(sumd) / sqrt(sum);
 */
 
 

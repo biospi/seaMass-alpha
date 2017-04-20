@@ -19,14 +19,15 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
+
 #include "DatasetSeamass.hpp"
 using namespace kernel;
 
 
 DatasetSeamass::DatasetSeamass(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType) : fileIn_(0), fileOut_(0), finished_(false)
 {
-	if (!filePathIn.empty())
-		fileIn_ = new FileNetcdf(filePathIn);
+    if (!filePathIn.empty())
+        fileIn_ = new FileNetcdf(filePathIn);
 
     if (!filePathStemOut.empty())
         fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".smv" : ".smb"), NC_NETCDF4);
@@ -35,8 +36,8 @@ DatasetSeamass::DatasetSeamass(const std::string filePathIn, const std::string f
 
 DatasetSeamass::~DatasetSeamass()
 {
-	if (fileIn_)
-		delete fileIn_;
+    if (fileIn_)
+        delete fileIn_;
 
     if (fileOut_)
         delete fileOut_;
@@ -47,8 +48,8 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 {
     input = Seamass::Input();
 
-	if(finished_ == true)
-		return false;
+    if(finished_ == true)
+        return false;
 
     if (fileIn_->read_VarIDNC("countsIndex") != -1)
         fileIn_->read_VecNC("counts", input.counts);
@@ -77,7 +78,7 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
         fileIn_->read_VecNC("countsIndex", input.countsIndex);
 
     if (fileIn_->read_VarIDNC("startTimes") != -1)
-    	fileIn_->read_VecNC("startTimes", input.startTimes);
+        fileIn_->read_VecNC("startTimes", input.startTimes);
 
     if (fileIn_->read_VarIDNC("finishTimes") != -1)
         fileIn_->read_VecNC("finishTimes", input.finishTimes);
@@ -87,7 +88,7 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 
     id = "";
 
-	return finished_ = true;
+    return finished_ = true;
 }
 
 
@@ -278,12 +279,12 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
         fileOut_->write_VecNC(oss2.str(), output.offsets[d], sizeof(output.offsets[0]) == 4 ? NC_INT : NC_INT64, grpid);
     }*/
 
-	/*fileOut_->write_AttNC("", "baselineOffset", output.baselineOffset, sizeof(output.baselineOffset[0]) == 4 ? NC_INT : NC_INT64, grpid);
-	fileOut_->write_AttNC("", "baselineExtent", output.baselineExtent, sizeof(output.baselineExtent[0]) == 4 ? NC_INT : NC_INT64, grpid);
+    /*fileOut_->write_AttNC("", "baselineOffset", output.baselineOffset, sizeof(output.baselineOffset[0]) == 4 ? NC_INT : NC_INT64, grpid);
+    fileOut_->write_AttNC("", "baselineExtent", output.baselineExtent, sizeof(output.baselineExtent[0]) == 4 ? NC_INT : NC_INT64, grpid);
 
-	if (output.weights.size() > 0)
-	{
-		fileOut_->write_VecNC("weights", output.weights, sizeof(output.weights[0]) == 4 ? NC_FLOAT : NC_DOUBLE, grpid);
+    if (output.weights.size() > 0)
+    {
+        fileOut_->write_VecNC("weights", output.weights, sizeof(output.weights[0]) == 4 ? NC_FLOAT : NC_DOUBLE, grpid);
 
         // ought to be a compound type rather than multiple datasets!
         for (ii d = 0; d < output.baselineExtent.size(); d++)
@@ -294,7 +295,7 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
             ostringstream oss2; oss2 << "offsets[" << d << "]";
             fileOut_->write_VecNC(oss2.str(), output.offsets[d], sizeof(output.offsets[0]) == 4 ? NC_INT : NC_INT64, grpid);
         }
-	}*/
+    }*/
 }
 
 

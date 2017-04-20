@@ -21,18 +21,14 @@
 
 
 #include "Basis.hpp"
-
-
-#include <iostream>
 using namespace std;
 using namespace kernel;
 
 
-Basis::Basis(vector<Basis*>& bases, Transient transient, int parentIndex)
-	: parentIndex_(parentIndex), transient_(transient)
+Basis::Basis(vector<Basis*>& bases, bool transient, int parentIndex) : parentIndex_(parentIndex), transient_(transient)
 {
-	index_ = (ii) bases.size();
-	bases.push_back(this);
+    index_ = (ii) bases.size();
+    bases.push_back(this);
 }
 
 
@@ -41,42 +37,43 @@ Basis::~Basis()
 }
 
 
-void Basis::shrinkage(vector<MatrixSparse>& y, const vector<MatrixSparse>& x, const vector<MatrixSparse>& xE, const vector<MatrixSparse>& l1l2, fp lambda) const
+const std::vector<MatrixSparse>* Basis::getGroups(bool transpose) const
 {
-    if (getDebugLevel() % 10 >= 3)
+    return 0;
+}
+
+
+void Basis::synthesiseGroups(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const
+{
+    const std::vector<MatrixSparse>* gT = getGroups(true);
+    if (gT)
     {
-        cout << getTimeStamp() << "     " << getIndex() << " Basis::shrinkage" << endl;
+        if (!f.size())
+            f.resize(x.size());
+
+        for (ii k = 0; k < ii(f.size()); k++)
+            f[k].matmul(false, x[k], (*gT)[k], accumulate);
     }
-
-    if (!y.size()) y.resize(x.size());
-    for (size_t k = 0; k < y.size(); k++)
+    else
     {
-        MatrixSparse l1l2PlusLambda;
-        l1l2PlusLambda.copy(l1l2[k]);
-        l1l2PlusLambda.addNonzeros(lambda);
-
-        y[k].copy(x[k]);
-        y[k].divNonzeros(l1l2PlusLambda.vs());
-        y[k].mul(xE[k].vs());
-
-        // y = xE * x / (l1l2 + lambda)
+        synthesise(f, x, accumulate);
     }
 }
 
 
 int Basis::getIndex() const
 {
-	return index_;
+    return index_;
 }
 
 
 int Basis::getParentIndex() const
 {
-	return parentIndex_;
+    return parentIndex_;
 }
 
 
-Basis::Transient Basis::getTransient() const
+bool Basis::isTransient() const
 {
-	return transient_;
+    return transient_;
 }

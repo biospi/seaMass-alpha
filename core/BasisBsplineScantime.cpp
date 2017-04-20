@@ -29,9 +29,9 @@ using namespace std;
 using namespace kernel;
 
 
-// todo: support ion mobility
+// TODO: support ion mobility
 BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-                                           const std::vector<fp>& exposures, char scale, Transient transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
+                                           const std::vector<fp>& exposures, char scale, bool transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -40,30 +40,30 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
             cout << "   " << getIndex() << " BasisBsplineScantime";
         else
             cout << "   BasisBsplineScantime";
-        if (getTransient() == Basis::Transient::YES) cout << " (transient)";
+        if (isTransient()) cout << " (transient)";
         cout << " ..." << endl;
     }
     
-	double scantimeMin = startTimes.front();
-	double scantimeMax = finishTimes.back();
+    double scantimeMin = startTimes.front();
+    double scantimeMax = finishTimes.back();
 
-	double scantimeDiff = numeric_limits<double>::max();
-	for (ii j = 0; j < (ii)startTimes.size() - 1; j++)
-	{
-		double diff = 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
-		scantimeDiff = diff < scantimeDiff ? diff : scantimeDiff;
-	}
+    double scantimeDiff = numeric_limits<double>::max();
+    for (ii j = 0; j < (ii)startTimes.size() - 1; j++)
+    {
+        double diff = 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
+        scantimeDiff = diff < scantimeDiff ? diff : scantimeDiff;
+    }
 
-	ii scaleAuto = (ii)floor(log2(1.0 / scantimeDiff));
-	if (scale == numeric_limits<char>::max())
-	{
-		scale = scaleAuto;
+    ii scaleAuto = (ii)floor(log2(1.0 / scantimeDiff));
+    if (scale == numeric_limits<char>::max())
+    {
+        scale = scaleAuto;
         
         if (getDebugLevel() % 10 >= 1)
         {
             cout << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << (int) scale << endl;
         }
-	}
+    }
     
     // Bases per second
     double bpi = pow(2.0, (double)scale);
@@ -92,42 +92,42 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     vector<ii> is;
     vector<ii> js;
     vector<fp> vs;
-	Bspline bspline(order, 65536); // bspline basis function lookup table
-	for (ii i = 0; i < startTimes.size(); i++)
+    Bspline bspline(order, 65536); // bspline basis function lookup table
+    for (ii i = 0; i < startTimes.size(); i++)
     {
-		double xfMin = startTimes[i] * bpi;
-		double xfMax = finishTimes[i] * bpi;
+        double xfMin = startTimes[i] * bpi;
+        double xfMax = finishTimes[i] * bpi;
 
         ii xMin = (ii) floor(xfMin);
         ii xMax = ((ii) ceil(xfMax)) + order;
         
-		// work out basis coefficients
-		for (int x = xMin; x < xMax; x++)
+        // work out basis coefficients
+        for (int x = xMin; x < xMax; x++)
         {
             double bfMin = (double)(x - order);
             double bfMax = (double)(x + 1);
             
             // intersection of bin and basis, between 0 and order+1
-			double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
-			double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
+            double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
+            double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
 
-			// basis coefficient b is _integral_ of area under b-spline basis
-			fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+            // basis coefficient b is _integral_ of area under b-spline basis
+            fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-			is.push_back(i);
-			js.push_back(x - gridInfo().offset[1]);
+            is.push_back(i);
+            js.push_back(x - gridInfo().offset[1]);
             vs.push_back(b);
         }
     }
 
-	// create transformation matrix 'a'
+    // create transformation matrix 'a'
     aT_.copy(getGridInfo().m(), parentGridInfo.m(),  js, is, vs);
     aTnnzRows_ = getGridInfo().m();
 
-	if (scaleAuto != scale)
-	{
-		cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
-	}
+    if (scaleAuto != scale)
+    {
+        cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
+    }
 }
 
 
@@ -136,11 +136,11 @@ BasisBsplineScantime::~BasisBsplineScantime()
 }
 
 
-void BasisBsplineScantime::synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulate) const
+void BasisBsplineScantime::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesise" << endl;
     }
 
     if (!f.size()) f.resize(1);
@@ -154,11 +154,11 @@ void BasisBsplineScantime::synthesis(vector<MatrixSparse>& f, const vector<Matri
 }
 
 
-void BasisBsplineScantime::analysis(vector<MatrixSparse>& xE, const vector<MatrixSparse>& fE, bool sqrA) const
+void BasisBsplineScantime::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
 {
     if (getDebugLevel() % 10 >= 3)
     {
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analysis" << endl;
+        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analyse" << endl;
     }
     
     if (!xE.size()) xE.resize(1);

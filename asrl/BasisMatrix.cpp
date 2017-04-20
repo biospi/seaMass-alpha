@@ -21,63 +21,85 @@
 
 
 #include "BasisMatrix.hpp"
-#include <iostream>
 using namespace std;
 using namespace kernel;
 
 
-BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, ii m, ii n, std::vector<fp>& aV, std::vector<ii>& aI, std::vector<ii>& aJ, Transient transient) : Basis(bases, transient)
+BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& a, std::vector<MatrixSparse>* g, bool transient) : Basis(bases, transient), a_(a), g_(g)
 {
     if (getDebugLevel() % 10 >= 1)
     {
         cout << getTimeStamp() << "   BasisMatrix";
-        if (getTransient() == Basis::Transient::YES) cout << " (transient)";
+        if (isTransient()) cout << " (transient)";
         cout << " ..." << endl;
     }
 
-    aT_.copy(n, m, aJ, aI, aV);
-    aTnnzRows_ = m;
-    a_.copy(aT_, true);
+    a_ = a;
+    aT_.resize(a_.size());
+    aTnnzRows_.resize(a_.size());
+    for (ii i = 0; i < ii(a_.size()); i++)
+    {
+        aT_[i].copy(a_[i], true);
+        aTnnzRows_[i] = aT_[i].m();
+    }
+
+    if (g_)
+    {
+        gT_ = new vector<MatrixSparse>(g_->size());
+        for (ii i = 0; i < ii(g_->size()); i++)
+            (*gT_)[i].copy((*g_)[i], true);
+    }
 }
 
 
 BasisMatrix::~BasisMatrix()
 {
+    if (g_)
+    {
+         delete gT_;
+    }
 }
 
 
-void BasisMatrix::synthesis(vector<MatrixSparse>& f, const vector<MatrixSparse>& x, bool accumulate) const
+void BasisMatrix::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate) const
 {
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "      BasisMatrix::synthesis" << endl;
+        cout << getTimeStamp() << "      BasisMatrix::synthesise" << endl;
 
-    if (!f.size()) f.resize(1);
+    if (!f.size())
+        f.resize(x.size());
 
-    f[0].matmul(false, x[0], aT_, accumulate);
+    for (ii i = 0; i < ii(a_.size()); i++)
+        f[i].matmul(false, x[i], aT_[i], accumulate);
 
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "       " << f[0] << endl;
 }
 
 
-void BasisMatrix::analysis(vector<MatrixSparse>& xE, const vector<MatrixSparse>& fE, bool sqrA) const
+void BasisMatrix::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
 {
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "      BasisMatrix::analysis" << endl;
+        cout << getTimeStamp() << "      BasisMatrix::analyse" << endl;
 
     if (!xE.size())
-        xE.resize(1);
+        xE.resize(fE.size());
 
-    if (sqrA)
+    for (ii i = 0; i < ii(a_.size()); i++)
     {
-        MatrixSparse t;
-        t.copy(a_);
-        t.sqr();
+        if (sqrA)
+        {
+            MatrixSparse t;
+            t.copy(a_[i]);
+            t.sqr();
 
-        xE[0].matmul(false, fE[0], t, false);
+            xE[i].matmul(false, fE[i], t, false);
+        }
+        else
+            xE[i].matmul(false, fE[i], a_[i], false);
     }
-    else
-        xE[0].matmul(false, fE[0], a_, false);
+
+
 
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "       " << xE[0] << endl;
@@ -86,27 +108,27 @@ void BasisMatrix::analysis(vector<MatrixSparse>& xE, const vector<MatrixSparse>&
 
 void BasisMatrix::deleteBasisFunctions(const vector<MatrixSparse>& x, fp threshold)
 {
-    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], false, threshold);
-
-    if (aTnnzRows < aTnnzRows_)
+    for (ii i = 0; i < ii(a_.size()); i++)
     {
-        a_.copy(aT_, true);
+        ii aTnnzRows = aT_[i].pruneRows(aT_[i], aTnnzRows_[i], x[0], false, threshold);
 
-        if (getDebugLevel() % 10 >= 3)
-            cout << getTimeStamp() << "      BasisMatrix::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
+        if (aTnnzRows < aTnnzRows_[i])
+        {
+            a_[i].copy(aT_[i], true);
 
-        aTnnzRows_ = aTnnzRows;
+            if (getDebugLevel() % 10 >= 3)
+                cout << getTimeStamp() << "      BasisMatrix::deleteBasisFunctions " << aTnnzRows_[i] - aTnnzRows << endl;
+
+            aTnnzRows_[i] = aTnnzRows;
+        }
     }
 }
 
 
-ii BasisMatrix::getM() const
+const std::vector<MatrixSparse>* BasisMatrix::getGroups(bool transpose) const
 {
-    return aT_.n();
-}
-
-
-ii BasisMatrix::getN() const
-{
-    return aT_.m();
+    if (transpose)
+        return gT_;
+    else
+        return g_;
 }

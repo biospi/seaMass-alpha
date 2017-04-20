@@ -42,26 +42,26 @@
 class OptimizerAccelerationEve1 : public Optimizer
 {
 public:    
-	OptimizerAccelerationEve1(Optimizer* optimizer);
-	virtual ~OptimizerAccelerationEve1();
+    OptimizerAccelerationEve1(Optimizer* optimizer);
+    virtual ~OptimizerAccelerationEve1();
     
-    void init(fp lamba);
-    fp step();
-    void synthesis(std::vector<MatrixSparse>& f, ii basis = -1);
-    
-    const std::vector<Basis*>& getBases() const;
-    ii getIteration() const;
+    virtual void setLambda(fp lambda, fp lambdaGroup = fp(0.0));
+    virtual const std::vector<Basis*>& getBases() const;
+    virtual ii getIteration() const;
 
-	std::vector< std::vector<MatrixSparse> >& xs();
-	std::vector< std::vector<MatrixSparse> >& l2s();
-	std::vector< std::vector<MatrixSparse> >& l1l2s();
+    virtual fp step();
+    virtual void synthesise(std::vector<MatrixSparse> &f, ii basis = -1);
+
+    std::vector< std::vector<MatrixSparse> >& xs();
+    std::vector< std::vector<MatrixSparse> >& l2s();
+    std::vector< std::vector<MatrixSparse> >& l1l2s();
 
 private:
-	Optimizer* optimizer_;
+    Optimizer* optimizer_;
 
-	std::vector< std::vector<MatrixSparse> > x0s_;
-	std::vector< std::vector<MatrixSparse> > y0s_;
-	std::vector< std::vector<MatrixSparse> > u0s_;
+    std::vector< std::vector<MatrixSparse> > x0s_;
+    std::vector< std::vector<MatrixSparse> > y0s_;
+    std::vector< std::vector<MatrixSparse> > u0s_;
     
     double accelerationDuration_;
 };

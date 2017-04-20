@@ -31,8 +31,8 @@
 class MatrixSparse
 {
 public:
-	MatrixSparse();
-	~MatrixSparse();
+    MatrixSparse();
+    ~MatrixSparse();
 
     // accessors
     ii m() const;
@@ -40,18 +40,17 @@ public:
     li size() const;
     ii nnz() const;
     ii nnzActual() const;
-    ii* js() const;
     fp* vs() const;
 
-	// shallow inits
+    // shallow inits
     void init(ii m = 0, ii n = 0);
-	void init(const MatrixSparse &a, ii row);
+    void init(const MatrixSparse &a, ii row);
 
-    // deep copies
+    // allocs
+    void alloc(ii m, ii n, fp v = 0.0); // create from dense matrix of constant value
     void copy(const MatrixSparse& a, bool transpose = false);
     void copy(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copy(ii m, ii n, const std::vector<ii> &is, const std::vector<ii> &js, const std::vector<fp> &vs); // create from COO matrix
-    void copy(ii m, ii n, fp v); // create from dense matrix of constant value
     void copy(const Matrix &a); // create from dense matrix a
     void copySubset(const MatrixSparse &a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
 
@@ -67,7 +66,7 @@ public:
 
     // elementwise operations
     void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
-	void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate, bool denseOutput = false);
+    void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate, bool denseOutput = false);
     void mul(fp beta);
     void mul(const fp* a_vs);
     void sqr();
@@ -75,21 +74,21 @@ public:
     void pow(fp power);
 
     // elementwise operations only operating on non-zero elements
-	void addNonzeros(fp beta);
-	void addNonzeros(const fp* a_vs);
-	void lnNonzeros();
+    void addNonzeros(fp beta);
+    void addNonzeros(const fp* a_vs);
+    void lnNonzeros();
     void expNonzeros();
     void divNonzeros(const fp* a_vs); // a_vs is denominator
     void div2Nonzeros(const fp* a_vs); // a_vs is numerator
 
     // aggregate operations
-	fp sum() const;
-	fp sumSqrs() const;
+    fp sum() const;
+    fp sumSqrs() const;
     fp sumSqrDiffsNonzeros(const fp *a_vs) const;
 
 private:
-	ii m_; // number of rows
-	ii n_; // number of columns
+    ii m_; // number of rows
+    ii n_; // number of columns
     
     ii* is0_; ii* is1_; ii* js_; fp* vs_; // pointers to CSR array
     sparse_matrix_t mat_; // opaque MKL sparse matrix object

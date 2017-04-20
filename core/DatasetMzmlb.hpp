@@ -34,33 +34,33 @@ namespace xml = pugi;
 class DatasetMzmlb: public Dataset
 {
 public:
-	struct SpectrumMetadata
-	{
-		size_t mzmlSpectrumIndex; // index of spectrum in original mzML <SpectrumList> tag
-    	std::string id; // id differentiates which set of spectra this spectrum is in for seaMass
+    struct SpectrumMetadata
+    {
+        size_t mzmlSpectrumIndex; // index of spectrum in original mzML <SpectrumList> tag
+        std::string id; // id differentiates which set of spectra this spectrum is in for seaMass
         std::string config;
 
-		double startTime;
-		double finishTime;
-		string startTimeString;
+        double startTime;
+        double finishTime;
+        string startTimeString;
 
-		enum class DataType { Unknown, Centroided, IonCount, IonCurrent} dataType;
+        enum class DataType { Unknown, Centroided, IonCount, IonCurrent} dataType;
 
-		size_t defaultArrayLength;
-		std::string mzsDataset;
-		size_t mzsOffset;
-		std::string intensitiesDataset;
-		size_t intensitiesOffset;
-	};
+        size_t defaultArrayLength;
+        std::string mzsDataset;
+        size_t mzsOffset;
+        std::string intensitiesDataset;
+        size_t intensitiesOffset;
+    };
 
-	DatasetMzmlb(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+    DatasetMzmlb(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
     virtual ~DatasetMzmlb();
 
     virtual bool read(Seamass::Input &input, std::string &id);
-	virtual void write(const Seamass::Input &input, const std::string &id);
+    virtual void write(const Seamass::Input &input, const std::string &id);
 
-	virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id);
-	virtual void write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id);
+    virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id);
+    virtual void write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id);
 
 private:
     static bool startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
@@ -83,8 +83,8 @@ private:
     void writeVecData(vector<fp>& data_);
     void writeXmlData();
 
-	void writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_, vector<size_t>& mzpkVecSize_);
-	void writePeakXmlData(vector<size_t>& mzpkVecSize_);
+    void writePeakData(VecMat<double>& mzPeak_, VecMat<float>& pkPeak_, vector<size_t>& mzpkVecSize_);
+    void writePeakXmlData(vector<size_t>& mzpkVecSize_);
 
     template<typename T>
     T getXmlValue(xml::xml_document &scan, string xpath, string attrib);
