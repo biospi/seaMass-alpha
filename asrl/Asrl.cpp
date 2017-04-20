@@ -37,16 +37,16 @@ void Asrl::notice()
 }
 
 
-Asrl::Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance) : b_(input.b), lambda_(lambda), lambdaGroup_(lambdaGroup), lambdaGroupStart_(lambdaGroup), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
+Asrl::Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance) : bT_(input.bT), lambda_(lambda), lambdaGroup_(lambdaGroup), lambdaGroupStart_(lambdaGroup), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
 {
     if (getDebugLevel() % 10 >= 1)
     {
         cout << getTimeStamp() << "  Initialising basis functions ..." << endl;
     }
 
-    new BasisMatrix(bases_, input.a, input.g.size() > 0 ? &input.g : 0, false);
+    new BasisMatrix(bases_, input.aT, input.gT.size() > 0 ? &input.gT : 0, false);
 
-    innerOptimizer_ = new OptimizerSrl(bases_, b_);
+    innerOptimizer_ = new OptimizerSrl(bases_, bT_);
     optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
     optimizer_->setLambda(fp(lambda_), fp(lambdaGroup_));
 }
@@ -159,19 +159,19 @@ void Asrl::getOutput(Output& output) const
     if (getDebugLevel() % 10 >= 1)
          cout << getTimeStamp() << "  Getting output ..." << endl;
 
-    output.x.resize(optimizer_->xs()[0].size());
-    for (ii i = 0; i < ii(output.x.size()); i++)
-        output.x[i].copy(optimizer_->xs()[0][i]);
+    output.xT.resize(optimizer_->xs()[0].size());
+    for (ii i = 0; i < ii(output.xT.size()); i++)
+        output.xT[i].copy(optimizer_->xs()[0][i]);
 
     vector<MatrixSparse> f;
     optimizer_->synthesise(f);
-    output.aX.resize(f.size());
-    for (ii i = 0; i < ii(output.x.size()); i++)
+    output.aTxT.resize(f.size());
+    for (ii i = 0; i < ii(output.aTxT.size()); i++)
     {
-        output.aX[i].alloc(f[i].m(), f[i].n());
-        f[i].exportTo(output.aX[i].vs());
+        output.aTxT[i].alloc(f[i].m(), f[i].n());
+        f[i].exportTo(output.aTxT[i].vs());
     }
 
     if (lambdaGroupStart_ > 0.0)
-        bases_[0]->synthesiseGroups(output.gX, optimizer_->xs()[0], false);
+        bases_[0]->synthesiseGroups(output.gTxT, optimizer_->xs()[0], false);
 }

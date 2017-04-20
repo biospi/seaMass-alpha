@@ -30,7 +30,7 @@
 class BasisMatrix : public Basis
 {
 public:
-    BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& a, std::vector<MatrixSparse>* g, bool transient);
+    BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, std::vector<MatrixSparse>* gT, bool transient);
     virtual ~BasisMatrix();
 
     virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
@@ -40,12 +40,12 @@ public:
     virtual const std::vector<MatrixSparse>* getGroups(bool transpose) const;
 
 private:
-    std::vector<MatrixSparse>& a_;
-    std::vector<MatrixSparse> aT_;
+    std::vector<MatrixSparse>& aT_;
     std::vector<ii> aTnnzRows_;
+    std::vector<MatrixSparse> a_;
 
-    const std::vector<MatrixSparse>* g_;
-    std::vector<MatrixSparse>* gT_;
+    const std::vector<MatrixSparse>* gT_;
+    std::vector<MatrixSparse>* g_;
 };
 
 

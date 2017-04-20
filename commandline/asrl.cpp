@@ -97,35 +97,35 @@ int main(int argc, const char * const * argv)
 
         Asrl::Input input;
 
-        input.a.resize(1);
-        fileIn.read(input.a[0], "A");
+        input.aT.resize(1);
+        fileIn.read(input.aT[0], "At");
 
-        input.b.resize(1);
-        fileIn.read(input.b[0], "b");
-
-        try
-        {
-            input.x.resize(1);
-            fileIn.read(input.x[0], "x");
-        }
-        catch(runtime_error& e)
-        {
-            input.x.resize(0);
-        }
+        input.bT.resize(1);
+        fileIn.read(input.bT[0], "Bt");
 
         try
         {
-            input.g.resize(1);
-            fileIn.read(input.g[0], "G");
+            input.xT.resize(1);
+            fileIn.read(input.xT[0], "Xt");
         }
         catch(runtime_error& e)
         {
-            input.g.resize(0);
+            input.xT.resize(0);
+        }
+
+        try
+        {
+            input.gT.resize(1);
+            fileIn.read(input.gT[0], "Gt");
+        }
+        catch(runtime_error& e)
+        {
+            input.gT.resize(0);
         }
 
         double tolerance = pow(2.0, (double)toleranceExponent);
         double lambda = pow(2.0, (double)lambdaExponent);
-        double lambdaGroup = input.g.size() > 0 ? lambdaGroup = pow(2.0, (double)lambdaGroupExponent) : 0.0;
+        double lambdaGroup = input.gT.size() > 0 ? lambdaGroup = pow(2.0, (double)lambdaGroupExponent) : 0.0;
 
         string fileStemOut = boost::filesystem::path(filePath).stem().string();
 
@@ -147,10 +147,10 @@ int main(int argc, const char * const * argv)
                     cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
 
                 FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
-                fileOut.write(output.x[0], "x");
-                fileOut.write(output.aX[0], "Ax");
-                if (output.gX.size() > 0)
-                    fileOut.write(output.gX[0], "Gx");
+                fileOut.write(output.xT[0], "Xt");
+                fileOut.write(output.aTxT[0], "AtXt");
+                if (output.gTxT.size() > 0)
+                    fileOut.write(output.gTxT[0], "GtXt");
             }
         }
         while (asrl.step());
@@ -165,10 +165,10 @@ int main(int argc, const char * const * argv)
             cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
 
         FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
-        fileOut.write(output.x[0], "x");
-        fileOut.write(output.aX[0], "Ax");
-        if (output.gX.size() > 0)
-            fileOut.write(output.gX[0], "Gx");
+        fileOut.write(output.xT[0], "Xt");
+        fileOut.write(output.aTxT[0], "AtXt");
+        if (output.gTxT.size() > 0)
+            fileOut.write(output.gTxT[0], "GtXt");
 
         cout << endl;
     }

@@ -37,17 +37,17 @@ public:
 
     struct Input
     {
-        std::vector<MatrixSparse> a; // from Ax = b
-        std::vector<MatrixSparse> x; // from Ax = b (leave x empty to autogenerate seed)
-        std::vector<Matrix> b;       // from Ax = b
-        std::vector<MatrixSparse> g; // Group indicator matrix
+        std::vector<MatrixSparse> aT; // transpose of A from Ax = b
+        std::vector<MatrixSparse> xT; // transpose of x from Ax = b (leave x empty to autogenerate seed)
+        std::vector<Matrix> bT;       // transpose of b from Ax = b
+        std::vector<MatrixSparse> gT; // transpose of Group indicator matrix
     };
 
     struct Output
     {
-        std::vector<MatrixSparse> x;  // from Ax = b
-        std::vector<Matrix> aX;       // Ax
-        std::vector<MatrixSparse> gX; // Gx
+        std::vector<MatrixSparse> xT;  // from Ax = b
+        std::vector<Matrix> aTxT;       // transpose of Ax
+        std::vector<MatrixSparse> gTxT; // transpose of Gx
     };
 
     Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance);
@@ -60,7 +60,7 @@ public:
 
 private:
     std::vector<Basis*> bases_;
-    const std::vector<Matrix>& b_;
+    const std::vector<Matrix>& bT_;
 
     Optimizer* innerOptimizer_;
     Optimizer* optimizer_;

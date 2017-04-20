@@ -25,7 +25,7 @@ using namespace std;
 using namespace kernel;
 
 
-BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& a, std::vector<MatrixSparse>* g, bool transient) : Basis(bases, transient), a_(a), g_(g)
+BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, std::vector<MatrixSparse>* gT, bool transient) : Basis(bases, transient), aT_(aT), gT_(gT)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -34,29 +34,29 @@ BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& 
         cout << " ..." << endl;
     }
 
-    a_ = a;
-    aT_.resize(a_.size());
-    aTnnzRows_.resize(a_.size());
+    aT_ = aT;
+    a_.resize(aT_.size());
+    aTnnzRows_.resize(aT_.size());
     for (ii i = 0; i < ii(a_.size()); i++)
     {
-        aT_[i].copy(a_[i], true);
+        a_[i].copy(aT_[i], true);
         aTnnzRows_[i] = aT_[i].m();
     }
 
-    if (g_)
+    if (gT_)
     {
-        gT_ = new vector<MatrixSparse>(g_->size());
+        g_ = new vector<MatrixSparse>(gT_->size());
         for (ii i = 0; i < ii(g_->size()); i++)
-            (*gT_)[i].copy((*g_)[i], true);
+            (*g_)[i].copy((*gT_)[i], true);
     }
 }
 
 
 BasisMatrix::~BasisMatrix()
 {
-    if (g_)
+    if (gT_)
     {
-         delete gT_;
+         delete g_;
     }
 }
 
