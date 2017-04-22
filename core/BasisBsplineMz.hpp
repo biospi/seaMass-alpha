@@ -34,9 +34,8 @@ public:
                    const std::vector<double>& binEdges, char scale, bool transient, int order = 3);
     virtual ~BasisBsplineMz();
 
-    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
+    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false) const;
-    virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
 
 private:
     std::vector<MatrixSparse> aTs_;

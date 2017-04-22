@@ -151,7 +151,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         
         // create A
         aTs_[k].copy(getGridInfo().n(), bci[k + 1] - bci[k], js, is, vs);
-        aTnnzRows_[k] = getGridInfo().n();
+        aTnnzRows_[k] = aTs_[k].m();
         
         as_[k].copy(aTs_[k], true);
 
@@ -177,25 +177,36 @@ BasisBsplineMz::~BasisBsplineMz()
 }
 
 
-void BasisBsplineMz::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate) const
+void BasisBsplineMz::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::synthesise" << endl;
-    }
     
-    if (!f.size()) f.resize(aTs_.size());
-    for (size_t k = 0; k < f.size(); k++)
+    if (!f.size())
+        f.resize(aTs_.size());
+
+    for (size_t k = 0; k < aTs_.size(); k++)
     {
         MatrixSparse t;
-        t.init(x[0], k);
-        
+        t.initFromRows(x[0], k);
+
+        // zero basis functions that are no longer needed
+        ii aTnnzRows = aTs_[k].pruneRows(aTs_[k], aTnnzRows_[k], t, false, 0.75);
+        if (aTnnzRows < aTnnzRows_[k])
+        {
+            as_[k].copy(aTs_[k], true);
+
+            if (getDebugLevel() % 10 >= 3)
+                cout << getTimeStamp() << "      " << getIndex() << " zeroed " << aTnnzRows_[k] - aTnnzRows << " basis functions" << endl;
+
+            aTnnzRows_[k] = aTnnzRows;
+        }
+
+        // synthesise
         f[k].matmul(false, t, aTs_[k], accumulate, true);
         
         if (getDebugLevel() % 10 >= 3)
-        {
             cout << getTimeStamp() << "       " << f[k] << endl;
-        }
     }
 }
 
@@ -224,7 +235,7 @@ void BasisBsplineMz::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse
     }
     
     xE.resize(1);
-    xE[0].copy(xEs);
+    xE[0].copyAsRows(xEs);
     
     if (getDebugLevel() % 10 >= 3)
     {
@@ -232,26 +243,5 @@ void BasisBsplineMz::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse
     }
 }
 
-
-// delete basis functions we don't need anymore
-void BasisBsplineMz::deleteBasisFunctions(const vector<MatrixSparse>& x, fp threshold)
-{
-    for (size_t k = 0; k < x.size(); k++)
-    {
-        ii aTnnzRows = aTs_[k].pruneRows(aTs_[k], aTnnzRows_[k], x[k], false, threshold);
-        
-        if (aTnnzRows < aTnnzRows_[k])
-        {
-            as_[k].copy(aTs_[k], true);
-            
-            if (getDebugLevel() % 10 >= 3)
-            {
-                cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::deleteBasisFunctions " << aTnnzRows_[k] - aTnnzRows << endl;
-            }
-            
-            aTnnzRows_[k] = aTnnzRows;
-        }
-    }
-}
 
 

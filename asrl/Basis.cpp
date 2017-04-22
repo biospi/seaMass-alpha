@@ -43,7 +43,7 @@ const std::vector<MatrixSparse>* Basis::getGroups(bool transpose) const
 }
 
 
-void Basis::synthesiseGroups(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const
+void Basis::synthesiseGroups(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate)
 {
     const std::vector<MatrixSparse>* gT = getGroups(true);
     if (gT)

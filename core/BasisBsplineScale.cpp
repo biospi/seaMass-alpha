@@ -65,9 +65,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
         sum += hs[i];
     }
     for (ii i = 0; i < nh; i++)
-    {
         hs[i] /= (fp) sum;
-    }
 
     // create A as a temporary COO matrix
     ii m = parentGridInfo.extent[dimension_];
@@ -93,7 +91,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
 
     // create A
     aT_.copy(n, m, js, is, vs);
-    aTnnzRows_ = n;
+    aTnnzRows_ = aT_.m();
     
     if (dimension == 0)
         a_.copy(aT_, true);
@@ -107,28 +105,35 @@ BasisBsplineScale::~BasisBsplineScale()
 
 void
 BasisBsplineScale::
-synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate) const
+synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesise" << endl;
-    }
-    
-    if (!f.size()) f.resize(1);
 
+    if (!f.size())
+        f.resize(1);
+
+    // zero basis functions that are no longer needed
+    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], dimension_ > 0, 0.75);
+    if (aTnnzRows < aTnnzRows_)
+    {
+        if (dimension_ == 0)
+            a_.copy(aT_, true);
+
+        if (getDebugLevel() % 10 >= 3)
+            cout << getTimeStamp() << "      " << getIndex() << " zeroed " << aTnnzRows_ - aTnnzRows << " basis functions" << endl;
+
+        aTnnzRows_ = aTnnzRows;
+    }
+
+    // synthesise
     if (dimension_ == 0)
-    {
         f[0].matmul(false, x[0], aT_, accumulate);
-    }
     else
-    {
         f[0].matmul(true, aT_, x[0], accumulate);
-    }
-    
+
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "       " << f[0] << endl;
-    }
 }
 
 
@@ -139,7 +144,8 @@ void BasisBsplineScale::analyse(vector<MatrixSparse> &xE, const vector<MatrixSpa
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analyse" << endl;
     }
     
-    if (!xE.size()) xE.resize(1);
+    if (!xE.size())
+        xE.resize(1);
     
     if (sqrA)
     {
@@ -163,39 +169,13 @@ void BasisBsplineScale::analyse(vector<MatrixSparse> &xE, const vector<MatrixSpa
     else
     {
         if (dimension_ == 0)
-        {
             xE[0].matmul(false, fE[0], a_, false);
-        }
         else
-        {
             xE[0].matmul(false, aT_, fE[0], false);
-        }
     }
     
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "       " << xE[0] << endl;
-    }
 }
 
-
-void BasisBsplineScale::deleteBasisFunctions(const vector<MatrixSparse>& x, fp threshold)
-{
-    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], dimension_ > 0, threshold);
-    
-    if (aTnnzRows < aTnnzRows_)
-    {
-        if (dimension_ == 0)
-        {
-            a_.copy(aT_, true);
-        }
-        
-        if (getDebugLevel() % 10 >= 3)
-        {
-            cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
-        }
-        
-        aTnnzRows_ = aTnnzRows;
-    }
-}
 

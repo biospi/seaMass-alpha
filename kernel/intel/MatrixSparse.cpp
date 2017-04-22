@@ -112,7 +112,7 @@ void MatrixSparse::init(ii m, ii n)
 }
 
 
-void MatrixSparse::init(const MatrixSparse &a, ii row)
+void MatrixSparse::initFromRows(const MatrixSparse &a, ii row)
 {
     assert(a.is1_);
     assert(a.nnz() > 0);
@@ -203,7 +203,7 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
 }
 
 
-void MatrixSparse::copy(const std::vector<MatrixSparse> &as)
+void MatrixSparse::copyAsRows(const std::vector<MatrixSparse> &as)
 {
     clear();
 

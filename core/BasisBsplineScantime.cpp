@@ -60,9 +60,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         scale = scaleAuto;
         
         if (getDebugLevel() % 10 >= 1)
-        {
             cout << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << (int) scale << endl;
-        }
     }
     
     // Bases per second
@@ -122,12 +120,10 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 
     // create transformation matrix 'a'
     aT_.copy(getGridInfo().m(), parentGridInfo.m(),  js, is, vs);
-    aTnnzRows_ = getGridInfo().m();
+    aTnnzRows_ = aT_.m();
 
     if (scaleAuto != scale)
-    {
         cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
-    }
 }
 
 
@@ -136,32 +132,39 @@ BasisBsplineScantime::~BasisBsplineScantime()
 }
 
 
-void BasisBsplineScantime::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate) const
+void BasisBsplineScantime::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesise" << endl;
+
+    if (!f.size())
+        f.resize(1);
+
+    // zero basis functions that are no longer needed
+    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], true, 0.75);
+    if (aTnnzRows < aTnnzRows_)
+    {
+        if (getDebugLevel() % 10 >= 3)
+            cout << getTimeStamp() << "      " << getIndex() << " zeroed " << aTnnzRows_ - aTnnzRows << " basis functions" << endl;
+
+        aTnnzRows_ = aTnnzRows;
     }
 
-    if (!f.size()) f.resize(1);
-    
+    // synthesise
     f[0].matmul(true, aT_, x[0], accumulate);
         
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "       " << f[0] << endl;
-    }
 }
 
 
 void BasisBsplineScantime::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
 {
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analyse" << endl;
-    }
-    
-    if (!xE.size()) xE.resize(1);
+
+    if (!xE.size())
+        xE.resize(1);
 
     if (sqrA)
     {
@@ -176,23 +179,6 @@ void BasisBsplineScantime::analyse(vector<MatrixSparse> &xE, const vector<Matrix
     }
     
     if (getDebugLevel() % 10 >= 3)
-    {
-        cout << getTimeStamp() << "       " << xE[0] << endl;
-    }
+         cout << getTimeStamp() << "       " << xE[0] << endl;
 }
 
-
-void BasisBsplineScantime::deleteBasisFunctions(const vector<MatrixSparse>& x, fp threshold)
-{
-    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], true, threshold);
-    
-    if (aTnnzRows < aTnnzRows_)
-    {
-        if (getDebugLevel() % 10 >= 3)
-        {
-            cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::deleteBasisFunctions " << aTnnzRows_ - aTnnzRows << endl;
-        }
-        
-        aTnnzRows_ = aTnnzRows;
-    }
-}

@@ -33,16 +33,15 @@ public:
     BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, std::vector<MatrixSparse>* gT, bool transient);
     virtual ~BasisMatrix();
 
-    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
+    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false) const;
-    virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
 
     virtual const std::vector<MatrixSparse>* getGroups(bool transpose) const;
 
 private:
-    std::vector<MatrixSparse>& aT_;
+    std::vector<MatrixSparse>& aTs_;
     std::vector<ii> aTnnzRows_;
-    std::vector<MatrixSparse> a_;
+    std::vector<MatrixSparse> as_;
 
     const std::vector<MatrixSparse>* gT_;
     std::vector<MatrixSparse>* g_;

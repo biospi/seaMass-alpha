@@ -171,18 +171,17 @@ fp OptimizerAccelerationEve1::step()
     
     if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
     {
-        cout << getTimeStamp() << "      acceleration=" << a << endl;
+        cout << getTimeStamp() << "      a=" << a << endl;
         
         cout << getTimeStamp() << "      duration=";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(3) << accelerationDuration << endl;
+        cout << fixed << setprecision(4) << accelerationDuration << endl;
         
         accelerationDuration_ += accelerationDuration;
         
         cout << getTimeStamp();
-        cout << "      total=";
+        cout << "       total=";
         cout.unsetf(ios::floatfield);
-        cout << setprecision(3) << accelerationDuration_ << endl;
+        cout << setprecision(2) << accelerationDuration_ << endl;
     }
 
     // now perform the optimizer iteration on the extrapolated 'xs'

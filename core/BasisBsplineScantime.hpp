@@ -34,9 +34,8 @@ public:
         const std::vector<fp>& exposures, char scale, bool transient, ii order = 3);
     virtual ~BasisBsplineScantime();
 
-    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) const;
+    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false) const;
-    virtual void deleteBasisFunctions(const std::vector<MatrixSparse>& x, fp threshold = 1.0);
 
 private:
     MatrixSparse aT_;

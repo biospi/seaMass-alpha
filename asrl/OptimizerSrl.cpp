@@ -188,7 +188,7 @@ OptimizerSrl::~OptimizerSrl()
 
 void OptimizerSrl::setLambda(fp lambda, fp lambdaGroup)
 {
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "   lambda=" << lambda << endl;
 
     lambda_ = lambda;
@@ -202,7 +202,7 @@ fp OptimizerSrl::step()
     iteration_++;
 
     // SYNTHESISE
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Synthesis ..." << endl;
 
     vector<MatrixSparse> f_fE;
@@ -213,7 +213,7 @@ fp OptimizerSrl::step()
     double synthesisDuration = getElapsedTime() - synthesisStart;
 
     // ERROR
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Error ..." << endl;
 
     double errorStart = getElapsedTime();
@@ -227,7 +227,7 @@ fp OptimizerSrl::step()
     double errorDuration = getElapsedTime() - errorStart;
 
     // ANALYSIS
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Analysis ..." << endl;
 
     vector< vector<MatrixSparse> > xEs(bases_.size());
@@ -266,7 +266,7 @@ fp OptimizerSrl::step()
     double analysisDuration = getElapsedTime() - analysisStart;
 
     // SHRINKAGE
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Shrinkage ..." << endl;
 
     vector< vector<MatrixSparse> > ys(bases_.size());
@@ -342,10 +342,9 @@ fp OptimizerSrl::step()
     double shrinkageDuration = getElapsedTime() - shrinkageStart;
 
     // UPDATE
-    if (getDebugLevel() % 10 >= 2)
-    {
+    if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Termination Check and Pruning..." << endl;
-    }
+
     fp sumSqrs = 0.0;
     fp sumSqrDiffs = 0.0;
     double updateStart = getElapsedTime();
@@ -397,12 +396,11 @@ fp OptimizerSrl::step()
     {
         cout << getTimeStamp();
         cout << "      durations: synthesise=";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(3) << synthesisDuration;
-        cout << " error=" << errorDuration;
-        cout << " analyse=" << analysisDuration;
-        cout << " shrinkage=" << shrinkageDuration;
-        cout << " update=" << updateDuration;
+        cout << fixed << setprecision(4) << synthesisDuration;
+        cout << " err=" << errorDuration;
+        cout << " ana=" << analysisDuration;
+        cout << " shr=" << shrinkageDuration;
+        cout << " upd=" << updateDuration;
         cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
         
         synthesisDuration_ += synthesisDuration;
@@ -412,13 +410,12 @@ fp OptimizerSrl::step()
         updateDuration_ += updateDuration;
         
         cout << getTimeStamp();
-        cout << "      total: synthesise=";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(3) << synthesisDuration_;
-        cout << " error=" << errorDuration_;
-        cout << " analyse=" << analysisDuration_;
-        cout << " shrinkage=" << shrinkageDuration_;
-        cout << " update=" << updateDuration_;
+        cout << "       total: syn=";
+        cout << fixed << setprecision(2) << synthesisDuration_;
+        cout << " err=" << errorDuration_;
+        cout << " ana=" << analysisDuration_;
+        cout << " shr=" << shrinkageDuration_;
+        cout << " upd=" << updateDuration_;
         cout << " all=" << synthesisDuration_ + errorDuration_ + analysisDuration_ + shrinkageDuration_ + updateDuration_ << endl;
     }
 
@@ -473,12 +470,10 @@ void OptimizerSrl::synthesise(vector<MatrixSparse> &f, ii basis)
                 }
             }
 
-            bases_[i]->deleteBasisFunctions(ts[i], 0.75);
             bases_[i]->synthesise(ts[pi], ts[i], !bases_[pi]->isTransient());
         }
         else
         {
-            bases_[0]->deleteBasisFunctions(ts[0], 0.75);
             bases_[0]->synthesise(f, ts[0], false);
         }
 

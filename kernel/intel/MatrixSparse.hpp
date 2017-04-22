@@ -44,14 +44,14 @@ public:
 
     // shallow inits
     void init(ii m = 0, ii n = 0);
-    void init(const MatrixSparse &a, ii row);
+    void initFromRows(const MatrixSparse &a, ii row);
 
     // allocs
     void alloc(ii m, ii n, fp v = 0.0); // create from dense matrix of constant value
     void copy(const MatrixSparse& a, bool transpose = false);
-    void copy(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copy(ii m, ii n, const std::vector<ii> &is, const std::vector<ii> &js, const std::vector<fp> &vs); // create from COO matrix
     void copy(const Matrix &a); // create from dense matrix a
+    void copyAsRows(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copySubset(const MatrixSparse &a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
 
     // exports
