@@ -44,7 +44,7 @@ int main(int argc, const char * const * argv)
             "-----\n"
             "Converts a set of smb files back to an mzMLb file, given the original mzMLb file.\n"
             "\n"
-            "mzmlb2bins [OPTIONS...] <file>\n"
+            "smb2mzmlb [OPTIONS...] <file>\n"
         );
 
         general.add_options()

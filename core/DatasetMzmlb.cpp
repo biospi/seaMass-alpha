@@ -821,7 +821,8 @@ void DatasetMzmlb::writeXmlSpectrum(li offset_, vector<double> &mzs_,
                                     vector<fp> &intensities_, bool isCentroided_)
 {
     vector<char> mzML;
-    if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
+    //if(spectrumIndex_ < metadata_.size() || spectrumIndex_ == 1)
+    if(offset_ < metadata_.size() || offset_ == 1)
     {
         if(mzML.size() > 0) vector<char>().swap(mzML);
 
@@ -863,7 +864,7 @@ void DatasetMzmlb::writeXmlSpectrum(li offset_, vector<double> &mzs_,
         fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",intensities_);
         fileOut_->write_CatHypVecNC("mzML_spectrumIndex", &newMzmlIndex_,1);
     }
-    if(spectrumIndex_ >= metadata_.size())
+    if(offset_ >= metadata_.size() - 1)
     {
         writeChromatogramXmlEnd();
     }
@@ -872,32 +873,41 @@ void DatasetMzmlb::writeXmlSpectrum(li offset_, vector<double> &mzs_,
 void DatasetMzmlb::writeChromatogramXmlEnd()
 {
     vector<char> mzML;
-    string subxml("</spectrumList>\n");
+    vector<li> chromatogramIdx;
+    vector<li> newChromatogramIdx;
 
-    mzML.assign(subxml.begin(), subxml.end());
-    fileOut_->write_CatHypVecNC("mzML", mzML);
-
-    vector<size_t> lenTotal = fileIn_.read_DimNC("mzML");
+    // Read in xml that is in between the /spectrum and chromatogram tag.
+    fileIn_.read_VecNC("mzML_chromatogramIndex",chromatogramIdx);
     size_t loc = specIdx_.back();
-    size_t len = lenTotal[0] - loc;
+    size_t len = chromatogramIdx.front() - loc;
     fileIn_.read_HypVecNC("mzML", mzML, &loc, &len);
+    fileOut_->write_CatHypVecNC("mzML",mzML);
 
-    subxml.clear();
-    subxml.assign(mzML.begin(), mzML.end());
-    subxml = subxml.substr(subxml.find("<chromatogramList"));
+    // Update New Chromatogram Index.
+    vector<size_t> lenTotal = fileOut_->read_DimNC("mzML");
+    newChromatogramIdx.push_back(lenTotal[0]);
 
+    // Read in old Chromatogram xml block.
     mzML.clear();
-    mzML.assign(subxml.begin(), subxml.end());
+    loc = size_t(chromatogramIdx.front());
+    len = size_t(chromatogramIdx.back() - chromatogramIdx.front());
+    fileIn_.read_HypVecNC("mzML", mzML, &loc, &len);
+    fileOut_->write_CatHypVecNC("mzML",mzML);
 
-    vector<uli> newChroIdx_;
-    vector<size_t> pos;
-    findVecString(mzML, pos, "<chromatogram ", "</chromatogram>");
+    // Update end of New Chromatogram Index.
     lenTotal.clear();
     lenTotal = fileOut_->read_DimNC("mzML");
-    newChroIdx_.push_back(lenTotal[0] + pos[0]);
-    newChroIdx_.push_back(lenTotal[0] + pos[1]);
+    newChromatogramIdx.push_back(lenTotal[0]);
 
-    fileOut_->write_CatHypVecNC("mzML", mzML);
+    // Write end of mxML xml file tags.
+    lenTotal.clear();
+    lenTotal = fileIn_.read_DimNC("mzML");
+    loc = size_t(chromatogramIdx.back());
+    len = lenTotal.front() - loc;
+    mzML.clear();
+    fileIn_.read_HypVecNC("mzML", mzML, &loc, &len);
+    fileOut_->write_CatHypVecNC("mzML",mzML);
 
-    fileOut_->write_VecNC("mzML_chromatogramIndex", newChroIdx_, NC_INT64);
+    // Write new Chromatogram Index...
+    fileOut_->write_VecNC("mzML_chromatogramIndex", newChromatogramIdx, NC_INT64);
 }

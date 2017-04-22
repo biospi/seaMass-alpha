@@ -88,16 +88,16 @@ int main(int argc, const char * const * argv)
         cout << endl;
         initKernel(debugLevel);
         
-        if(vm.count("help") || !vm.count("file"))
+        if (vm.count("help") || !vm.count("file"))
         {
             cout << desc << endl;
             return 0;
         }
 
-        if(!vm.count("mz_scale"))
+        if (!vm.count("mz_scale"))
             scales[0] = numeric_limits<char>::max();
 
-        if(!vm.count("st_scale"))
+        if (!vm.count("st_scale"))
             scales[1] = numeric_limits<char>::max();
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
@@ -129,7 +129,7 @@ int main(int argc, const char * const * argv)
             double rtRes;
             vector<ii> offset=contpts.offset;
             mzRes=double(contpts.scale[0]);
-            if(contpts.scale.size() > 1)
+            if (contpts.scale.size() > 1)
                 rtRes=double(contpts.scale[1]);
             else
                 rtRes=0;
@@ -141,7 +141,7 @@ int main(int argc, const char * const * argv)
             SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
             SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
 
-            for(size_t i = 0; i < A.rt.size(); ++i)
+            for (size_t i = 0; i < A.rt.size(); ++i)
             {
                 A.rt[i] = input.startTimes[i];
                 dhA.rt[i] = input.startTimes[i];
@@ -164,19 +164,15 @@ int main(int argc, const char * const * argv)
             mzPeak.getDims(peakDims);
             for (ii i = 0; i < mzpkVecSize.size(); i++)
             {
-                if (mzpkVecSize[i]>0)
+                if (mzpkVecSize[i] > 0)
                 {
                     li idxOffset=li(i*peakDims[1]);
                     input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
                                            mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
                     input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
                                         pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-                    input.countsIndex.push_back(input.counts.size());
                 }
-                else
-                {
-                    input.countsIndex.push_back(input.counts.size());
-                }
+	            input.countsIndex.push_back(input.counts.size());
             }
             dataset->write(input, id);
 
