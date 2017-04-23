@@ -140,10 +140,8 @@ synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
 void BasisBsplineScale::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
 {
     if (getDebugLevel() % 10 >= 3)
-    {
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analyse" << endl;
-    }
-    
+
     if (!xE.size())
         xE.resize(1);
     

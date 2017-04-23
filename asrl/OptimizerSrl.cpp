@@ -34,7 +34,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
     if (seed)
     {
-        // initialise starting estimate of 'x' from analyse of 'b'
+        // initialise starting estimate of 'x' from analysis of 'b'
         if (getDebugLevel() % 10 >= 1)
             cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
 
@@ -99,9 +99,10 @@ fp OptimizerSrl::step()
         cout << getTimeStamp() << "    Synthesis ..." << endl;
 
     vector<MatrixSparse> f_fE;
+    vector< vector<MatrixSparse> > xEs;
     double synthesisStart = getElapsedTime();
     {
-        synthesise(f_fE);
+        synthesise(f_fE, xEs);
     }
     double synthesisDuration = getElapsedTime() - synthesisStart;
 
@@ -119,11 +120,12 @@ fp OptimizerSrl::step()
     }
     double errorDuration = getElapsedTime() - errorStart;
 
+    // init l1s_ and l1l2s_
     if (l2s_.size() != bases_.size())
     {
         // compute L2 norm of each basis function and store in 'l2s'
         if (getDebugLevel() % 10 >= 1)
-            cout << getTimeStamp() << "  Initialising L2 norms ..." << endl;
+            cout << getTimeStamp() << "    Initialising L2 norms ..." << endl;
 
         l2s_.resize(bases_.size());
         for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -164,7 +166,7 @@ fp OptimizerSrl::step()
 
         // compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
         if (getDebugLevel() % 10 >= 1)
-            cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
+            cout << getTimeStamp() << "    Initialising L1 norms of L2 norms ..." << endl;
 
         l1l2s_.resize(bases_.size());
         for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -202,52 +204,52 @@ fp OptimizerSrl::step()
                 }
             }
         }
-
-        for (ii i = 0; i < (ii)bases_.size(); i++)
-        {
-            if (!bases_[i]->isTransient())
-            {
-                for (size_t k = 0; k < xs_[i].size(); k++)
-                {
-
-                }
-            }
-        }
     }
 
     // ANALYSIS
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Analysis ..." << endl;
 
-    vector< vector<MatrixSparse> > xEs(bases_.size());
     double analysisStart = getElapsedTime();
     {
         for (ii i = 0; i < (ii)bases_.size(); i++)
         {
             if (i == 0)
             {
-                bases_.front()->analyse(xEs[0], f_fE, false);
-                vector<MatrixSparse>().swap(f_fE);
+                vector<MatrixSparse> t;
+                bases_.front()->analyse(t, f_fE, false);
+
+                for (size_t k = 0; k < xEs[0].size(); k++)
+                {
+                    xEs[0][k].sort();
+                    xEs[0][k].copySubset(t[k]);
+                }
             }
             else
             {
-                bases_[i]->analyse(xEs[i], xEs[bases_[i]->getParentIndex()], false);
+                vector<MatrixSparse> t;
+                bases_[i]->analyse(t, xEs[bases_[i]->getParentIndex()], false);
+
+                for (size_t k = 0; k < xEs[i].size(); k++)
+                {
+                    xEs[i][k].sort();
+                    xEs[i][k].copySubset(t[k]);
+                }
             }
         }
     }
+
     for (ii i = 0; i < (ii)bases_.size(); i++)
     {
         if (!bases_[i]->isTransient())
         {
             for (size_t k = 0; k < xEs[i].size(); k++)
             {
-                xEs[i][k].sort();
-                
-                MatrixSparse t;
+                 MatrixSparse t;
                 t.copy(xs_[i][k]);
                 t.copySubset(xEs[i][k]);
                 xEs[i][k].copy(t);
-                
+
                 xEs[i][k].divNonzeros(l2s_[i][k].vs());
             }
         }
@@ -324,8 +326,6 @@ fp OptimizerSrl::step()
                     }
                 }
             }
-
-            vector<MatrixSparse>().swap(xEs[i]);
         }
     }
     double shrinkageDuration = getElapsedTime() - shrinkageStart;
@@ -344,10 +344,8 @@ fp OptimizerSrl::step()
             if (!bases_[i]->isTransient())
             {
                 if (getDebugLevel() % 10 >= 3)
-                {
-                    cout << getTimeStamp() << "     " << i << " OptimizerSrl::grad" << endl;
-                }
-                
+                     cout << getTimeStamp() << "     " << i << " OptimizerSrl::grad" << endl;
+
                 for (size_t k = 0; k < xs_[i].size(); k++)
                 {
                     sumSqrs += xs_[i][k].sumSqrs();
@@ -383,56 +381,44 @@ fp OptimizerSrl::step()
     
     if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
     {
-        cout << getTimeStamp();
-        cout << "      durations: synthesise=";
-        cout << fixed << setprecision(4) << synthesisDuration;
-        cout << " err=" << errorDuration;
-        cout << " ana=" << analysisDuration;
-        cout << " shr=" << shrinkageDuration;
-        cout << " upd=" << updateDuration;
-        cout << " all=" << synthesisDuration + errorDuration + analysisDuration + shrinkageDuration + updateDuration << endl;
-        
         synthesisDuration_ += synthesisDuration;
         errorDuration_ += errorDuration;
         analysisDuration_ += analysisDuration;
         shrinkageDuration_ += shrinkageDuration;
         updateDuration_ += updateDuration;
-        
-        cout << getTimeStamp();
-        cout << "       total: syn=";
-        cout << fixed << setprecision(2) << synthesisDuration_;
-        cout << " err=" << errorDuration_;
-        cout << " ana=" << analysisDuration_;
-        cout << " shr=" << shrinkageDuration_;
-        cout << " upd=" << updateDuration_;
-        cout << " all=" << synthesisDuration_ + errorDuration_ + analysisDuration_ + shrinkageDuration_ + updateDuration_ << endl;
-    }
+
+        cout << getTimeStamp()  << "    duration_synthesis    = " << fixed << setprecision(6) << setw(12) << synthesisDuration << "  total = " << setprecision(4) << setw(12) << synthesisDuration_ << endl;
+        cout << getTimeStamp()  << "    duration_error        = " << fixed << setprecision(6) << setw(12) << errorDuration << "  total = " << setprecision(4) << setw(12) << errorDuration_ << endl;
+        cout << getTimeStamp()  << "    duration_analysis     = " << fixed << setprecision(6) << setw(12) << analysisDuration << "  total = " << setprecision(4) << setw(12) << analysisDuration_ << endl;
+        cout << getTimeStamp()  << "    duration_shrinkage    = " << fixed << setprecision(6) << setw(12) << shrinkageDuration << "  total = " << setprecision(4) << setw(12) << shrinkageDuration_ << endl;
+        cout << getTimeStamp()  << "    duration_update       = " << fixed << setprecision(6) << setw(12) << updateDuration << "  total = " << setprecision(4) << setw(12) << updateDuration_ << endl;
+     }
 
     return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
 }
 
 
-void OptimizerSrl::synthesise(vector<MatrixSparse> &f, ii basis)
+void OptimizerSrl::synthesise(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& cs, ii basis)
 {
-    vector< vector<MatrixSparse> > ts(bases_.size());
+    cs.resize(bases_.size());
     for (ii i = (ii)bases_.size() - 1; i >= 0; i--)
     {
-        if (!ts[i].size() && !bases_[i]->isTransient())
+        if (!cs[i].size() && !bases_[i]->isTransient())
         {
-            ts[i].resize(xs_[i].size());
-            for (size_t k = 0; k < ts[i].size(); k++)
+            cs[i].resize(xs_[i].size());
+            for (size_t k = 0; k < cs[i].size(); k++)
             {
-                ts[i][k].copy(xs_[i][k]);
+                cs[i][k].copy(xs_[i][k]);
                 
                 if (l2s_.size() == xs_.size() && l2s_[i][k].m())
-                    ts[i][k].divNonzeros(l2s_[i][k].vs());
+                    cs[i][k].divNonzeros(l2s_[i][k].vs());
             }
         }
 
         if (basis == i) // return with B-spline control points
         {
-            for (size_t k = 0; k < ts[i].size(); k++)
-                f[k].copy(ts[i][k]);
+            for (size_t k = 0; k < cs[i].size(); k++)
+                f[k].copy(cs[i][k]);
 
             break;
         }
@@ -441,28 +427,23 @@ void OptimizerSrl::synthesise(vector<MatrixSparse> &f, ii basis)
         {
             ii pi = bases_[i]->getParentIndex();
             
-            if (!ts[pi].size() && !bases_[pi]->isTransient())
+            if (!cs[pi].size() && !bases_[pi]->isTransient())
             {
-                ts[pi].resize(xs_[pi].size());
-                for (size_t k = 0; k < ts[pi].size(); k++)
+                cs[pi].resize(xs_[pi].size());
+                for (size_t k = 0; k < cs[pi].size(); k++)
                 {
-                    ts[pi][k].copy(xs_[pi][k]);
+                    cs[pi][k].copy(xs_[pi][k]);
                     
                     if (l2s_.size() == xs_.size() && l2s_[pi][k].m())
-                        ts[pi][k].divNonzeros(l2s_[pi][k].vs());
+                        cs[pi][k].divNonzeros(l2s_[pi][k].vs());
                 }
             }
 
-            bases_[i]->synthesise(ts[pi], ts[i], !bases_[pi]->isTransient());
+            bases_[i]->synthesise(cs[pi], cs[i], !bases_[pi]->isTransient());
         }
         else
         {
-            bases_[0]->synthesise(f, ts[0], false);
-        }
-
-        for (size_t k = 0; k < ts[i].size(); k++)
-        {
-            ts[i][k].init();
+            bases_[0]->synthesise(f, cs[0], false);
         }
     }
 }

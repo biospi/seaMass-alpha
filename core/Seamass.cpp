@@ -301,7 +301,10 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
         cout << getTimeStamp() << "  Deriving restored bin counts ..." << endl;
 
     vector<MatrixSparse> f;
-    optimizer_->synthesise(f);
+    {
+        vector<vector<MatrixSparse> > cs;
+        optimizer_->synthesise(f, cs);
+    }
     f[0].exportTo(binCounts.data());
 }
 
@@ -314,7 +317,11 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
     const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 
     vector<MatrixSparse> c(1);
-    optimizer_->synthesise(c, dimensions_ - 1);
+    {
+        vector<vector<MatrixSparse> > cs;
+        optimizer_->synthesise(c, cs, dimensions_ - 1);
+    }
+
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
     c[0].exportTo(controlPoints.coeffs.data());
 
@@ -332,7 +339,10 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints) const
     const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[0])->getGridInfo();
 
     vector<MatrixSparse> c(1);
-    optimizer_->synthesise(c, 0);
+    {
+        vector<vector<MatrixSparse> > cs;
+        optimizer_->synthesise(c, cs, 0);
+    }
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
     c[0].exportTo(controlPoints.coeffs.data());
 

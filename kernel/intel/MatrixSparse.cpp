@@ -450,28 +450,41 @@ void MatrixSparse::sort()
 
     if (is1_)
     {
-        //#pragma omp parallel // why does omp make it crash here?
-        for (ii i = 0; i < m_; i++)
+        bool sorted = true;
+        for (ii nz = 0; nz < is1_[m_ - 1] - 1; nz++)
         {
-            vector<ii> indicies(is1_[i] - is0_[i]);
-            for (ii nz = 0; nz < indicies.size(); nz++)
-                indicies[nz] = nz;
-            std::sort(indicies.begin(), indicies.end(), MyComparator(&js_[is0_[i]]));
-            
+            if (js_[nz] > js_[nz + 1])
             {
-                vector<ii> js(is1_[i] - is0_[i]);
-                for (ii nz = 0; nz < js.size(); nz++)
-                    js[nz] = js_[is0_[i] + indicies[nz]];
-                for (ii nz = 0; nz < js.size(); nz++)
-                    js_[is0_[i] + nz] = js[nz];
+                sorted = false;
+                break;
             }
-            
+        }
+
+        if (!sorted)
+        {
+            //#pragma omp parallel // why does omp make it crash here?
+            for (ii i = 0; i < m_; i++)
             {
-                vector<fp> vs(is1_[i] - is0_[i]);
-                for (ii nz = 0; nz < vs.size(); nz++)
-                    vs[nz] = vs_[is0_[i] + indicies[nz]];
-                for (ii nz = 0; nz < vs.size(); nz++)
-                    vs_[is0_[i] + nz] = vs[nz];
+                vector<ii> indicies(is1_[i] - is0_[i]);
+                for (ii nz = 0; nz < indicies.size(); nz++)
+                    indicies[nz] = nz;
+                std::sort(indicies.begin(), indicies.end(), MyComparator(&js_[is0_[i]]));
+
+                {
+                    vector<ii> js(is1_[i] - is0_[i]);
+                    for (ii nz = 0; nz < js.size(); nz++)
+                        js[nz] = js_[is0_[i] + indicies[nz]];
+                    for (ii nz = 0; nz < js.size(); nz++)
+                        js_[is0_[i] + nz] = js[nz];
+                }
+
+                {
+                    vector<fp> vs(is1_[i] - is0_[i]);
+                    for (ii nz = 0; nz < vs.size(); nz++)
+                        vs[nz] = vs_[is0_[i] + indicies[nz]];
+                    for (ii nz = 0; nz < vs.size(); nz++)
+                        vs_[is0_[i] + nz] = vs[nz];
+                }
             }
         }
     }

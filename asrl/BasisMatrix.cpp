@@ -36,7 +36,7 @@ BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& 
 
     aTs_ = aT;
     aTnnzRows_.resize(aTs_.size());
-    for (ii i = 0; i < ii(as_.size()); i++)
+    for (ii i = 0; i < ii(aTs_.size()); i++)
         aTnnzRows_[i] = aTs_[i].m();
 
     as_.resize(aTs_.size());
@@ -70,8 +70,10 @@ void BasisMatrix::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse>
 
     for (ii k = 0; k < ii(as_.size()); k++)
     {
+        /*//cout << aTnnzRows_[k] << ",";
         // zero basis functions that are no longer needed
         ii aTnnzRows = aTs_[k].pruneRows(aTs_[k], aTnnzRows_[k], x[0], false, 0.75);
+        //cout << aTnnzRows << endl;
         if (aTnnzRows < aTnnzRows_[k])
         {
             as_[k].copy(aTs_[k], true);
@@ -80,7 +82,7 @@ void BasisMatrix::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse>
                 cout << getTimeStamp() << "      " << getIndex() << " zeroed " << aTnnzRows_[k] - aTnnzRows << " basis functions" << endl;
 
             aTnnzRows_[k] = aTnnzRows;
-        }
+        }*/
 
         // synthesise
         f[k].matmul(false, x[k], aTs_[k], accumulate);

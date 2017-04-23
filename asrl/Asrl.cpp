@@ -164,7 +164,10 @@ void Asrl::getOutput(Output& output) const
         output.xT[i].copy(optimizer_->xs()[0][i]);
 
     vector<MatrixSparse> f;
-    optimizer_->synthesise(f);
+    {
+        vector<vector<MatrixSparse> > cs;
+        optimizer_->synthesise(f, cs);
+    }
     output.xTaT.resize(f.size());
     for (ii i = 0; i < ii(output.xTaT.size()); i++)
     {

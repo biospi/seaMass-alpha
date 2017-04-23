@@ -58,7 +58,7 @@ void OptimizerAccelerationEve1::setLambda(fp lambda,fp lambdaGroup)
 
 fp OptimizerAccelerationEve1::step()
 {
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Acceleration ..." << endl;
 
     double accelerationStart = getElapsedTime();
@@ -168,20 +168,16 @@ fp OptimizerAccelerationEve1::step()
     }
     
     double accelerationDuration = getElapsedTime() - accelerationStart;
-    
-    if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
+
+    if (getDebugLevel() % 10 >= 3)
+        cout << getTimeStamp() << fixed << setprecision(4) <<  "    acceleration       = " << a << endl;
+
+
+        if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
     {
-        cout << getTimeStamp() << "      a=" << a << endl;
-        
-        cout << getTimeStamp() << "      duration=";
-        cout << fixed << setprecision(4) << accelerationDuration << endl;
-        
         accelerationDuration_ += accelerationDuration;
-        
-        cout << getTimeStamp();
-        cout << "       total=";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(2) << accelerationDuration_ << endl;
+
+        cout << getTimeStamp()  << "    duration_acceleration = " << fixed << setprecision(6) << setw(12) << accelerationDuration << "  total = " << setprecision(4) << setw(12) << accelerationDuration_ << endl;
     }
 
     // now perform the optimizer iteration on the extrapolated 'xs'
@@ -189,9 +185,9 @@ fp OptimizerAccelerationEve1::step()
 }
 
 
-void OptimizerAccelerationEve1::synthesise(vector<MatrixSparse> &f, ii basis)
+void OptimizerAccelerationEve1::synthesise(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& cs, ii basis)
 {
-    optimizer_->synthesise(f, basis);
+    optimizer_->synthesise(f, cs, basis);
 }
 
 
