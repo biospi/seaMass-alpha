@@ -66,7 +66,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
                     MatrixSparse x;
                     x.copy(xs_[i][k]);
-                    xs_[i][k].prune(x, pruneThreshold);
+                    //xs_[i][k].prune(x, pruneThreshold);
                 }
             }
         }
