@@ -37,7 +37,8 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
-        vector<char> scale(2);
+        int scaleMz;
+        int scaleSt;
         int shrinkageExponent;
         int toleranceExponent;
         int debugLevel;
@@ -56,11 +57,11 @@ int main(int argc, const char * const * argv)
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML/vendor format to mzMLb.")
-            ("mz_scale,m", po::value<char>(&scale[0]),
+            ("mz_scale,m", po::value<int>(&scaleMz),
              "Output m/z resolution given as \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\". "
              "Use 0 or 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap. "
              "Default is to autodetect.")
-            ("st_scale,s", po::value<char>(&scale[1]),
+            ("st_scale,s", po::value<int>(&scaleSt),
              "output scan-time resolution given as \"b-splines per second = 2^st_scale\". Use around 4. "
              "Default is to autodetect.")
             ("lambda,l", po::value<int>(&shrinkageExponent)->default_value(0),
@@ -93,10 +94,16 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
-        if(!vm.count("mz_scale"))
+        vector<char> scale(2);
+
+        if(vm.count("mz_scale"))
+            scale[0] = char(scaleMz);
+        else
             scale[0] = numeric_limits<char>::max();
 
-        if(!vm.count("st_scale"))
+        if(vm.count("st_scale"))
+            scale[1] = char(scaleSt);
+        else
             scale[1] = numeric_limits<char>::max();
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
