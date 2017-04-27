@@ -28,7 +28,7 @@ using namespace kernel;
 namespace xml = pugi;
 
 
-DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType) : fileOut_(0), spectrumIndex_(0), lastSpectrumIndex_(-1000)
+DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType) : fileOut_(0), spectrumIndex_(0), lastSpectrumIndex_(-1000), spectrumListIdx_(0)
 {
     if (filePathIn.empty())
         throw runtime_error("BUG: mzMLb/mzMLv file cannot be written without an mzMLb/mzMLv to read from.");
@@ -841,6 +841,9 @@ void DatasetMzmlb::writeXmlSpectrum(li offset_, vector<double> &mzs_,
             setXmlValue<string>(mzmlXmlScan,"spectrum/cvParam[@accession='MS:1000128']","name","centroid spectrum");
             setXmlValue<string>(mzmlXmlScan,"spectrum/cvParam[@accession='MS:1000128']","accession","MS:1000127");
         }
+
+        setXmlValue<size_t>(mzmlXmlScan, "spectrum", "index", spectrumListIdx_);
+        spectrumListIdx_++;
 
         setXmlValue<size_t>(mzmlXmlScan, "spectrum", "defaultArrayLength", arrayLen);
 

@@ -79,6 +79,7 @@ private:
     size_t idxDataArrayOffSet_;
     vector<li> specIdx_;
     li newMzmlIndex_;
+    li spectrumListIdx_;
 
     //void writeVecData(vector<fp>& data_);
     //void writeXmlData();
