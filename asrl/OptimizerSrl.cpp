@@ -63,13 +63,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                 for (size_t k = 0; k < l2s_[i].size(); k++)
                 {
                     l2s_[i][k].sort();
-
-                    // remove unneeded l2s
-                    /*MatrixSparse t;
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l2s_[i][k]);
-                    l2s_[i][k].copy(t);*/
-
                     l2s_[i][k].sqrt();
                 }
             }
@@ -104,13 +97,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                 for (size_t k = 0; k < l1l2s_[i].size(); k++)
                 {
                     l1l2s_[i][k].sort();
-
-                    // remove unneeded l12sPlusLambda again (after pruning)
-                    /*MatrixSparse t;
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l1l2s_[i][k]);
-                    l1l2s_[i][k].copy(t);*/
-
                     l1l2s_[i][k].divNonzeros(l2s_[i][k].vs());
                 }
             }
@@ -149,7 +135,18 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
                     MatrixSparse x;
                     x.copy(xs_[i][k]);
-                    //xs_[i][k].prune(x, pruneThreshold);
+                    xs_[i][k].prune(x, pruneThreshold);
+
+                    // remove unneeded l2s
+                    MatrixSparse t;
+                    t.copy(xs_[i][k]);
+                    t.copySubset(l2s_[i][k]);
+                    l2s_[i][k].copy(t);
+
+                    // remove unneeded l1l2s
+                    t.copy(xs_[i][k]);
+                    t.copySubset(l1l2s_[i][k]);
+                    l1l2s_[i][k].copy(t);
                 }
             }
         }
@@ -208,87 +205,7 @@ fp OptimizerSrl::step()
     // init l1s_ and l1l2s_
     /*if (l2s_.size() != bases_.size())
     {
-        // compute L2 norm of each basis function and store in 'l2s'
-        if (getDebugLevel() % 10 >= 1)
-            cout << getTimeStamp() << "    Initialising L2 norms ..." << endl;
-
-        l2s_.resize(bases_.size());
-        for (ii i = 0; i < (ii)bases_.size(); i++)
-        {
-            if (i == 0)
-            {
-                vector<MatrixSparse> t(b_.size());
-                for (size_t k = 0; k < t.size(); k++)
-                {
-                    t[k].alloc(1, b_[k].n(), (fp) 1.0);
-                }
-                bases_[i]->analyse(l2s_[0], t, true);
-            }
-            else
-            {
-                bases_[i]->analyse(l2s_[i], l2s_[bases_[i]->getParentIndex()], true);
-            }
-        }
-
-        for (ii i = 0; i < (ii)bases_.size(); i++)
-        {
-            if (!bases_[i]->isTransient())
-            {
-                for (size_t k = 0; k < l2s_[i].size(); k++)
-                {
-                    l2s_[i][k].sort();
-
-                    // remove unneeded l2s
-                    MatrixSparse t;
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l2s_[i][k]);
-                    l2s_[i][k].copy(t);
-
-                    l2s_[i][k].sqrt();
-                }
-            }
-        }
-
-        // compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
-        if (getDebugLevel() % 10 >= 1)
-            cout << getTimeStamp() << "    Initialising L1 norms of L2 norms ..." << endl;
-
-        l1l2s_.resize(bases_.size());
-        for (ii i = 0; i < (ii)bases_.size(); i++)
-        {
-            if (i == 0)
-            {
-                vector<MatrixSparse> t(b_.size());
-                for (size_t k = 0; k < t.size(); k++)
-                {
-                    t[k].alloc(1, b_[k].n(), (fp) 1.0);
-                }
-                bases_[i]->analyse(l1l2s_[0], t, false);
-            }
-            else
-            {
-                bases_[i]->analyse(l1l2s_[i], l1l2s_[bases_[i]->getParentIndex()], false);
-            }
-        }
-
-        for (ii i = 0; i < (ii)bases_.size(); i++)
-        {
-            if (!bases_[i]->isTransient())
-            {
-                for (size_t k = 0; k < l1l2s_[i].size(); k++)
-                {
-                    l1l2s_[i][k].sort();
-
-                    // remove unneeded l12sPlusLambda again (after pruning)
-                    MatrixSparse t;
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l1l2s_[i][k]);
-                    l1l2s_[i][k].copy(t);
-
-                    l1l2s_[i][k].divNonzeros(l2s_[i][k].vs());
-                }
-            }
-        }
+     // TODO
     }*/
 
     // ANALYSIS
@@ -301,31 +218,29 @@ fp OptimizerSrl::step()
         {
             if (i == 0)
             {
-
-                bases_.front()->analyse(xEs[0], f_fE, false);
-                vector<MatrixSparse>().swap(f_fE);
-
-                /*vector<MatrixSparse> t;
+                vector<MatrixSparse> t;
                 bases_.front()->analyse(t, f_fE, false);
 
-                for (size_t k = 0; k < xEs[0].size(); k++)
+                for (size_t k = 0; k < t.size(); k++)
                 {
-                    xEs[0][k].sort();
-                    xEs[0][k].copySubset(t[k]);
-                }*/
+                    xEs[0][k].copy(t[k]);
+
+                    //t[k].sort();
+                    //xEs[0][k].copySubset(t[k]);
+                }
             }
             else
             {
-                bases_[i]->analyse(xEs[i], xEs[bases_[i]->getParentIndex()], false);
-
-                /*vector<MatrixSparse> t;
+                vector<MatrixSparse> t;
                 bases_[i]->analyse(t, xEs[bases_[i]->getParentIndex()], false);
 
-                for (size_t k = 0; k < xEs[i].size(); k++)
+                for (size_t k = 0; k < t.size(); k++)
                 {
-                    xEs[i][k].sort();
-                    xEs[i][k].copySubset(t[k]);
-                }*/
+                    xEs[i][k].copy(t[k]);
+
+                    //t[k].sort();
+                    //xEs[i][k].copySubset(t[k]);
+                }
             }
         }
     }
