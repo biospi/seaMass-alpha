@@ -61,10 +61,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             if (!bases_[i]->isTransient())
             {
                 for (size_t k = 0; k < l2s_[i].size(); k++)
-                {
-                    //l2s_[i][k].sort();
                     l2s_[i][k].sqrt();
-                }
             }
         }
 
@@ -95,10 +92,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             if (!bases_[i]->isTransient())
             {
                 for (size_t k = 0; k < l1l2s_[i].size(); k++)
-                {
-                    //l1l2s_[i][k].sort();
                     l1l2s_[i][k].divNonzeros(l2s_[i][k]);
-                }
             }
         }
 
@@ -107,6 +101,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
         if (getDebugLevel() % 10 >= 1)
             cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
 
+        double sumB = 0.0;
+        double sumX = 0.0;
         xs_.resize(bases_.size());
         for (ii i = 0; i < (ii)bases_.size(); i++)
         {
@@ -114,7 +110,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             {
                 vector<MatrixSparse> t(b_.size());
                 for (size_t k = 0; k < t.size(); k++)
+                {
                     t[k].copy(b_[k]);
+                    sumB += t[k].sum();
+                }
 
                 bases_[i]->analyze(xs_[0], t, false);
             }
@@ -122,6 +121,9 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             {
                 bases_[i]->analyze(xs_[i], xs_[bases_[i]->getParentIndex()], false);
             }
+
+            for (size_t k = 0; k < xs_[i].size(); k++)
+                sumX += xs_[i][k].sum();
         }
 
         for (ii i = 0; i < (ii)bases_.size(); i++)
@@ -130,11 +132,16 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             {
                 for (size_t k = 0; k < xs_[i].size(); k++)
                 {
-                    // need to sort xs after matmul
-                    //xs_[i][k].sort();
+                   // remove unneeded l1l2sPlusLambda
+                    MatrixSparse l1l2PlusLambda;
+                    l1l2PlusLambda.copy(xs_[i][k]);
+                    l1l2PlusLambda.copySubset(l1l2s_[i][k]);
 
+                    // normalise and prune xs
                     MatrixSparse x;
                     x.copy(xs_[i][k]);
+                    x.divNonzeros(l1l2PlusLambda);
+                    x.mul((fp)(sumB / sumX));
                     xs_[i][k].copyPrune(x, pruneThreshold);
 
                     // remove unneeded l2s
@@ -220,8 +227,8 @@ fp OptimizerSrl::step()
                 bases_.front()->analyze(t, f_fE, false);
 
                 for (size_t k = 0; k < t.size(); k++)
-                    //xEs[0][k].copySubset(t[k]);
-                    xEs[0][k].copy(t[k]);
+                    xEs[0][k].copySubset(t[k]);
+                    //xEs[0][k].copy(t[k]);
             }
             else
             {
@@ -229,8 +236,8 @@ fp OptimizerSrl::step()
                 bases_[i]->analyze(t, xEs[bases_[i]->getParentIndex()], false);
 
                 for (size_t k = 0; k < t.size(); k++)
-                    //xEs[i][k].copySubset(t[k]);
-                    xEs[i][k].copy(t[k]);
+                    xEs[i][k].copySubset(t[k]);
+                    //xEs[i][k].copy(t[k]);
             }
         }
     }

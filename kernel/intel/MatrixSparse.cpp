@@ -165,9 +165,9 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
                 js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * a.is1_[m_ - 1], 64));
                 vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * a.is1_[m_ - 1], 64));
 
-                memcpy(is0_, a.is0_, sizeof(ii) * (a.m_ + 1));
-                memcpy(vs_, a.vs_, sizeof(fp) * a.is1_[m_ - 1]);
-                memcpy(js_, a.js_, sizeof(ii) * a.is1_[m_ - 1]);
+                ippsCopy_32s(a.is0_, is0_, a.m_ + 1);
+                ippsCopy_32s(a.js_, js_, a.is1_[m_ - 1]);
+                ippsCopy_32f(a.vs_, vs_, a.is1_[m_ - 1]);
 
                 status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
                 assert(!status_);
@@ -217,8 +217,8 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
             {
                 if (as[i].is1_)
                 {
-                    memcpy(&js_[is0_[i]], as[i].js_, sizeof(ii) * as[i].is1_[0]);
-                    memcpy(&vs_[is0_[i]], as[i].vs_, sizeof(fp) * as[i].is1_[0]);
+                    ippsCopy_32s(as[i].js_, &js_[is0_[i]], as[i].is1_[0]);
+                    ippsCopy_32f(as[i].vs_, &vs_[is0_[i]], as[i].is1_[0]);
                 }
             }
 
@@ -527,8 +527,8 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
             //#pragma omp parallel
             for (ii i = 0; i < m_; i++)
             {
-                memcpy(&js_[is0_[i]], &a.js_[a.is0_[i]], sizeof(ii) * (is1_[i] - is0_[i]));
-                memcpy(&vs_[is0_[i]], &a.vs_[a.is0_[i]], sizeof(fp) * (is1_[i] - is0_[i]));
+                ippsCopy_32s(&a.js_[a.is0_[i]], &js_[is0_[i]], is1_[i] - is0_[i]);
+                ippsCopy_32f(&a.vs_[a.is0_[i]], &vs_[is0_[i]], is1_[i] - is0_[i]);
             }
             
             status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
@@ -1125,10 +1125,10 @@ void MatrixSparse::sort()
                         vsPackV(is1_[i] - is0_[i], &vs_[is0_[i]], idxs, newVs);
                         mkl_free(idxs);
 
-                        memcpy(&js_[is0_[i]], newJs, sizeof(fp) * (is1_[i] - is0_[i]));
+                        ippsCopy_32s(newJs, &js_[is0_[i]], is1_[i] - is0_[i]);
                         mkl_free(newJs);
 
-                        memcpy(&vs_[is0_[i]], newVs, sizeof(fp) * (is1_[i] - is0_[i]));
+                        ippsCopy_32f(newVs, &vs_[is0_[i]], is1_[i] - is0_[i]);
                         mkl_free(newVs);
                     }
                 }
