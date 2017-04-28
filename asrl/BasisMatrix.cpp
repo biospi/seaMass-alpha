@@ -60,7 +60,7 @@ BasisMatrix::~BasisMatrix()
 }
 
 
-void BasisMatrix::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
+void BasisMatrix::synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "      BasisMatrix::synthesise" << endl;
@@ -93,7 +93,7 @@ void BasisMatrix::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse>
 }
 
 
-void BasisMatrix::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
+void BasisMatrix::analyze(vector<MatrixSparse> &xE, vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "      BasisMatrix::analyse" << endl;
@@ -122,7 +122,7 @@ void BasisMatrix::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &
 }
 
 
-const std::vector<MatrixSparse>* BasisMatrix::getGroups(bool transpose) const
+vector<MatrixSparse> * BasisMatrix::getGroups(bool transpose) const
 {
     if (transpose)
         return gT_;

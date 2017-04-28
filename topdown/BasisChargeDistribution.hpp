@@ -35,8 +35,8 @@ public:
 
 	~BasisChargeDistribution();
 
-	void synthesise(Matrix& f, const Matrix& x, bool accumulate) const;
-	void analyse(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
+	void synthesize(Matrix& f, const Matrix& x, bool accumulate) const;
+	void analyze(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
 
 	ii getM() const;
 	ii getN() const;

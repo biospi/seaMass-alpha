@@ -34,11 +34,11 @@ public:
     Basis(std::vector<Basis*>& bases, bool transient, int parentIndex = -1);
     virtual ~Basis();
 
-    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate) = 0;
-    virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA) const = 0;
+    virtual void synthesize(std::vector<MatrixSparse> &f, std::vector<MatrixSparse> &x, bool accumulate) = 0;
+    virtual void analyze(std::vector<MatrixSparse> &xE, std::vector<MatrixSparse> &fE, bool sqrA) = 0;
 
-    virtual void synthesiseGroups(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
-    virtual const std::vector<MatrixSparse>* getGroups(bool transpose) const;
+    virtual void synthesizeGroups(std::vector<MatrixSparse> &f, std::vector<MatrixSparse> &x, bool accumulate);
+    virtual std::vector<MatrixSparse> * getGroups(bool transpose) const;
 
     int getIndex() const;
     int getParentIndex() const;

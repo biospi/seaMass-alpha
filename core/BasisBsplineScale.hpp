@@ -33,13 +33,11 @@ public:
     BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, char dimension, bool transient, int order = 3);
     virtual ~BasisBsplineScale();
 
-    virtual void synthesise(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
-    virtual void analyse(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false) const;
+    virtual void synthesize(std::vector<MatrixSparse> &f, std::vector<MatrixSparse> &x, bool accumulate);
+    virtual void analyze(std::vector<MatrixSparse> &xE, std::vector<MatrixSparse> &fE, bool sqrA = false);
 
 private:
     MatrixSparse aT_;
-    ii aTnnzRows_;
-    
     MatrixSparse a_;
 
     char dimension_;

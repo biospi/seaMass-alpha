@@ -108,8 +108,6 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
     }
    
     aTs_.resize(bei.size() - 1);
-    aTnnzRows_.resize(bei.size() - 1);
-    
     as_.resize(bei.size() - 1);
     
     Bspline bspline(order, 65536); // bspline basis function lookup table
@@ -151,8 +149,6 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         
         // create A
         aTs_[k].copy(getGridInfo().n(), bci[k + 1] - bci[k], js, is, vs);
-        aTnnzRows_[k] = aTs_[k].m();
-        
         as_[k].copy(aTs_[k], true);
 
         // display progress update
@@ -177,7 +173,7 @@ BasisBsplineMz::~BasisBsplineMz()
 }
 
 
-void BasisBsplineMz::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
+void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::synthesise" << endl;
@@ -187,22 +183,22 @@ void BasisBsplineMz::synthesise(vector<MatrixSparse> &f, const vector<MatrixSpar
 
     for (size_t k = 0; k < aTs_.size(); k++)
     {
-        MatrixSparseView t(x[0], k);
+        MatrixSparseView row(x[0], k);
 
         // zero basis functions that are no longer needed
-        ii aTnnzRows = aTs_[k].pruneRows(aTs_[k], aTnnzRows_[k], t, false, 0.75);
-        if (aTnnzRows < aTnnzRows_[k])
+        MatrixSparse t;
+        ii rowsPruned = t.copyPruneRows(aTs_[k], row, false, 0.75);
+        if (rowsPruned > 0)
         {
+            aTs_[k].swap(t);
             as_[k].copy(aTs_[k], true);
 
             if (getDebugLevel() % 10 >= 3)
-                cout << getTimeStamp() << "      " << getIndex() << " zeroed " << aTnnzRows_[k] - aTnnzRows << " basis functions" << endl;
-
-            aTnnzRows_[k] = aTnnzRows;
+                cout << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions" << endl;
         }
 
-        // synthesise
-        f[k].matmul(false, t, aTs_[k], accumulate, true);
+        // synthesise with dense result
+        f[k].matmul(false, row, aTs_[k], accumulate, true);
         
         if (getDebugLevel() % 10 >= 3)
             cout << getTimeStamp() << "       " << f[k] << endl;
@@ -210,7 +206,7 @@ void BasisBsplineMz::synthesise(vector<MatrixSparse> &f, const vector<MatrixSpar
 }
 
 
-void BasisBsplineMz::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
+void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
     {

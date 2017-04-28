@@ -347,7 +347,7 @@ int main(int argc, char **argv)
 		cout<<"Extract Peaks from Mass Spec Data"<<endl;
 		// Manual reduction of STL container as STLs are not thread safe...
 		int run=0;
-		#pragma omp parallel
+		//#pragma omp parallel
 		{
 			//int nthrd=omp_get_num_threads();
             int nthrd=1;
@@ -357,7 +357,7 @@ int main(int argc, char **argv)
 			peakThreads[thrdid] = &localPeaks;
 			run=0;
 
-			#pragma omp for firstprivate(hypIdx,rdLen) schedule(dynamic)
+			//#pragma omp for firstprivate(hypIdx,rdLen) schedule(dynamic)
 			for(ii rt_idx = 0; rt_idx < dataMatLen[0]; ++rt_idx)
 			{
 				vector<float> rawCoeff;
@@ -380,11 +380,11 @@ int main(int argc, char **argv)
 
 				localPeaks.addPeakArray(centroidPeak.peak->getPeakData());
 				localPeaks.updateFalseData(centroidPeak.peak->getFalsePeaks(),centroidPeak.peak->getFalseWidths());
-				#pragma omp atomic
+				//#pragma omp atomic
 					++run;
 			}
 
-			#pragma omp single
+			//#pragma omp single
 			{
 				cout<<"\r"<<"Processing Scan: "<<dataMatLen[0]<<"/"<<dataMatLen[0]<<endl;
 				cout<<"Gathering Peaks from all threads..."<<endl;

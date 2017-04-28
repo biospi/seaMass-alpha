@@ -166,7 +166,7 @@ void Asrl::getOutput(Output& output) const
     vector<MatrixSparse> f;
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesise(f, cs);
+        optimizer_->synthesize(f, cs);
     }
     output.xTaT.resize(f.size());
     for (ii i = 0; i < ii(output.xTaT.size()); i++)
@@ -176,5 +176,5 @@ void Asrl::getOutput(Output& output) const
     }
 
     if (lambdaGroupStart_ > 0.0)
-        bases_[0]->synthesiseGroups(output.xTgT, optimizer_->xs()[0], false);
+        bases_[0]->synthesizeGroups(output.xTgT, optimizer_->xs()[0], false);
 }

@@ -303,7 +303,7 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
     vector<MatrixSparse> f;
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesise(f, cs);
+        optimizer_->synthesize(f, cs);
     }
     f[0].exportTo(binCounts.data());
 }
@@ -319,7 +319,7 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
     vector<MatrixSparse> c(1);
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesise(c, cs, dimensions_ - 1);
+        optimizer_->synthesize(c, cs, dimensions_ - 1);
     }
 
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
@@ -341,7 +341,7 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints) const
     vector<MatrixSparse> c(1);
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesise(c, cs, 0);
+        optimizer_->synthesize(c, cs, 0);
     }
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
     c[0].exportTo(controlPoints.coeffs.data());

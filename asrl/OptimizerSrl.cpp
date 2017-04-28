@@ -48,11 +48,11 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                 {
                     t[k].copy(1, b_[k].n(), (fp) 1.0);
                 }
-                bases_[i]->analyse(l2s_[0], t, true);
+                bases_[i]->analyze(l2s_[0], t, true);
             }
             else
             {
-                bases_[i]->analyse(l2s_[i], l2s_[bases_[i]->getParentIndex()], true);
+                bases_[i]->analyze(l2s_[i], l2s_[bases_[i]->getParentIndex()], true);
             }
         }
 
@@ -62,7 +62,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             {
                 for (size_t k = 0; k < l2s_[i].size(); k++)
                 {
-                    l2s_[i][k].sort();
+                    //l2s_[i][k].sort();
                     l2s_[i][k].sqrt();
                 }
             }
@@ -82,11 +82,11 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                 {
                     t[k].copy(1, b_[k].n(), (fp) 1.0);
                 }
-                bases_[i]->analyse(l1l2s_[0], t, false);
+                bases_[i]->analyze(l1l2s_[0], t, false);
             }
             else
             {
-                bases_[i]->analyse(l1l2s_[i], l1l2s_[bases_[i]->getParentIndex()], false);
+                bases_[i]->analyze(l1l2s_[i], l1l2s_[bases_[i]->getParentIndex()], false);
             }
         }
 
@@ -96,8 +96,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             {
                 for (size_t k = 0; k < l1l2s_[i].size(); k++)
                 {
-                    l1l2s_[i][k].sort();
-                    l1l2s_[i][k].divNonzeros(l2s_[i][k].vs());
+                    //l1l2s_[i][k].sort();
+                    l1l2s_[i][k].divNonzeros(l2s_[i][k]);
                 }
             }
         }
@@ -116,11 +116,11 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                 for (size_t k = 0; k < t.size(); k++)
                     t[k].copy(b_[k]);
 
-                bases_[i]->analyse(xs_[0], t, false);
+                bases_[i]->analyze(xs_[0], t, false);
             }
             else
             {
-                bases_[i]->analyse(xs_[i], xs_[bases_[i]->getParentIndex()], false);
+                bases_[i]->analyze(xs_[i], xs_[bases_[i]->getParentIndex()], false);
             }
         }
 
@@ -131,11 +131,11 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                 for (size_t k = 0; k < xs_[i].size(); k++)
                 {
                     // need to sort xs after matmul
-                    xs_[i][k].sort();
+                    //xs_[i][k].sort();
 
                     MatrixSparse x;
                     x.copy(xs_[i][k]);
-                    xs_[i][k].prune(x, pruneThreshold);
+                    xs_[i][k].copyPrune(x, pruneThreshold);
 
                     // remove unneeded l2s
                     MatrixSparse t;
@@ -150,8 +150,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                 }
             }
         }
-
-
     }
 }
 
@@ -184,7 +182,7 @@ fp OptimizerSrl::step()
     vector< vector<MatrixSparse> > xEs;
     double synthesisStart = getElapsedTime();
     {
-        synthesise(f_fE, xEs);
+        synthesize(f_fE, xEs);
     }
     double synthesisDuration = getElapsedTime() - synthesisStart;
 
@@ -219,28 +217,20 @@ fp OptimizerSrl::step()
             if (i == 0)
             {
                 vector<MatrixSparse> t;
-                bases_.front()->analyse(t, f_fE, false);
+                bases_.front()->analyze(t, f_fE, false);
 
                 for (size_t k = 0; k < t.size(); k++)
-                {
-                    xEs[0][k].copy(t[k]);
-
-                    //t[k].sort();
                     //xEs[0][k].copySubset(t[k]);
-                }
+                    xEs[0][k].copy(t[k]);
             }
             else
             {
                 vector<MatrixSparse> t;
-                bases_[i]->analyse(t, xEs[bases_[i]->getParentIndex()], false);
+                bases_[i]->analyze(t, xEs[bases_[i]->getParentIndex()], false);
 
                 for (size_t k = 0; k < t.size(); k++)
-                {
-                    xEs[i][k].copy(t[k]);
-
-                    //t[k].sort();
                     //xEs[i][k].copySubset(t[k]);
-                }
+                    xEs[i][k].copy(t[k]);
             }
         }
     }
@@ -251,14 +241,15 @@ fp OptimizerSrl::step()
         {
             for (size_t k = 0; k < xEs[i].size(); k++)
             {
-                xEs[i][k].sort();
+                if (xEs[i][k].nnz() > xs_[i][k].nnz())
+                {
+                    MatrixSparse t;
+                    t.copy(xs_[i][k]);
+                    t.copySubset(xEs[i][k]);
+                    xEs[i][k].copy(t);
+                }
 
-                MatrixSparse t;
-                t.copy(xs_[i][k]);
-                t.copySubset(xEs[i][k]);
-                xEs[i][k].copy(t);
-
-                xEs[i][k].divNonzeros(l2s_[i][k].vs());
+                xEs[i][k].divNonzeros(l2s_[i][k]);
             }
         }
     }
@@ -278,8 +269,8 @@ fp OptimizerSrl::step()
                 ys[i].resize(xs_[i].size());
                 if (lambdaGroup_ > 0.0)
                 {
-                    const vector<MatrixSparse>* g = bases_[i]->getGroups(false);
-                    const vector<MatrixSparse>* gT = bases_[i]->getGroups(true);
+                    vector<MatrixSparse>* g = bases_[i]->getGroups(false);
+                    vector<MatrixSparse>* gT = bases_[i]->getGroups(true);
 
                     // group and individual shrinkage
                     for (size_t k = 0; k < ys[i].size(); k++)
@@ -291,13 +282,12 @@ fp OptimizerSrl::step()
                         t.sqr();
                         ys[i][k].matmul(false, t, (*gT)[k], false);
                         t.matmul(false, ys[i][k], (*g)[k], false);
-                        t.sort();
                         ys[i][k].copy(xs_[i][k]);
                         ys[i][k].copySubset(t);
                         ys[i][k].sqrt();
 
                         // y = x * groupNorm(x)^-1)
-                        ys[i][k].div2Nonzeros(xs_[i][k].vs());
+                        ys[i][k].div2Nonzeros(xs_[i][k]);
 
                         // y = lambdaGroup * x * groupNorm(x)^-1
                         ys[i][k].mul(lambdaGroup_);
@@ -306,13 +296,13 @@ fp OptimizerSrl::step()
                         ys[i][k].addNonzeros(lambda_);
 
                         // y = l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1
-                        ys[i][k].addNonzeros(l1l2s_[i][k].vs());
+                        ys[i][k].addNonzeros(l1l2s_[i][k]);
 
                         // y = x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        ys[i][k].div2Nonzeros(xs_[i][k].vs());
+                        ys[i][k].div2Nonzeros(xs_[i][k]);
 
                         // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        ys[i][k].mul(xEs[i][k].vs());
+                        ys[i][k].mul(xEs[i][k]);
                     }
                 }
                 else
@@ -327,10 +317,10 @@ fp OptimizerSrl::step()
                         ys[i][k].addNonzeros(lambda_);
 
                         // y = x / (l1l2 + lambda)
-                        ys[i][k].div2Nonzeros(xs_[i][k].vs());
+                        ys[i][k].div2Nonzeros(xs_[i][k]);
 
                         // y = xE * x / (l1l2 + lambda)
-                        ys[i][k].mul(xEs[i][k].vs());
+                        ys[i][k].mul(xEs[i][k]);
                     }
                 }
             }
@@ -358,7 +348,7 @@ fp OptimizerSrl::step()
                 {
                     sumSqrs += xs_[i][k].sumSqrs();
                     ys[i][k].sumSqrs();
-                    sumSqrDiffs += xs_[i][k].sumSqrDiffsNonzeros(ys[i][k].vs());
+                    sumSqrDiffs += xs_[i][k].sumSqrDiffsNonzeros(ys[i][k]);
                 }
             }
         }
@@ -370,7 +360,7 @@ fp OptimizerSrl::step()
             {
                 for (size_t k = 0; k < xs_[i].size(); k++)
                 {
-                    xs_[i][k].prune(ys[i][k], pruneThreshold_);
+                    xs_[i][k].copyPrune(ys[i][k], pruneThreshold_);
                     ys[i][k].init();
                     
                     MatrixSparse t;
@@ -400,16 +390,17 @@ fp OptimizerSrl::step()
         cout << getTimeStamp()  << "    duration_analysis     = " << fixed << setprecision(6) << setw(12) << analysisDuration << "  total = " << setprecision(4) << setw(12) << analysisDuration_ << endl;
         cout << getTimeStamp()  << "    duration_shrinkage    = " << fixed << setprecision(6) << setw(12) << shrinkageDuration << "  total = " << setprecision(4) << setw(12) << shrinkageDuration_ << endl;
         cout << getTimeStamp()  << "    duration_update       = " << fixed << setprecision(6) << setw(12) << updateDuration << "  total = " << setprecision(4) << setw(12) << updateDuration_ << endl;
+        cout << getTimeStamp()  << "                                     total_sort = " << setprecision(4) << setw(12) << MatrixSparse::sortElapsed_ << endl;
      }
 
     return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
 }
 
 
-void OptimizerSrl::synthesise(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& cs, ii basis)
+void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& cs, ii basis)
 {
     cs.resize(bases_.size());
-    for (ii i = (ii)bases_.size() - 1; i >= 0; i--)
+    for (ii i = ii(bases_.size()) - 1; i >= 0; i--)
     {
         if (!cs[i].size() && !bases_[i]->isTransient())
         {
@@ -419,7 +410,7 @@ void OptimizerSrl::synthesise(vector<MatrixSparse>& f, vector< vector<MatrixSpar
                 cs[i][k].copy(xs_[i][k]);
                 
                 if (l2s_.size() == xs_.size() && l2s_[i][k].m())
-                    cs[i][k].divNonzeros(l2s_[i][k].vs());
+                    cs[i][k].divNonzeros(l2s_[i][k]);
             }
         }
 
@@ -443,15 +434,15 @@ void OptimizerSrl::synthesise(vector<MatrixSparse>& f, vector< vector<MatrixSpar
                     cs[pi][k].copy(xs_[pi][k]);
                     
                     if (l2s_.size() == xs_.size() && l2s_[pi][k].m())
-                        cs[pi][k].divNonzeros(l2s_[pi][k].vs());
+                        cs[pi][k].divNonzeros(l2s_[pi][k]);
                 }
             }
 
-            bases_[i]->synthesise(cs[pi], cs[i], !bases_[pi]->isTransient());
+            bases_[i]->synthesize(cs[pi], cs[i], !bases_[pi]->isTransient());
         }
         else
         {
-            bases_[0]->synthesise(f, cs[0], false);
+            bases_[0]->synthesize(f, cs[0], false);
         }
     }
 }

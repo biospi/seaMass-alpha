@@ -38,7 +38,7 @@ public:
     virtual ii getIteration() const = 0;
 
     virtual fp step() = 0;
-    virtual void synthesise(std::vector<MatrixSparse>& f, std::vector< std::vector<MatrixSparse> >& cs, ii basis = -1) = 0;
+    virtual void synthesize(std::vector<MatrixSparse>& f, std::vector< std::vector<MatrixSparse> >& cs, ii basis = -1) = 0;
 
     virtual std::vector< std::vector<MatrixSparse> >& xs() = 0;
     virtual std::vector< std::vector<MatrixSparse> >& l2s() = 0;

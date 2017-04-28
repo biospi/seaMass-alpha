@@ -279,7 +279,7 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 	// Find Peaks and exact MZ values.
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
 
-	#pragma omp parallel for reduction(+:falsePeak,falseWidth)
+	//#pragma omp parallel for reduction(+:falsePeak,falseWidth)
 	for(lli i = 0; i < row; ++i)
 	{
 		for(lli j = 2; j < col-2; ++j)
@@ -298,7 +298,7 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 				{
 					if(mzlhs >= 0 && mzrhs >= 0 && countMax >= threshold)
 					{
-						#pragma omp critical(peak)
+						//#pragma omp critical(peak)
 						{
 							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
 								make_pair(bs->rt[i],bs->rt[i]),t0,j,i);
@@ -389,7 +389,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 	//int nthrd=omp_get_num_threads();
     int nthrd=1;
 	int run;
-	#pragma omp parallel
+	//#pragma omp parallel
 	{
 		//int thrdid=omp_get_thread_num();
         int thrdid=0;
@@ -402,7 +402,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 		lli pc = dims[1];
 
 		run = 0;
-		#pragma omp for reduction(+:falsePeak,falseWidth,falseInnerPeak) schedule(dynamic)
+		//#pragma omp for reduction(+:falsePeak,falseWidth,falseInnerPeak) schedule(dynamic)
 		for(lli i = 2; i < row-3; ++i)
 		{
 			if(thrdid == 0)
@@ -488,7 +488,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 							   mzlhs < bs->mz[col-1] && mzrhs < bs->mz[col-1] &&
 							   B.pk >= threshold)
 							{
-								#pragma omp critical(peak)
+								//#pragma omp critical(peak)
 								{
 									peak->addPeak(B.mz,B.rt,B.pk,make_pair(mzlhs,mzrhs),
 											make_pair(rtlhs,rtrhs),B.t0,j,i);
@@ -510,7 +510,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 					}
 				}
 			}
-			#pragma omp atomic
+			//#pragma omp atomic
 				++run;
 		}
 	}

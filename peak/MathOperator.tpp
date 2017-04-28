@@ -114,7 +114,7 @@ void OpUnit<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_rt
 	_rt.resize(dims);
 	double offset = double(_offset);
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (lli i = 0; i < _rt.size(); ++i) {
 		_rt[i] = (offset + i) * ppbrt;
 	}
@@ -126,7 +126,7 @@ void OpUnit<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz
 	_mz.resize(dims);
 	double offset = double(_offset);
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (lli i = 0; i < _mz.size(); ++i) {
 		_mz[i] = (offset + i) * ppbmz;
 	}
@@ -136,7 +136,7 @@ void OpUnit<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz
 template<class T>
 void OpNablaH<T>::apply(lli row, lli col, T** alpha)
 {
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli i=0; i < row; ++i)
 	{
 		T Nm1=alpha[i][0];
@@ -147,7 +147,7 @@ void OpNablaH<T>::apply(lli row, lli col, T** alpha)
 			Nm1=N;
 		}
 	}
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli i=0; i < row; ++i)
 		alpha[i][0]=0.0;
 }
@@ -158,7 +158,7 @@ void OpNablaH<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_
 	_mz.resize(dims);
 	double offset = double(_offset) - 0.5;
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (lli i = 0; i < _mz.size(); ++i) {
 		_mz[i] = (offset + i) * ppbmz;
 	}
@@ -168,7 +168,7 @@ void OpNablaH<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_
 template<class T>
 void OpNabla2H<T>::apply(lli row, lli col, T** alpha)
 {
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli i=0; i < row; ++i)
 	{
 		T Nm1=alpha[i][1];
@@ -181,7 +181,7 @@ void OpNabla2H<T>::apply(lli row, lli col, T** alpha)
 			Nm1=N;
 		}
 	}
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli j=0; j < 2; ++j)
 		for(lli i=0; i < row; ++i)
 			alpha[i][j]=0.0;
@@ -193,7 +193,7 @@ void OpNabla2H<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &
 	_mz.resize(dims);
 	double offset = double(_offset) - 1;
 	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (lli i = 0; i < _mz.size(); ++i) {
 		_mz[i] = (offset + i) * ppbmz;
 	}
@@ -203,7 +203,7 @@ void OpNabla2H<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &
 template<class T>
 void OpNablaV<T>::apply(lli row, lli col, T** alpha)
 {
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli i=0; i < col; ++i)
 	{
 		T Nm1=alpha[0][i];
@@ -214,7 +214,7 @@ void OpNablaV<T>::apply(lli row, lli col, T** alpha)
 			Nm1=N;
 		}
 	}
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli i=0; i < col; ++i)
 		alpha[0][i]=0.0;
 }
@@ -225,7 +225,7 @@ void OpNablaV<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_
 	_rt.resize(dims);
 	double offset = double(_offset) - 0.5;
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (lli i = 0; i < _rt.size(); ++i) {
 		_rt[i] = (offset + i) * ppbrt;
 	}
@@ -235,7 +235,7 @@ void OpNablaV<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &_
 template<class T>
 void OpNabla2V<T>::apply(lli row, lli col, T** alpha)
 {
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli i=0; i < col; ++i)
 	{
 		T Nm1=alpha[1][i];
@@ -248,7 +248,7 @@ void OpNabla2V<T>::apply(lli row, lli col, T** alpha)
 			Nm1=N;
 		}
 	}
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(lli i=0; i < 2; ++i)
 		for(lli j=0; j < col; ++j)
 			alpha[i][j]=0.0;
@@ -260,7 +260,7 @@ void OpNabla2V<T>::axisRT(uli dims, int _offset, double rt_res, vector<double> &
 	_rt.resize(dims);
 	double offset = double(_offset) - 1;
 	double ppbrt = 1.0 / (pow(2.0, rt_res));
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (lli i = 0; i < _rt.size(); ++i) {
 		_rt[i] = (offset + i) * ppbrt;
 	}

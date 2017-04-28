@@ -50,8 +50,8 @@ public:
 
 	~BasisIsotopeDistribution();
 
-	void synthesise(std::vector<fp>& fs, const std::vector<fp>& cs, bool accum = true) const;
-	void analyse(std::vector<fp>& es, const std::vector<fp>& fs) const;
+	void synthesize(std::vector<fp>& fs, const std::vector<fp>& cs, bool accum = true) const;
+	void analyze(std::vector<fp>& es, const std::vector<fp>& fs) const;
 	void l2norm(std::vector<fp>& es, const std::vector<fp>& fs) const;
 	void shrink(std::vector<fp>& es, const std::vector<fp>& cs, const std::vector<fp>& l2, const std::vector<fp>& wcs, double shrinkage) const;
 	li get_nc() const { return nc; }

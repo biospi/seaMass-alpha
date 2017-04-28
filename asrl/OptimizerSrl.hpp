@@ -38,7 +38,7 @@ public:
     virtual const std::vector<Basis*>& getBases() const;
 
     virtual fp step();
-    virtual void synthesise(std::vector<MatrixSparse> &f, std::vector< std::vector<MatrixSparse> >& cs, ii basis = -1);
+    virtual void synthesize(std::vector<MatrixSparse> &f, std::vector< std::vector<MatrixSparse> >& cs, ii basis = -1);
 
     std::vector< std::vector<MatrixSparse> >& xs();
     std::vector< std::vector<MatrixSparse> >& l2s();

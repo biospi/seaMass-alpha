@@ -156,7 +156,7 @@ ii BasisChargeDistribution::getN() const
 
 void
 BasisChargeDistribution::
-synthesise(Matrix& f, const Matrix& x, bool accumulate) const
+synthesize(Matrix& f, const Matrix& x, bool accumulate) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisChargeDistribution::synthesise" << endl;
@@ -168,7 +168,7 @@ synthesise(Matrix& f, const Matrix& x, bool accumulate) const
 
 void
 BasisChargeDistribution::
-analyse(Matrix& xE, const Matrix& fE, bool sqrA) const
+analyze(Matrix& xE, const Matrix& fE, bool sqrA) const
 {
 #ifndef NDEBUG
 	cout << " " << getIndex() << " BasisChargeDistribution::analyse" << endl;
@@ -205,7 +205,7 @@ shrink(std::vector<fp>& es, const std::vector<fp>& cs, const std::vector<fp>& l2
 	}
 
 	// scale the shrinkage to be proportional to the contribution of this coefficient to the group total
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (ii z = 0; z < cos.size(); z++)
 	for (ii i = cos[z]; i < cos[z + 1]; i++)
 	for (ii j = 0; j < as.size(); j++)

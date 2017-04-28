@@ -120,7 +120,6 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 
     // create transformation matrix 'a'
     aT_.copy(getGridInfo().m(), parentGridInfo.m(),  js, is, vs);
-    aTnnzRows_ = aT_.m();
 
     if (scaleAuto != scale)
         cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
@@ -132,7 +131,7 @@ BasisBsplineScantime::~BasisBsplineScantime()
 }
 
 
-void BasisBsplineScantime::synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
+void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesise" << endl;
@@ -141,13 +140,14 @@ void BasisBsplineScantime::synthesise(vector<MatrixSparse> &f, const vector<Matr
         f.resize(1);
 
     // zero basis functions that are no longer needed
-    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], true, 0.75);
-    if (aTnnzRows < aTnnzRows_)
+    MatrixSparse t;
+    ii rowsPruned = t.copyPruneRows(aT_, x[0], true, 0.75);
+    if (rowsPruned > 0)
     {
-        if (getDebugLevel() % 10 >= 3)
-            cout << getTimeStamp() << "      " << getIndex() << " zeroed " << aTnnzRows_ - aTnnzRows << " basis functions" << endl;
+        aT_.swap(t);
 
-        aTnnzRows_ = aTnnzRows;
+        if (getDebugLevel() % 10 >= 2)
+            cout << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions" << endl;
     }
 
     // synthesise
@@ -158,7 +158,7 @@ void BasisBsplineScantime::synthesise(vector<MatrixSparse> &f, const vector<Matr
 }
 
 
-void BasisBsplineScantime::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
+void BasisBsplineScantime::analyze(vector<MatrixSparse> &xE, vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analyse" << endl;

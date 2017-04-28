@@ -91,8 +91,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
 
     // create A
     aT_.copy(n, m, js, is, vs);
-    aTnnzRows_ = aT_.m();
-    
+
     if (dimension == 0)
         a_.copy(aT_, true);
 }
@@ -105,7 +104,7 @@ BasisBsplineScale::~BasisBsplineScale()
 
 void
 BasisBsplineScale::
-synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
+synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesise" << endl;
@@ -114,16 +113,17 @@ synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
         f.resize(1);
 
     // zero basis functions that are no longer needed
-    ii aTnnzRows = aT_.pruneRows(aT_, aTnnzRows_, x[0], dimension_ > 0, 0.75);
-    if (aTnnzRows < aTnnzRows_)
+    MatrixSparse t;
+    ii rowsPruned = t.copyPruneRows(aT_, x[0], dimension_ > 0, 0.75);
+    if (rowsPruned > 0)
     {
+        aT_.swap(t);
+
         if (dimension_ == 0)
             a_.copy(aT_, true);
 
         if (getDebugLevel() % 10 >= 3)
-            cout << getTimeStamp() << "      " << getIndex() << " zeroed " << aTnnzRows_ - aTnnzRows << " basis functions" << endl;
-
-        aTnnzRows_ = aTnnzRows;
+            cout << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions" << endl;
     }
 
     // synthesise
@@ -137,7 +137,7 @@ synthesise(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
 }
 
 
-void BasisBsplineScale::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA) const
+void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analyse" << endl;

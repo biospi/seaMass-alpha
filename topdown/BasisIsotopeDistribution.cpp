@@ -208,7 +208,7 @@ BasisIsotopeDistribution::~BasisIsotopeDistribution()
 
 void
 BasisIsotopeDistribution::
-synthesise(vector<fp>& fs, const vector<fp>& cs, bool accum) const
+synthesize(vector<fp>& fs, const vector<fp>& cs, bool accum) const
 {
 	for (ii j = 0; j < ns; j++)
 	{
@@ -219,7 +219,7 @@ synthesise(vector<fp>& fs, const vector<fp>& cs, bool accum) const
 
 void
 BasisIsotopeDistribution::
-analyse(vector<fp>& es, const vector<fp>& fs) const
+analyze(vector<fp>& es, const vector<fp>& fs) const
 {
 	for (ii j = 0; j < ns; j++)
 	{
@@ -245,7 +245,7 @@ shrink(std::vector<fp>& es, const std::vector<fp>& cs, const std::vector<fp>& l2
 {
 	// GROUP-WISE SHRINKAGE! (note - intuitive implemention, not mathematically verified yet)
 	ii n = nc / ns;
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for (ii g = 0; g < gis.size() - 1; g++)
 	{
 		// sum up coefficients per group

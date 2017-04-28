@@ -37,15 +37,15 @@ Basis::~Basis()
 }
 
 
-const std::vector<MatrixSparse>* Basis::getGroups(bool transpose) const
+vector<MatrixSparse> * Basis::getGroups(bool transpose) const
 {
     return 0;
 }
 
 
-void Basis::synthesiseGroups(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate)
+void Basis::synthesizeGroups(std::vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
 {
-    const std::vector<MatrixSparse>* gT = getGroups(true);
+    std::vector<MatrixSparse>* gT = getGroups(true);
     if (gT)
     {
         if (!f.size())
@@ -56,7 +56,7 @@ void Basis::synthesiseGroups(std::vector<MatrixSparse> &f, const std::vector<Mat
     }
     else
     {
-        synthesise(f, x, accumulate);
+        synthesize(f, x, accumulate);
     }
 }
 
