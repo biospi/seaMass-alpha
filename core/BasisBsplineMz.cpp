@@ -187,8 +187,7 @@ void BasisBsplineMz::synthesise(vector<MatrixSparse> &f, const vector<MatrixSpar
 
     for (size_t k = 0; k < aTs_.size(); k++)
     {
-        MatrixSparse t;
-        t.initFromRows(x[0], k);
+        MatrixSparseView t(x[0], k);
 
         // zero basis functions that are no longer needed
         ii aTnnzRows = aTs_[k].pruneRows(aTs_[k], aTnnzRows_[k], t, false, 0.75);
@@ -235,7 +234,7 @@ void BasisBsplineMz::analyse(vector<MatrixSparse> &xE, const vector<MatrixSparse
     }
     
     xE.resize(1);
-    xE[0].copyAsRows(xEs);
+    xE[0].copyConcatenate(xEs);
     
     if (getDebugLevel() % 10 >= 3)
     {

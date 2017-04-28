@@ -43,7 +43,34 @@ MatrixSparse::MatrixSparse() : m_(0), n_(0), is1_(0)
 
 MatrixSparse::~MatrixSparse()
 {
-    clear();
+    free();
+}
+
+
+void MatrixSparse::init(ii m, ii n)
+{
+    free();
+
+    m_ = m;
+    n_ = n;
+}
+
+
+void MatrixSparse::free()
+{
+    if (is1_)
+    {
+        status_ = mkl_sparse_destroy(mat_); assert(!status_);
+
+        if (isOwned_)
+        {
+            mkl_free(is0_);
+            mkl_free(js_);
+            mkl_free(vs_);
+        }
+
+        is1_ = 0;
+    }
 }
 
 
@@ -61,84 +88,36 @@ ii MatrixSparse::n() const
 
 li MatrixSparse::size() const
 {
-    return (li)m_ * n_;
+    return li(m_) * n_;
 }
 
 
 ii MatrixSparse::nnz() const
 {
     if (is1_)
-    {
         return is1_[m_ - 1];
-    }
     else
-    {
         return 0;
-    }
 }
 
 
 ii MatrixSparse::nnzActual() const
 {
-    if (is1_)
-    {
-        ii count = 0;
+    ii count = 0;
 
-        for (ii nz = 0; nz < nnz(); nz++)
-        {
-            if (vs_[nz] != 0.0) count++;
-        }
-
-        return count;
-    }
-    else
+    for (ii nz = 0; nz < nnz(); nz++)
     {
-        return 0;
+        if (vs_[nz] != 0.0)
+            count++;
     }
+
+    return count;
 }
 
 
 fp* MatrixSparse::vs() const
 {
     return vs_;
-}
-
-
-void MatrixSparse::init(ii m, ii n)
-{
-    clear();
-    m_ = m;
-    n_ = n;
-}
-
-
-void MatrixSparse::initFromRows(const MatrixSparse &a, ii row)
-{
-    assert(a.is1_);
-    assert(a.nnz() > 0);
-
-    init();
-
-    if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       A" << a << "[" << row << "] := ..." << endl;
-
-    m_ = 1;
-    n_ = a.n();
-    // we are not deallocating this at the moment... (and valgrind spots the small leak)
-    is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * 2, 64));
-    is0_[0] = 0;
-    is1_ = is0_ + 1;
-
-    ii newNnz = a.is1_[row] - a.is0_[row];
-    is1_[0] = newNnz;
-    js_ = &a.js_[a.is0_[row]];
-    vs_ = &a.vs_[a.is0_[row]];
-
-    status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
-    isOwned_ = false;
-
-    if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
 }
 
 
@@ -203,15 +182,12 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
 }
 
 
-void MatrixSparse::copyAsRows(const std::vector<MatrixSparse> &as)
+void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
 {
-    clear();
-
     for (size_t k = 0; k < as.size(); k++) assert(as[k].m_ == 1);
     for (size_t k = 0; k < as.size() - 1; k++) assert(as[k].n_ == as[k + 1].n_);
 
-    m_ = (ii)as.size();
-    n_ = as[0].n();
+    init((ii)as.size(), as[0].n());
 
     ii nnz = 0;
     for (ii i = 0; i < m_; i++)
@@ -247,13 +223,10 @@ void MatrixSparse::copyAsRows(const std::vector<MatrixSparse> &as)
 void MatrixSparse::copy(ii m, ii n, const std::vector<ii> &is, const std::vector<ii> &js,
                         const std::vector<fp> &vs)
 {
-    clear();
-    
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       COO := ..." << endl;
 
-    m_ = m;
-    n_ = n;
+    init(m, n);
 
     if (vs.size() > 0)
     {
@@ -276,9 +249,9 @@ void MatrixSparse::copy(ii m, ii n, const std::vector<ii> &is, const std::vector
 }
 
 
-void MatrixSparse::alloc(ii m, ii n, fp v)
+void MatrixSparse::copy(ii m, ii n, fp v)
 {
-    init();
+    free();
 
     vector<fp> vs;
     vector<ii> is;
@@ -300,7 +273,7 @@ void MatrixSparse::alloc(ii m, ii n, fp v)
 
 void MatrixSparse::copy(const Matrix &a)
 {
-    clear();
+    free();
 
     vector<ii> is;
     vector<ii> js;
@@ -341,7 +314,7 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
             for (ii a_nz = a.is0_[i]; a_nz < a.is1_[i] - 1; a_nz++)
                 assert(a.js_[a_nz] <= a.js_[a_nz + 1]);
 
-#pragma omp parallel
+        #pragma omp parallel
         for (ii i = 0; i < m_; i++)
         {
             ii a_nz = a.is0_[i];
@@ -408,24 +381,6 @@ void MatrixSparse::exportTo(vector<ii> &is, vector<ii> &js, vector<fp> &vs) cons
 
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       ... COO" << endl;
-}
-
-
-void MatrixSparse::clear()
-{
-    if (is1_)
-    {
-        status_ = mkl_sparse_destroy(mat_); assert(!status_);
-
-        if (isOwned_)
-        {
-            mkl_free(is0_);
-            mkl_free(js_);
-            mkl_free(vs_);
-        }
-
-        is1_ = 0;
-    }
 }
 
 
@@ -542,9 +497,7 @@ ii MatrixSparse::prune(const MatrixSparse& a, fp pruneThreshold)
                 }
             }
             
-            clear();
-            m_ = a.m_;
-            n_ = a.n_;
+            init(a.m_, a.n_);
             is0_ = is0;
             is1_ = is1;
             js_ = js;
@@ -614,9 +567,7 @@ ii MatrixSparse::pruneRows(const MatrixSparse& a, ii aNnzRows, const MatrixSpars
                 memcpy(&vs[is0[i]], &a.vs_[a.is0_[i]], sizeof(fp) * (is1[i] - is0[i]));
             }
             
-            clear();
-            m_ = a.m_;
-            n_ = a.n_;
+            init(a.m_, a.n_);
             is0_ = is0;
             is1_ = is1;
             js_ = js;
@@ -629,10 +580,8 @@ ii MatrixSparse::pruneRows(const MatrixSparse& a, ii aNnzRows, const MatrixSpars
     }
     else
     {
-        clear();
-        m_ = a.m_;
-        n_ = a.n_;
-        
+        init(a.m_, a.n_);
+
         aNnzRows = 0;
     }
     
@@ -1039,4 +988,43 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
     }
 
     return  os;
+}
+
+
+MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row)
+{
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       A" << a << "[" << row << "] := ..." << endl;
+
+    assert(row >= 0 && row < a.m());
+
+    init(1, a.n());
+
+    if (a.nnz() > 0)
+    {
+        ii newNnz = a.is1_[row] - a.is0_[row];
+
+        if (newNnz > 0)
+        {
+            is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * 2, 64));
+            is0_[0] = 0;
+            is1_ = is0_ + 1;
+
+            is1_[0] = newNnz;
+            js_ = &a.js_[a.is0_[row]];
+            vs_ = &a.vs_[a.is0_[row]];
+
+            status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
+            isOwned_ = false;
+        }
+    }
+
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       ... X" << *this << endl;
+}
+
+
+MatrixSparseView::~MatrixSparseView()
+{
+    mkl_free(is0_);
 }

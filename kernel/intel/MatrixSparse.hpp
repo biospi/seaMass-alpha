@@ -28,11 +28,17 @@
 #include <vector>
 
 
+class MatrixSparseView;
+
+
 class MatrixSparse
 {
 public:
     MatrixSparse();
     ~MatrixSparse();
+
+    void init(ii m = 0, ii n = 0);
+    void free();
 
     // accessors
     ii m() const;
@@ -42,16 +48,12 @@ public:
     ii nnzActual() const;
     fp* vs() const;
 
-    // shallow inits
-    void init(ii m = 0, ii n = 0);
-    void initFromRows(const MatrixSparse &a, ii row);
-
-    // allocs
-    void alloc(ii m, ii n, fp v = 0.0); // create from dense matrix of constant value
+    // this functions alloc memory
     void copy(const MatrixSparse& a, bool transpose = false);
     void copy(ii m, ii n, const std::vector<ii> &is, const std::vector<ii> &js, const std::vector<fp> &vs); // create from COO matrix
     void copy(const Matrix &a); // create from dense matrix a
-    void copyAsRows(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
+    void copy(ii m, ii n, fp v); // create from dense matrix of constant value
+    void copyConcatenate(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copySubset(const MatrixSparse &a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
 
     // exports
@@ -59,7 +61,6 @@ public:
     void exportTo(fp *vs) const; // export as dense matrix
 
     // management
-    void clear();
     void sort();
     ii prune(const MatrixSparse& a, fp pruneThreshold);
     ii pruneRows(const MatrixSparse& a, ii aNnzRows, const MatrixSparse& b, bool bRows, fp threshold);
@@ -95,11 +96,20 @@ private:
     bool isOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
 
     sparse_status_t status_; // last MKL function status
-    
+
+    friend MatrixSparseView;
     friend std::ostream& operator<<(std::ostream& os, const MatrixSparse& a);
 };
 
 std::ostream& operator<<(std::ostream& os, const MatrixSparse& a);
+
+
+class MatrixSparseView : public MatrixSparse
+{
+public:
+    MatrixSparseView(const MatrixSparse &a, ii row);
+    ~MatrixSparseView();
+};
 
 
 #endif
