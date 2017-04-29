@@ -34,17 +34,19 @@ public:
     Matrix();
     ~Matrix();
 
-    void alloc(ii m, ii n);
-    void copy(ii m, ii n, const fp *vs); // deep copy from vs
+    void init(ii m, ii n);
     void free();
-    
+
     ii m() const;
     ii n() const;
     li size() const;
     fp* vs() const;
- 
+
+    void copy(ii m, ii n, const fp *vs);
+    fp sum() const;
+
 private:
-    li m_; // rows
+    ii m_; // rows
     ii n_; // columns
     fp* vs_; // data
 };

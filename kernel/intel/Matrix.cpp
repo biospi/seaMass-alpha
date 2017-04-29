@@ -21,8 +21,13 @@
 
 
 #include "Matrix.hpp"
+#include "kernel.hpp"
+#include <iomanip>
 #include <cstring>
+#include <ippcore.h>
+#include <ipps.h>
 using namespace std;
+using namespace kernel;
 
 
 Matrix::Matrix()
@@ -37,20 +42,13 @@ Matrix::~Matrix()
 }
 
 
-void Matrix::alloc(ii m, ii n)
+void Matrix::init(ii m, ii n)
 {
     free();
 
     m_ = m;
     n_ = n;
     vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * m_ * n_, 64));
-}
-
-
-void Matrix::copy(ii m, ii n, const fp *vs)
-{
-    alloc(m, n);
-    memcpy(vs_, vs, sizeof(fp) * m_ * n_);
 }
 
 
@@ -67,9 +65,43 @@ void Matrix::free()
 }
 
 
+void Matrix::copy(ii m, ii n, const fp *vs)
+{
+    init(m, n);
+
+    for (ii i = 0; i < m_; i++)
+        ippsCopy_32f(&vs[i * n_], vs_, n_);
+}
+
+
+
+fp Matrix::sum() const
+{
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       sum(X" << *this << ") := ..." << endl;
+
+    fp sum = 0.0;
+    for (ii i = 0; i < m_; i++)
+    {
+        fp sumRow;
+        ippsSum_32f(&vs_[i * n_], n_, &sumRow, ippAlgHintFast);
+        sum += sumRow;
+    }
+
+    if (getDebugLevel() % 10 >= 4)
+    {
+        cout << getTimeStamp() << "       ... ";
+        cout.unsetf(ios::floatfield);
+        cout << setprecision(8) << sum << endl;
+    }
+
+    return sum;
+}
+
+
 li Matrix:: size() const
 {
-    return (li)m_ * n_;
+    return li(m_) * n_;
 }
 
 

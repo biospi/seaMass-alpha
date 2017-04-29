@@ -1050,19 +1050,6 @@ fp MatrixSparse::sumSqrDiffsNonzeros(MatrixSparse& a)
 }
 
 
-/*struct MyComparator
-{
-    ii* js_;
-
-    MyComparator(ii* js): js_(js) {}
-
-    bool operator()(ii i1, ii i2)
-    {
-        return js_[i1] < js_[i2];
-    }
-};*/
-
-
 double MatrixSparse::sortElapsed_ = 0.0;
 
 
@@ -1096,144 +1083,37 @@ void MatrixSparse::sort()
                     cout << getTimeStamp() << "       sort(X" << *this << ") := ..." << endl;
 
                 double sortStart = getElapsedTime();
-
-                //#pragma omp for
-                for (ii i = 0; i < m_; i++)
                 {
-                    if (is1_[i] > is0_[i])
+                    //#pragma omp for
+                    for (ii i = 0; i < m_; i++)
                     {
-                        ii bufSize;
-                        ippsSortRadixIndexGetBufferSize(is1_[i] - is0_[i], ipp32s, &bufSize);
-                        Ipp8u* buffer = static_cast<Ipp8u*>(mkl_malloc(sizeof(Ipp8u) * bufSize, 64));
+                        if (is1_[i] > is0_[i])
+                        {
+                            ii bufSize;
+                            ippsSortRadixIndexGetBufferSize(is1_[i] - is0_[i], ipp32s, &bufSize);
+                            Ipp8u* buffer = static_cast<Ipp8u*>(mkl_malloc(sizeof(Ipp8u) * bufSize, 64));
 
-                        ii* idxs = static_cast<ii*>(mkl_malloc(sizeof(ii) * (is1_[i] - is0_[i]), 64));
-                        ippsSortRadixIndexAscend_32s(&js_[is0_[i]], sizeof(ii), idxs, is1_[i] - is0_[i], buffer);
-                        mkl_free(buffer);
+                            ii* idxs = static_cast<ii*>(mkl_malloc(sizeof(ii) * (is1_[i] - is0_[i]), 64));
+                            ippsSortRadixIndexAscend_32s(&js_[is0_[i]], sizeof(ii), idxs, is1_[i] - is0_[i], buffer);
+                            mkl_free(buffer);
 
-                        ii* newJs = static_cast<ii*>(mkl_malloc(sizeof(fp) * (is1_[i] - is0_[i]), 64));
-                        for (ii nz = 0; nz < is1_[i] - is0_[i]; nz++)
-                            newJs[nz] = js_[is0_[i] + idxs[nz]];
+                            ii* newJs = static_cast<ii*>(mkl_malloc(sizeof(fp) * (is1_[i] - is0_[i]), 64));
+                            for (ii nz = 0; nz < is1_[i] - is0_[i]; nz++)
+                                newJs[nz] = js_[is0_[i] + idxs[nz]];
 
-                        fp* newVs = static_cast<fp*>(mkl_malloc(sizeof(fp) * (is1_[i] - is0_[i]), 64));
-                        vsPackV(is1_[i] - is0_[i], &vs_[is0_[i]], idxs, newVs);
-                        mkl_free(idxs);
+                            fp* newVs = static_cast<fp*>(mkl_malloc(sizeof(fp) * (is1_[i] - is0_[i]), 64));
+                            vsPackV(is1_[i] - is0_[i], &vs_[is0_[i]], idxs, newVs);
+                            mkl_free(idxs);
 
-                        ippsCopy_32s(newJs, &js_[is0_[i]], is1_[i] - is0_[i]);
-                        mkl_free(newJs);
+                            ippsCopy_32s(newJs, &js_[is0_[i]], is1_[i] - is0_[i]);
+                            mkl_free(newJs);
 
-                        ippsCopy_32f(newVs, &vs_[is0_[i]], is1_[i] - is0_[i]);
-                        mkl_free(newVs);
+                            ippsCopy_32f(newVs, &vs_[is0_[i]], is1_[i] - is0_[i]);
+                            mkl_free(newVs);
+                        }
                     }
                 }
-
                 sortElapsed_ += getElapsedTime() - sortStart;
-
-                /*ii nzmax = is1_[m_ - 1];
-
-                for (ii nz = 0; nz < is1_[m_ - 1]; nz++)
-                    js_[nz] += 1;
-                for (ii i = 0; i <= m_; i++)
-                    is0_[i] += 1;
-
-                double sortStart = getElapsedTime();
-
-                ii request = 0;
-                ii sort = 1;
-                ii* is0 = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
-                ii* js = static_cast<ii*>(mkl_malloc(sizeof(ii) * nzmax, 64));
-                fp* vs = static_cast<fp*>(mkl_malloc(sizeof(fp) * nzmax, 64));
-                fp beta = 0.0;
-                ii info;
-                mkl_scsradd("N" , &request, &sort , &m_, &n_ , vs_, js_, is0_, &beta, vs_, js_, is0_, vs, js, is0, &nzmax, &info);
-                assert(!info);
-
-                sortElapsed_ += getElapsedTime() - sortStart;
-
-                free();
-
-                for (ii nz = 0; nz < is0[m_] - 1; nz++)
-                    js[nz]--;
-                for (ii i = 0; i <= m_; i++)
-                    is0[i]--;
-
-                is0_ = is0;
-                is1_ = is0 + 1;
-                js_ = js;
-                vs_ = vs;
-
-                status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-                assert(!status_);
-
-                isOwned_ = true;*/
-
-                /*for (ii i = 0; i < m_; i++)
-                {
-                    if (is1_[i] > is0_[i])
-                    {
-                        ii bufSize;
-                        ippsSortRadixIndexGetBufferSize(is1_[i] - is0_[i], ipp32s, &bufSize);
-                        Ipp8u* buffer = static_cast<Ipp8u*>(mkl_malloc(sizeof(Ipp8u) * bufSize, 64));
-
-                        ii* idxs = static_cast<ii*>(mkl_malloc(sizeof(ii) * (is1_[i] - is0_[i]), 64));
-                        ippsSortRadixIndexAscend_32s(&js_[is0_[i]], sizeof(ii), idxs, is1_[i] - is0_[i], buffer);
-                        mkl_free(buffer);
-
-                        ii* newJs = static_cast<ii*>(mkl_malloc(sizeof(fp) * (is1_[i] - is0_[i]), 64));
-                        for (ii nz = 0; nz < is1_[i] - is0_[i]; nz++)
-                            newJs[nz] = js_[is0_[i] + idxs[nz]];
-
-                        fp* newVs = static_cast<fp*>(mkl_malloc(sizeof(fp) * (is1_[i] - is0_[i]), 64));
-                        vsPackV(is1_[i] - is0_[i], &vs_[is0_[i]], idxs, newVs);
-                        mkl_free(idxs);
-
-                        memcpy(&js_[is0_[i]], newJs, sizeof(fp) * (is1_[i] - is0_[i]));
-                        mkl_free(newJs);
-
-                        memcpy(&vs_[is0_[i]], newVs, sizeof(fp) * (is1_[i] - is0_[i]));
-                        mkl_free(newVs);
-                    }
-                }*/
-
-                /*for (ii i = 0; i < m_; i++)
-                {
-                    if (is1_[i] > is0_[i])
-                    {
-                        ii* idxs = static_cast<ii*>(mkl_malloc(sizeof(ii) * (is1_[i] - is0_[i]), 64));
-                        ippsSortIndexAscend_32s_I(&js_[is0_[i]], idxs, is1_[i] - is0_[i]);
-
-                        fp* newVs = static_cast<fp*>(mkl_malloc(sizeof(fp) * (is1_[i] - is0_[i]), 64));
-                        vsPackV(is1_[i] - is0_[i], &vs_[is0_[i]], idxs, newVs);
-                        mkl_free(idxs);
-
-                        memcpy(&vs_[is0_[i]], newVs, sizeof(fp) * (is1_[i] - is0_[i]));
-                        mkl_free(newVs);
-                    }
-                }*/
-
-                ////#pragma omp parallel // why does omp make it crash here?
-                /*for (ii i = 0; i < m_; i++)
-                {
-                    vector<ii> indicies(is1_[i] - is0_[i]);
-                    for (ii nz = 0; nz < indicies.size(); nz++)
-                        indicies[nz] = nz;
-                    std::sort(indicies.begin(), indicies.end(), MyComparator(&js_[is0_[i]]));
-
-                    {
-                        vector<ii> js(is1_[i] - is0_[i]);
-                        for (ii nz = 0; nz < js.size(); nz++)
-                            js[nz] = js_[is0_[i] + indicies[nz]];
-                        for (ii nz = 0; nz < js.size(); nz++)
-                            js_[is0_[i] + nz] = js[nz];
-                    }
-
-                    {
-                        vector<fp> vs2(is1_[i] - is0_[i]);
-                        for (ii nz = 0; nz < vs2.size(); nz++)
-                            vs2[nz] = vs_[is0_[i] + indicies[nz]];
-                        for (ii nz = 0; nz < vs2.size(); nz++)
-                            vs_[is0_[i] + nz] = vs2[nz];
-                    }
-                }*/
 
                 isSorted_ = true;
 

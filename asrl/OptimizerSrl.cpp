@@ -45,87 +45,66 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             analyze(xs_, t, false, false);
         }
 
-        {   // compute L2 norm of each basis function and store in 'l2s'
+        {   // compute L2 and L1 norm of each basis function and store in 'l2s' and 'l1l2s'
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L2 norms ..." << endl;
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
-                t[k].copy(1, b_[k].n(), (fp) 1.0);
+                t[k].copy(1, b_[k].n(), fp(1.0));
 
             analyze(l2s_, t, true, false);
-        }
 
-        {   // compute L1 norm of each L2 normalised basis function and store in 'l1l2s'
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
-
-            vector<MatrixSparse> t(b_.size());
-            for (size_t k = 0; k < t.size(); k++)
-                t[k].copy(1, b_[k].n(), (fp) 1.0);
-
-            l1l2s_.resize(bases_.size());
 
             analyze(l1l2s_, t, false);
         }
 
-        // initialise starting estimate of 'x' from analysis of 'b'
-        if (getDebugLevel() % 10 >= 1)
-            cout << getTimeStamp() << "  Seeding from analysis of input 2 ..." << endl;
+        {   // normalise 'xs' so that its synthesis is of same volume as 'b'
+            if (getDebugLevel() % 10 >= 1)
+                cout << getTimeStamp() << "  Normalising seed ..." << endl;
 
-        double sumB = 0.0;
-        double sumX = 0.0;
-        xs_.resize(bases_.size());
-        for (ii i = 0; i < (ii)bases_.size(); i++)
-        {
-            if (i == 0)
-            {
-                vector<MatrixSparse> t(b_.size());
-                for (size_t k = 0; k < t.size(); k++)
-                {
-                    t[k].copy(b_[k]);
-                    sumB += t[k].sum();
-                }
+            double sumB = 0.0;
+            for (ii k = 0; k < ii(b_.size()); k++)
+                sumB += b_[k].sum();
 
-                bases_[i]->analyze(xs_[0], t, false);
-            }
-            else
+            double sumX = 0.0;
+            for (ii l = 0; l < ii(bases_.size()); l++)
             {
-                bases_[i]->analyze(xs_[i], xs_[bases_[i]->getParentIndex()], false);
+                for (size_t k = 0; k < xs_[l].size(); k++)
+                    sumX += xs_[l][k].sum();
             }
 
-            for (size_t k = 0; k < xs_[i].size(); k++)
-                sumX += xs_[i][k].sum();
-        }
-
-        for (ii i = 0; i < (ii)bases_.size(); i++)
-        {
-            if (!bases_[i]->isTransient())
+            for (ii l = 0; l < ii(bases_.size()); l++)
             {
-                for (size_t k = 0; k < xs_[i].size(); k++)
+                if (!bases_[l]->isTransient())
                 {
-                   // remove unneeded l1l2sPlusLambda
-                    MatrixSparse l1l2PlusLambda;
-                    l1l2PlusLambda.copy(xs_[i][k]);
-                    l1l2PlusLambda.copySubset(l1l2s_[i][k]);
+                    for (ii k = 0; k < ii(xs_[l].size()); k++)
+                    {
+                        // remove unneeded l1l2sPlusLambda
+                        MatrixSparse l1l2PlusLambda;
+                        l1l2PlusLambda.copy(xs_[l][k]);
+                        l1l2PlusLambda.copySubset(l1l2s_[l][k]);
 
-                    // normalise and prune xs
-                    MatrixSparse x;
-                    x.copy(xs_[i][k]);
-                    x.divNonzeros(l1l2PlusLambda);
-                    x.mul((fp)(sumB / sumX));
-                    xs_[i][k].copyPrune(x, pruneThreshold);
+                        // normalise and prune xs
+                        MatrixSparse x;
+                        x.copy(xs_[l][k]);
+                        x.divNonzeros(l1l2PlusLambda);
+                        x.mul((fp) (sumB / sumX));
+                        xs_[l][k].copyPrune(x, pruneThreshold);
 
-                    // remove unneeded l2s
-                    MatrixSparse t;
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l2s_[i][k]);
-                    l2s_[i][k].copy(t);
+                        // remove unneeded l2s
+                        MatrixSparse t;
+                        t.copy(xs_[l][k]);
+                        t.copySubset(l2s_[l][k]);
+                        l2s_[l][k].copy(t);
 
-                    // remove unneeded l1l2s
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l1l2s_[i][k]);
-                    l1l2s_[i][k].copy(t);
+                        // remove unneeded l1l2s
+                        t.copy(xs_[l][k]);
+                        t.copySubset(l1l2s_[l][k]);
+                        l1l2s_[l][k].copy(t);
+                    }
                 }
             }
         }
