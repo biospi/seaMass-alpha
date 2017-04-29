@@ -185,7 +185,7 @@ void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSpar
     {
         MatrixSparseView row(x[0], k);
 
-        // zero basis functions that are no longer needed
+        // prune basis functions that are no longer needed
         MatrixSparse t;
         ii rowsPruned = t.copyPruneRows(aTs_[k], row, false, 0.75);
         if (rowsPruned > 0)

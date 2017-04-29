@@ -34,17 +34,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
     if (seed)
     {
-        {   // initialise starting estimate of 'x' from analysis of 'b'
-            if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
-
-            vector<MatrixSparse> t(b_.size());
-            for (ii k = 0; k < ii(t.size()); k++)
-                t[k].copy(b_[k]);
-
-            analyze(xs_, t, false, false);
-        }
-
         {   // compute L2 and L1 norm of each basis function and store in 'l2s' and 'l1l2s'
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L2 norms ..." << endl;
@@ -61,9 +50,15 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             analyze(l1l2sPlusLambda_, t, false);
         }
 
-        {   // normalise 'xs' so that its synthesis is of same volume as 'b'
+        {   // initialise starting estimate of 'x' from analysis of 'b'
             if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "  Normalising seed ..." << endl;
+                cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
+
+            vector<MatrixSparse> t(b_.size());
+            for (ii k = 0; k < ii(t.size()); k++)
+                t[k].copy(b_[k]);
+
+            analyze(xs_, t, false, false);
 
             double sumB = 0.0;
             for (ii k = 0; k < ii(b_.size()); k++)
@@ -317,44 +312,48 @@ fp OptimizerSrl::step()
 }
 
 
-void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis) const
+void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis)
 {
     if (xEs.size() != bases_.size())
         xEs.resize(bases_.size());
 
-    for (ii i = ii(bases_.size()) - 1; i >= 0; i--)
+    for (ii l = ii(bases_.size()) - 1; l >= 0; l--)
     {
-        if (!xEs[i].size() && !bases_[i]->isTransient())
+        if (!xEs[l].size() && !bases_[l]->isTransient())
         {
-            xEs[i].resize(xs_[i].size());
-            for (ii k = 0; k < ii(xEs[i].size()); k++)
+            xEs[l].resize(xs_[l].size());
+
+            if (l2s_.size())
             {
-                xEs[i][k].divNonzeros(xs_[i][k], l2s_[i][k]);
+                for (ii k = 0; k < ii(xEs[l].size()); k++)
+                    xEs[l][k].divNonzeros(xs_[l][k], l2s_[l][k]);
             }
         }
 
-        if (basis == i) // return with B-spline control points
+        if (basis == l) // return with B-spline control points
         {
-            for (ii k = 0; k < ii(xEs[i].size()); k++)
-                f[k].swap(xEs[i][k]);
+            for (ii k = 0; k < ii(xEs[l].size()); k++)
+                f[k].swap(xEs[l][k]);
 
             break;
         }
 
-        if (i > 0)
+        if (l > 0)
         {
-            ii pi = bases_[i]->getParentIndex();
+            ii pi = bases_[l]->getParentIndex();
             
             if (!xEs[pi].size() && !bases_[pi]->isTransient())
             {
                 xEs[pi].resize(xs_[pi].size());
-                for (ii k = 0; k < ii(xEs[pi].size()); k++)
+
+                if (l2s_.size())
                 {
-                    xEs[pi][k].divNonzeros(xs_[pi][k], l2s_[pi][k]);
+                    for (ii k = 0; k < ii(xEs[pi].size()); k++)
+                        xEs[pi][k].divNonzeros(xs_[pi][k], l2s_[pi][k]);
                 }
             }
 
-            bases_[i]->synthesize(xEs[pi], xEs[i], !bases_[pi]->isTransient());
+            bases_[l]->synthesize(xEs[pi], xEs[l], !bases_[pi]->isTransient());
         }
         else
         {
@@ -422,13 +421,16 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
     {
         if (!bases_[l]->isTransient())
         {
-            for (ii k = 0; k < ii(xEs[l].size()); k++)
+            if (xs_.size())
             {
-                if (xEs[l][k].nnz() > xs_[l][k].nnz())
+                for (ii k = 0; k < ii(xEs[l].size()); k++)
                 {
-                    MatrixSparse t;
-                    t.copySubset(xEs[l][k], xs_[l][k]);
-                    xEs[l][k].swap(t);
+                    if (xEs[l][k].nnz() > xs_[l][k].nnz())
+                    {
+                        MatrixSparse t;
+                        t.copySubset(xEs[l][k], xs_[l][k]);
+                        xEs[l][k].swap(t);
+                    }
                 }
             }
 

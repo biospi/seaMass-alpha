@@ -346,31 +346,30 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
         sort();
         a.sort();
 
-        ii count = 0;
+        //ii count = 0;
         //#pragma omp parallel
         for (ii i = 0; i < m_; i++)
         {
             ii a_nz = a.is0_[i];
             for (ii nz = is0_[i]; nz < is1_[i]; nz++)
             {
-                bool found = false;
+                //bool found = false;
                 for (; a_nz < a.is1_[i]; a_nz++)
                 {
                     if (js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
-                        found = true;
+                        //found = true;
                         break;
                     }
                 }
 
-                if (!found)
-                    count++;
+                //if (!found)
+                //    count++;
              }
         }
-        if (count > 0) cout << endl << count << " missing." << endl;
+        //if (count > 0) cout << endl << count << " missing." << endl;
         //if (count > 0) exit(0);
-
 
         isSorted_ = true;
     }
@@ -403,27 +402,31 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
         ippsCopy_32s(b.js_, js_, is1_[m_ - 1]);
         vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
 
+        //ii count = 0;
         //#pragma omp parallel
         for (ii i = 0; i < m_; i++)
         {
             ii a_nz = a.is0_[i];
             for (ii nz = is0_[i]; nz < is1_[i]; nz++)
             {
-                while(a_nz < a.is1_[i])
+                //bool found = false;
+                for (; a_nz < a.is1_[i]; a_nz++)
                 {
                     if (b.js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
-                        a_nz++;
+                        //found = true;
                         break;
                     }
-                    else
-                    {
-                        a_nz++;
-                    }
                 }
+
+                //if (!found)
+                //    count++;
             }
         }
+        //if (count > 0) cout << endl << count << " missing." << endl;
+        //if (count > 0) exit(0);
+
 
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
         assert(!status_);
@@ -1028,7 +1031,7 @@ void MatrixSparse::expNonzeros()
 void MatrixSparse::divNonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
+        cout << getTimeStamp() << "       X" << *this << " / A" << a << " := ..." << endl;
 
     if (is1_)
     {

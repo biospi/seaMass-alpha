@@ -176,7 +176,7 @@ fp OptimizerAccelerationEve1::step()
 }
 
 
-void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis) const
+void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis)
 {
     optimizer_->synthesize(f, xEs, basis);
 }
