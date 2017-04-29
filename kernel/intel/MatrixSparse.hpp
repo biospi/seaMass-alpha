@@ -51,16 +51,17 @@ public:
 
     // these functions allocate memory
     void copy(const MatrixSparse& a, bool transpose = false);
-    void copy(ii m, ii n, const std::vector<ii> &rowind, const std::vector<ii> &colind, const std::vector<fp> &acoo); // create from COO matrix
-    void copy(const Matrix &a); // create from dense matrix a
+    void copy(ii m, ii n, const std::vector<ii>& rowind, const std::vector<ii>& colind, const std::vector<fp>& acoo); // create from COO matrix
+    void copy(const Matrix& a); // create from dense matrix a
     void copy(ii m, ii n, fp v); // create from dense matrix of constant value
-    void copyConcatenate(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
-    void copySubset(MatrixSparse &a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
+    void copyConcatenate(const std::vector<MatrixSparse>& xs); // the xs must be row vectors
+    void copySubset(MatrixSparse& a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
+    void copySubset(MatrixSparse& a, MatrixSparse& b); // only non-zero elements of this matrix are overwritten by corresponding elements in a
     ii copyPrune(const MatrixSparse &a, fp threshold); // prune values under threshold
-    ii copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
+    ii copyPruneRows(const MatrixSparse& a, const MatrixSparse& b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
     // exports
-    void exportTo(std::vector<ii> &is, std::vector<ii> &js, std::vector<fp> &vs) const; // export as COO matrix
+    void exportTo(std::vector<ii>& is, std::vector<ii>& js, std::vector<fp>& vs) const; // export as COO matrix
     void exportTo(fp *vs) const; // export as dense matrix
 
     // elementwise operations
@@ -79,7 +80,7 @@ public:
     void expNonzeros();
     void divNonzeros(MatrixSparse& a); // a is denominator
     void div2Nonzeros(MatrixSparse& a); // a is numerator
-    void div2Nonzeros(const fp* a_vs); // a is numerator & must be dense
+    void div2Nonzeros(const Matrix& a); // a is numerator & must be dense
 
     // aggregate operations
     fp sum() const;
@@ -89,7 +90,7 @@ public:
     static double sortElapsed_;
 
 private:
-    void sort();
+    void sort() const;
 
     ii m_; // number of rows
     ii n_; // number of columns

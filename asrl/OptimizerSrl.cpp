@@ -160,7 +160,7 @@ fp OptimizerSrl::step()
     double errorStart = getElapsedTime();
     {
         for (ii k = 0; k < ii(f_fE.size()); k++)
-            f_fE[k].div2Nonzeros(b_[k].vs());
+            f_fE[k].div2Nonzeros(b_[k]);
     }
     double errorDuration = getElapsedTime() - errorStart;
 
