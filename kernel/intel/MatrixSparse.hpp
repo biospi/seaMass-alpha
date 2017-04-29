@@ -57,7 +57,7 @@ public:
     void copyConcatenate(const std::vector<MatrixSparse>& xs); // the xs must be row vectors
     void copySubset(const MatrixSparse& a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
     void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
-    ii copyPrune(const MatrixSparse &a, fp threshold); // prune values under threshold
+    ii copyPrune(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
     ii copyPruneRows(const MatrixSparse& a, const MatrixSparse& b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
     // exports

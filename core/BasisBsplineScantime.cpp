@@ -169,8 +169,7 @@ void BasisBsplineScantime::analyze(vector<MatrixSparse> &xE, const vector<Matrix
     if (sqrA)
     {
         MatrixSparse t;
-        t.copy(aT_);
-        t.sqr();
+        t.sqr(aT_);
         xE[0].matmul(false, t, fE[0], false);
     }
     else

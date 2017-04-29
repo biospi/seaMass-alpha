@@ -106,8 +106,7 @@ void BasisMatrix::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &
         if (sqrA)
         {
             MatrixSparse t;
-            t.copy(as_[i]);
-            t.sqr();
+            t.sqr(as_[i]);
 
             xE[i].matmul(false, fE[i], t, false);
         }

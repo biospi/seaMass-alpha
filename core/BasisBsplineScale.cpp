@@ -150,16 +150,14 @@ void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, const vector<MatrixSpa
         if (dimension_ == 0)
         {
             MatrixSparse t;
-            t.copy(a_);
-            t.sqr();
+            t.sqr(a_);
             
             xE[0].matmul(false, fE[0], t, false);
         }
         else
         {
             MatrixSparse t;
-            t.copy(aT_);
-            t.sqr();
+            t.sqr(aT_);
             
             xE[0].matmul(false, t, fE[0], false);
         }

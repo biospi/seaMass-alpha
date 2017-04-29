@@ -158,7 +158,13 @@ fp OptimizerSrl::step()
     double errorStart = getElapsedTime();
     {
         for (ii k = 0; k < ii(f_fE.size()); k++)
+        {
             f_fE[k].div2Nonzeros(b_[k]);
+
+            MatrixSparse t;
+            t.copyPrune(f_fE[k]);
+            f_fE[k].swap(t);
+         }
     }
     double errorDuration = getElapsedTime() - errorStart;
 
@@ -367,11 +373,24 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
     bases_.front()->analyze(t, fE, l2);
 
     if (xEs[0].size() != t.size())
+    {
         xEs[0].resize(t.size());
-
-    for (ii k = 0; k < ii(xEs[0].size()); k++)
-        //xEs[0][k].copySubset(t[k]);
-        xEs[0][k].swap(t[k]);
+        for (ii k = 0; k < ii(xEs[0].size()); k++)
+            xEs[0][k].swap(t[k]);
+    }
+    else
+    {
+        for (ii k = 0; k < ii(xEs[0].size()); k++)
+        {
+            xEs[0][k].swap(t[k]);
+            /*xEs[0][k].copySubset(t[k]);
+            if (t[k].nnz() != xEs[0][k].nnz())
+            {
+                cout << "input  0[" << k << "]: " << t[k] << endl;
+                cout << "output 0[" << k << "]: " << xEs[0][k] << endl << endl;
+            }*/
+       }
+    }
 
     for (ii l = 1; l < ii(bases_.size()); l++)
     {
@@ -379,12 +398,25 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
         bases_[l]->analyze(t, xEs[bases_[l]->getParentIndex()], l2);
 
         if (xEs[l].size() != t.size())
+        {
             xEs[l].resize(t.size());
-
-        for (ii k = 0; k < ii(xEs[l].size()); k++)
-            //xEs[l][k].copySubset(t[k]);
-            xEs[l][k].swap(t[k]);
-    }
+            for (ii k = 0; k < ii(xEs[l].size()); k++)
+                xEs[l][k].swap(t[k]);
+        }
+        else
+        {
+            for (ii k = 0; k < ii(xEs[l].size()); k++)
+            {
+                xEs[l][k].swap(t[k]);
+                /*xEs[l][k].copySubset(t[k]);
+                if (t[k].nnz() != xEs[l][k].nnz())
+                {
+                    cout << "input  " << l << "[" << k << "]: " << t[k] << endl;
+                    cout << "output " << l << "[" << k << "]: " << xEs[l][k] << endl << endl;
+                }*/
+            }
+        }
+   }
 
     for (ii l = 0; l < ii(bases_.size()); l++)
     {

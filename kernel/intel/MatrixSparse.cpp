@@ -346,25 +346,31 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
         sort();
         a.sort();
 
+        ii count = 0;
         //#pragma omp parallel
         for (ii i = 0; i < m_; i++)
         {
             ii a_nz = a.is0_[i];
             for (ii nz = is0_[i]; nz < is1_[i]; nz++)
             {
-                while(a_nz < a.is1_[i])
+                bool found = false;
+                for (; a_nz < a.is1_[i]; a_nz++)
                 {
                     if (js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
-                        a_nz++;
+                        found = true;
                         break;
                     }
-                    else
-                        a_nz++;
                 }
-            }
+
+                if (!found)
+                    count++;
+             }
         }
+        if (count > 0) cout << endl << count << " missing." << endl;
+        //if (count > 0) exit(0);
+
 
         isSorted_ = true;
     }
@@ -564,9 +570,6 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
         }
     }
 
-    //copy(a);
-    //ii rowsPruned = 1;
-
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       ... X" << *this << " (" << rowsPruned << " rows pruned)" << endl;
 
@@ -671,11 +674,11 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
     if (!is1_)
         accumulate = false;
 
-    if (!accumulate)
-        init(transposeA ? a.n() : a.m(), b.n());
-
     if (a.is1_ && b.is1_)
     {
+        if (!accumulate)
+            init(transposeA ? a.n() : a.m(), b.n());
+
         if (denseOutput)
         {
             ii m = transposeA ? a.n() : a.m();
@@ -818,6 +821,11 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
             isOwned_ = false;
             isSorted_ = false;
         }
+    }
+    else
+    {
+        if (!accumulate)
+            copy(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
     }
 
     if (getDebugLevel() % 10 >= 4)

@@ -219,8 +219,7 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
         if (sqrA)
         {
             MatrixSparse aSqr;
-            aSqr.copy(as_[k]);
-            aSqr.sqr();
+            aSqr.sqr(as_[k]);
             xEs[k].matmul(false, fE[k], aSqr, false);
         }
         else
