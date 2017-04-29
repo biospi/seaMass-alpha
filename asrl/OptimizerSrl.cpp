@@ -231,7 +231,7 @@ fp OptimizerSrl::step()
                 else
                 {
                     // individual shrinkage only
-                    for (ii k = 0; k < ii(xEs_ys[l]).size(); k++)
+                    for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
                     {
                         // y = l1l2
                         MatrixSparse y;
