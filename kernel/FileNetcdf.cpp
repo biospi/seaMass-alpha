@@ -264,16 +264,16 @@ void FileNetcdf::read(MatrixSparse& a, const string name, int grpid)
 
     if (read_VarIDNC("v", grpidMat) != -1)
     {
-        vector<ii> is;
-        read_VecNC("i", is, grpidMat);
+        vector<ii> rowind;
+        read_VecNC("i", rowind, grpidMat);
 
-        vector<ii> js;
-        read_VecNC("j", js, grpidMat);
+        vector<ii> colind;
+        read_VecNC("j", colind, grpidMat);
 
-        vector<fp> vs;
-        read_VecNC("v", vs, grpidMat);
+        vector<fp> acoo;
+        read_VecNC("v", acoo, grpidMat);
 
-        a.copy(m[0], n[0], is, js, vs);
+        a.copy(m[0], n[0], acoo.size(), rowind.data(), colind.data(), acoo.data());
     }
     else
     {
@@ -294,16 +294,16 @@ void FileNetcdf::write(const MatrixSparse& a, const string name, int grpid)
 
     if (a.nnz() > 0)
     {
-        vector<ii> is;
-        vector<ii> js;
-        vector<fp> vs;
-        a.exportTo(is, js, vs);
+        vector<ii> rowind(a.nnz());
+        vector<ii> colind(a.nnz());
+        vector<fp> acoo(a.nnz());
+        a.exportTo(rowind.data(), colind.data(), acoo.data());
 
-        if (vs.size() > 0)
+        if (acoo.size() > 0)
         {
-            write_VecNC("i", is, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-            write_VecNC("j", js, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-            write_VecNC("v", vs, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpidMat);
+            write_VecNC("i", rowind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+            write_VecNC("j", colind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+            write_VecNC("v", acoo, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpidMat);
         }
     }
 }

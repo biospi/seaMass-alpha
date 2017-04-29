@@ -87,9 +87,9 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     }
 
     // populate coo matrix
-    vector<ii> is;
-    vector<ii> js;
-    vector<fp> vs;
+    vector<ii> rowind;
+    vector<ii> colind;
+    vector<fp> acoo;
     Bspline bspline(order, 65536); // bspline basis function lookup table
     for (ii i = 0; i < startTimes.size(); i++)
     {
@@ -112,14 +112,14 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
             // basis coefficient b is _integral_ of area under b-spline basis
             fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-            is.push_back(i);
-            js.push_back(x - gridInfo().offset[1]);
-            vs.push_back(b);
+            rowind.push_back(i);
+            colind.push_back(x - gridInfo().offset[1]);
+            acoo.push_back(b);
         }
     }
 
     // create transformation matrix 'a'
-    aT_.copy(getGridInfo().m(), parentGridInfo.m(),  js, is, vs);
+    aT_.copy(getGridInfo().m(), parentGridInfo.m(), acoo.size(), colind.data(), rowind.data(), acoo.data());
 
     if (scaleAuto != scale)
         cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;

@@ -113,9 +113,9 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
     Bspline bspline(order, 65536); // bspline basis function lookup table
     for (ii k = 0; k < (ii)bei.size() - 1; k++)
     {
-        vector<ii> is;
-        vector<ii> js;
-        vector<fp> vs;
+        vector<ii> rowind;
+        vector<ii> colind;
+        vector<fp> acoo;
 
         for (ii i = bei[k]; i < bei[k + 1] - 1; i++)
         {
@@ -140,15 +140,15 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
                     // basis coefficient b is _integral_ of area under b-spline basis
                     fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-                    vs.push_back(b);
-                    is.push_back(i - bei[k]);
-                    js.push_back(x - gridInfo().offset[0]);
+                    acoo.push_back(b);
+                    rowind.push_back(i - bei[k]);
+                    colind.push_back(x - gridInfo().offset[0]);
                 }
             }
         }
         
         // create A
-        aTs_[k].copy(getGridInfo().n(), bci[k + 1] - bci[k], js, is, vs);
+        aTs_[k].copy(getGridInfo().n(), bci[k + 1] - bci[k], acoo.size(), colind.data(), rowind.data(), acoo.data());
         as_[k].copy(aTs_[k], true);
 
         // display progress update

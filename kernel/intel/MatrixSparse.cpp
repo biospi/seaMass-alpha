@@ -184,22 +184,21 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
 
 
 // SEEMS OPTIMAL
-void MatrixSparse::copy(ii m, ii n, const std::vector<ii> &rowind, const std::vector<ii> &colind,
-                        const std::vector<fp> &acoo)
+void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colind, const fp* acoo)
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       COO := ..." << endl;
 
     init(m, n);
 
-    if (acoo.size() > 0)
+    if (length > 0)
     {
-        fp* c_acoo = const_cast<fp*>(acoo.data());
-        ii* c_rowind = const_cast<ii*>(rowind.data());
-        ii* c_colind = const_cast<ii*>(colind.data());
+        fp* c_acoo = const_cast<fp*>(acoo);
+        ii* c_rowind = const_cast<ii*>(rowind);
+        ii* c_colind = const_cast<ii*>(colind);
 
         sparse_matrix_t t;
-        status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, acoo.size(), c_rowind, c_colind, c_acoo);
+        status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, length, c_rowind, c_colind, c_acoo);
         assert(!status_);
 
         status_ = mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, &mat_);
@@ -220,6 +219,7 @@ void MatrixSparse::copy(ii m, ii n, const std::vector<ii> &rowind, const std::ve
 }
 
 
+// todo: optimize
 void MatrixSparse::copy(const Matrix &a)
 {
     free();
@@ -241,10 +241,11 @@ void MatrixSparse::copy(const Matrix &a)
         }
     }
 
-    copy(a.m(), a.n(), rowind, colind, acoo);
+    copy(a.m(), a.n(), acoo.size(), rowind.data(), colind.data(), acoo.data());
 }
 
 
+// todo: optimize
 void MatrixSparse::copy(ii m, ii n, fp v)
 {
     free();
@@ -263,7 +264,7 @@ void MatrixSparse::copy(ii m, ii n, fp v)
         }
     }
 
-    copy(m, n, rowind, colind, acoo);
+    copy(m, n, acoo.size(), rowind.data(), colind.data(), acoo.data());
 }
 
 
@@ -539,21 +540,17 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
 }
 
 
-void MatrixSparse::exportTo(vector<ii> &is, vector<ii> &js, vector<fp> &vs) const
+void MatrixSparse::exportTo(ii* rowind, ii* colind, fp* acoo) const
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       X" << *this << " := ..." << endl;
 
-    ii _nnz = nnz();
-    vector<ii>(_nnz).swap(is);
-    vector<ii>(_nnz).swap(js);
-    vector<fp>(_nnz).swap(vs);
-
-    if (_nnz > 0)
+    ii length = nnz();
+    if (length > 0)
     {
-        ii job[] = { 0, 0, 0, 0 , _nnz, 3 };
+        ii job[] = { 0, 0, 0, 0 , length, 3 };
         ii info;
-        mkl_scsrcoo(job, &m_, vs_, js_, is0_, &_nnz, vs.data(), is.data(), js.data(), &info);
+        mkl_scsrcoo(job, &m_, vs_, js_, is0_, &length, acoo, rowind, colind, &info);
     }
 
     if (getDebugLevel() % 10 >= 4)

@@ -70,9 +70,9 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     // create A as a temporary COO matrix
     ii m = parentGridInfo.extent[dimension_];
     ii n = gridInfo().extent[dimension_];
-    vector<ii> is(nh * n);
-    vector<ii> js(nh * n);
-    vector<fp> vs(nh * n);
+    vector<ii> rowind(nh * n);
+    vector<ii> colind(nh * n);
+    vector<fp> acoo(nh * n);
 
     ii nnz = 0;
     ii offset = order + ((parentGridInfo.offset[dimension_] + 1) % 2);
@@ -80,17 +80,17 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     {
         for (ii i = 0; i < nh; i++)
         {
-            is[nnz] = 2 * j + i - offset;
-            if (is[nnz] < 0 || is[nnz] >= m) continue;
-            vs[nnz] = hs[i];
-            js[nnz] = j;
+            rowind[nnz] = 2 * j + i - offset;
+            if (rowind[nnz] < 0 || rowind[nnz] >= m) continue;
+            acoo[nnz] = hs[i];
+            colind[nnz] = j;
 
             nnz++;
         }
     }
 
     // create A
-    aT_.copy(n, m, js, is, vs);
+    aT_.copy(n, m, acoo.size(), colind.data(), rowind.data(), acoo.data());
 
     if (dimension == 0)
         a_.copy(aT_, true);
