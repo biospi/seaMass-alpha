@@ -68,8 +68,9 @@ public:
     void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
     void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate, bool denseOutput = false);
     void mul(fp beta);
-    void mul(MatrixSparse& a);
+    void mul(const MatrixSparse& a);
     void sqr();
+    void sqr(const MatrixSparse& a);
     void sqrt();
     void pow(fp power);
 
@@ -77,8 +78,10 @@ public:
     void addNonzeros(fp beta);
     void addNonzeros(const MatrixSparse& a);
     void lnNonzeros();
+    void lnNonzeros(const MatrixSparse& a);
     void expNonzeros();
-    void divNonzeros(const MatrixSparse& a); // a is denominator
+    void divNonzeros(const MatrixSparse& b); // a is denominator
+    void divNonzeros(const MatrixSparse& a, const MatrixSparse& b); // a/b
     void div2Nonzeros(const MatrixSparse& a); // a is numerator
     void div2Nonzeros(const Matrix& a); // a is numerator & must be dense
 

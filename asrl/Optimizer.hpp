@@ -39,8 +39,8 @@ public:
 
     virtual fp step() = 0;
 
-    virtual void synthesize(std::vector<MatrixSparse>& f, std::vector< std::vector<MatrixSparse> >& xEs, ii basis = -1) = 0;
-    virtual void analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize = true) = 0;
+    virtual void synthesize(std::vector<MatrixSparse>& f, std::vector< std::vector<MatrixSparse> >& xEs, ii basis = -1) const = 0;
+    virtual void analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize = true) const = 0;
 
     virtual std::vector< std::vector<MatrixSparse> >& xs() = 0;
     virtual std::vector< std::vector<MatrixSparse> >& l2s() = 0;

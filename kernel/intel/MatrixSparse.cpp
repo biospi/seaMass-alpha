@@ -365,13 +365,22 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       " << a << " within " << b << " := ..." << endl;
 
-    /*assert(m_ == a.m_);
-    assert(n_ == a.n_);
+    assert(a.m_ == b.m_);
+    assert(a.n_ == b.n_);
 
-    if (is1_ && a.is1_)
+    init(a.m_, a.n_);
+
+    if (a.is1_ && b.is1_)
     {
-        sort();
         a.sort();
+        b.sort();
+
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+        ippsCopy_32s(b.is0_, is0_, m_ + 1);
+        is1_ = is0_ + 1;
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
+        ippsCopy_32s(b.js_, js_, is1_[m_ - 1]);
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
 
         //#pragma omp parallel
         for (ii i = 0; i < m_; i++)
@@ -381,18 +390,25 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
             {
                 while(a_nz < a.is1_[i])
                 {
-                    if (js_[nz] == a.js_[a_nz])
+                    if (b.js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
                         a_nz++;
                         break;
                     }
                     else
+                    {
                         a_nz++;
+                    }
                 }
             }
         }
-    }*/
+
+        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
+        assert(!status_);
+
+        isOwned_ = true;
+    }
 
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       ... X" << *this << endl;
@@ -810,7 +826,7 @@ void MatrixSparse::mul(fp beta)
 }
 
 
-void MatrixSparse::mul(MatrixSparse& a)
+void MatrixSparse::mul(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       X" << *this << " * A := ..." << endl;
@@ -841,6 +857,33 @@ void MatrixSparse::sqr()
 
     if (is1_)
         vsSqr(is1_[m_ - 1], vs_, vs_);
+
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       ... X" << *this << endl;
+}
+
+
+void MatrixSparse::sqr(const MatrixSparse& a)
+{
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       (X" << a << ")^2 := ..." << endl;
+
+    init(a.m_, a.n_);
+
+    if (a.is1_)
+    {
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+        ippsCopy_32s(a.is0_, is0_, m_ + 1);
+        is1_ = is0_ + 1;
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
+        ippsCopy_32s(a.js_, js_, is1_[m_ - 1]);
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+
+        vsSqr(is1_[m_ - 1], a.vs_, vs_);
+
+        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
+        assert(!status_);
+    }
 
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       ... X" << *this << endl;
@@ -934,6 +977,38 @@ void MatrixSparse::lnNonzeros()
 }
 
 
+void MatrixSparse::lnNonzeros(const MatrixSparse& a)
+{
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       ln(X" << a << ") := ..." << endl;
+
+    init(a.m_, a.n_);
+
+    if (a.is1_)
+    {
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+        ippsCopy_32s(a.is0_, is0_, m_ + 1);
+        is1_ = is0_ + 1;
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
+        ippsCopy_32s(a.js_, js_, is1_[m_ - 1]);
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+
+#ifdef NDEBUG
+        vsLn(is1_[m_ - 1], a.vs_, vs_); // for some reason this causes valgrind to crash
+#else
+        for (ii i = 0; i < is1_[m_ - 1]; i++)
+            vs_[i] = log(a.vs_[i]);
+#endif
+
+        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
+        assert(!status_);
+    }
+
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       ... X" << *this << endl;
+}
+
+
 void MatrixSparse::expNonzeros()
 {
     if (getDebugLevel() % 10 >= 4)
@@ -969,6 +1044,42 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
          cout << getTimeStamp() << "       ... X" << *this << endl;
  }
+
+
+void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
+{
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       A" << a << " / B := ..." << endl;
+
+    init(a.m_, a.n_);
+
+    if (a.is1_ && b.is1_)
+    {
+        a.sort();
+        b.sort();
+
+        assert(a.is1_[m_ - 1] == b.is1_[m_ - 1]);
+        for (ii i = 0; i < m_; i++)
+            assert(a.is0_[i] == b.is0_[i]);
+        for (ii nz = 0; nz < a.is1_[m_ - 1]; nz++)
+            assert(a.js_[nz] == b.js_[nz]);
+
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+        ippsCopy_32s(a.is0_, is0_, m_ + 1);
+        is1_ = is0_ + 1;
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
+        ippsCopy_32s(a.js_, js_, is1_[m_ - 1]);
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+
+        vsDiv(is1_[m_ - 1], a.vs_, b.vs_, vs_);
+
+        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
+        assert(!status_);
+    }
+
+    if (getDebugLevel() % 10 >= 4)
+        cout << getTimeStamp() << "       ... X" << *this << endl;
+}
 
 
 void MatrixSparse::div2Nonzeros(const MatrixSparse& a)

@@ -36,11 +36,11 @@ OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer) : opt
     x0s_.resize(xs().size());
     y0s_.resize(xs().size());
     u0s_.resize(xs().size());
-    for (size_t i = 0; i < xs().size(); i++)
+    for (ii k = 0; k < ii(xs().size()); k++)
     {
-        x0s_[i].resize(xs()[i].size());
-        y0s_[i].resize(xs()[i].size());
-        u0s_[i].resize(xs()[i].size());
+        x0s_[k].resize(xs()[k].size());
+        y0s_[k].resize(xs()[k].size());
+        u0s_[k].resize(xs()[k].size());
     }
 }
 
@@ -50,7 +50,7 @@ OptimizerAccelerationEve1::~OptimizerAccelerationEve1()
 }
 
 
-void OptimizerAccelerationEve1::setLambda(fp lambda,fp lambdaGroup)
+void OptimizerAccelerationEve1::setLambda(fp lambda, fp lambdaGroup)
 {
     optimizer_->setLambda(lambda, lambdaGroup);
 }
@@ -61,119 +61,110 @@ fp OptimizerAccelerationEve1::step()
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Acceleration ..." << endl;
 
-    double accelerationStart = getElapsedTime();
-
     fp a = 0.0;
-    if (getIteration() == 0)
-    {
-        for (ii i = 0; i < (ii)getBases().size(); i++)
-        {
-            if (!getBases()[i]->isTransient())
-            {
-                // no extrapolation this iteration, just save 'xs'
-                for (size_t k = 0; k < xs()[i].size(); k++)
-                {
-                    y0s_[i][k].copy(xs()[i][k]);
-               }
-            }
-        }
-    }
-    else if (getIteration() == 1)
-    {
-        for (ii i = 0; i < (ii)getBases().size(); i++)
-        {
-            if (!getBases()[i]->isTransient())
-            {
-                for (size_t k = 0; k < xs()[i].size(); k++)
-                {
-                    // can now calcaulte first gradient vector 'u0s'
-                    MatrixSparse t;
-                    t.copy(xs()[i][k]);
-                    t.copySubset(y0s_[i][k]);
-                    
-                    u0s_[i][k].copy(xs()[i][k]);
-                    u0s_[i][k].divNonzeros(t);
-                    // no extrapolation this iteration, just save 'xs'
-                    x0s_[i][k].copy(xs()[i][k]);
-                    y0s_[i][k].copy(xs()[i][k]);
-                }
-            }
-        }
-    }
-    else
-    {
-        // calculate acceleration parameter 'a'
-        double numerator = 0.0;
-        double denominator = 0.0;
-        for (ii i = 0; i < (ii)getBases().size(); i++)
-        {
-            if (!getBases()[i]->isTransient())
-            {
-                for (size_t k = 0; k < xs()[i].size(); k++)
-                {
-                    // using old gradient vector 'u0s'
-                    MatrixSparse cLogU0;
-                    cLogU0.copy(u0s_[i][k]);
-                    cLogU0.lnNonzeros();
-                    cLogU0.mul(x0s_[i][k]); // (x[k-1] . log u[k-2])
-                    denominator += cLogU0.sumSqrs();  // (x[k-1] . log u[k-2]) T (x[k-1] . log u[k-2])
-                    
-                    // update to new gradient vector 'u0s'
-                    u0s_[i][k].copy(xs()[i][k]);
-                    MatrixSparse t;
-                    t.copy(xs()[i][k]);
-                    t.copySubset(y0s_[i][k]);
-                    u0s_[i][k].divNonzeros(t);
-                    
-                    t.copy(xs()[i][k]);
-                    t.copySubset(cLogU0);
-                    
-                    // using new gradient vector 'u0s'
-                    MatrixSparse c1LogU;
-                    c1LogU.copy(u0s_[i][k]);
-                    c1LogU.lnNonzeros();
-                    c1LogU.mul(xs()[i][k]); // (x[k] . log u[k-1])
-                    c1LogU.mul(t); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
-                    numerator += c1LogU.sum(); // (x[k] . log u[k-1]) T (x[k-1] . log u[k-2])
-                }
-            }
-        }
-        a = (fp)(numerator / denominator);
-        fp aThresh = a > 0.0f ? a : 0.0f;
-        aThresh = aThresh < 1.0f ? aThresh : 1.0f;
 
-        // linear extrapolation of 'xs'
-        for (ii i = 0; i < (ii)getBases().size(); i++)
+    double accelerationStart = getElapsedTime();
+    {
+        if (getIteration() == 0)
         {
-            if (!getBases()[i]->isTransient())
+            for (ii l = 0; l < (ii)getBases().size(); l++)
             {
-                for (size_t k = 0; k < xs()[i].size(); k++)
+                if (!getBases()[l]->isTransient())
                 {
-                    // extrapolate 'xs' and save for next iteration as 'y0s'
-                    y0s_[i][k].copy(xs()[i][k]);
-                    
-                    MatrixSparse t;
-                    t.copy(xs()[i][k]);
-                    t.copySubset(x0s_[i][k]);
-                    
-                    y0s_[i][k].divNonzeros(t);
-                    y0s_[i][k].pow(aThresh);
-                    y0s_[i][k].mul(xs()[i][k]); // x[k] . (x[k] / x[k-1])^a
-                    
-                    x0s_[i][k].copy(xs()[i][k]); // previous 'xs' saved as 'x0s' for next iteration
-                    xs()[i][k].copy(y0s_[i][k]); // extrapolated 'xs' for this iteration
-               }
+                    // no extrapolation this iteration, just save 'xs'
+                    for (ii k = 0; k < ii(xs()[l].size()); k++)
+                        y0s_[l][k].copy(xs()[l][k]);
+                }
+            }
+        }
+        else if (getIteration() == 1)
+        {
+            for (ii l = 0; l < (ii)getBases().size(); l++)
+            {
+                if (!getBases()[l]->isTransient())
+                {
+                    for (ii k = 0; k < ii(xs()[l].size()); k++)
+                    {
+                        // can now calcaulte first gradient vector 'u0s'
+                        MatrixSparse t;
+                        t.copySubset(y0s_[l][k], xs()[l][k]);
+
+                        u0s_[l][k].divNonzeros(xs()[l][k], t);
+                        // no extrapolation this iteration, just save 'xs'
+                        x0s_[l][k].copy(xs()[l][k]);
+                        y0s_[l][k].copy(xs()[l][k]);
+                    }
+                }
+            }
+        }
+        else
+        {
+            // calculate acceleration parameter 'a'
+            double numerator = 0.0;
+            double denominator = 0.0;
+            for (ii l = 0; l < ii(getBases().size()); l++)
+            {
+                if (!getBases()[l]->isTransient())
+                {
+                    for (ii k = 0; k < ii(xs()[l].size()); k++)
+                    {
+                        // using old gradient vector 'u0s'
+                        MatrixSparse cLogU0;
+                        cLogU0.lnNonzeros(u0s_[l][k]);
+                        cLogU0.mul(x0s_[l][k]); // (x[k-1] . log u[k-2])
+                        denominator += cLogU0.sumSqrs();  // (x[k-1] . log u[k-2]) T (x[k-1] . log u[k-2])
+
+                        // update to new gradient vector 'u0s'
+                        MatrixSparse t;
+                        t.copySubset(y0s_[l][k], xs()[l][k]);
+                        u0s_[l][k].divNonzeros(xs()[l][k], t);
+
+                        t.copySubset(cLogU0, xs()[l][k]);
+
+                        // using new gradient vector 'u0s'
+                        MatrixSparse c1LogU;
+                        c1LogU.lnNonzeros(u0s_[l][k]);
+                        c1LogU.mul(xs()[l][k]); // (x[k] . log u[k-1])
+                        c1LogU.mul(t); // (x[k] . log u[k-1]) . (x[k-1] . log u[k-2])
+                        numerator += c1LogU.sum(); // (x[k] . log u[k-1]) T (x[k-1] . log u[k-2])
+                    }
+                }
+            }
+            a = fp(numerator / denominator);
+            fp aThresh = a > 0.0f ? a : 0.0f;
+            aThresh = aThresh < 1.0f ? aThresh : 1.0f;
+
+            // linear extrapolation of 'xs'
+            for (ii l = 0; l < ii(getBases().size()); l++)
+            {
+                if (!getBases()[l]->isTransient())
+                {
+                    for (ii k = 0; k < ii(xs()[l].size()); k++)
+                    {
+                        // extrapolate 'xs' and save for next iteration as 'y0s'
+                        y0s_[l][k].copy(xs()[l][k]);
+
+                        MatrixSparse t;
+                        t.copySubset(x0s_[l][k], xs()[l][k]);
+
+                        y0s_[l][k].divNonzeros(t);
+                        y0s_[l][k].pow(aThresh);
+                        y0s_[l][k].mul(xs()[l][k]); // x[k] . (x[k] / x[k-1])^a
+
+                        x0s_[l][k].copy(xs()[l][k]); // previous 'xs' saved as 'x0s' for next iteration
+                        xs()[l][k].copy(y0s_[l][k]); // extrapolated 'xs' for this iteration
+                    }
+                }
             }
         }
     }
-    
     double accelerationDuration = getElapsedTime() - accelerationStart;
 
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << fixed << setprecision(4) <<  "    acceleration       = " << a << endl;
 
 
-        if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
+    if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
     {
         accelerationDuration_ += accelerationDuration;
 
@@ -185,14 +176,14 @@ fp OptimizerAccelerationEve1::step()
 }
 
 
-void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis)
+void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis) const
 {
     optimizer_->synthesize(f, xEs, basis);
 }
 
 
 void
-OptimizerAccelerationEve1::analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize)
+OptimizerAccelerationEve1::analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize) const
 {
     optimizer_->analyze(xEs, fE, l2, l2Normalize);
 }
