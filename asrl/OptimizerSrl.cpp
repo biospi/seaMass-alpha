@@ -91,19 +91,21 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                         MatrixSparse x;
                         x.copy(xs_[l][k]);
                         x.divNonzeros(l1l2PlusLambda);
+                        l1l2PlusLambda.free();
                         x.mul((fp) (sumB / sumX));
                         xs_[l][k].copyPrune(x, pruneThreshold);
+                        x.free();
 
                         // remove unneeded l2s
                         MatrixSparse t;
                         t.copy(xs_[l][k]);
                         t.copySubset(l2s_[l][k]);
-                        l2s_[l][k].copy(t);
+                        l2s_[l][k].swap(t);
 
                         // remove unneeded l1l2s
                         t.copy(xs_[l][k]);
                         t.copySubset(l1l2sPlusLambda_[l][k]);
-                        l1l2sPlusLambda_[l][k].copy(t);
+                        l1l2sPlusLambda_[l][k].swap(t);
                     }
                 }
             }
@@ -177,6 +179,9 @@ fp OptimizerSrl::step()
     double analysisStart = getElapsedTime();
     {
         analyze(xEs_ys, f_fE, false);
+
+        for (ii k = 0; k < ii(f_fE.size()); k++)
+            f_fE[k].free();
     }
     double analysisDuration = getElapsedTime() - analysisStart;
 
@@ -199,17 +204,15 @@ fp OptimizerSrl::step()
                     for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
                     {
                         // y = groupNorm(x)
+                        MatrixSparse t;
+                        t.copy(xs_[l][k]);
+                        t.sqr();
                         MatrixSparse y;
-                        {
-                            MatrixSparse t;
-                            t.copy(xs_[l][k]);
-                            t.sqr();
-
-                            y.matmul(false, t, (*gT)[k], false);
-                            t.matmul(false, y, (*g)[k], false);
-                            y.copy(xs_[l][k]);
-                            y.copySubset(t);
-                        }
+                        y.matmul(false, t, (*gT)[k], false);
+                        t.matmul(false, y, (*g)[k], false);
+                        y.copy(xs_[l][k]);
+                        y.copySubset(t);
+                        t.free();
                         y.sqrt();
 
                         // y = x * groupNorm(x)^-1)
@@ -407,7 +410,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
                     MatrixSparse t;
                     t.copy(xs_[l][k]);
                     t.copySubset(xEs[l][k]);
-                    xEs[l][k].copy(t);
+                    xEs[l][k].swap(t);
                 }
             }
 
