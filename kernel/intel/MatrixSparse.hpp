@@ -92,7 +92,7 @@ public:
 
     static double sortElapsed_;
 
-private:
+protected:
     void sort() const;
 
     ii m_; // number of rows

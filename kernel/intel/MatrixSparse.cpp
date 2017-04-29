@@ -152,8 +152,11 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
                 mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
 
                 sparse_index_base_t indexing;
-                mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
+                status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
+                assert(!status_);
+
                 isOwned_ = false;
+                isSorted_ = true;
             }
         }
         else
@@ -212,6 +215,7 @@ void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colin
         assert(!status_);
 
         isOwned_ = false;
+        isSorted_ = true;
     }
     
     if (getDebugLevel() % 10 >= 4)
@@ -311,6 +315,15 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
             assert(!status_);
 
             isOwned_ = true;
+            isSorted_ = true;
+            for (ii k = 0; k < ii(as.size()); k++)
+            {
+                if (!as[k].isSorted_)
+                {
+                    isSorted_ = false;
+                    break;
+                }
+            }
         }
 
         if (getDebugLevel() % 10 >= 4)
@@ -352,6 +365,8 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
                 }
             }
         }
+
+        isSorted_ = true;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -408,6 +423,7 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
         assert(!status_);
 
         isOwned_ = true;
+        isSorted_ = true;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -469,6 +485,7 @@ ii MatrixSparse::copyPrune(const MatrixSparse &a, fp threshold)
             assert(!status_);
 
             isOwned_ = true;
+            isSorted_ = a.isSorted_;
         }
     }
 
@@ -541,6 +558,7 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
             assert(!status_);
 
             isOwned_ = true;
+            isSorted_ = a.isSorted_;
 
             rowsPruned = aNnzRows- bNnzRowsOrCols;
         }
@@ -631,6 +649,7 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
         assert(!status_);
 
         isOwned_ = false;
+        isSorted_ = true;
     }
     
     if (getDebugLevel() % 10 >= 4)
@@ -708,6 +727,8 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 mat_ = t;
                 isOwned_ = true;
             }
+
+            isSorted_ = false;
         }
         else
         {
@@ -883,6 +904,9 @@ void MatrixSparse::sqr(const MatrixSparse& a)
 
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
         assert(!status_);
+
+        isOwned_ = true;
+        isSorted_ = a.isSorted_;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -1002,6 +1026,9 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
 
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
         assert(!status_);
+
+        isOwned_ = true;
+        isSorted_ = a.isSorted_;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -1075,6 +1102,9 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
 
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
         assert(!status_);
+
+        isOwned_ = true;
+        isSorted_ = true;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -1332,6 +1362,7 @@ MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row) : isOwned_(fal
             assert(!status_);
 
             isOwned_ = true;
+            isSorted_ = a.isSorted_;
         }
     }
 
