@@ -185,9 +185,16 @@ fp OptimizerAccelerationEve1::step()
 }
 
 
-void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& cs, ii basis)
+void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis)
 {
-    optimizer_->synthesize(f, cs, basis);
+    optimizer_->synthesize(f, xEs, basis);
+}
+
+
+void
+OptimizerAccelerationEve1::analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize)
+{
+    optimizer_->analyze(xEs, fE, l2, l2Normalize);
 }
 
 

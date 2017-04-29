@@ -50,7 +50,10 @@ public:
     virtual ii getIteration() const;
 
     virtual fp step();
-    virtual void synthesize(std::vector<MatrixSparse>& f, std::vector< std::vector<MatrixSparse> >& cs, ii basis = -1);
+
+    virtual void synthesize(std::vector<MatrixSparse>& f, std::vector< std::vector<MatrixSparse> >& xEs, ii basis = -1);
+    virtual void
+    analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize = true);
 
     std::vector< std::vector<MatrixSparse> >& xs();
     std::vector< std::vector<MatrixSparse> >& l2s();

@@ -332,13 +332,6 @@ void MatrixSparse::copySubset(MatrixSparse &a)
         sort();
         a.sort();
 
-        for (ii i = 0; i < m_; i++)
-            for (ii nz = is0_[i]; nz < is1_[i] - 1; nz++)
-                assert(js_[nz] <= js_[nz + 1]);
-        for (ii i = 0; i < a.m_; i++)
-            for (ii a_nz = a.is0_[i]; a_nz < a.is1_[i] - 1; a_nz++)
-                assert(a.js_[a_nz] <= a.js_[a_nz + 1]);
-
         //#pragma omp parallel
         for (ii i = 0; i < m_; i++)
         {
