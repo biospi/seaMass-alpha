@@ -668,7 +668,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
         if (accumulate) cout << " + X" << *this;
         cout << " := ..." << endl;
     }
-    
+
     assert((transposeA ? a.m() : a.n()) == b.m());
 
     if (!is1_)
@@ -683,12 +683,12 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
         {
             ii m = transposeA ? a.n() : a.m();
             ii n = b.n();
-            
+
             ii* is0 = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m + 1), 64));
             is0[0] = 0;
             ii* is1 = is0 + 1;
             for (ii i = 0; i < m; i++)
-               is1[i] = is0[i] + n;
+                is1[i] = is0[i] + n;
 
             ii* js = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1[m - 1], 64));
             for (ii nz = 0; nz < is1[m - 1]; nz++)
@@ -712,7 +712,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
                 free();
                 mat_ = y;
-                
+
                 sparse_index_base_t indexing;
                 status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
                 assert(!status_);
@@ -731,7 +731,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 isOwned_ = true;
             }
 
-            isSorted_ = false;
+            isSorted_ = true;
         }
         else
         {
@@ -740,83 +740,46 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 sparse_matrix_t t;
                 status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE,
                                           a.mat_, b.mat_, &t);
-                assert(!status_);
 
-                sparse_matrix_t y;
-                status_ = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
-                assert(!status_);
-                status_ = mkl_sparse_destroy(t);
-                assert(!status_);
-
-                free();
-                mat_ = y;
-
-                sparse_index_base_t indexing;
-                status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
-                assert(!status_);
-            }
-            else
-            {
-                /*
-                cout << b << endl;
-                for (ii i = 0; i <= b.m_; i++)
-                    cout << "  " << b.is0_[i] << endl;
-                for (ii i = 0; i < b.nnz(); i++)
+                // annoying hack: it fails with this error when the output has no non-zeros
+                if (status_ != SPARSE_STATUS_ALLOC_FAILED)
                 {
-                    cout << "  " << b.js_[i] << ":" << b.vs_[i] << endl;
-                    assert(b.js_[i] >= 0 && b.js_[i] < b.n_);
-                }*/
-                status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE,
-                                              a.mat_, b.mat_, &mat_);
-                if(status_ != SPARSE_STATUS_SUCCESS)
-                {
-                    /*vector<ii> a_rowind;
-                    vector<ii> a_colind;
-                    vector<fp> a_acoo;
-                    a.exportTo(a_rowind, a_colind, a_acoo);
+                    assert(!status_);
 
-                    vector<ii> b_rowind;
-                    vector<ii> b_colind;
-                    vector<fp> b_acoo;
-                    b.exportTo(b_rowind, b_colind, b_acoo);
+                    sparse_matrix_t y;
+                    status_ = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
+                    assert(!status_);
 
-                    ii a_m, a_n;
-                    ii* a_is0, *a_is1, *a_js;
-                    fp* a_vs;
-                    sparse_index_base_t a_indexing;
-                    mkl_sparse_s_export_csr(a.mat_, &a_indexing, &a_m, &a_n, &a_is0, &a_is1, &a_js, &a_vs);
+                    status_ = mkl_sparse_destroy(t);
+                    assert(!status_);
 
-                    cout << endl << a << endl;
-                    for (ii i = 0; i <= a_m; i++)
-                        cout << "  " << a_is0[i] << endl;
-                    for (ii i = 0; i < a_is1[a_m - 1]; i++)
-                        cout << "  " << a_js[i] << ":" << a_vs[i] << endl;
+                    free();
+                    mat_ = y;
 
-                    ii b_m, b_n;
-                    ii* b_is0, *b_is1, *b_js;
-                    fp* b_vs;
-                    sparse_index_base_t b_indexing;
-                    mkl_sparse_s_export_csr(b.mat_, &b_indexing, &b_m, &b_n, &b_is0, &b_is1, &b_js, &b_vs);
-
-                    cout << endl << b << endl;
-                    for (ii i = 0; i <= b_m; i++)
-                        cout << "  " << b_is0[i] << endl;
-                    for (ii i = 0; i < b_is1[b_m - 1]; i++)
-                        cout << "  " << b_js[i] << ":" << b_vs[i] << endl;*/
-
-                    //assert(!status_);
-
-                    //cout << "EEK!" << endl;
-                    init(transposeA ? a.n() : a.m(), b.n());
-                }
-                else
-                {
                     sparse_index_base_t indexing;
                     status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
                     assert(!status_);
                 }
             }
-                
+            else
+            {
+                status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE,
+                                          a.mat_, b.mat_, &mat_);
+
+                // annoying hack: it fails with this error when the output has no non-zeros
+                if(status_ == SPARSE_STATUS_ALLOC_FAILED)
+                {
+                    init(transposeA ? a.n() : a.m(), b.n());
+                }
+                else
+                {
+                    assert(!status_);
+
+                    sparse_index_base_t indexing;
+                    status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
+                    assert(!status_);
+                }
+            }
 
             isOwned_ = false;
             isSorted_ = false;
@@ -825,7 +788,12 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
     else
     {
         if (!accumulate)
-            copy(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
+        {
+            if (denseOutput)
+                copy(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
+            else
+                init(transposeA ? a.n() : a.m(), b.n());
+        }
     }
 
     if (getDebugLevel() % 10 >= 4)
