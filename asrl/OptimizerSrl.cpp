@@ -58,7 +58,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
 
-            analyze(l1l2s_, t, false);
+            analyze(l1l2sPlusLambda_, t, false);
         }
 
         {   // normalise 'xs' so that its synthesis is of same volume as 'b'
@@ -72,7 +72,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             double sumX = 0.0;
             for (ii l = 0; l < ii(bases_.size()); l++)
             {
-                for (size_t k = 0; k < xs_[l].size(); k++)
+                for (ii k = 0; k < ii(xs_[l].size()); k++)
                     sumX += xs_[l][k].sum();
             }
 
@@ -85,7 +85,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                         // remove unneeded l1l2sPlusLambda
                         MatrixSparse l1l2PlusLambda;
                         l1l2PlusLambda.copy(xs_[l][k]);
-                        l1l2PlusLambda.copySubset(l1l2s_[l][k]);
+                        l1l2PlusLambda.copySubset(l1l2sPlusLambda_[l][k]);
 
                         // normalise and prune xs
                         MatrixSparse x;
@@ -102,8 +102,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
                         // remove unneeded l1l2s
                         t.copy(xs_[l][k]);
-                        t.copySubset(l1l2s_[l][k]);
-                        l1l2s_[l][k].copy(t);
+                        t.copySubset(l1l2sPlusLambda_[l][k]);
+                        l1l2sPlusLambda_[l][k].copy(t);
                     }
                 }
             }
@@ -122,6 +122,15 @@ void OptimizerSrl::setLambda(fp lambda, fp lambdaGroup)
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "   lambda=" << lambda << endl;
 
+    for (ii l = 0; l < ii(bases_.size()); l++)
+    {
+        if (!bases_[l]->isTransient())
+        {
+            for (ii k = 0; k < ii(l1l2sPlusLambda_[l].size()); k++)
+                l1l2sPlusLambda_[l][k].addNonzeros(lambda - lambda_);
+        }
+    }
+
     lambda_ = lambda;
     lambdaGroup_ = lambdaGroup;
     iteration_ = 0;
@@ -137,10 +146,10 @@ fp OptimizerSrl::step()
         cout << getTimeStamp() << "    Synthesis ..." << endl;
 
     vector<MatrixSparse> f_fE;
-    vector< vector<MatrixSparse> > xEs;
+    vector< vector<MatrixSparse> > xEs_ys;
     double synthesisStart = getElapsedTime();
     {
-        synthesize(f_fE, xEs);
+        synthesize(f_fE, xEs_ys);
     }
     double synthesisDuration = getElapsedTime() - synthesisStart;
 
@@ -150,12 +159,12 @@ fp OptimizerSrl::step()
 
     double errorStart = getElapsedTime();
     {
-        for (size_t k = 0; k < f_fE.size(); k++)
+        for (ii k = 0; k < ii(f_fE.size()); k++)
             f_fE[k].div2Nonzeros(b_[k].vs());
     }
     double errorDuration = getElapsedTime() - errorStart;
 
-    // init l1s_ and l1l2s_
+    // init l1s_ and l1l2sPlusLambda_
     /*if (l2s_.size() != bases_.size())
     {
      // TODO
@@ -167,7 +176,7 @@ fp OptimizerSrl::step()
 
     double analysisStart = getElapsedTime();
     {
-        analyze(xEs, f_fE, false);
+        analyze(xEs_ys, f_fE, false);
     }
     double analysisDuration = getElapsedTime() - analysisStart;
 
@@ -175,68 +184,64 @@ fp OptimizerSrl::step()
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Shrinkage ..." << endl;
 
-    vector< vector<MatrixSparse> > ys(bases_.size());
     double shrinkageStart = getElapsedTime();
     {
-        for (ii i = 0; i < (ii)bases_.size(); i++)
+        for (ii l = 0; l < ii(bases_.size()); l++)
         {
-            if (!bases_[i]->isTransient())
+            if (!bases_[l]->isTransient())
             {
-                ys[i].resize(xs_[i].size());
                 if (lambdaGroup_ > 0.0)
                 {
-                    vector<MatrixSparse>* g = bases_[i]->getGroups(false);
-                    vector<MatrixSparse>* gT = bases_[i]->getGroups(true);
+                    vector<MatrixSparse>* g = bases_[l]->getGroups(false);
+                    vector<MatrixSparse>* gT = bases_[l]->getGroups(true);
 
                     // group and individual shrinkage
-                    for (size_t k = 0; k < ys[i].size(); k++)
+                    for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
                     {
-
                         // y = groupNorm(x)
-                        MatrixSparse t;
-                        t.copy(xs_[i][k]);
-                        t.sqr();
-                        ys[i][k].matmul(false, t, (*gT)[k], false);
-                        t.matmul(false, ys[i][k], (*g)[k], false);
-                        ys[i][k].copy(xs_[i][k]);
-                        ys[i][k].copySubset(t);
-                        ys[i][k].sqrt();
+                        MatrixSparse y;
+                        {
+                            MatrixSparse t;
+                            t.copy(xs_[l][k]);
+                            t.sqr();
+
+                            y.matmul(false, t, (*gT)[k], false);
+                            t.matmul(false, y, (*g)[k], false);
+                            y.copy(xs_[l][k]);
+                            y.copySubset(t);
+                        }
+                        y.sqrt();
 
                         // y = x * groupNorm(x)^-1)
-                        ys[i][k].div2Nonzeros(xs_[i][k]);
+                        y.div2Nonzeros(xs_[l][k]);
 
                         // y = lambdaGroup * x * groupNorm(x)^-1
-                        ys[i][k].mul(lambdaGroup_);
-
-                        // y = lambda + lambdaGroup * x * groupNorm(x)^-1
-                        ys[i][k].addNonzeros(lambda_);
+                        y.mul(lambdaGroup_);
 
                         // y = l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1
-                        ys[i][k].addNonzeros(l1l2s_[i][k]);
+                        y.addNonzeros(l1l2sPlusLambda_[l][k]);
 
                         // y = x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        ys[i][k].div2Nonzeros(xs_[i][k]);
+                        y.div2Nonzeros(xs_[l][k]);
 
                         // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        ys[i][k].mul(xEs[i][k]);
+                        xEs_ys[l][k].mul(y);
                     }
                 }
                 else
                 {
                     // individual shrinkage only
-                    for (size_t k = 0; k < ys[i].size(); k++)
+                    for (ii k = 0; k < ii(xEs_ys[l]).size(); k++)
                     {
                         // y = l1l2
-                        ys[i][k].copy(l1l2s_[i][k]);
-
-                        // y = l1l2 + lambda
-                        ys[i][k].addNonzeros(lambda_);
+                        MatrixSparse y;
+                        y.copy(l1l2sPlusLambda_[l][k]);
 
                         // y = x / (l1l2 + lambda)
-                        ys[i][k].div2Nonzeros(xs_[i][k]);
+                        y.div2Nonzeros(xs_[l][k]);
 
                         // y = xE * x / (l1l2 + lambda)
-                        ys[i][k].mul(xEs[i][k]);
+                        xEs_ys[l][k].mul(y);
                     }
                 }
             }
@@ -253,40 +258,41 @@ fp OptimizerSrl::step()
     double updateStart = getElapsedTime();
     {
         // termination check
-        for (ii i = 0; i < (ii)bases_.size(); i++)
+        for (ii l = 0; l < ii(bases_.size()); l++)
         {
-            if (!bases_[i]->isTransient())
+            if (!bases_[l]->isTransient())
             {
                 if (getDebugLevel() % 10 >= 3)
-                     cout << getTimeStamp() << "     " << i << " OptimizerSrl::grad" << endl;
+                     cout << getTimeStamp() << "     " << l << " OptimizerSrl::grad" << endl;
 
-                for (size_t k = 0; k < xs_[i].size(); k++)
+                for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
-                    sumSqrs += xs_[i][k].sumSqrs();
-                    ys[i][k].sumSqrs();
-                    sumSqrDiffs += xs_[i][k].sumSqrDiffsNonzeros(ys[i][k]);
+                    sumSqrs += xs_[l][k].sumSqrs();
+                    sumSqrDiffs += xs_[l][k].sumSqrDiffsNonzeros(xEs_ys[l][k]);
                 }
             }
         }
 
         // copy into xs_, pruning small coefficients
-        for (ii i = 0; i < (ii)bases_.size(); i++)
+        for (ii l = 0; l < ii(bases_.size()); l++)
         {
-            if (!bases_[i]->isTransient())
+            if (!bases_[l]->isTransient())
             {
-                for (size_t k = 0; k < xs_[i].size(); k++)
+                for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
-                    xs_[i][k].copyPrune(ys[i][k], pruneThreshold_);
-                    ys[i][k].init();
-                    
+                    xs_[l][k].copyPrune(xEs_ys[l][k], pruneThreshold_);
+                    xEs_ys[l][k].free();
+
+                    // prune l1l2s
                     MatrixSparse t;
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l1l2s_[i][k]);
-                    l1l2s_[i][k].copy(t);
-                    
-                    t.copy(xs_[i][k]);
-                    t.copySubset(l2s_[i][k]);
-                    l2s_[i][k].copy(t);
+                    t.copy(xs_[l][k]);
+                    t.copySubset(l1l2sPlusLambda_[l][k]);
+                    l1l2sPlusLambda_[l][k].swap(t);
+
+                    // prune l2s
+                    t.copy(xs_[l][k]);
+                    t.copySubset(l2s_[l][k]);
+                    l2s_[l][k].swap(t);
                 }
             }
         }
@@ -323,18 +329,16 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
         if (!xEs[i].size() && !bases_[i]->isTransient())
         {
             xEs[i].resize(xs_[i].size());
-            for (size_t k = 0; k < xEs[i].size(); k++)
+            for (ii k = 0; k < ii(xEs[i].size()); k++)
             {
                 xEs[i][k].copy(xs_[i][k]);
-                
-                if (l2s_.size() == xs_.size() && l2s_[i][k].m())
-                    xEs[i][k].divNonzeros(l2s_[i][k]);
+                xEs[i][k].divNonzeros(l2s_[i][k]);
             }
         }
 
         if (basis == i) // return with B-spline control points
         {
-            for (size_t k = 0; k < xEs[i].size(); k++)
+            for (ii k = 0; k < ii(xEs[i].size()); k++)
                 f[k].copy(xEs[i][k]);
 
             break;
@@ -347,12 +351,10 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
             if (!xEs[pi].size() && !bases_[pi]->isTransient())
             {
                 xEs[pi].resize(xs_[pi].size());
-                for (size_t k = 0; k < xEs[pi].size(); k++)
+                for (ii k = 0; k < ii(xEs[pi].size()); k++)
                 {
                     xEs[pi][k].copy(xs_[pi][k]);
-                    
-                    if (l2s_.size() == xs_.size() && l2s_[pi][k].m())
-                        xEs[pi][k].divNonzeros(l2s_[pi][k]);
+                    xEs[pi][k].divNonzeros(l2s_[pi][k]);
                 }
             }
 
@@ -451,5 +453,5 @@ std::vector< std::vector<MatrixSparse> >& OptimizerSrl::l2s()
 
 std::vector< std::vector<MatrixSparse> >& OptimizerSrl::l1l2s()
 {
-    return l1l2s_;
+    return l1l2sPlusLambda_;
 }
