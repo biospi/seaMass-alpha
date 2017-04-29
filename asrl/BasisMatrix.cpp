@@ -60,7 +60,7 @@ BasisMatrix::~BasisMatrix()
 }
 
 
-void BasisMatrix::synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
+void BasisMatrix::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "      BasisMatrix::synthesise" << endl;
@@ -93,7 +93,7 @@ void BasisMatrix::synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, b
 }
 
 
-void BasisMatrix::analyze(vector<MatrixSparse> &xE, vector<MatrixSparse> &fE, bool sqrA)
+void BasisMatrix::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "      BasisMatrix::analyse" << endl;

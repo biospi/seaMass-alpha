@@ -319,7 +319,7 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
 
 
 // SEEMS OPTIMAL
-void MatrixSparse::copySubset(MatrixSparse &a)
+void MatrixSparse::copySubset(const MatrixSparse &a)
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       " << a << " within " << *this << " := ..." << endl;
@@ -359,7 +359,7 @@ void MatrixSparse::copySubset(MatrixSparse &a)
 
 
 // SEEMS OPTIMAL
-void MatrixSparse::copySubset(MatrixSparse &a, MatrixSparse &b)
+void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       " << a << " within " << b << " := ..." << endl;
@@ -625,7 +625,7 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
 }
 
 
-void MatrixSparse::matmul(bool transposeA, MatrixSparse& a, MatrixSparse& b, bool accumulate, bool denseOutput)
+void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate, bool denseOutput)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -893,7 +893,7 @@ void MatrixSparse::addNonzeros(fp beta)
 }
 
 
-void MatrixSparse::addNonzeros(MatrixSparse& a)
+void MatrixSparse::addNonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
@@ -950,7 +950,7 @@ void MatrixSparse::expNonzeros()
 }
 
 
-void MatrixSparse::divNonzeros(MatrixSparse& a)
+void MatrixSparse::divNonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
@@ -974,7 +974,7 @@ void MatrixSparse::divNonzeros(MatrixSparse& a)
  }
 
 
-void MatrixSparse::div2Nonzeros(MatrixSparse& a)
+void MatrixSparse::div2Nonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
          cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
@@ -1059,7 +1059,7 @@ fp MatrixSparse::sumSqrs() const
 }
 
 
-fp MatrixSparse::sumSqrDiffsNonzeros(MatrixSparse& a)
+fp MatrixSparse::sumSqrDiffsNonzeros(const MatrixSparse& a) const
 {
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       sum((X" << *this << " - A)^2) := ..." << endl;

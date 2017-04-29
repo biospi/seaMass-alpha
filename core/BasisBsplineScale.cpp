@@ -104,7 +104,7 @@ BasisBsplineScale::~BasisBsplineScale()
 
 void
 BasisBsplineScale::
-synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
+synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesise" << endl;
@@ -137,7 +137,7 @@ synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
 }
 
 
-void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, vector<MatrixSparse> &fE, bool sqrA)
+void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analyse" << endl;

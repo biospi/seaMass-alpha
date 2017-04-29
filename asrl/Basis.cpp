@@ -43,20 +43,20 @@ vector<MatrixSparse> * Basis::getGroups(bool transpose) const
 }
 
 
-void Basis::synthesizeGroups(std::vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
+void Basis::synthesizeGroups(std::vector<MatrixSparse> &g, const vector<MatrixSparse> &x, bool accumulate)
 {
     std::vector<MatrixSparse>* gT = getGroups(true);
     if (gT)
     {
-        if (!f.size())
-            f.resize(x.size());
+        if (!g.size())
+            g.resize(x.size());
 
-        for (ii k = 0; k < ii(f.size()); k++)
-            f[k].matmul(false, x[k], (*gT)[k], accumulate);
+        for (ii k = 0; k < ii(g.size()); k++)
+            g[k].matmul(false, x[k], (*gT)[k], accumulate);
     }
     else
     {
-        synthesize(f, x, accumulate);
+        synthesize(g, x, accumulate);
     }
 }
 

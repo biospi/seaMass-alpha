@@ -173,7 +173,7 @@ BasisBsplineMz::~BasisBsplineMz()
 }
 
 
-void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x, bool accumulate)
+void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::synthesise" << endl;
@@ -206,7 +206,7 @@ void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, vector<MatrixSparse> &x
 }
 
 
-void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, vector<MatrixSparse> &fE, bool sqrA)
+void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
     {

@@ -55,8 +55,8 @@ public:
     void copy(const Matrix& a); // create from dense matrix a
     void copy(ii m, ii n, fp v); // create from dense matrix of constant value
     void copyConcatenate(const std::vector<MatrixSparse>& xs); // the xs must be row vectors
-    void copySubset(MatrixSparse& a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
-    void copySubset(MatrixSparse& a, MatrixSparse& b); // only non-zero elements of this matrix are overwritten by corresponding elements in a
+    void copySubset(const MatrixSparse& a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
+    void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of this matrix are overwritten by corresponding elements in a
     ii copyPrune(const MatrixSparse &a, fp threshold); // prune values under threshold
     ii copyPruneRows(const MatrixSparse& a, const MatrixSparse& b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
@@ -66,7 +66,7 @@ public:
 
     // elementwise operations
     void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
-    void matmul(bool transposeA, MatrixSparse& a, MatrixSparse& b, bool accumulate, bool denseOutput = false);
+    void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate, bool denseOutput = false);
     void mul(fp beta);
     void mul(MatrixSparse& a);
     void sqr();
@@ -75,17 +75,17 @@ public:
 
     // elementwise operations only operating on non-zero elements
     void addNonzeros(fp beta);
-    void addNonzeros(MatrixSparse& a);
+    void addNonzeros(const MatrixSparse& a);
     void lnNonzeros();
     void expNonzeros();
-    void divNonzeros(MatrixSparse& a); // a is denominator
-    void div2Nonzeros(MatrixSparse& a); // a is numerator
+    void divNonzeros(const MatrixSparse& a); // a is denominator
+    void div2Nonzeros(const MatrixSparse& a); // a is numerator
     void div2Nonzeros(const Matrix& a); // a is numerator & must be dense
 
     // aggregate operations
     fp sum() const;
     fp sumSqrs() const;
-    fp sumSqrDiffsNonzeros(MatrixSparse& a);
+    fp sumSqrDiffsNonzeros(const MatrixSparse& a) const;
 
     static double sortElapsed_;
 
