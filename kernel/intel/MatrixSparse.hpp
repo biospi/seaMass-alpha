@@ -24,6 +24,7 @@
 #define SEAMASS_KERNEL_INTEL_MATRIXSPARSE_HPP
 
 
+#include "Callback.hpp"
 #include "Matrix.hpp"
 #include <vector>
 
@@ -31,7 +32,7 @@
 class MatrixSparseView;
 
 
-class MatrixSparse
+class MatrixSparse : public Callback
 {
 public:
     MatrixSparse(ii m = 0, ii n = 0);
@@ -121,6 +122,17 @@ public:
 private:
     bool isOwned_;
 };
+
+
+/*class MatrixSparseCallback
+{
+public:
+    MatrixSparseCallback();
+    virtual ~MatrixSparseCallback();
+
+    virtual void notice(const std::string& message, const MatrixSparse* a) const;
+};*/
+
 
 
 #endif

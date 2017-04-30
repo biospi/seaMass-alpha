@@ -135,8 +135,12 @@ fp* MatrixSparse::vs() const
 // SEEMS OPTIMAL
 void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
 {
-    if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ..." << endl;
+    if (isCallback())
+    {
+        ostringstream oss;
+        oss << "       " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ...";
+        notice(oss.str());
+    }
 
     if (transpose)
         init(a.n_, a.m_);
@@ -181,8 +185,12 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
         }
     }
 
-    if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    if (isCallback())
+    {
+        ostringstream oss;
+        oss << "       ... X" << *this;
+        notice(oss.str());
+    }
 }
 
 
