@@ -281,7 +281,9 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         {
             metadata_[i].finishTime = metadata_[i + 1].startTime;
         }
-        metadata_.resize(metadata_.size() - 1);
+        // NOTE: KEEPING LAST SPECTRUM BECAUSE POSSIBLY GETS OUT OF SYNC BETWEEN READ AND WRITE
+        metadata_[metadata_.size() - 1].finishTime = metadata_[metadata_.size() - 1].startTime + (metadata_[metadata_.size() - 1].startTime - metadata_[metadata_.size() - 2].startTime); // horrible guess
+        //metadata_.resize(metadata_.size() - 1);
 
         // sort into contiguous blocks for seaMass
         sort(metadata_.begin(), metadata_.end(), &DatasetMzmlb::seamassOrder);
@@ -625,7 +627,7 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
                 {
                     ii li = ci + i;
                     mzs.push_back(0.5 * (input.locations[li] + input.locations[li + 1]));
-                    intensities.push_back(exposure * input.counts[ci] / (input.locations[li + 1] - input.locations[li]));
+                    intensities.push_back(input.counts[ci] / exposure);
                 }
 
             }   break;
