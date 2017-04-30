@@ -19,10 +19,12 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_KERNEL_FILENETCDF_HPP
-#define SEAMASS_KERNEL_FILENETCDF_HPP
+#ifndef SEAMASS_IO_FILENETCDF_HPP
+#define SEAMASS_IO_FILENETCDF_HPP
 
 
+#include "../kernel/VecMat.hpp"
+#include "../kernel/kernel.hpp"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +33,6 @@
 #include <netcdf.h>
 #include <fstream>
 #include <typeinfo>
-#include "VecMat.hpp"
-#include "kernel.hpp"
 
 
 struct InfoGrpVar
@@ -44,6 +44,7 @@ struct InfoGrpVar
     string grpName;
     string varName;
 };
+
 
 class FileNetcdf
 {

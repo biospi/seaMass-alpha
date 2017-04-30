@@ -23,7 +23,7 @@
 #define SMPEAK_PEAKDATA_HPP_
 
 #include "../kernel/VecMat.hpp"
-#include "../kernel/FileNetcdf.hpp"
+#include "../io/FileNetcdf.hpp"
 
 template<typename T = float>
 struct Peak

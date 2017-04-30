@@ -24,7 +24,7 @@
 
 
 #include "Dataset.hpp"
-#include "../kernel/FileNetcdf.hpp"
+#include "../io/FileNetcdf.hpp"
 #include <pugixml.hpp>
 #include <vector>
 #include <string>

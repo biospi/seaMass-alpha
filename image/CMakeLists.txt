@@ -16,6 +16,6 @@ target_include_directories(smimage PUBLIC
 	${Boost_INCLUDE_DIRS}
 )
 target_link_libraries(smimage LINK_PUBLIC
-	seamass_kernel
+	seamass_io
 	${Boost_LIBRARIES}
 )

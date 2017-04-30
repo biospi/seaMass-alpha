@@ -19,8 +19,8 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_KERNEL_FILENETCDF_TPP
-#define SEAMASS_KERNEL_FILENETCDF_TPP
+#ifndef SEAMASS_IO_FILENETCDF_TPP
+#define SEAMASS_IO_FILENETCDF_TPP
 
 
 #include "FileNetcdf.hpp"

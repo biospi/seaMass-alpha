@@ -25,7 +25,7 @@
 
 
 #include "Dataset.hpp"
-#include "../kernel/FileNetcdf.hpp"
+#include "../io/FileNetcdf.hpp"
 
 
 class DatasetSeamass: public Dataset

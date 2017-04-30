@@ -24,7 +24,7 @@
 #include <iomanip>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include "../kernel/intel/Callback.hpp"
+#include "../kernel/Subject.hpp"
 #include "../core/DatasetSeamass.hpp"
 using namespace std;
 using namespace kernel;
@@ -89,11 +89,11 @@ int main(int argc, const char * const * argv)
         cout << endl;
         initKernel(debugLevel);
 
-        Callback* callback = 0;
+        Observer* observer = 0;
         if (debugLevel % 10 >= 2)
         {
-            callback = new Callback();
-            MatrixSparse::addCallback(callback);
+            observer = new Observer();
+            MatrixSparse::registerObserver(observer);
         }
 
         if(vm.count("help") || !vm.count("file"))
@@ -156,7 +156,7 @@ int main(int argc, const char * const * argv)
         }
 
         delete dataset;
-        if (callback) delete callback;
+        if (observer) delete observer;
         cout << endl;
     }
 #ifdef NDEBUG

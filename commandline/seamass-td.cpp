@@ -26,7 +26,7 @@
 
 #include "../kernel/kernel.hpp"
 #include "../kernel/VecMat.hpp"
-#include "../kernel/FileNetcdf.hpp"
+#include "../io/FileNetcdf.hpp"
 #include "../topdown/SeamassTopdown.hpp"
 
 
@@ -36,7 +36,7 @@ namespace po = boost::program_options;
 
 int main(int argc, char **argv)
 {
-    //SeaMass::notice();
+    //SeaMass::notifyObservers();
 
     string in_file;
     ii maxMass;

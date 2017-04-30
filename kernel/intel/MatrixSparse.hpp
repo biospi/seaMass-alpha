@@ -24,15 +24,15 @@
 #define SEAMASS_KERNEL_INTEL_MATRIXSPARSE_HPP
 
 
-#include "Callback.hpp"
 #include "Matrix.hpp"
+#include "../Subject.hpp"
 #include <vector>
 
 
 class MatrixSparseView;
 
 
-class MatrixSparse : public Callback
+class MatrixSparse : public Subject
 {
 public:
     MatrixSparse(ii m = 0, ii n = 0);
@@ -130,7 +130,7 @@ public:
     MatrixSparseCallback();
     virtual ~MatrixSparseCallback();
 
-    virtual void notice(const std::string& message, const MatrixSparse* a) const;
+    virtual void notifyObservers(const std::string& message, const MatrixSparse* a) const;
 };*/
 
 

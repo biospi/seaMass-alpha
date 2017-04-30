@@ -20,39 +20,58 @@
 //
 
 
-#include "Callback.hpp"
-#include "kernel.hpp"
+#include "Subject.hpp"
+#include "iostream"
 using namespace std;
-using namespace kernel;
 
 
-void Callback::addCallback(Callback* callback)
-{
-    callbacks_.push_back(callback);
-}
-
-
-Callback::Callback()
+Observer::Observer()
 {
 }
 
 
-Callback::~Callback()
+Observer::~Observer()
 {
 }
 
 
-bool Callback::isCallback() const
+void Observer::notify(const std::string& message)
 {
-    return callbacks_.size() > 0;
+    cout << message << endl;
 }
 
 
-void Callback::notice(const string& message) const
+
+void Subject::registerObserver(Observer *observer)
 {
-    for (ii i = 0; i < ii(callbacks_.size()); i++)
-        cout << getTimeStamp() << message << endl;
+    observers_.push_back(observer);
 }
 
 
-std::vector<Callback*> Callback::callbacks_;
+Subject::Subject()
+{
+}
+
+
+Subject::~Subject()
+{
+}
+
+
+bool Subject::areObservers() const
+{
+    return observers_.size() > 0;
+}
+
+
+void Subject::notifyObservers(const string& message) const
+{
+    for (int i = 0; i < int(observers_.size()); i++)
+        observers_[i]->notify(message);
+
+    //for (ii i = 0; i < ii(observers_.size()); i++)
+    //    cout << getTimeStamp() << message << endl;
+}
+
+
+std::vector<Observer*> Subject::observers_;

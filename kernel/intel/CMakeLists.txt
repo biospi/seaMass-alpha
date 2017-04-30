@@ -9,13 +9,12 @@ add_library(seamass_kernel_intel
         MatrixSparse.cpp
         MatrixSparse.hpp
         types.hpp
-        Callback.cpp
-        Callback.hpp
         )
 target_include_directories(seamass_kernel_intel PUBLIC
         ${MKL_INCLUDE_DIR}
         ${IPP_INCLUDE_DIR}
         )
 target_link_libraries(seamass_kernel_intel
+        seamass_kernel
         ${INTEL_LIBRARIES}
         )

@@ -21,7 +21,7 @@
 
 
 #include "../asrl/Asrl.hpp"
-#include "../kernel/FileNetcdf.hpp"
+#include "../io/FileNetcdf.hpp"
 #include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
 #include <iomanip>

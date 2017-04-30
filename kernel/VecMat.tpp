@@ -19,15 +19,15 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_KERNEL_VECMAT_TPP
-#define SEAMASS_KERNEL_VECMAT_TPP
+#ifndef SEAMASS_IO_VECMAT_TPP
+#define SEAMASS_IO_VECMAT_TPP
 
 
 #include "VecMat.hpp"
 
 
 template<typename T>
-VecMat<T>::VecMat(void):m(NULL),row(0),col(0){}
+VecMat<T>::VecMat(void):m(0),row(0),col(0){}
 
 template<typename T>
 VecMat<T>::VecMat(uli _r, uli _c, const vector<T> &_vec):v(_vec),row(_r), col(_c)
@@ -88,7 +88,7 @@ void VecMat<T>::clear(void)
     col=0;
     vector<T>().swap(this->v);
     vector<T*>().swap(this->matIdx);
-    m=NULL;
+    m=0;
 }
 
 

@@ -22,8 +22,9 @@
 
 #include "MatrixSparse.hpp"
 #include "kernel.hpp"
-#include "../FileNetcdf.hpp"
 #include <iomanip>
+#include <sstream>
+#include <cmath>
 #include <cassert>
 #include <cstring>
 #include <algorithm>
@@ -135,11 +136,11 @@ fp* MatrixSparse::vs() const
 // SEEMS OPTIMAL
 void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
 {
-    if (isCallback())
+    if (areObservers())
     {
         ostringstream oss;
         oss << "       " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ...";
-        notice(oss.str());
+        notifyObservers(oss.str());
     }
 
     if (transpose)
@@ -185,11 +186,11 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
         }
     }
 
-    if (isCallback())
+    if (areObservers())
     {
         ostringstream oss;
         oss << "       ... X" << *this;
-        notice(oss.str());
+        notifyObservers(oss.str());
     }
 }
 

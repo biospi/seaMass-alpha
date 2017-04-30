@@ -19,8 +19,8 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#ifndef SEAMASS_KERNEL_VECMAT_HPP
-#define SEAMASS_KERNEL_VECMAT_HPP
+#ifndef SEAMASS_IO_VECMAT_HPP
+#define SEAMASS_IO_VECMAT_HPP
 
 
 #include <vector>

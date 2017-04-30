@@ -28,21 +28,31 @@
 #include <vector>
 
 
-class Callback
+class Observer
 {
 public:
-    static void addCallback(Callback* callback);
+    Observer();
+    virtual ~Observer();
 
-    Callback();
-    ~Callback();
-
-protected:
-    bool isCallback() const;
-    void notice(const std::string& message) const;
-
-private:
-    static std::vector<Callback*> callbacks_;
+    virtual void notify(const std::string& message);
 };
 
 
-#endif //SEAMASS_CALLBACK_HPP
+class Subject
+{
+public:
+    static void registerObserver(Observer* observer);
+
+    Subject();
+    ~Subject();
+
+protected:
+    bool areObservers() const;
+    virtual void notifyObservers(const std::string &message) const;
+
+private:
+    static std::vector<Observer*> observers_;
+};
+
+
+#endif

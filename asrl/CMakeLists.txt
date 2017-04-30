@@ -14,5 +14,5 @@ add_library(seamass_asrl
         )
 
 target_link_libraries(seamass_asrl
-        seamass_kernel
+        seamass_io
         )

@@ -10,6 +10,7 @@ if(OPENMP_FOUND)
 endif()
 
 add_subdirectory(kernel)
+add_subdirectory(io)
 add_subdirectory(asrl)
 add_subdirectory(core)
 add_subdirectory(topdown)

@@ -25,7 +25,7 @@
 #include <pugixml.hpp>
 
 #include "../kernel/VecMat.hpp"
-#include "../kernel/FileNetcdf.hpp"
+#include "../io/FileNetcdf.hpp"
 #include "../core/DatasetMzmlb.hpp"
 
 #include "SMData.hpp"

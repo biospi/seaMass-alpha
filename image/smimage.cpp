@@ -25,7 +25,7 @@
 #include "imagecore.hpp"
 #include <boost/program_options.hpp>
 
-#include "../kernel/FileNetcdf.hpp"
+#include "../io/FileNetcdf.hpp"
 #include "../kernel/VecMat.hpp"
 
 namespace po = boost::program_options;
