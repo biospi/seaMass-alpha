@@ -21,6 +21,7 @@
 
 
 #include "OptimizerAccelerationEve1.hpp"
+#include <kernel.hpp>
 #include <algorithm>
 #include <iomanip>
 using namespace std;

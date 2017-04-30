@@ -21,6 +21,7 @@
 
 
 #include "DatasetSeamass.hpp"
+#include <kernel.hpp>
 using namespace kernel;
 
 

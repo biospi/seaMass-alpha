@@ -23,8 +23,9 @@
 #define SEAMASS_IO_FILENETCDF_HPP
 
 
-#include "../kernel/VecMat.hpp"
-#include "../kernel/kernel.hpp"
+#include "VecMat.hpp"
+#include <Matrix.hpp>
+#include <MatrixSparse.hpp>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>

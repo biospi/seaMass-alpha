@@ -21,17 +21,12 @@
 
 
 #include "Seamass.hpp"
-
-#include "../asrl/OptimizerAccelerationEve1.hpp"
-
 #include "BasisBsplineMz.hpp"
 #include "BasisBsplineScale.hpp"
 #include "BasisBsplineScantime.hpp"
-
-#include <iostream>
+#include "../asrl/OptimizerAccelerationEve1.hpp"
+#include <kernel.hpp>
 #include <iomanip>
-
-
 using namespace std;
 using namespace kernel;
 

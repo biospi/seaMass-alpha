@@ -32,7 +32,6 @@
 namespace kernel
 {
     void initKernel(int debugLevel);
-    int getDebugLevel();
     li getId();
 
     double getElapsedTime();

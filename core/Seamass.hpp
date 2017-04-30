@@ -31,7 +31,7 @@
 /**
 * SeamassCore fitting of a 1-d curve or multi-dimensional surface to the input spectr(um|a).
 */
-class Seamass
+class Seamass : public Subject
 {
 public:
     static void notice();

@@ -22,7 +22,7 @@
 #ifndef SMPEAK_PEAKDATA_HPP_
 #define SMPEAK_PEAKDATA_HPP_
 
-#include "../kernel/VecMat.hpp"
+#include "../io/VecMat.hpp"
 #include "../io/FileNetcdf.hpp"
 
 template<typename T = float>

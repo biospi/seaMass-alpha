@@ -25,14 +25,14 @@
 
 
 #include "Matrix.hpp"
-#include "../Subject.hpp"
+#include "../SubjectMatrixSparse.hpp"
 #include <vector>
 
 
 class MatrixSparseView;
 
 
-class MatrixSparse : public Subject
+class MatrixSparse : public SubjectMatrixSparse
 {
 public:
     MatrixSparse(ii m = 0, ii n = 0);
@@ -122,17 +122,6 @@ public:
 private:
     bool isOwned_;
 };
-
-
-/*class MatrixSparseCallback
-{
-public:
-    MatrixSparseCallback();
-    virtual ~MatrixSparseCallback();
-
-    virtual void notifyObservers(const std::string& message, const MatrixSparse* a) const;
-};*/
-
 
 
 #endif

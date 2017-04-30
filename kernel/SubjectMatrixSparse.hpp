@@ -20,12 +20,35 @@
 //
 
 
-#ifndef SEAMASS_KERNEL_KERNEL_HPP
-#define SEAMASS_KERNEL_KERNEL_HPP
+#ifndef SEAMASS_KERNEL_SUBJECTMATRIXSPARSE_HPP
+#define SEAMASS_KERNEL_SUBJECTMATRIXSPARSE_HPP
 
 
-#include "intel/kernel.hpp"
+#include "Subject.hpp"
+#include "../io/ObserverMatrixSparse.hpp"
+#include <string>
+#include <vector>
+
+
+class MatrixSparse;
+
+
+class SubjectMatrixSparse : public Subject
+{
+public:
+    static void registerObserver(ObserverMatrixSparse* observer);
+
+    SubjectMatrixSparse();
+    ~SubjectMatrixSparse();
+
+protected:
+    virtual void notice(const std::string &message, const MatrixSparse* a = 0) const;
+    virtual void warning(const std::string &message, const MatrixSparse* a = 0) const;
+    virtual void error(const std::string &message, const MatrixSparse* a = 0) const;
+
+private:
+    static std::vector<ObserverMatrixSparse*> observers_;
+};
 
 
 #endif
-

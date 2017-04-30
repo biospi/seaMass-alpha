@@ -20,31 +20,35 @@
 //
 
 
-#ifndef SEAMASS_CORE_BSPLINE_HPP
-#define SEAMASS_CORE_BSPLINE_HPP
+#ifndef SEAMASS_KERNEL_SUBJECTMATRIX_HPP
+#define SEAMASS_KERNEL_SUBJECTMATRIX_HPP
 
 
+#include "Subject.hpp"
+#include "../io/ObserverMatrix.hpp"
+#include <string>
 #include <vector>
-#include <kernel.hpp>
 
 
-class Bspline
+class Matrix;
+
+
+class SubjectMatrix : public Subject
 {
 public:
-    Bspline(ii order, ii n);
-    double ibasis(double x);
+    static void registerObserver(ObserverMatrix* observer);
 
-    static double m(double x, ii k, ii i, std::vector<fp>& ks);
-    static double m(double x, ii k, ii i);
-    static double im(double x, ii k);
-    static ii factorial(ii n);
+    SubjectMatrix();
+    ~SubjectMatrix();
+
+protected:
+    virtual void notice(const std::string &message, const Matrix* a = 0) const;
+    virtual void warning(const std::string &message, const Matrix* a = 0) const;
+    virtual void error(const std::string &message, const Matrix* a = 0) const;
 
 private:
-    ii order_;
-    ii n_;
-    std::vector<double> lookup_;
+    static std::vector<ObserverMatrix*> observers_;
 };
 
 
 #endif
-

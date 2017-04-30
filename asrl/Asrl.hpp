@@ -30,7 +30,7 @@
 /**
 * SeamassAsrl performs Accelerated Sparse Richardson Lucy optimisation on the input.
 */
-class Asrl
+class Asrl : public Subject
 {
 public:
     static void notice();

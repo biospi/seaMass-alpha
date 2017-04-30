@@ -22,7 +22,7 @@
 #ifndef SMPEAK_PEAKMANAGER_HPP_
 #define SMPEAK_PEAKMANAGER_HPP_
 
-#include "../kernel/VecMat.hpp"
+#include "../io/VecMat.hpp"
 
 
 template

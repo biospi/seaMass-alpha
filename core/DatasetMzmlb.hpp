@@ -31,7 +31,7 @@
 namespace xml = pugi;
 
 
-class DatasetMzmlb: public Dataset
+class DatasetMzmlb: public Dataset, public Subject
 {
 public:
     struct SpectrumMetadata

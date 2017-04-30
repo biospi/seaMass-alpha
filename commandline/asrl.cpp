@@ -22,6 +22,7 @@
 
 #include "../asrl/Asrl.hpp"
 #include "../io/FileNetcdf.hpp"
+#include <kernel.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
 #include <iomanip>
@@ -90,7 +91,7 @@ int main(int argc, const char * const * argv)
         }
 
         // read input file
-        if (getDebugLevel() % 10 >= 1)
+        if (debugLevel % 10 >= 1)
             cout << getTimeStamp() << "Reading " << filePath << " ..." << endl;
 
         FileNetcdf fileIn(filePath);
@@ -133,7 +134,7 @@ int main(int argc, const char * const * argv)
         Asrl asrl(input, lambda, lambdaGroup, !noTaperLambda, tolerance);
         do
         {
-            if (getDebugLevel() >= 10)
+            if (debugLevel >= 10)
             {
                 // write intermediate results
                 Asrl::Output output;
@@ -143,7 +144,7 @@ int main(int argc, const char * const * argv)
                 oss << "." << setfill('0') << setw(4) << asrl.getIteration() << ".sao";
                 string fileNameOut = fileStemOut + oss.str();
 
-                if (getDebugLevel() % 10 >= 1)
+                if (debugLevel % 10 >= 1)
                     cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
 
                 FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
@@ -161,7 +162,7 @@ int main(int argc, const char * const * argv)
 
         string fileNameOut = fileStemOut + ".sao";
 
-        if (getDebugLevel() % 10 >= 1)
+        if (debugLevel % 10 >= 1)
             cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
 
         FileNetcdf fileOut(fileNameOut, NC_NETCDF4);

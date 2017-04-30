@@ -25,10 +25,11 @@
 
 
 #include "types.hpp"
+#include "../SubjectMatrix.hpp"
 #include <iostream>
 
 
-class Matrix
+class Matrix : public SubjectMatrix
 {
 public:
     Matrix();

@@ -21,6 +21,7 @@
 
 
 #include "DatasetMzmlb.hpp"
+#include <kernel.hpp>
 #include <algorithm>
 #include <iomanip>
 #include <map>

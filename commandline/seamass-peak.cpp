@@ -111,7 +111,7 @@ int main(int argc, const char * const * argv)
 
         while (dataset->read(input, output, id))
         {
-            if (getDebugLevel() % 10 == 0)
+            if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
             // load back into Seamass
@@ -176,7 +176,7 @@ int main(int argc, const char * const * argv)
             }
             dataset->write(input, id);
 
-            if (getDebugLevel() % 10 == 0)
+            if (debugLevel % 10 == 0)
                 cout << endl;
         }
 

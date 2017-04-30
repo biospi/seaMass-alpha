@@ -24,6 +24,7 @@
 #include "BasisMatrix.hpp"
 #include "OptimizerSrl.hpp"
 #include "OptimizerAccelerationEve1.hpp"
+#include <kernel.hpp>
 #include <iomanip>
 using namespace std;
 using namespace kernel;

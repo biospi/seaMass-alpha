@@ -22,7 +22,7 @@
 #ifndef SMPEAK_SMDATA_HPP_
 #define SMPEAK_SMDATA_HPP_
 
-#include "../kernel/VecMat.hpp"
+#include "../io/VecMat.hpp"
 
 
 template<typename T=float, typename R=double>

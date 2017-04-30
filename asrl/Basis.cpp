@@ -21,6 +21,7 @@
 
 
 #include "Basis.hpp"
+#include <kernel.hpp>
 using namespace std;
 using namespace kernel;
 

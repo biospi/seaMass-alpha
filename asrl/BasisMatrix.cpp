@@ -21,6 +21,7 @@
 
 
 #include "BasisMatrix.hpp"
+#include <kernel.hpp>
 using namespace std;
 using namespace kernel;
 

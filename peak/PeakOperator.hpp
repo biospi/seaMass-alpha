@@ -22,7 +22,7 @@
 #ifndef SMPEAK_PEAKOPERATOR_HPP_
 #define SMPEAK_PEAKOPERATOR_HPP_
 
-#include "../kernel/VecMat.hpp"
+#include "../io/VecMat.hpp"
 
 
 template<typename T, typename R>

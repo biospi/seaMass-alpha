@@ -22,6 +22,7 @@
 
 #include "../core/DatasetMzmlb.hpp"
 #include "../core/DatasetSeamass.hpp"
+#include <kernel.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
 using namespace std;
@@ -101,7 +102,7 @@ int main(int argc, const char * const * argv)
                 string nullId;
                 datasetSeamass.read(input, nullId);
 
-                if (input.countsIndex.size() > 1 && getDebugLevel() % 10 >= 1 || getDebugLevel() % 10 >= 2)
+                if (input.countsIndex.size() > 1 && debugLevel % 10 >= 1 || debugLevel % 10 >= 2)
                     cout << getTimeStamp() << "  Injected " << smbPathFile << endl;
                 injected++;
             }
@@ -110,7 +111,7 @@ int main(int argc, const char * const * argv)
             datasetMzmlb.write(input, id);
         }
 
-        if (getDebugLevel() % 10 >= 1)
+        if (debugLevel % 10 >= 1)
             cout << getTimeStamp() << " ";
         cout << "Injected " << injected << " smb file" << (injected == 1 ? "" : "s") << endl;
         cout << endl;

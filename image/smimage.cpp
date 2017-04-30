@@ -26,7 +26,7 @@
 #include <boost/program_options.hpp>
 
 #include "../io/FileNetcdf.hpp"
-#include "../kernel/VecMat.hpp"
+#include "../io/VecMat.hpp"
 
 namespace po = boost::program_options;
 

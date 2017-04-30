@@ -24,11 +24,12 @@
 #define SEAMASS_ASRL_BASIS_HPP
 
 
-#include "../kernel/kernel.hpp"
+#include "../kernel/Subject.hpp"
+#include <MatrixSparse.hpp>
 #include <vector>
 
 
-class Basis
+class Basis : public Subject
 {
 public:
     Basis(std::vector<Basis*>& bases, bool transient, int parentIndex = -1);

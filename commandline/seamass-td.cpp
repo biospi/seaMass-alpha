@@ -23,20 +23,16 @@
 #include <limits>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-
-#include "../kernel/kernel.hpp"
-#include "../kernel/VecMat.hpp"
+#include "../io/VecMat.hpp"
 #include "../io/FileNetcdf.hpp"
 #include "../topdown/SeamassTopdown.hpp"
-
-
 using namespace std;
 namespace po = boost::program_options;
 
 
 int main(int argc, char **argv)
 {
-    //SeaMass::notifyObservers();
+    //SeaMass::notice();
 
     string in_file;
     ii maxMass;

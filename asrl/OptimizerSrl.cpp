@@ -21,6 +21,7 @@
 
 
 #include "OptimizerSrl.hpp"
+#include <kernel.hpp>
 #include <iomanip>
 #include <cmath>
 using namespace std;

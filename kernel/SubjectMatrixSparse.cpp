@@ -20,62 +20,53 @@
 //
 
 
-#include "Subject.hpp"
-#include "iostream"
+#include "SubjectMatrixSparse.hpp"
+#include <MatrixSparse.hpp>
+#include <iostream>
 using namespace std;
 
 
-void Subject::registerObserver(Observer *observer)
+void SubjectMatrixSparse::registerObserver(ObserverMatrixSparse *observer)
 {
     observers_.push_back(observer);
 }
 
 
-Subject::Subject()
+SubjectMatrixSparse::SubjectMatrixSparse()
 {
 }
 
 
-Subject::~Subject()
+SubjectMatrixSparse::~SubjectMatrixSparse()
 {
 }
 
 
-void Subject::setDebugLevel(int debugLevel)
+void SubjectMatrixSparse::notice(const string &message, const MatrixSparse* a) const
 {
-    debugLevel_ = debugLevel;
-}
+    Subject::notice(message);
 
-
-int Subject::getDebugLevel()
-{
-    return observers_.size() > 0 ? debugLevel_ : 0;
-}
-
-
-void Subject::notice(const string &message) const
-{
-    int bah = observers_.size();
     for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->notice(message);
+        observers_[i]->notice(message, a);
 }
 
 
-void Subject::warning(const string &message) const
+void SubjectMatrixSparse::warning(const string &message, const MatrixSparse* a) const
 {
+    Subject::warning(message);
+
     for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->warning(message);
+        observers_[i]->warning(message, a);
 }
 
 
-void Subject::error(const string &message) const
+void SubjectMatrixSparse::error(const string &message, const MatrixSparse* a) const
 {
+    Subject::error(message);
+
     for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->error(message);
+        observers_[i]->error(message, a);
 }
 
 
-int Subject::debugLevel_ = 0;
-
-
-std::vector<Observer*> Subject::observers_;
+std::vector<ObserverMatrixSparse*> SubjectMatrixSparse::observers_;

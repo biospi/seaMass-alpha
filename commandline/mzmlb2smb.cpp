@@ -22,6 +22,7 @@
 
 #include "../core/DatasetMzmlb.hpp"
 #include "../core/DatasetSeamass.hpp"
+#include <kernel.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
 using namespace std;

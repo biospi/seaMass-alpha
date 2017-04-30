@@ -27,7 +27,7 @@
 #include "Basis.hpp"
 
 
-class Optimizer
+class Optimizer : public Subject
 {
 public:    
     Optimizer();

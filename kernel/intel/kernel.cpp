@@ -33,13 +33,8 @@ using namespace std;
 namespace kernel {
 
 
-static int debugLevel_ = 0;
-
-
 void initKernel(int debugLevel)
 {
-    debugLevel_ = debugLevel;
-
     // Init IPP library
     ippInit();
 
@@ -149,12 +144,6 @@ void initKernel(int debugLevel)
 #endif
         cout << endl << endl;
     }
-}
-
-
-int getDebugLevel()
-{
-    return debugLevel_;
 }
 
 

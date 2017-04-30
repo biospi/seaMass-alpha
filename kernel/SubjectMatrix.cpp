@@ -20,62 +20,53 @@
 //
 
 
-#include "Subject.hpp"
-#include "iostream"
+#include "SubjectMatrix.hpp"
+#include <Matrix.hpp>
+#include <iostream>
 using namespace std;
 
 
-void Subject::registerObserver(Observer *observer)
+void SubjectMatrix::registerObserver(ObserverMatrix *observer)
 {
     observers_.push_back(observer);
 }
 
 
-Subject::Subject()
+SubjectMatrix::SubjectMatrix()
 {
 }
 
 
-Subject::~Subject()
+SubjectMatrix::~SubjectMatrix()
 {
 }
 
 
-void Subject::setDebugLevel(int debugLevel)
-{
-    debugLevel_ = debugLevel;
-}
-
-
-int Subject::getDebugLevel()
-{
-    return observers_.size() > 0 ? debugLevel_ : 0;
-}
-
-
-void Subject::notice(const string &message) const
-{
-    int bah = observers_.size();
-    for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->notice(message);
-}
-
-
-void Subject::warning(const string &message) const
+void SubjectMatrix::notice(const string &message, const Matrix* a) const
 {
     for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->warning(message);
+        observers_[i]->notice(message, a);
+
+    Subject::notice(message);
 }
 
 
-void Subject::error(const string &message) const
+void SubjectMatrix::warning(const string &message, const Matrix* a) const
 {
     for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->error(message);
+        observers_[i]->warning(message, a);
+
+    Subject::warning(message);
 }
 
 
-int Subject::debugLevel_ = 0;
+void SubjectMatrix::error(const string &message, const Matrix* a) const
+{
+    for (int i = 0; i < int(observers_.size()); i++)
+        observers_[i]->error(message, a);
+
+    Subject::error(message);
+}
 
 
-std::vector<Observer*> Subject::observers_;
+std::vector<ObserverMatrix*> SubjectMatrix::observers_;

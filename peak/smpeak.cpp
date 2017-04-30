@@ -24,7 +24,7 @@
 #include <boost/program_options.hpp>
 #include <pugixml.hpp>
 
-#include "../kernel/VecMat.hpp"
+#include "../io/VecMat.hpp"
 #include "../io/FileNetcdf.hpp"
 #include "../core/DatasetMzmlb.hpp"
 

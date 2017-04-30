@@ -20,31 +20,24 @@
 //
 
 
-#ifndef SEAMASS_CORE_BSPLINE_HPP
-#define SEAMASS_CORE_BSPLINE_HPP
+#ifndef SEAMASS_KERNEL_OBSERVER_HPP
+#define SEAMASS_KERNEL_OBSERVER_HPP
 
 
+#include <string>
 #include <vector>
-#include <kernel.hpp>
 
 
-class Bspline
+class Observer
 {
 public:
-    Bspline(ii order, ii n);
-    double ibasis(double x);
+    Observer();
+    virtual ~Observer();
 
-    static double m(double x, ii k, ii i, std::vector<fp>& ks);
-    static double m(double x, ii k, ii i);
-    static double im(double x, ii k);
-    static ii factorial(ii n);
-
-private:
-    ii order_;
-    ii n_;
-    std::vector<double> lookup_;
+    virtual void notice(const std::string& message);
+    virtual void warning(const std::string& message);
+    virtual void error(const std::string& message);
 };
 
 
 #endif
-

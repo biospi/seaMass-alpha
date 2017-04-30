@@ -20,12 +20,13 @@
 //
 
 
+#include "../kernel/Subject.hpp"
+#include "../core/DatasetSeamass.hpp"
+#include <kernel.hpp>
 #include <limits>
 #include <iomanip>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include "../kernel/Subject.hpp"
-#include "../core/DatasetSeamass.hpp"
 using namespace std;
 using namespace kernel;
 namespace po = boost::program_options;
@@ -89,11 +90,17 @@ int main(int argc, const char * const * argv)
         cout << endl;
         initKernel(debugLevel);
 
+        Subject::setDebugLevel(debugLevel);
         Observer* observer = 0;
-        if (debugLevel % 10 >= 2)
+        if (debugLevel % 10 >= 1)
+            Subject::registerObserver(observer = new Observer());
+
+        ObserverMatrix* observerMatrix = 0;
+        ObserverMatrixSparse* observerMatrixSparse = 0;
+        if (debugLevel / 10 >= 1)
         {
-            observer = new Observer();
-            MatrixSparse::registerObserver(observer);
+            SubjectMatrix::registerObserver(observerMatrix = new ObserverMatrix());
+            SubjectMatrixSparse::registerObserver(observerMatrixSparse = new ObserverMatrixSparse());
         }
 
         if(vm.count("help") || !vm.count("file"))
@@ -126,14 +133,14 @@ int main(int argc, const char * const * argv)
 
         while (dataset->read(input, id))
         {
-            if (getDebugLevel() % 10 == 0)
+            if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
             Seamass seamassCore(input, scale, shrinkage, tolerance);
 
             do
             {
-                if (getDebugLevel() >= 10)
+                if (debugLevel >= 10)
                 {
                     Seamass::Output output;
                     seamassCore.getOutput(output);
@@ -151,12 +158,14 @@ int main(int argc, const char * const * argv)
             seamassCore.getOutput(output);
             dataset->write(input, output, id);
 
-            if (getDebugLevel() % 10 == 0)
+            if (debugLevel % 10 == 0)
                 cout << endl;
         }
 
         delete dataset;
         if (observer) delete observer;
+        if (observerMatrix) delete observerMatrix;
+        if (observerMatrixSparse) delete observerMatrixSparse;
         cout << endl;
     }
 #ifdef NDEBUG

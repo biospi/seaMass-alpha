@@ -136,11 +136,11 @@ fp* MatrixSparse::vs() const
 // SEEMS OPTIMAL
 void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
 {
-    if (areObservers())
+    if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << "       " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ...";
-        notifyObservers(oss.str());
+        oss << getTimeStamp() << "       " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ...";
+        notice(oss.str());
     }
 
     if (transpose)
@@ -186,11 +186,11 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
         }
     }
 
-    if (areObservers())
+    if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << "       ... X" << *this;
-        notifyObservers(oss.str());
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
     }
 }
 
@@ -199,7 +199,11 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
 void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colind, const fp* acoo)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       COO := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       COO := ...";
+        notice(oss.str());
+    }
 
     init(m, n);
 
@@ -226,9 +230,13 @@ void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colin
         isOwned_ = false;
         isSorted_ = true;
     }
-    
+
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }        
 }
 
 
@@ -286,7 +294,11 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
     if (as.size() > 0)
     {
         if (getDebugLevel() % 10 >= 4)
-            cout << getTimeStamp() << "       " << "concatenate(A" << as.front() << ", " << as.size() << ")" << " := ..." << endl;
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "       " << "concatenate(A" << as.front() << ", " << as.size() << ")" << " := ...";
+            notice(oss.str());
+        }
 
         for (size_t k = 0; k < as.size(); k++)
             assert(as[k].m_ == 1);
@@ -336,7 +348,11 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
         }
 
         if (getDebugLevel() % 10 >= 4)
-            cout << getTimeStamp() << "       ... X" << *this << endl;
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "       ... X" << *this;
+            notice(oss.str(), this);
+        }
     }
 }
 
@@ -345,7 +361,11 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
 void MatrixSparse::copySubset(const MatrixSparse &a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       " << a << " within " << *this << " := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << a << " within " << *this << " := ...";
+        notice(oss.str());
+    }
 
     assert(m_ == a.m_);
     assert(n_ == a.n_);
@@ -377,14 +397,18 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
                 //    count++;
              }
         }
-        //if (count > 0) cout << endl << count << " missing." << endl;
+        //if (count > 0) oss << count << " missing.";
         //if (count > 0) exit(0);
 
         isSorted_ = true;
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
@@ -392,7 +416,11 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
 void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       " << a << " within " << b << " := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << a << " within " << b << " := ...";
+        notice(oss.str());
+    }
 
     assert(a.m_ == b.m_);
     assert(a.n_ == b.n_);
@@ -433,7 +461,7 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
                 //    count++;
             }
         }
-        //if (count > 0) cout << endl << count << " missing." << endl;
+        //if (count > 0) oss << count << " missing.";
         //if (count > 0) exit(0);
 
 
@@ -445,7 +473,11 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
@@ -453,9 +485,11 @@ ii MatrixSparse::copyPrune(const MatrixSparse &a, fp threshold)
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       (A" << a << " > ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << threshold << ") ? A : 0.0 := ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       (A" << a << " > ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << threshold << ") ? A : 0.0 := ...";
+        notice(oss.str());
     }
 
     init(a.m_, a.n_);
@@ -508,7 +542,11 @@ ii MatrixSparse::copyPrune(const MatrixSparse &a, fp threshold)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 
     return nnzCells;
 }
@@ -519,9 +557,11 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       pruneRows(" << a << ",";
-        cout << (bRows ? "rows(" : "columns(") << b << ")) where ";
-        cout << (bRows ? "nRows" : "nColumns") << " to prune > " << fixed << setprecision(1) << threshold * 100.0 << "% := ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       pruneRows(" << a << ",";
+        oss << (bRows ? "rows(" : "columns(") << b << ")) where ";
+        oss << (bRows ? "nRows" : "nColumns") << " to prune > " << fixed << setprecision(1) << threshold * 100.0 << "% := ...";
+        notice(oss.str());
     }
 
     assert(bRows ? a.m_ == b.m_ : a.m_ == b.n_);
@@ -535,7 +575,7 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
         for (ii i = 0; i < m_; i++)
             if (a.is1_[i] - a.is0_[i] > 0)
                 aNnzRows++;
-        //cout << "aNnzRows=" << aNnzRows << endl;
+        //oss << "aNnzRows=" << aNnzRows;
 
         vector<ii> rowOrColNnzs(m_, 0);
         if (bRows)
@@ -553,7 +593,7 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
         for (ii i = 0; i < m_; i++)
             if (rowOrColNnzs[i] > 0)
                 bNnzRowsOrCols++;
-        //cout << "bNnzRowsOrCols=" << bNnzRowsOrCols << endl;
+        //oss << "bNnzRowsOrCols=" << bNnzRowsOrCols;
 
         if (bNnzRowsOrCols / (fp) aNnzRows < threshold)
         {
@@ -583,7 +623,11 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << " (" << rowsPruned << " rows pruned)" << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this << " (" << rowsPruned << " rows pruned)";
+        notice(oss.str(), this);
+    }
 
     return rowsPruned;
 }
@@ -592,7 +636,11 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
 void MatrixSparse::exportTo(ii* rowind, ii* colind, fp* acoo) const
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << " := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " := ...";
+        notice(oss.str());
+    }
 
     ii length = nnz();
     if (length > 0)
@@ -603,14 +651,22 @@ void MatrixSparse::exportTo(ii* rowind, ii* colind, fp* acoo) const
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... COO" << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... COO";
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::exportTo(fp *vs) const
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << " := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " := ...";
+        notice(oss.str());
+    }
 
     if (nnz() > 0)
     {
@@ -625,7 +681,11 @@ void MatrixSparse::exportTo(fp *vs) const
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... dense" << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... dense";
+        notice(oss.str(), this);
+    }
 }
 
 
@@ -633,10 +693,12 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       " << alpha << " * " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " + B" << b;
-        cout << " := ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << alpha << " * " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " + B" << b;
+        oss << " := ...";
+        notice(oss.str());
     }
-    
+
     assert((transposeA ? a.n() : a.m()) == b.m());
     assert((transposeA ? a.m() : a.n()) == b.n());
 
@@ -666,9 +728,13 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
         isOwned_ = false;
         isSorted_ = true;
     }
-    
+
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
@@ -676,9 +742,11 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
-        if (accumulate) cout << " + X" << *this;
-        cout << " := ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
+        if (accumulate) oss << " + X" << *this;
+        oss << " := ...";
+        notice(oss.str());
     }
 
     assert((transposeA ? a.m() : a.n()) == b.m());
@@ -810,9 +878,11 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       ... X" << *this;
-        if (denseOutput) cout << " (DENSE)";
-        cout << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        if (denseOutput) oss << " (DENSE)";
+        oss;
+        notice(oss.str(), this);
     }
 }
 
@@ -822,23 +892,33 @@ void MatrixSparse::mul(fp beta)
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       X" << *this << " * ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << beta << " := ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " * ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << beta << " := ...";
+        notice(oss.str());
     }
 
     if (is1_)
         ippsMulC_32f_I(beta, vs_, is1_[m_ - 1]);
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::mul(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << " * A := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " * A := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
     {
@@ -855,27 +935,43 @@ void MatrixSparse::mul(const MatrixSparse& a)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
- }
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
+}
 
 
 void MatrixSparse::sqr()
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       (X" << *this << ")^2 := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       (X" << *this << ")^2 := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
         vsSqr(is1_[m_ - 1], vs_, vs_);
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::sqr(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       (X" << a << ")^2 := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       (X" << a << ")^2 := ...";
+        notice(oss.str());
+    }
 
     init(a.m_, a.n_);
 
@@ -898,57 +994,87 @@ void MatrixSparse::sqr(const MatrixSparse& a)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::sqrt()
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       sqrt(X" << *this << ") := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       sqrt(X" << *this << ") := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
         vsSqrt(is1_[m_ - 1], vs_, vs_);
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
- }
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
+}
 
 
 void MatrixSparse::pow(fp power)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << "^" << power << " := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << "^" << power << " := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
         vsPowx(is1_[m_ - 1], vs_, power, vs_);
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
-}
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
+ }
 
 
 void MatrixSparse::addNonzeros(fp beta)
 {
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       X" << *this << " + ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << beta << " := ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " + ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << beta << " := ...";
+        notice(oss.str());
     }
 
     if (is1_)
         ippsAddC_32f_I(beta, vs_, is1_[m_ - 1]);
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::addNonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " / A := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
     {
@@ -965,14 +1091,23 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
-void MatrixSparse::lnNonzeros()
+
+    void MatrixSparse::lnNonzeros()
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ln(X" << *this << ") := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ln(X" << *this << ") := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
     {
@@ -985,14 +1120,22 @@ void MatrixSparse::lnNonzeros()
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::lnNonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ln(X" << a << ") := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ln(X" << a << ") := ...";
+        notice(oss.str());
+    }
 
     init(a.m_, a.n_);
 
@@ -1020,27 +1163,43 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::expNonzeros()
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       exp(X" << *this << ") := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       exp(X" << *this << ") := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
         vsExp(is1_[m_ - 1], vs_, vs_);
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::divNonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << " / A" << a << " := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " / A" << a << " := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
     {
@@ -1057,14 +1216,22 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a)
     }
 
     if (getDebugLevel() % 10 >= 4)
-         cout << getTimeStamp() << "       ... X" << *this << endl;
- }
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
+}
 
 
 void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       A" << a << " / B := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       A" << a << " / B := ...";
+        notice(oss.str());
+    }
 
     init(a.m_, a.n_);
 
@@ -1096,14 +1263,22 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::div2Nonzeros(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
-         cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " / A := ...";
+        notice(oss.str());
+    }
 
     if (is1_)
     {
@@ -1120,14 +1295,22 @@ void MatrixSparse::div2Nonzeros(const MatrixSparse& a)
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 void MatrixSparse::div2Nonzeros(const Matrix& a)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       X" << *this << " / A := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       X" << *this << " / A := ...";
+        notice(oss.str());
+    }
 
     sort();
     assert(nnz() == size());
@@ -1138,14 +1321,22 @@ void MatrixSparse::div2Nonzeros(const Matrix& a)
         vsDiv(is1_[m_ - 1], a.vs(), vs_, vs_);
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 
 fp MatrixSparse::sum() const
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       sum(X" << *this << ") := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       sum(X" << *this << ") := ...";
+        notice(oss.str());
+    }
 
     fp sum = 0.0;
     if (is1_)
@@ -1153,9 +1344,11 @@ fp MatrixSparse::sum() const
 
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       ... ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << sum << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << sum;
+        notice(oss.str(), this);
     }
 
     return sum;
@@ -1164,8 +1357,12 @@ fp MatrixSparse::sum() const
 
 fp MatrixSparse::sumSqrs() const
 {
-    if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       sum((X" << *this << ")^2) := ..." << endl;
+   if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       sum((X" << *this << ")^2) := ...";
+        notice(oss.str());
+    }
 
     fp sum = 0.0;
     if (is1_)
@@ -1176,9 +1373,11 @@ fp MatrixSparse::sumSqrs() const
 
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       ... ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << sum << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << sum;
+        notice(oss.str(), this);
     }
 
     return sum;
@@ -1188,7 +1387,11 @@ fp MatrixSparse::sumSqrs() const
 fp MatrixSparse::sumSqrDiffsNonzeros(const MatrixSparse& a) const
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       sum((X" << *this << " - A)^2) := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       sum((X" << *this << " - A)^2) := ..." << *this;
+        notice(oss.str());
+    }
 
     fp sum = 0.0;
     if (is1_)
@@ -1208,9 +1411,11 @@ fp MatrixSparse::sumSqrDiffsNonzeros(const MatrixSparse& a) const
 
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       ... ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << sum << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << sum;
+        notice(oss.str(), this);
     }
     
     return sum;
@@ -1250,7 +1455,11 @@ void MatrixSparse::sort() const
             if (!isSorted_)
             {
                 if (getDebugLevel() % 10 >= 4)
-                    cout << getTimeStamp() << "       sort(X" << *this << ") := ..." << endl;
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << "       sort(X" << *this << ") := ...";
+                    notice(oss.str());
+                }
 
                 double sortStart = getElapsedTime();
                 {
@@ -1288,7 +1497,11 @@ void MatrixSparse::sort() const
                 _isSorted_ = true;
 
                 if (getDebugLevel() % 10 >= 4)
-                    cout << getTimeStamp() << "       ... X" << *this << endl;
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << "       ... X" << *this;
+                    notice(oss.str(), this);
+                }
             }
         }
     }
@@ -1309,7 +1522,7 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
     {
         os << "[" << a.m_ << "," << a.n_ << "]:" << a.nnz();
         
-        if (getDebugLevel() % 10 >= 4)
+        if (MatrixSparse::getDebugLevel()% 10 >= 4)
         {
             os << "(" << a.nnzActual() << ")";
         }
@@ -1326,7 +1539,11 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
 MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row) : isOwned_(false)
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       A" << a << "[" << row << "] := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       A" << a << "[" << row << "] := ...";
+        notice(oss.str());
+    }
 
     assert(row >= 0 && row < a.m_);
 
@@ -1355,7 +1572,11 @@ MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row) : isOwned_(fal
     }
 
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       ... X" << *this << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        notice(oss.str(), this);
+    }
 }
 
 

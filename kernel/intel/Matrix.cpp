@@ -23,7 +23,7 @@
 #include "Matrix.hpp"
 #include "kernel.hpp"
 #include <iomanip>
-#include <cstring>
+#include <sstream>
 #include <ippcore.h>
 #include <ipps.h>
 using namespace std;
@@ -78,7 +78,12 @@ void Matrix::copy(ii m, ii n, const fp *vs)
 fp Matrix::sum() const
 {
     if (getDebugLevel() % 10 >= 4)
-        cout << getTimeStamp() << "       sum(X" << *this << ") := ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       sum(X" << *this << ") := ...";
+        notice(oss.str());
+    }
+
 
     fp sum = 0.0;
     for (ii i = 0; i < m_; i++)
@@ -90,9 +95,11 @@ fp Matrix::sum() const
 
     if (getDebugLevel() % 10 >= 4)
     {
-        cout << getTimeStamp() << "       ... ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(8) << sum << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << sum;
+        notice(oss.str(), this);
     }
 
     return sum;

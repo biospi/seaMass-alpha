@@ -20,37 +20,33 @@
 //
 
 
-#ifndef SEAMASS_KERNEL_CALLBACK_HPP
-#define SEAMASS_KERNEL_CALLBACK_HPP
+#ifndef SEAMASS_KERNEL_SUBJECT_HPP
+#define SEAMASS_KERNEL_SUBJECT_HPP
 
 
+#include "Observer.hpp"
 #include <string>
 #include <vector>
-
-
-class Observer
-{
-public:
-    Observer();
-    virtual ~Observer();
-
-    virtual void notify(const std::string& message);
-};
 
 
 class Subject
 {
 public:
+    static void setDebugLevel(int debugLevel);
     static void registerObserver(Observer* observer);
 
     Subject();
     ~Subject();
 
 protected:
-    bool areObservers() const;
-    virtual void notifyObservers(const std::string &message) const;
+    static int getDebugLevel();
 
-private:
+    virtual void notice(const std::string &message) const;
+    virtual void warning(const std::string &message) const;
+    virtual void error(const std::string &message) const;
+
+protected:
+    static int debugLevel_;
     static std::vector<Observer*> observers_;
 };
 
