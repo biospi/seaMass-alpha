@@ -24,6 +24,7 @@
 #include <kernel.hpp>
 #include <algorithm>
 #include <iomanip>
+#include <sstream>
 using namespace std;
 using namespace kernel;
 
@@ -72,6 +73,13 @@ fp OptimizerAccelerationEve1::step()
             {
                 if (!getBases()[l]->isTransient())
                 {
+                    if (getDebugLevel() % 10 >= 3)
+                    {
+                        ostringstream oss;
+                        oss << getTimeStamp() << "     " << l << " OptimizerAccelerationEve1::acceleration0";
+                        info(oss.str());
+                    }
+
                     // no extrapolation this iteration, just save 'xs'
                     for (ii k = 0; k < ii(xs()[l].size()); k++)
                         y0s_[l][k].copy(xs()[l][k]);
@@ -86,6 +94,12 @@ fp OptimizerAccelerationEve1::step()
                 {
                     for (ii k = 0; k < ii(xs()[l].size()); k++)
                     {
+                        if (getDebugLevel() % 10 >= 3)
+                        {
+                            ostringstream oss;
+                            oss << getTimeStamp() << "     " << l << " OptimizerAccelerationEve1::acceleration1";
+                            info(oss.str());
+                        }
                         // can now calcaulte first gradient vector 'u0s'
                         MatrixSparse t;
                         t.copySubset(y0s_[l][k], xs()[l][k]);
@@ -107,6 +121,13 @@ fp OptimizerAccelerationEve1::step()
             {
                 if (!getBases()[l]->isTransient())
                 {
+                    if (getDebugLevel() % 10 >= 3)
+                    {
+                        ostringstream oss;
+                        oss << getTimeStamp() << "     " << l << " OptimizerAccelerationEve1::accelerationCalcA";
+                        info(oss.str());
+                    }
+
                     for (ii k = 0; k < ii(xs()[l].size()); k++)
                     {
                         // using old gradient vector 'u0s'
@@ -140,6 +161,13 @@ fp OptimizerAccelerationEve1::step()
             {
                 if (!getBases()[l]->isTransient())
                 {
+                    if (getDebugLevel() % 10 >= 3)
+                    {
+                        ostringstream oss;
+                        oss << getTimeStamp() << "     " << l << " OptimizerAccelerationEve1::acceleration2+";
+                        info(oss.str());
+                    }
+
                     for (ii k = 0; k < ii(xs()[l].size()); k++)
                     {
                         // extrapolate 'xs' and save for next iteration as 'y0s'

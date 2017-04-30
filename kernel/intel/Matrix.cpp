@@ -81,7 +81,7 @@ fp Matrix::sum() const
     {
         ostringstream oss;
         oss << getTimeStamp() << "       sum(X" << *this << ") := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
 
@@ -99,7 +99,7 @@ fp Matrix::sum() const
         oss << getTimeStamp() << "       ... ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << sum;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 
     return sum;

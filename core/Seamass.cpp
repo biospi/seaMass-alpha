@@ -27,6 +27,7 @@
 #include "../asrl/OptimizerAccelerationEve1.hpp"
 #include <kernel.hpp>
 #include <iomanip>
+#include <sstream>
 using namespace std;
 using namespace kernel;
 
@@ -84,7 +85,9 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     // Create our tree of bases
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "  Initialising overcomplete tree of basis functions ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "  Initialising overcomplete tree of basis functions ...";
+        info(oss.str());
     }
     if (input.countsIndex.size() <= 2)
     {
@@ -158,9 +161,11 @@ bool Seamass::step()
             }
         }
 
-        cout << getTimeStamp();
-        cout << "   it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
-        cout << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_ << endl;
+        ostringstream oss;
+        oss << getTimeStamp();
+        oss << "   it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
+        oss << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_;
+        info(oss.str());
     }
 
     iteration_++;
@@ -174,18 +179,19 @@ bool Seamass::step()
             if (!static_cast<BasisBspline *>(bases_[j])->isTransient())
             {
                 for (size_t k = 0; k < optimizer_->xs()[j].size(); k++)
-                {
-                    nnz += optimizer_->xs()[j][k].nnz();
-                }
-            }
+                     nnz += optimizer_->xs()[j][k].nnz();
+             }
         }
-        cout << getTimeStamp();
-        cout << "   it: " << setw(5) << iteration_;
-        cout << " shrink: ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(4) << setw(6) << lambda_;
-        cout << " nnz: " << setw(10) << nnz;
-        cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
+
+        ostringstream oss;
+        oss << getTimeStamp();
+        oss << "   it: " << setw(5) << iteration_;
+        oss << " shrink: ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(4) << setw(6) << lambda_;
+        oss << " nnz: " << setw(10) << nnz;
+        oss << " grad: " << fixed << setprecision(8) << setw(10) << grad;
+        info(oss.str());
     }
 
     if (grad <= tolerance_)
@@ -209,7 +215,9 @@ bool Seamass::step()
     
     if (grad != grad)
     {
-        cout << "ARGGH!" << endl;
+        ostringstream oss;
+        oss << "BUG: convergence failed!";
+        error(oss.str());
         return false;
     }
     
@@ -227,7 +235,9 @@ void Seamass::getOutput(Output& output) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "  Getting output ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "  Getting output ...";
+        info(oss.str());
     }
 
     output = Output();
@@ -293,7 +303,11 @@ void Seamass::getOutput(Output& output) const
 void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
 {
     if (getDebugLevel() % 10 >= 1)
-        cout << getTimeStamp() << "  Deriving restored bin counts ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Deriving restored bin counts ..." << endl;
+        info(oss.str());
+    }
 
     vector<MatrixSparse> f;
     {
@@ -307,7 +321,11 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
 void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
 {
     if (getDebugLevel() % 10 >= 1)
-        cout << getTimeStamp() << "  Deriving control points ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Deriving control points ..." << endl;
+        info(oss.str());
+    }
 
     const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
 
@@ -329,7 +347,11 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
 void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints) const
 {
     if (getDebugLevel() % 10 >= 1)
-        cout << getTimeStamp() << "  Deriving 1D control points ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Deriving 1D control points ..." << endl;
+        info(oss.str());
+    }
 
     const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[0])->getGridInfo();
 

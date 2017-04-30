@@ -44,7 +44,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
             oss << "   BasisBsplineMz";
         if (isTransient()) oss << " (transient)";
         oss << " ...";
-        notice(oss.str());
+        info(oss.str());
     }
     
     std::vector<li> bci;
@@ -91,7 +91,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         {
             ostringstream oss;
             oss << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << (int) scale;
-            notice(oss.str());
+            info(oss.str());
         }
     }
 
@@ -110,13 +110,13 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         oss << getTimeStamp() << "     range=" << fixed << setprecision(3) << mzMin << ":";
         oss.unsetf(std::ios::floatfield);
         oss << mzDiff << ":" << fixed << mzMax << "Th";
-        notice(oss.str());
+        info(oss.str());
         ostringstream oss2;
         oss2 << getTimeStamp() << "     scale=" << fixed << setprecision(1) << (int) scale << " (" << bpi << " bases per 1.0033548378Th)";
-        notice(oss2.str());
+        info(oss2.str());
         ostringstream oss3;
         oss3 << getTimeStamp() << "     " << gridInfo();
-        notice(oss3.str());
+        info(oss3.str());
     }
    
     aTs_.resize(bei.size() - 1);
@@ -170,7 +170,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
             {
                 ostringstream oss;
                 oss << getTimeStamp() << "     " << setw(1 + (int)(log10((float)bci.size() - 1))) << (k + 1) << "/" << (bci.size() - 1);
-                notice(oss.str());
+                info(oss.str());
             }
         }
     }
@@ -191,11 +191,11 @@ BasisBsplineMz::~BasisBsplineMz()
 
 void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
         oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::synthesise";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (!f.size())
@@ -213,22 +213,22 @@ void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSpar
             aTs_[k].swap(t);
             as_[k].copy(aTs_[k], true);
 
-            if (getDebugLevel() % 10 >= 2)
+            if (getDebugLevel() % 10 >= 3)
             {
                 ostringstream oss;
                 oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
-                notice(oss.str());
+                info(oss.str());
             }
         }
 
         // synthesise with dense result
         f[k].matmul(false, row, aTs_[k], accumulate, true);
 
-        if (getDebugLevel() % 10 >= 2)
+        if (getDebugLevel() % 10 >= 3)
         {
             ostringstream oss;
             oss << getTimeStamp() << "       " << f[k];
-            notice(oss.str());
+            info(oss.str());
         }
     }
 }
@@ -236,11 +236,11 @@ void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSpar
 
 void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
         oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::analyse";
-        notice(oss.str());
+        info(oss.str());
     }
 
     vector<MatrixSparse> xEs(aTs_.size());
@@ -261,11 +261,11 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
     xE.resize(1);
     xE[0].copyConcatenate(xEs);
 
-    if (getDebugLevel() % 10 >= 2)
+    if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       " << xE[0];
-        notice(oss.str());
+        info(oss.str());
     }
 }
 

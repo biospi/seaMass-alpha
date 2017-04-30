@@ -549,10 +549,8 @@ int FileNetcdf::write_VecNC(const string dataSet, const vector<T> &vec, nc_type 
     if(deflate_level > 0 && deflate_level < 10)
         deflate = 1;
 
-    ostringstream oss;
-    oss << dataSet << "_col";
     // Define the dimensions.
-    if((retval_ = nc_def_dim(grpid, oss.str().c_str(), N, &dimid)))
+    if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
         err(retval_);
 
     // Define the variable.

@@ -42,19 +42,29 @@ SubjectMatrix::~SubjectMatrix()
 }
 
 
-void SubjectMatrix::notice(const string &message, const Matrix* a) const
+void SubjectMatrix::info(const string &message, const Matrix *a) const
 {
+    int debugLevel = getDebugLevel();
+    setDebugLevel(0);
+
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->notice(message, a);
 
-    Subject::notice(message);
+    setDebugLevel(debugLevel);
+
+    Subject::info(message);
 }
 
 
 void SubjectMatrix::warning(const string &message, const Matrix* a) const
 {
+    int debugLevel = getDebugLevel();
+    setDebugLevel(0);
+
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->warning(message, a);
+
+    setDebugLevel(debugLevel);
 
     Subject::warning(message);
 }
@@ -62,8 +72,13 @@ void SubjectMatrix::warning(const string &message, const Matrix* a) const
 
 void SubjectMatrix::error(const string &message, const Matrix* a) const
 {
+    int debugLevel = getDebugLevel();
+    setDebugLevel(0);
+
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->error(message, a);
+
+    setDebugLevel(debugLevel);
 
     Subject::error(message);
 }

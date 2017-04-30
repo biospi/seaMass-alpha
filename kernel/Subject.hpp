@@ -41,11 +41,11 @@ public:
 protected:
     static int getDebugLevel();
 
-    virtual void notice(const std::string &message) const;
+    virtual void info(const std::string &message) const;
     virtual void warning(const std::string &message) const;
     virtual void error(const std::string &message) const;
 
-protected:
+private:
     static int debugLevel_;
     static std::vector<Observer*> observers_;
 };

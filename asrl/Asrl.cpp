@@ -26,6 +26,7 @@
 #include "OptimizerAccelerationEve1.hpp"
 #include <kernel.hpp>
 #include <iomanip>
+#include <sstream>
 using namespace std;
 using namespace kernel;
 
@@ -42,7 +43,9 @@ Asrl::Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tole
 {
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "  Initialising basis functions ..." << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "  Initialising basis functions ...";
+        info(oss.str());
     }
 
     new BasisMatrix(bases_, input.aT, input.gT.size() > 0 ? &input.gT : 0, false);
@@ -81,9 +84,11 @@ bool Asrl::step()
             }
         }
 
-        cout << getTimeStamp();
-        cout << "   it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
-        cout << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_ << endl;
+        ostringstream oss;
+        oss << getTimeStamp();
+        oss << "   it:     0 nx: " << setw(10) << nx << " nnz: " << setw(10) << nnz;
+        oss << " tol:  " << fixed << setprecision(8) << setw(10) << tolerance_;
+        info(oss.str());
     }
 
     iteration_++;
@@ -97,18 +102,19 @@ bool Asrl::step()
             if (!static_cast<Basis *>(bases_[j])->isTransient())
             {
                 for (size_t k = 0; k < optimizer_->xs()[j].size(); k++)
-                {
                     nnz += optimizer_->xs()[j][k].nnz();
-                }
             }
         }
-        cout << getTimeStamp();
-        cout << "   it: " << setw(5) << iteration_;
-        cout << " shrink: ";
-        cout.unsetf(ios::floatfield);
-        cout << setprecision(4) << setw(6) << lambda_;
-        cout << " nnz: " << setw(10) << nnz;
-        cout << " grad: " << fixed << setprecision(8) << setw(10) << grad << endl;
+
+        ostringstream oss;
+        oss << getTimeStamp();
+        oss << "   it: " << setw(5) << iteration_;
+        oss << " shrink: ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(4) << setw(6) << lambda_;
+        oss << " nnz: " << setw(10) << nnz;
+        oss << " grad: " << fixed << setprecision(8) << setw(10) << grad;
+        info(oss.str());
     }
 
     if (grad <= tolerance_)
@@ -158,7 +164,11 @@ ii Asrl::getIteration() const
 void Asrl::getOutput(Output& output) const
 {
     if (getDebugLevel() % 10 >= 1)
-         cout << getTimeStamp() << "  Getting output ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Getting output ...";
+        info(oss.str());
+    }
 
     output.xT.resize(optimizer_->xs()[0].size());
     for (ii i = 0; i < ii(output.xT.size()); i++)

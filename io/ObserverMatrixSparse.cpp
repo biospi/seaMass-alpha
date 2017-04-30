@@ -49,13 +49,13 @@ void ObserverMatrixSparse::notice(const std::string& message, const MatrixSparse
         oss << setw(8) << setfill('0') << id << ".coo";
         FileNetcdf file(oss.str(), NC_NETCDF4);
 
+        file.write(*a, "a");
 
-        vector<fp> test(a->size());
-        a->exportTo(test.data());
-        file.write_VecNC("test", test, NC_FLOAT);
-
-        //file.write(*a, "a");
-        file.close();
+        for (ii nz = 0; nz < a->nnz(); nz++)
+        {
+            if (a->vs()[nz] != a->vs()[nz])
+                throw runtime_error("EEK nan!");
+        }
     }
 }
 

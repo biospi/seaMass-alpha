@@ -87,7 +87,20 @@ int main(int argc, const char * const * argv)
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
         initKernel(debugLevel);
-        
+
+        Subject::setDebugLevel(debugLevel);
+        Observer* observer = 0;
+        if (debugLevel % 10 >= 1)
+            Subject::registerObserver(observer = new Observer());
+
+        ObserverMatrix* observerMatrix = 0;
+        ObserverMatrixSparse* observerMatrixSparse = 0;
+        if (debugLevel / 10 >= 1)
+        {
+            SubjectMatrix::registerObserver(observerMatrix = new ObserverMatrix());
+            SubjectMatrixSparse::registerObserver(observerMatrixSparse = new ObserverMatrixSparse());
+        }
+
         if (vm.count("help") || !vm.count("file"))
         {
             cout << desc << endl;

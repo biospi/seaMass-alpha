@@ -22,7 +22,7 @@
 
 #include "BasisBsplineScale.hpp"
 #include "Bspline.hpp"
-#include <iomanip>
+#include <sstream>
 #include <cmath>
 using namespace std;
 using namespace kernel;
@@ -34,9 +34,11 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
 {
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale";
-        if (isTransient()) cout << " (transient)";
-        cout << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale";
+        if (isTransient()) oss << " (transient)";
+        oss;
+        info(oss.str());
     }
 
     const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
@@ -47,9 +49,15 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "     parent=" << getParentIndex() << endl;
-        cout << getTimeStamp() << "     dimension=" << (int) dimension_ << endl;
-        cout << getTimeStamp() << "     " << gridInfo() << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "     parent=" << getParentIndex();
+        info(oss.str());
+        ostringstream oss2;
+        oss2 << getTimeStamp() << "     dimension=" << (int) dimension_;
+        info(oss2.str());
+        ostringstream oss3;
+        oss3 << getTimeStamp() << "     " << gridInfo();
+        info(oss3.str());
     }
     
     ii stride = 1;
@@ -107,7 +115,11 @@ BasisBsplineScale::
 synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesise" << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::synthesise";
+        info(oss.str());
+    }
 
     if (!f.size())
         f.resize(1);
@@ -123,7 +135,11 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
             a_.copy(aT_, true);
 
         if (getDebugLevel() % 10 >= 3)
-            cout << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions" << endl;
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
+            info(oss.str());
+        }
     }
 
     // synthesise
@@ -133,32 +149,40 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
         f[0].matmul(true, aT_, x[0], accumulate);
 
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "       " << f[0] << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << f[0];
+        info(oss.str());
+    }
 }
 
 
 void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analyse" << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineScale::analyse";
+        info(oss.str());
+    }
 
     if (!xE.size())
         xE.resize(1);
-    
+
     if (sqrA)
     {
         if (dimension_ == 0)
         {
             MatrixSparse t;
             t.sqr(a_);
-            
+
             xE[0].matmul(false, fE[0], t, false);
         }
         else
         {
             MatrixSparse t;
             t.sqr(aT_);
-            
+
             xE[0].matmul(false, t, fE[0], false);
         }
     }
@@ -169,9 +193,13 @@ void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, const vector<MatrixSpa
         else
             xE[0].matmul(false, aT_, fE[0], false);
     }
-    
+
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "       " << xE[0] << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << xE[0];
+        info(oss.str());
+    }
 }
 
 

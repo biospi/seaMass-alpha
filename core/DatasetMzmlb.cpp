@@ -34,9 +34,11 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
     if (filePathIn.empty())
         throw runtime_error("BUG: mzMLb/mzMLv file cannot be written without an mzMLb/mzMLv to read from.");
 
+    ostringstream oss;
     if (getDebugLevel() % 10 >= 1)
-        cout << getTimeStamp();
-    cout << "Querying " << filePathIn << " ..." << endl;
+        oss << getTimeStamp();
+    oss << "Querying " << filePathIn << " ...";
+    info(oss.str());
 
     fileIn_.open(filePathIn);
 
@@ -91,7 +93,12 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
             if(!detectorTypes.empty())
             {
                 if (getDebugLevel() % 10 >= 1)
-                    cout << getTimeStamp() << " Detector: electron multiplier (ion count)" << endl;
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << " Detector: electron multiplier (ion count)";
+                    info(oss.str());
+                }
+
                 if (dataType == SpectrumMetadata::DataType::Unknown || dataType == SpectrumMetadata::DataType::IonCount)
                     dataType = SpectrumMetadata::DataType::IonCount;
                 else
@@ -102,7 +109,12 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
             if(!detectorTypes.empty())
             {
                 if (getDebugLevel() % 10 >= 1)
-                    cout << getTimeStamp() << " Detector: photomultiplier (ion count)" << endl;
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << " Detector: photomultiplier (ion count)";
+                    info(oss.str());
+                }
+
                 if (dataType == SpectrumMetadata::DataType::Unknown || dataType == SpectrumMetadata::DataType::IonCount)
                     dataType = SpectrumMetadata::DataType::IonCount;
                 else
@@ -113,7 +125,12 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
             if(!detectorTypes.empty())
             {
                 if (getDebugLevel() % 10 >= 1)
-                    cout << getTimeStamp() << " Detector: inductive (ion current)" << endl;
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << " Detector: inductive (ion current)";
+                    info(oss.str());
+                }
+
                 if (dataType == SpectrumMetadata::DataType::Unknown || dataType == SpectrumMetadata::DataType::IonCurrent)
                     dataType = SpectrumMetadata::DataType::IonCurrent;
                 else
@@ -138,9 +155,6 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         size_t offset = mzML_spectrumIndex[i];
         size_t extent = mzML_spectrumIndex[i + 1] - offset;
         fileIn_.read_HypVecNC("mzML", mzML, &offset, &extent);
-
-        //string str(mzML.begin(), mzML.end());
-        //cout << str << endl;
 
         xml::xml_parse_result result = mzmlDoc.load_buffer_inplace(&mzML[0], sizeof(char) * mzML.size());
         if (!result) throw runtime_error("Error: In mzMLb input file - " + string(result.description()));
@@ -251,23 +265,27 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
 
         if (getDebugLevel() % 10 >= 3)
         {
-            cout << getTimeStamp() << "  " << metadata_[i].mzmlSpectrumIndex << " id=" << metadata_[i].id << endl;
-            cout << getTimeStamp() << "    Intensities dataset=" << metadata_[i].intensitiesDataset;
-            cout << " offset=" << metadata_[i].intensitiesOffset;
-            cout << " extent=" << metadata_[i].defaultArrayLength;
-            cout << getTimeStamp() << "    Mzs dataset=" << metadata_[i].mzsDataset;
-            cout << " offset=" << metadata_[i].mzsOffset;
-            cout << " extent=" << metadata_[i].defaultArrayLength << endl;
-            //cout << " window=[" << metadata_[i].mz0 << "," << metadata_[i].mz1 << "]Th" << endl;
-            cout << getTimeStamp() << "    start_time=" << metadata_[i].startTime << "s" << endl;
+            ostringstream oss;
+            oss << getTimeStamp() << "  " << metadata_[i].mzmlSpectrumIndex << " id=" << metadata_[i].id;
+            oss << getTimeStamp() << "    Intensities dataset=" << metadata_[i].intensitiesDataset;
+            oss << " offset=" << metadata_[i].intensitiesOffset;
+            oss << " extent=" << metadata_[i].defaultArrayLength;
+            oss << getTimeStamp() << "    Mzs dataset=" << metadata_[i].mzsDataset;
+            oss << " offset=" << metadata_[i].mzsOffset;
+            oss << " extent=" << metadata_[i].defaultArrayLength;
+            oss << getTimeStamp() << "    start_time=" << metadata_[i].startTime << "s";
+            info(oss.str());
         }
+
 
         // display progress update
         if (getDebugLevel() % 10 >= 1)
         {
             if ((i + 1) % 10000 == 0 || (i + 1) == ns)
             {
-                cout << getTimeStamp() << "  " << setw(1 + (int)(log10((float)ns))) << (i+1) << "/" << ns << endl;
+                ostringstream oss;
+                oss << getTimeStamp() << "  " << setw(1 + (int)(log10((float)ns))) << (i+1) << "/" << ns;
+                info(oss.str());
             }
         }
    }
@@ -324,7 +342,11 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
             }
 
             if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "  config=" << metadata_[i - 1].config << " offset=" << offset << " extent=" << extent << " type=" << (isDia ? "DIA" : "DDA") << endl;
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "  config=" << metadata_[i - 1].config << " offset=" << offset << " extent=" << extent << " type=" << (isDia ? "DIA" : "DDA");
+                info(oss.str());
+            }
 
             offset = i;
         }
@@ -366,9 +388,13 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         mzML.clear();
     }
 
+
+
+    ostringstream oss2;
     if (getDebugLevel() % 10 >= 1)
-        cout << getTimeStamp() << " ";
-    cout << "Processing ..." << endl;
+        oss2 << getTimeStamp() << " ";
+    oss2 << "Processing ...";
+    info(oss2.str());
 }
 
 
@@ -385,12 +411,22 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
     if(spectrumIndex_ / 1000 > lastSpectrumIndex_ / 1000 || spectrumIndex_ >= metadata_.size())
     {
         if (getDebugLevel() % 10 == 0)
-            for (ii i = 0; i < 256; i++) cout << "\b";
+        {
+            for (ii i = 0; i < 256; i++)
+                cout << "\b";
+            cout << setw(1 + (int)(log10((float)metadata_.size()))) << spectrumIndex_ << "/" << metadata_.size() << " " << flush;
+        }
         else
-            cout << getTimeStamp() << " ";
-        cout << setw(1 + (int)(log10((float)metadata_.size()))) << spectrumIndex_ << "/" << metadata_.size() << " " << flush;
-        if (getDebugLevel() % 10 >= 1 || spectrumIndex_ >= metadata_.size())
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << " ";
+            oss << setw(1 + (int)(log10((float)metadata_.size()))) << spectrumIndex_ << "/" << metadata_.size() << " " << flush;
+            info(oss.str());
+        }
+
+        if (getDebugLevel() % 10 >= 0 && spectrumIndex_ >= metadata_.size())
             cout << endl;
+
         lastSpectrumIndex_ = spectrumIndex_;
     }
 
@@ -416,7 +452,12 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
 
     // read mzs
     if ((extent_ > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
-        cout << getTimeStamp() << "  Reading m/z values for id=" << id << " ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Reading m/z values for id=" << id << " ...";
+        info(oss.str());
+    }
+
     out.startTimes.resize(extent_);
     out.finishTimes.resize(extent_);
     vector< vector<double> > mzs(extent_);
@@ -436,9 +477,16 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
         if (extent_ > 1 && ((i + 1) % 1000 == 0 || (i + 1) == extent_))
         {
             if (extent_ > 1 && getDebugLevel() % 10 == 0)
+            {
                 cout << "." << flush;
+            }
             else if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "     " << setw(1 + (int)(log10((float)extent_))) << (i+1) << "/" << extent_ << endl;
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "     " << setw(1 + (int) (log10((float) extent_))) << (i + 1) << "/"
+                    << extent_;
+                info(oss.str());
+            }
         }
     }
 
@@ -450,9 +498,15 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
             metadata_[offset].dataType == SpectrumMetadata::DataType::IonCurrent)
     {
         if (extent_ > 1 && getDebugLevel() % 10 == 0)
+        {
             cout << "." << flush;
+        }
         else if ((extent_ > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
-            cout << getTimeStamp() << "  Converting to bins ..." << endl;
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "  Converting to bins ...";
+            info(oss.str());
+        }
 
         for (ii i = 0; i < extent_; i++)
         {
@@ -464,7 +518,12 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
         }
 
         if (extent_ > 1 && getDebugLevel() % 10 >= 1)
-            cout << getTimeStamp() << "   autodetected_mz_window=[" << fixed << setprecision(3) << mz0 << "," << mz1 << "]Th" << endl;
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "   autodetected_mz_window=[" << fixed << setprecision(3) << mz0 << "," << mz1
+                << "]Th";
+            info(oss.str());
+        }
 
         // if this happens regularly, will have to use reported scan window or command line arguments
         if (mz1 <= mz0 || mz0 == numeric_limits<double>::max() || mz0 == 0.0)
@@ -590,9 +649,16 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
         if (extent_ > 1 && ((i + 1) % 1000 == 0 || (i + 1) == extent_))
         {
             if (extent_ > 1 && getDebugLevel() % 10 == 0)
+            {
                 cout << "." << flush;
+            }
             else if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "     " << setw(1 + (int)(log10((float)extent_))) << (i+1) << "/" << extent_ << endl;
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "     " << setw(1 + (int) (log10((float) extent_))) << (i + 1) << "/"
+                    << extent_;
+                info(oss.str());
+            }
         }
     }
     out.countsIndex.back() = (li)out.counts.size();
@@ -608,7 +674,11 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
     li n = input.countsIndex.size() == 0 ? 1 : input.countsIndex.size() - 1;
 
     if ((n > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
-        cout << getTimeStamp() << "  Writing=" << id << " ..." << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Writing=" << id << " ...";
+        info(oss.str());
+    }
 
     li offset = spectrumIndex_ - extent_;
     for (ii i = 0; i < n; ++i)

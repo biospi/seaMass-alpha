@@ -53,25 +53,39 @@ int Subject::getDebugLevel()
 }
 
 
-void Subject::notice(const string &message) const
+void Subject::info(const string &message) const
 {
-    int bah = observers_.size();
+    int debugLevel = getDebugLevel();
+    setDebugLevel(0);
+
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->notice(message);
+
+    setDebugLevel(debugLevel);
 }
 
 
 void Subject::warning(const string &message) const
 {
+    int debugLevel = getDebugLevel();
+    setDebugLevel(0);
+
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->warning(message);
+
+    setDebugLevel(debugLevel);
 }
 
 
 void Subject::error(const string &message) const
 {
+    int debugLevel = getDebugLevel();
+    setDebugLevel(0);
+
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->error(message);
+
+    setDebugLevel(debugLevel);
 }
 
 

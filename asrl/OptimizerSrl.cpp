@@ -24,6 +24,7 @@
 #include <kernel.hpp>
 #include <iomanip>
 #include <cmath>
+#include <sstream>
 using namespace std;
 using namespace kernel;
 
@@ -155,7 +156,7 @@ fp OptimizerSrl::step()
     {
         for (ii k = 0; k < ii(f_fE.size()); k++)
         {
-            f_fE[k].div2Nonzeros(b_[k]);
+            f_fE[k].div2(b_[k]);
 
             MatrixSparse t;
             t.copyPrune(f_fE[k]);
@@ -195,6 +196,13 @@ fp OptimizerSrl::step()
             {
                 if (lambdaGroup_ > 0.0)
                 {
+                    if (getDebugLevel() % 10 >= 3)
+                    {
+                        ostringstream oss;
+                        oss << getTimeStamp() << "     " << l << " OptimizerSrl::shrinkageGroup";
+                        info(oss.str());
+                    }
+
                     vector<MatrixSparse>* g = bases_[l]->getGroups(false);
                     vector<MatrixSparse>* gT = bases_[l]->getGroups(true);
 
@@ -229,6 +237,13 @@ fp OptimizerSrl::step()
                 }
                 else
                 {
+                    if (getDebugLevel() % 10 >= 3)
+                    {
+                        ostringstream oss;
+                        oss << getTimeStamp() << "     " << l << " OptimizerSrl::shrinkage";
+                        info(oss.str());
+                    }
+
                     // individual shrinkage only
                     for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
                     {
@@ -250,6 +265,7 @@ fp OptimizerSrl::step()
         cout << getTimeStamp() << "    Termination Check and Pruning..." << endl;
 
     fp sumSqrs = 0.0;
+    fp sumSqrs2 = 0.0;
     fp sumSqrDiffs = 0.0;
     double updateStart = getElapsedTime();
     {
@@ -259,11 +275,16 @@ fp OptimizerSrl::step()
             if (!bases_[l]->isTransient())
             {
                 if (getDebugLevel() % 10 >= 3)
-                     cout << getTimeStamp() << "     " << l << " OptimizerSrl::grad" << endl;
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << "     " << l << " OptimizerSrl::updateGradient";
+                    info(oss.str());
+                }
 
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
                     sumSqrs += xs_[l][k].sumSqrs();
+                    sumSqrs2 += xEs_ys[l][k].sumSqrs();
                     sumSqrDiffs += xs_[l][k].sumSqrDiffsNonzeros(xEs_ys[l][k]);
                 }
             }
@@ -274,6 +295,13 @@ fp OptimizerSrl::step()
         {
             if (!bases_[l]->isTransient())
             {
+                if (getDebugLevel() % 10 >= 3)
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << "     " << l << " OptimizerSrl::updatePrune";
+                    info(oss.str());
+                }
+
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
                     xs_[l][k].copyPrune(xEs_ys[l][k], pruneThreshold_);

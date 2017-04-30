@@ -24,6 +24,7 @@
 #include "Bspline.hpp"
 #include <limits>
 #include <iomanip>
+#include <sstream>
 #include <cmath>
 using namespace std;
 using namespace kernel;
@@ -35,15 +36,17 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
 {
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp();
+        ostringstream oss;
+        oss << getTimeStamp();
         if (getDebugLevel() % 10 >= 2)
-            cout << "   " << getIndex() << " BasisBsplineScantime";
+            oss << "   " << getIndex() << " BasisBsplineScantime";
         else
-            cout << "   BasisBsplineScantime";
-        if (isTransient()) cout << " (transient)";
-        cout << " ..." << endl;
+            oss << "   BasisBsplineScantime";
+        if (isTransient()) oss << " (transient)";
+        oss << " ...";
+        info(oss.str());
     }
-    
+
     double scantimeMin = startTimes.front();
     double scantimeMax = finishTimes.back();
 
@@ -60,7 +63,11 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         scale = scaleAuto;
         
         if (getDebugLevel() % 10 >= 1)
-            cout << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << (int) scale << endl;
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << (int) scale;
+            info(oss.str());
+        }
     }
     
     // Bases per second
@@ -78,12 +85,14 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     
     if (getDebugLevel() % 10 >= 2)
     {
-        cout << getTimeStamp() << "     parent=" << getParentIndex() << endl;
-        cout << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
-        cout.unsetf(std::ios::floatfield);
-        cout << scantimeDiff << ":" << fixed << scantimeMax << "seconds" << endl;
-        cout << getTimeStamp() << "     scale=" << fixed << setprecision(1) << (int) scale << " (" << bpi << " bases per second)" << endl;
-        cout << getTimeStamp() << "     " << gridInfo() << endl;
+        ostringstream oss;
+        oss << getTimeStamp() << "     parent=" << getParentIndex();
+        oss << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
+        oss.unsetf(std::ios::floatfield);
+        oss << scantimeDiff << ":" << fixed << scantimeMax << "seconds";
+        oss << getTimeStamp() << "     scale=" << fixed << setprecision(1) << (int) scale << " (" << bpi << " bases per second)";
+        oss << getTimeStamp() << "     " << gridInfo();
+        info(oss.str());
     }
 
     // populate coo matrix
@@ -110,7 +119,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
             double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
 
             // basis coefficient b is _integral_ of area under b-spline basis
-            fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+            fp b = exposures[i] * fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
             rowind.push_back(i);
             colind.push_back(x - gridInfo().offset[1]);
@@ -122,7 +131,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     aT_.copy(getGridInfo().m(), parentGridInfo.m(), acoo.size(), colind.data(), rowind.data(), acoo.data());
 
     if (scaleAuto != scale)
-        cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!" << endl;
+        cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";
 }
 
 
@@ -134,7 +143,11 @@ BasisBsplineScantime::~BasisBsplineScantime()
 void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesise" << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesise";
+        info(oss.str());
+    }
 
     if (!f.size())
         f.resize(1);
@@ -147,21 +160,33 @@ void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<Matr
         aT_.swap(t);
 
         if (getDebugLevel() % 10 >= 2)
-            cout << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions" << endl;
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
+            info(oss.str());
+        }
     }
 
     // synthesise
     f[0].matmul(true, aT_, x[0], accumulate);
         
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "       " << f[0] << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << f[0];
+        info(oss.str());
+    }
 }
 
 
 void BasisBsplineScantime::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
-        cout << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analyse" << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analyse";
+        info(oss.str());
+    }
 
     if (!xE.size())
         xE.resize(1);
@@ -178,6 +203,10 @@ void BasisBsplineScantime::analyze(vector<MatrixSparse> &xE, const vector<Matrix
     }
     
     if (getDebugLevel() % 10 >= 3)
-         cout << getTimeStamp() << "       " << xE[0] << endl;
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << xE[0];
+        info(oss.str());
+    }
 }
 

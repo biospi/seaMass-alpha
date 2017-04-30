@@ -140,7 +140,7 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (transpose)
@@ -190,7 +190,7 @@ void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -201,8 +201,8 @@ void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colin
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       COO := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       copy(COO) := ...";
+        info(oss.str());
     }
 
     init(m, n);
@@ -235,7 +235,7 @@ void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colin
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }        
 }
 
@@ -296,8 +296,8 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
         if (getDebugLevel() % 10 >= 4)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "       " << "concatenate(A" << as.front() << ", " << as.size() << ")" << " := ...";
-            notice(oss.str());
+            oss << getTimeStamp() << "       " << "copyConcatenate(A" << as.front() << " x " << as.size() << ")" << " := ...";
+            info(oss.str());
         }
 
         for (size_t k = 0; k < as.size(); k++)
@@ -351,7 +351,7 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
         {
             ostringstream oss;
             oss << getTimeStamp() << "       ... X" << *this;
-            notice(oss.str(), this);
+            info(oss.str(), this);
         }
     }
 }
@@ -363,8 +363,8 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       " << a << " within " << *this << " := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       copySubset(A" << a << ") within X" << *this << " := ...";
+        info(oss.str());
     }
 
     assert(m_ == a.m_);
@@ -407,7 +407,7 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -418,8 +418,8 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       " << a << " within " << b << " := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       copySubset(A" << a << " within B" << b << ") := ...";
+        info(oss.str());
     }
 
     assert(a.m_ == b.m_);
@@ -476,7 +476,7 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -486,10 +486,10 @@ ii MatrixSparse::copyPrune(const MatrixSparse &a, fp threshold)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       (A" << a << " > ";
+        oss << getTimeStamp() << "       copyPrune(A" << a << " <= ";
         oss.unsetf(ios::floatfield);
-        oss << setprecision(8) << threshold << ") ? A : 0.0 := ...";
-        notice(oss.str());
+        oss << setprecision(8) << threshold << ") := ...";
+        info(oss.str());
     }
 
     init(a.m_, a.n_);
@@ -545,7 +545,7 @@ ii MatrixSparse::copyPrune(const MatrixSparse &a, fp threshold)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 
     return nnzCells;
@@ -558,10 +558,10 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       pruneRows(" << a << ",";
+        oss << getTimeStamp() << "       copyPruneRows(" << a << ",";
         oss << (bRows ? "rows(" : "columns(") << b << ")) where ";
         oss << (bRows ? "nRows" : "nColumns") << " to prune > " << fixed << setprecision(1) << threshold * 100.0 << "% := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     assert(bRows ? a.m_ == b.m_ : a.m_ == b.n_);
@@ -626,7 +626,7 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this << " (" << rowsPruned << " rows pruned)";
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 
     return rowsPruned;
@@ -639,7 +639,7 @@ void MatrixSparse::exportTo(ii* rowind, ii* colind, fp* acoo) const
     {
         ostringstream oss;
         oss << getTimeStamp() << "       X" << *this << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     ii length = nnz();
@@ -653,8 +653,8 @@ void MatrixSparse::exportTo(ii* rowind, ii* colind, fp* acoo) const
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       ... COO";
-        notice(oss.str(), this);
+        oss << getTimeStamp() << "       ... exportTo(COO)";
+        info(oss.str(), this);
     }
 }
 
@@ -665,7 +665,7 @@ void MatrixSparse::exportTo(fp *vs) const
     {
         ostringstream oss;
         oss << getTimeStamp() << "       X" << *this << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (nnz() > 0)
@@ -683,8 +683,8 @@ void MatrixSparse::exportTo(fp *vs) const
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       ... dense";
-        notice(oss.str(), this);
+        oss << getTimeStamp() << "       ... exportTo(DENSE)";
+        info(oss.str(), this);
     }
 }
 
@@ -696,7 +696,7 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
         ostringstream oss;
         oss << getTimeStamp() << "       " << alpha << " * " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " + B" << b;
         oss << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     assert((transposeA ? a.n() : a.m()) == b.m());
@@ -733,7 +733,7 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -746,7 +746,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
         oss << getTimeStamp() << "       " << (transposeA ? "t(" : "") << "A" << a << (transposeA ? ")" : "") << " %*% B" << b;
         if (accumulate) oss << " + X" << *this;
         oss << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     assert((transposeA ? a.m() : a.n()) == b.m());
@@ -882,7 +882,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
         oss << getTimeStamp() << "       ... X" << *this;
         if (denseOutput) oss << " (DENSE)";
         oss;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -896,7 +896,7 @@ void MatrixSparse::mul(fp beta)
         oss << getTimeStamp() << "       X" << *this << " * ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << beta << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (is1_)
@@ -906,7 +906,7 @@ void MatrixSparse::mul(fp beta)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -917,7 +917,7 @@ void MatrixSparse::mul(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       X" << *this << " * A := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (is1_)
@@ -938,7 +938,7 @@ void MatrixSparse::mul(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -948,8 +948,8 @@ void MatrixSparse::sqr()
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       (X" << *this << ")^2 := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       sqr(X" << *this << ") := ...";
+        info(oss.str());
     }
 
     if (is1_)
@@ -959,7 +959,7 @@ void MatrixSparse::sqr()
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -969,8 +969,8 @@ void MatrixSparse::sqr(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       (X" << a << ")^2 := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       sqr(A" << a << ") := ...";
+        info(oss.str());
     }
 
     init(a.m_, a.n_);
@@ -997,7 +997,7 @@ void MatrixSparse::sqr(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1008,7 +1008,7 @@ void MatrixSparse::sqrt()
     {
         ostringstream oss;
         oss << getTimeStamp() << "       sqrt(X" << *this << ") := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (is1_)
@@ -1018,7 +1018,7 @@ void MatrixSparse::sqrt()
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1028,8 +1028,8 @@ void MatrixSparse::pow(fp power)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       X" << *this << "^" << power << " := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       pow(X" << *this << ", " << power << ") := ...";
+        info(oss.str());
     }
 
     if (is1_)
@@ -1039,7 +1039,7 @@ void MatrixSparse::pow(fp power)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
  }
 
@@ -1052,7 +1052,7 @@ void MatrixSparse::addNonzeros(fp beta)
         oss << getTimeStamp() << "       X" << *this << " + ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << beta << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (is1_)
@@ -1062,7 +1062,7 @@ void MatrixSparse::addNonzeros(fp beta)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1072,8 +1072,8 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       X" << *this << " / A := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       X" << *this << " / A" << a << " := ...";
+        info(oss.str());
     }
 
     if (is1_)
@@ -1094,19 +1094,19 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
 
 
-    void MatrixSparse::lnNonzeros()
+void MatrixSparse::lnNonzeros()
 {
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ln(X" << *this << ") := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (is1_)
@@ -1123,7 +1123,7 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1134,7 +1134,7 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ln(X" << a << ") := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     init(a.m_, a.n_);
@@ -1166,7 +1166,7 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1177,7 +1177,7 @@ void MatrixSparse::expNonzeros()
     {
         ostringstream oss;
         oss << getTimeStamp() << "       exp(X" << *this << ") := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (is1_)
@@ -1187,7 +1187,7 @@ void MatrixSparse::expNonzeros()
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1198,7 +1198,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       X" << *this << " / A" << a << " := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     if (is1_)
@@ -1219,7 +1219,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1229,8 +1229,8 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       A" << a << " / B := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       A" << a << " / B" << b << " := ...";
+        info(oss.str());
     }
 
     init(a.m_, a.n_);
@@ -1266,7 +1266,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1276,8 +1276,8 @@ void MatrixSparse::div2Nonzeros(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       X" << *this << " / A := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       A" << a << " / X" << *this << " := ...";
+        info(oss.str());
     }
 
     if (is1_)
@@ -1298,18 +1298,18 @@ void MatrixSparse::div2Nonzeros(const MatrixSparse& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
 
-void MatrixSparse::div2Nonzeros(const Matrix& a)
+void MatrixSparse::div2(const Matrix &a)
 {
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       X" << *this << " / A := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       A" << a << " / X" << *this << " := ...";
+        info(oss.str());
     }
 
     sort();
@@ -1318,13 +1318,16 @@ void MatrixSparse::div2Nonzeros(const Matrix& a)
     assert(n_ = a.n());
 
     if (is1_)
-        vsDiv(is1_[m_ - 1], a.vs(), vs_, vs_);
+    {
+        for (ii i = 0; i < is1_[m_ - 1]; i++)
+            vs_[i] = vs_[i] > 0.0 ? a.vs()[i] / vs_[i] : 0.0;
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
@@ -1335,7 +1338,7 @@ fp MatrixSparse::sum() const
     {
         ostringstream oss;
         oss << getTimeStamp() << "       sum(X" << *this << ") := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     fp sum = 0.0;
@@ -1348,7 +1351,7 @@ fp MatrixSparse::sum() const
         oss << getTimeStamp() << "       ... ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << sum;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 
     return sum;
@@ -1360,8 +1363,8 @@ fp MatrixSparse::sumSqrs() const
    if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       sum((X" << *this << ")^2) := ...";
-        notice(oss.str());
+        oss << getTimeStamp() << "       sumSqrs(X" << *this << ") := ...";
+        info(oss.str());
     }
 
     fp sum = 0.0;
@@ -1377,7 +1380,7 @@ fp MatrixSparse::sumSqrs() const
         oss << getTimeStamp() << "       ... ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << sum;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 
     return sum;
@@ -1389,8 +1392,8 @@ fp MatrixSparse::sumSqrDiffsNonzeros(const MatrixSparse& a) const
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       sum((X" << *this << " - A)^2) := ..." << *this;
-        notice(oss.str());
+        oss << getTimeStamp() << "       sumSqrDiffs(X" << *this << ", A" << a << ") := ...";
+        info(oss.str());
     }
 
     fp sum = 0.0;
@@ -1415,7 +1418,7 @@ fp MatrixSparse::sumSqrDiffsNonzeros(const MatrixSparse& a) const
         oss << getTimeStamp() << "       ... ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << sum;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
     
     return sum;
@@ -1458,7 +1461,7 @@ void MatrixSparse::sort() const
                 {
                     ostringstream oss;
                     oss << getTimeStamp() << "       sort(X" << *this << ") := ...";
-                    notice(oss.str());
+                    info(oss.str());
                 }
 
                 double sortStart = getElapsedTime();
@@ -1500,7 +1503,7 @@ void MatrixSparse::sort() const
                 {
                     ostringstream oss;
                     oss << getTimeStamp() << "       ... X" << *this;
-                    notice(oss.str(), this);
+                    info(oss.str(), this);
                 }
             }
         }
@@ -1542,7 +1545,7 @@ MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row) : isOwned_(fal
     {
         ostringstream oss;
         oss << getTimeStamp() << "       A" << a << "[" << row << "] := ...";
-        notice(oss.str());
+        info(oss.str());
     }
 
     assert(row >= 0 && row < a.m_);
@@ -1575,7 +1578,7 @@ MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row) : isOwned_(fal
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        notice(oss.str(), this);
+        info(oss.str(), this);
     }
 }
 
