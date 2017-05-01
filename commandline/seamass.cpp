@@ -42,6 +42,7 @@ int main(int argc, const char * const * argv)
         int scaleMz;
         int scaleSt;
         int shrinkageExponent;
+        bool noTaperLambda;
         int toleranceExponent;
         int debugLevel;
 
@@ -68,6 +69,8 @@ int main(int argc, const char * const * argv)
              "Default is to autodetect.")
             ("lambda,l", po::value<int>(&shrinkageExponent)->default_value(0),
              "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Use around 0.")
+            ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
+             "Use this to stop tapering of lambda to 0 before finishing.")
             ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
              "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
@@ -136,7 +139,7 @@ int main(int argc, const char * const * argv)
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamassCore(input, scale, shrinkage, tolerance);
+            Seamass seamassCore(input, scale, shrinkage, !noTaperLambda, tolerance);
 
             do
             {

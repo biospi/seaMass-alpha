@@ -887,7 +887,6 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 }
 
 
-// WARNING: IPP IS NOT 64BIT LENGTH
 void MatrixSparse::mul(fp beta)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -1041,7 +1040,30 @@ void MatrixSparse::pow(fp power)
         oss << getTimeStamp() << "       ... X" << *this;
         info(oss.str(), this);
     }
- }
+}
+
+
+void MatrixSparse::censorLeft(fp threshold)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       censorLeft(X" << *this << ", ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << threshold << ") := ...";
+        info(oss.str());
+    }
+
+    if (is1_)
+        ippsThreshold_LT_32f(vs_, vs_, is1_[m_ - 1], threshold);
+
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        info(oss.str(), this);
+    }
+}
 
 
 void MatrixSparse::addNonzeros(fp beta)
@@ -1319,8 +1341,10 @@ void MatrixSparse::div2(const Matrix &a)
 
     if (is1_)
     {
-        for (ii i = 0; i < is1_[m_ - 1]; i++)
-            vs_[i] = vs_[i] > 0.0 ? a.vs()[i] / vs_[i] : 0.0;
+        vsDiv(is1_[m_ - 1], a.vs(), vs_, vs_);
+
+        //for (ii i = 0; i < is1_[m_ - 1]; i++)
+        //    vs_[i] = vs_[i] > 0.0 ? a.vs()[i] / vs_[i] : 0.0;
     }
 
     if (getDebugLevel() % 10 >= 4)

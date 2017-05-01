@@ -40,7 +40,7 @@ void Seamass::notice()
 }
 
 
-Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, fp tolerance) : lambda_(lambda), lambdaStart_(lambda), tolerance_(tolerance), iteration_(0)
+Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance) : lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
 {
     init(input, scale, true);
 }
@@ -196,9 +196,10 @@ bool Seamass::step()
 
     if (grad <= tolerance_)
     {
-        if (lambda_ == 0)
+        if (lambda_ == 0.0 || !taperShrinkage_)
         {
             if (getDebugLevel() % 10 == 0) cout << "o" << endl;
+
             return false;
         }
         else

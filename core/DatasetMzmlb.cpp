@@ -698,7 +698,7 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
                 {
                     ii li = ci + i;
                     mzs.push_back(0.5 * (input.locations[li] + input.locations[li + 1]));
-                    intensities.push_back(input.counts[ci] / exposure);
+                    intensities.push_back(input.counts[ci] / (exposure * (input.locations[li + 1] - input.locations[li])));
                 }
 
             }   break;

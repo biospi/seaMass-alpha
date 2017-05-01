@@ -25,6 +25,7 @@
 #include <iomanip>
 #include <cmath>
 #include <sstream>
+#include <limits>
 using namespace std;
 using namespace kernel;
 
@@ -156,6 +157,8 @@ fp OptimizerSrl::step()
     {
         for (ii k = 0; k < ii(f_fE.size()); k++)
         {
+            // any zeros in f_fE are due to underflow. We need to do this to avoid divide by zero error
+            f_fE[k].censorLeft(numeric_limits<fp>::min());
             f_fE[k].div2(b_[k]);
 
             MatrixSparse t;

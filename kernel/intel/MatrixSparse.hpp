@@ -74,6 +74,7 @@ public:
     void sqr(const MatrixSparse& a);
     void sqrt();
     void pow(fp power);
+    void censorLeft(fp threshold);
 
     // elementwise operations only operating on non-zero elements
     void addNonzeros(fp beta);

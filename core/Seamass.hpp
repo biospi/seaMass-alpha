@@ -73,7 +73,7 @@ public:
         std::vector<ii> extent;
     };
 
-    Seamass(const Input& input, const std::vector<char>& scale, fp lambda, fp tolerance);
+    Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance);
     Seamass(const Input& input, const Output& seed);
     virtual ~Seamass();
 
@@ -104,6 +104,7 @@ private:
 
     fp lambda_;
     fp lambdaStart_;
+    bool taperShrinkage_;
     fp tolerance_;
     int iteration_;
 };
