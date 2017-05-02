@@ -302,6 +302,7 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
 
     vector<MatrixSparse> f;
     optimizer_->synthesise(f);
+    binCounts.resize(f[0].m()*f[0].n(),0.0);
     f[0].exportTo(binCounts.data());
 }
 

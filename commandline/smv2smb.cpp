@@ -25,12 +25,6 @@
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include "../core/DatasetSeamass.hpp"
-#include "../peak/SMData.hpp"
-#include "../peak/MathOperator.hpp"
-#include "../peak/BsplineData.hpp"
-#include "../peak/PeakOperator.hpp"
-#include "../peak/PeakData.hpp"
-#include "../peak/PeakManager.hpp"
 using namespace std;
 using namespace kernel;
 namespace po = boost::program_options;
@@ -43,21 +37,16 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
-        vector<char> scales(2);
-        int shrinkageExponent;
-        int toleranceExponent;
         int debugLevel;
-        bool centroid;
-        double threshold;
 
         // *******************************************************************
 
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "Peak detects 'seamass' output and writes the result to a new mzMLb or smb file.\n"
+            "Convert smv into smb for conversion back into mzMLb\n"
             "\n"
-            "centroid [OPTIONS...] <file>\n"
+            "smv2smb [OPTIONS...] <file>\n"
         );
 
         general.add_options()
@@ -65,8 +54,6 @@ int main(int argc, const char * const * argv)
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
-            ("threshold,t", po::value<double>(&threshold)->default_value(10.0),
-             "Minimum ion counts in a peak. Default is 10.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level.")
         ;
@@ -82,23 +69,17 @@ int main(int argc, const char * const * argv)
         po::notify(vm);
 
         cout << endl;
-        cout << "seaMass-peak : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "smv2smb : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
         initKernel(debugLevel);
-        
+
         if (vm.count("help") || !vm.count("file"))
         {
             cout << desc << endl;
             return 0;
         }
-
-        if (!vm.count("mz_scale"))
-            scales[0] = numeric_limits<char>::max();
-
-        if (!vm.count("st_scale"))
-            scales[1] = numeric_limits<char>::max();
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
         Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::Input);
@@ -116,64 +97,15 @@ int main(int argc, const char * const * argv)
 
             // load back into Seamass
             Seamass seamassCore(input, output);
+            vector<fp> counts;
 
-            // now centroid
-            VecMat<double> mzPeak;
-            VecMat<float> pkPeak;
-            vector<size_t> mzpkVecSize;
+            seamassCore.getOutputBinCounts(counts);
 
-            Seamass::ControlPoints contpts;
-            seamassCore.getOutputControlPoints1d(contpts);
-            uli dims[2];
-            double mzRes;
-            double rtRes;
-            vector<ii> offset=contpts.offset;
-            mzRes=double(contpts.scale[0]);
-            if (contpts.scale.size() > 1)
-                rtRes=double(contpts.scale[1]);
-            else
-                rtRes=0;
-
-            VecMat<float> rawCoeff(contpts.extent[1],contpts.extent[0],contpts.coeffs);
-            rawCoeff.getDims(dims);
-
-            SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-            SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-            SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-
-            for (size_t i = 0; i < A.rt.size(); ++i)
-            {
-                A.rt[i] = input.startTimes[i];
-                dhA.rt[i] = input.startTimes[i];
-                d2hA.rt[i] = input.startTimes[i];
-            }
-
-            BsplineData<> bsData(A,dhA,d2hA);
-
-            PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold);
-            centriodPeak.execute();
-            centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
-
-            input.type = Seamass::Input::Type::Centroided;
-            vector<double>().swap(input.locations);
+            input.type = Seamass::Input::Type::Sampled;
             vector<fp>().swap(input.counts);
-            vector<li>().swap(input.countsIndex);
-            input.countsIndex.push_back(0);
 
-            uli peakDims[2];
-            mzPeak.getDims(peakDims);
-            for (ii i = 0; i < mzpkVecSize.size(); i++)
-            {
-                if (mzpkVecSize[i] > 0)
-                {
-                    li idxOffset=li(i*peakDims[1]);
-                    input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
-                                           mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-                    input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
-                                        pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-                }
-	            input.countsIndex.push_back(input.counts.size());
-            }
+            input.counts=counts;
+
             dataset->write(input, id);
 
             if (getDebugLevel() % 10 == 0)

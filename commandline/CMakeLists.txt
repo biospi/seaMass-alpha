@@ -55,6 +55,17 @@ target_link_libraries (smb2mzmlb LINK_PUBLIC
         ${Boost_LIBRARIES}
         )
 
+add_executable(smv2smb
+        smv2smb.cpp
+        )
+target_include_directories(smv2smb PUBLIC
+        ${Boost_INCLUDE_DIRS}
+        )
+target_link_libraries (smv2smb LINK_PUBLIC
+        seamass_core
+        ${Boost_LIBRARIES}
+        )
+
 add_executable(seamass-td
         seamass-td.cpp
         )
