@@ -97,14 +97,8 @@ int main(int argc, const char * const * argv)
 
             // load back into Seamass
             Seamass seamassCore(input, output);
-            vector<fp> counts;
 
-            seamassCore.getOutputBinCounts(counts);
-
-            input.type = Seamass::Input::Type::Sampled;
-            vector<fp>().swap(input.counts);
-
-            input.counts=counts;
+            seamassCore.getOutputBinCounts(input.counts);
 
             dataset->write(input, id);
 

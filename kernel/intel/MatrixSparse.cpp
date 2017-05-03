@@ -124,18 +124,22 @@ void MatrixSparse::initFromRows(const MatrixSparse &a, ii row)
 
     m_ = 1;
     n_ = a.n();
-    // we are not deallocating this at the moment... (and valgrind spots the small leak)
-    is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * 2, 64));
-    is0_[0] = 0;
-    is1_ = is0_ + 1;
 
     ii newNnz = a.is1_[row] - a.is0_[row];
-    is1_[0] = newNnz;
-    js_ = &a.js_[a.is0_[row]];
-    vs_ = &a.vs_[a.is0_[row]];
+    if (newNnz > 0)
+    {
+        // we are not deallocating this at the moment... (and valgrind spots the small leak)
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * 2, 64));
+        is0_[0] = 0;
+        is1_ = is0_ + 1;
 
-    status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
-    isOwned_ = false;
+        is1_[0] = newNnz;
+        js_ = &a.js_[a.is0_[row]];
+        vs_ = &a.vs_[a.is0_[row]];
+
+        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_); assert(!status_);
+        isOwned_ = false;
+    }
 
     if (getDebugLevel() % 10 >= 4)
         cout << getTimeStamp() << "       ... X" << *this << endl;
