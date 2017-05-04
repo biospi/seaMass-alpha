@@ -107,26 +107,35 @@ int main(int argc, const char * const * argv)
         int injected = 0;
         while(datasetMzmlb.read(input, id))
         {
-            // replace input with smb file input if available
+            DatasetSeamass* datasetSeamass = 0;
+            string smbPathFile = smbPathStem.string() + "." + id + ".smb";
             try
             {
-                string smbPathFile = smbPathStem.string() + "." + id + ".smb";
-                DatasetSeamass datasetSeamass(smbPathFile, "");
-                string nullId;
-                datasetSeamass.read(input, nullId);
-
-                if (input.countsIndex.size() > 1 && debugLevel % 10 >= 1 || debugLevel % 10 >= 2)
-                    cout << getTimeStamp() << "  Injected " << smbPathFile << endl;
-                injected++;
+                datasetSeamass = new DatasetSeamass(smbPathFile, "");
             }
             catch (runtime_error r) {}
+
+            // replace input with smb file input if available
+            if (datasetSeamass)
+            {
+                string nullId;
+                datasetSeamass->read(input, nullId);
+
+                 if (debugLevel % 10 >= 1)
+                     cout << getTimeStamp() << " ";
+                 else
+                     cout << endl;
+                cout << "Injected " << smbPathFile << endl;
+
+                injected++;
+           }
 
             datasetMzmlb.write(input, id);
         }
 
-        if (debugLevel % 10 >= 1)
-            cout << getTimeStamp() << " ";
-        cout << "Injected " << injected << " smb file" << (injected == 1 ? "" : "s") << endl;
+        if (injected == 0)
+            cerr << "WARNING: No smb files injected" << endl;
+
         cout << endl;
     }
 #ifdef NDEBUG

@@ -26,6 +26,7 @@
 #include "BasisBsplineScantime.hpp"
 #include "../asrl/OptimizerAccelerationEve1.hpp"
 #include <kernel.hpp>
+#include <cstring>
 #include <iomanip>
 #include <sstream>
 using namespace std;
@@ -53,15 +54,18 @@ Seamass::Seamass(const Input& input, const Output& seed) : lambda_(seed.shrinkag
     // import seed
     for (ii k = 0; k < (ii)bases_.size(); k++)
     {
-        optimizer_->xs()[k].resize(1);
-        optimizer_->xs()[k][0].copy(seed.xs[k]);
+        if (!bases_[k]->isTransient())
+        {
+            optimizer_->xs()[k].resize(1);
+            optimizer_->xs()[k][0].copy(seed.xs[k]);
 
-        optimizer_->l2s()[k].resize(1);
-        optimizer_->l2s()[k][0].copy(seed.l2s[k]);
+            optimizer_->l2s()[k].resize(1);
+            optimizer_->l2s()[k][0].copy(seed.l2s[k]);
 
-        optimizer_->l1l2s()[k].resize(1);
-        optimizer_->l1l2s()[k][0].copy(seed.l1l2s[k]);
-    }
+            optimizer_->l1l2s()[k].resize(1);
+            optimizer_->l1l2s()[k][0].copy(seed.l1l2s[k]);
+        }
+   }
 }
 
 
@@ -315,7 +319,13 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
         vector<vector<MatrixSparse> > cs;
         optimizer_->synthesize(f, cs);
     }
-    f[0].exportTo(binCounts.data());
+
+    li i = 0;
+    for (ii k = 0; k < ii(f.size()); k++)
+    {
+        f[k].exportTo(&binCounts.data()[i]);
+        i += f[k].size();
+    }
 }
 
 
