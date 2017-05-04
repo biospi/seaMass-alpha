@@ -33,6 +33,17 @@ target_link_libraries (seamass LINK_PUBLIC
         ${Boost_LIBRARIES}
         )
 
+add_executable(seamass-restore
+        seamass-restore.cpp
+        )
+target_include_directories(seamass-restore PUBLIC
+        ${Boost_INCLUDE_DIRS}
+        )
+target_link_libraries (seamass-restore LINK_PUBLIC
+        seamass_core
+        ${Boost_LIBRARIES}
+        )
+
 add_executable(seamass-peak
         seamass-peak.cpp
         )
@@ -51,17 +62,6 @@ target_include_directories(smb2mzmlb PUBLIC
         ${Boost_INCLUDE_DIRS}
         )
 target_link_libraries (smb2mzmlb LINK_PUBLIC
-        seamass_core
-        ${Boost_LIBRARIES}
-        )
-
-add_executable(smv2smb
-        smv2smb.cpp
-        )
-target_include_directories(smv2smb PUBLIC
-        ${Boost_INCLUDE_DIRS}
-        )
-target_link_libraries (smv2smb LINK_PUBLIC
         seamass_core
         ${Boost_LIBRARIES}
         )
