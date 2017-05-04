@@ -636,8 +636,8 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
             case Seamass::Input::Type::Sampled:
                 vector<double>(input.locations.begin() + input.countsIndex[i],
                                input.locations.begin() + input.countsIndex[i + 1]).swap(mzs);
-                vector<fp>(input.locations.begin() + input.countsIndex[i],
-                           input.locations.begin() + input.countsIndex[i + 1]).swap(intensities);
+                vector<fp>(input.counts.begin() + input.countsIndex[i],
+                           input.counts.begin() + input.countsIndex[i + 1]).swap(intensities);
                 break;
             default:
                 throw runtime_error("BUG: input has no type");
