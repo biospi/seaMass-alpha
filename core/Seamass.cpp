@@ -44,6 +44,7 @@ void Seamass::notice()
 Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance) : lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
 {
     init(input, scale, true);
+    optimizer_->setLambda((fp) lambda_);
 }
 
 
@@ -52,7 +53,10 @@ Seamass::Seamass(const Input& input, const Output& seed) : lambda_(seed.shrinkag
     init(input, seed.scale, false);
 
     // import seed
-    for (ii k = 0; k < (ii)bases_.size(); k++)
+    optimizer_->xs().resize(bases_.size());
+    optimizer_->l2s().resize(bases_.size());
+    optimizer_->l1l2s().resize(bases_.size());
+    for (ii k = 0; k < ii(bases_.size()); k++)
     {
         if (!bases_[k]->isTransient())
         {
@@ -66,6 +70,7 @@ Seamass::Seamass(const Input& input, const Output& seed) : lambda_(seed.shrinkag
             optimizer_->l1l2s()[k][0].copy(seed.l1l2s[k]);
         }
    }
+   optimizer_->setLambda((fp) lambda_);
 }
 
 
@@ -143,7 +148,6 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     // INIT OPTIMISER
     innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
     optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
-    optimizer_->setLambda((fp) lambda_);
 }
 
 
@@ -310,7 +314,7 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "  Deriving restored bin counts ..." << endl;
+        oss << getTimeStamp() << "  Deriving restored bin counts ..." ;
         info(oss.str());
     }
 
@@ -334,7 +338,7 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "  Deriving control points ..." << endl;
+        oss << getTimeStamp() << "  Deriving control points ...";
         info(oss.str());
     }
 
@@ -360,7 +364,7 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints) const
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "  Deriving 1D control points ..." << endl;
+        oss << getTimeStamp() << "  Deriving 1D control points ...";
         info(oss.str());
     }
 

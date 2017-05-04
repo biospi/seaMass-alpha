@@ -65,14 +65,3 @@ target_link_libraries (smb2mzmlb LINK_PUBLIC
         seamass_core
         ${Boost_LIBRARIES}
         )
-
-add_executable(seamass-td
-        seamass-td.cpp
-        )
-target_include_directories(seamass-td PUBLIC
-        ${Boost_INCLUDE_DIRS}
-        )
-target_link_libraries (seamass-td LINK_PUBLIC
-        seamass_topdown
-        ${Boost_LIBRARIES}
-        )

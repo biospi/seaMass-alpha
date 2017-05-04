@@ -45,9 +45,9 @@ int main(int argc, const char * const * argv)
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "Convert smv into smb for conversion back into mzMLb\n"
+            "Restore an mzMLb/smv file to mzMLb/smb with optional resampling or centroiding.\n"
             "\n"
-            "smv2smb [OPTIONS...] <file>\n"
+            "seamass-restore [OPTIONS...] <file>\n"
         );
 
         general.add_options()
@@ -70,7 +70,7 @@ int main(int argc, const char * const * argv)
         po::notify(vm);
 
         cout << endl;
-        cout << "smv2smb : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "seamass-restore : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;

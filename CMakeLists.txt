@@ -13,7 +13,6 @@ add_subdirectory(kernel/intel) # could replace with nvidia implementation
 add_subdirectory(io)
 add_subdirectory(asrl)
 add_subdirectory(core)
-add_subdirectory(topdown)
 add_subdirectory(peak)
 add_subdirectory(image)
 add_subdirectory(commandline)

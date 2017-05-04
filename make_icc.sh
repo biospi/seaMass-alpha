@@ -9,9 +9,13 @@ mkdir $DIR/build/icc
 mkdir $DIR/build/icc/debug
 pushd $DIR/build/icc/debug
 cmake -DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icc -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Debug $@ ../../..
+make
 popd
 
 mkdir $DIR/build/icc/release
 pushd $DIR/build/icc/release
 cmake -DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icc -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Release $@ ../../..
+make
 popd
+
+source data.sh gcc

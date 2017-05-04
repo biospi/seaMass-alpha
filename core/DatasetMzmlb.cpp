@@ -685,30 +685,29 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
     li offset = spectrumIndex_ - extent_;
     for (ii i = 0; i < n; ++i)
     {
+        fp exposure = input.exposures.size() > 0 ? input.exposures[i] : 1.0;
+
         vector<double> mzs;
         vector<fp> intensities;
         bool isCentroided = false;
         switch (input.type)
         {
             case Seamass::Input::Type::Binned:
-            {
-                fp exposure = input.exposures.size() > 0 ? input.exposures[i] : 1.0;
-
                 for (ii ci = input.countsIndex[i]; ci < input.countsIndex[i + 1]; ci++)
                 {
                     ii li = ci + i;
                     mzs.push_back(0.5 * (input.locations[li] + input.locations[li + 1]));
                     intensities.push_back(input.counts[ci] / (exposure * (input.locations[li + 1] - input.locations[li])));
                 }
-
-            }   break;
+                break;
             case Seamass::Input::Type::Centroided:
                 isCentroided = true;
             case Seamass::Input::Type::Sampled:
-                vector<double>(input.locations.begin() + input.countsIndex[i],
-                               input.locations.begin() + input.countsIndex[i + 1]).swap(mzs);
-                vector<fp>(input.counts.begin() + input.countsIndex[i],
-                           input.counts.begin() + input.countsIndex[i + 1]).swap(intensities);
+                for (ii ci = input.countsIndex[i]; ci < input.countsIndex[i + 1]; ci++)
+                {
+                    mzs.push_back(input.locations[ci]);
+                    intensities.push_back(input.counts[ci] / exposure);
+                }
                 break;
             default:
                 throw runtime_error("BUG: input has no type");

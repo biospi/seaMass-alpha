@@ -125,7 +125,7 @@ int main(int argc, const char * const * argv)
                      cout << getTimeStamp() << " ";
                  else
                      cout << endl;
-                cout << "Injected " << smbPathFile << endl;
+                cout << " Injected " << smbPathFile << endl;
 
                 injected++;
            }
@@ -134,7 +134,17 @@ int main(int argc, const char * const * argv)
         }
 
         if (injected == 0)
+        {
             cerr << "WARNING: No smb files injected" << endl;
+        }
+        else
+        {
+            if (debugLevel % 10 >= 1)
+                cout << getTimeStamp() << " ";
+            else
+                cout << endl;
+            cout <<  "Injected " << injected << " smb file" << (injected > 0 ? "s" : "") << endl;
+        }
 
         cout << endl;
     }

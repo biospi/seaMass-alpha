@@ -8,9 +8,13 @@ mkdir $DIR/build/gcc
 mkdir $DIR/build/gcc/debug
 pushd $DIR/build/gcc/debug
 cmake -DCMAKE_BUILD_TYPE=Debug $@ ../../..
+make
 popd
 
 mkdir $DIR/build/gcc/release
 pushd $DIR/build/gcc/release
 cmake -DCMAKE_BUILD_TYPE=Release $@ ../../..
+make
 popd
+
+source data.sh gcc
