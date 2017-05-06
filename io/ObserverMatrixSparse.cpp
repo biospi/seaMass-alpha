@@ -53,8 +53,8 @@ void ObserverMatrixSparse::notice(const std::string& message, const MatrixSparse
 
         for (ii nz = 0; nz < a->nnz(); nz++)
         {
-            if (a->vs()[nz] != a->vs()[nz])
-                throw runtime_error("EEK nan!");
+            if (a->vs_[nz] != a->vs_[nz])
+                throw runtime_error("BUG: NAN found!");
         }
     }
 }

@@ -152,30 +152,6 @@ ii MatrixSparse::nnzActual() const
 }
 
 
-const ii* MatrixSparse::ijs() const
-{
-    return ijs_;
-}
-
-
-const ii* MatrixSparse::js() const
-{
-    return js_;
-}
-
-
-const fp* MatrixSparse::vs() const
-{
-    return vs_;
-}
-
-
-const bool& MatrixSparse::isSorted() const
-{
-    return isSorted_;
-}
-
-
 bool MatrixSparse::getRidOfCsr() const
 {
     if (ijs1_)
@@ -198,31 +174,6 @@ bool MatrixSparse::getRidOfCsr() const
         assert(!indexing);
         assert(m_ == m);
         assert(n_ == n);
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-
-bool MatrixSparse::getRidOfMkl() const
-{
-    if (mat_)
-    {
-        return true;
-    }
-    else if (ijs1_)
-    {
-        sparse_index_base_t indexing;
-        sparse_matrix_t& _mat_ =  const_cast<sparse_matrix_t&>(mat_);
-
-        sparse_status_t status_ = mkl_sparse_s_create_csr(&_mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-
-        assert(!status_);
-        assert(!indexing);
 
         return true;
     }
@@ -294,13 +245,13 @@ void MatrixSparse::copy(const MatrixSparse& a)
         info(oss.str());
     }
 
-    if (initCsr(a.m(), a.n(), a.nnz()))
+    if (initCsr(a.m_, a.n_, a.nnz()))
     {
-        ippsCopy_32s(a.ijs(), ijs_, a.m());
-        ippsCopy_32s(a.js(), js_, a.nnz());
-        ippsCopy_32f(a.vs(), vs_, a.nnz());
+        ippsCopy_32s(a.ijs_, ijs_, a.m_);
+        ippsCopy_32s(a.js_, js_, a.nnz());
+        ippsCopy_32f(a.vs_, vs_, a.nnz());
 
-        commitCsr(a.isSorted());
+        commitCsr(a.isSorted_);
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -445,7 +396,7 @@ void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
         for (ii i = 0; i < m_; i++)
             as_nnz += as[i].nnz();
 
-        if (allocCsr(as_nnz))
+        if (initCsr(ii(as.size()), as[0].n(), as_nnz))
         {
             ijs_[0] = 0;
             for (ii i = 0; i < m_ - 1; i++)
@@ -465,18 +416,16 @@ void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
                     ippsCopy_32f(as[i].vs_, &vs_[ijs_[i]], as[i].ijs1_[0]);
             }
 
-            status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-            assert(!status_);
-
-            isSorted_ = true;
+            bool isSorted = true;
             for (ii k = 0; k < ii(as.size()); k++)
             {
                 if (!as[k].isSorted_)
                 {
-                    isSorted_ = false;
+                    isSorted = false;
                     break;
                 }
             }
+            commitCsr(isSorted);
         }
 
         if (getDebugLevel() % 10 >= 4)
@@ -558,19 +507,19 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
 
         allocCsr(b.nnz());
 
-        ippsCopy_32s(b.ijs(), ijs_, m());
-        ippsCopy_32s(b.js(), js_, nnz());
+        ippsCopy_32s(b.ijs_, ijs_, m_);
+        ippsCopy_32s(b.js_, js_, nnz());
 
-        for (ii i = 0; i < m(); i++)
+        for (ii i = 0; i < m_; i++)
         {
-            ii a_nz = a.ijs()[i];
-            for (ii nz = ijs()[i]; nz < ijs1_[i]; nz++)
+            ii a_nz = a.ijs_[i];
+            for (ii nz = ijs_[i]; nz < ijs1_[i]; nz++)
             {
                 for (; a_nz < a.ijs1_[i]; a_nz++)
                 {
-                    if (b.js()[nz] == a.js()[a_nz])
+                    if (b.js_[nz] == a.js_[a_nz])
                     {
-                        vs_[nz] = a.vs()[a_nz];
+                        vs_[nz] = a.vs_[a_nz];
                         break;
                     }
                 }

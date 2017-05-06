@@ -48,13 +48,8 @@ public:
     li size() const;
     ii nnz() const;
     ii nnzActual() const;
-    const ii* ijs() const;
-    const ii* js() const;
-    const fp* vs() const;
-    const bool& isSorted() const;
 
 protected:
-    bool getRidOfMkl() const;
     bool getRidOfCsr() const;
 
     bool initCsr(ii m, ii n, ii a_nnz);
@@ -139,6 +134,7 @@ protected:
 
     sparse_status_t status_; // last MKL function status
 
+    friend ObserverMatrixSparse;
     friend MatrixSparseView;
     friend std::ostream& operator<<(std::ostream& os, const MatrixSparse& a);
 };
