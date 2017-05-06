@@ -69,6 +69,7 @@ bool MatrixSparse::alloc(ii nnz)
         is1_[m_ - 1] = nnz;
         js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
         vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+        isOwned_ = true;
 
         return true;
     }
@@ -152,9 +153,33 @@ ii MatrixSparse::nnzActual() const
 }
 
 
-fp* MatrixSparse::vs() const
+const ii* MatrixSparse::is0() const
+{
+    return is0_;
+}
+
+
+const ii* MatrixSparse::is1() const
+{
+    return is1_;
+}
+
+
+const ii* MatrixSparse::js() const
+{
+    return js_;
+}
+
+
+const fp* MatrixSparse::vs() const
 {
     return vs_;
+}
+
+
+const bool& MatrixSparse::isSorted() const
+{
+    return isSorted_;
 }
 
 
@@ -169,18 +194,15 @@ void MatrixSparse::copy(const MatrixSparse& a)
     }
 
     init(a.m_, a.n_);
-
     if (alloc(a.nnz()))
     {
-        ippsCopy_32s(a.is0_, is0_, a.m_);
-        ippsCopy_32s(a.js_, js_, a.is1_[m_ - 1]);
-        ippsCopy_32f(a.vs_, vs_, a.is1_[m_ - 1]);
+        ippsCopy_32s(a.is0(), is0_, a.m());
+        ippsCopy_32s(a.js(), js_, a.nnz());
+        ippsCopy_32f(a.vs(), vs_, a.nnz());
+        isSorted_ = a.isSorted();
 
-        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-        assert(!status_);
-
-        isOwned_ = true;
-        isSorted_ = a.isSorted_;
+        //status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
+        //assert(!status_);
      }
 
     if (getDebugLevel() % 10 >= 4)

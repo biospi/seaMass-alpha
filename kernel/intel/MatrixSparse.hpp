@@ -49,7 +49,11 @@ public:
     li size() const;
     ii nnz() const;
     ii nnzActual() const;
-    fp* vs() const;
+    const ii* is0() const;
+    const ii* is1() const;
+    const ii* js() const;
+    const fp* vs() const;
+    const bool& isSorted() const;
 
     // these functions allocate memory
     void copy(ii m, ii n, ii nnz, const ii* rowind, const ii* colind, const fp* acoo); // create from COO matrix
