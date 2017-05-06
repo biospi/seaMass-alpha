@@ -87,7 +87,7 @@ public:
     void addNonzeros(fp beta);
     void addNonzeros(const MatrixSparse& a, const MatrixSparse& b);
     void lnNonzeros(const MatrixSparse& a);
-    void divNonzeros(const MatrixSparse& b); // a is denominator
+    //void divNonzeros(const MatrixSparse& b); // a is denominator
     void divNonzeros(const MatrixSparse& a, const MatrixSparse& b); // a/b
     void div2Nonzeros(const MatrixSparse& a); // a is numerator
     void div2(const Matrix &a); // a is numerator & must be dense

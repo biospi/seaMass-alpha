@@ -475,7 +475,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
             if (l2Normalize)
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
-                    xEs[l][k].divNonzeros(l2s_[l][k]);
+                    xEs[l][k].divNonzeros(xEs[l][k], l2s_[l][k]);
             }
         }
     }

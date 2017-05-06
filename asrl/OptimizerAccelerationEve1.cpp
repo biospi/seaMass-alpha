@@ -176,7 +176,7 @@ fp OptimizerAccelerationEve1::step()
                         MatrixSparse t;
                         t.copySubset(x0s_[l][k], xs()[l][k]);
 
-                        y0s_[l][k].divNonzeros(t);
+                        y0s_[l][k].divNonzeros(y0s_[l][k], t);
                         y0s_[l][k].pow(y0s_[l][k], aThresh);
                         y0s_[l][k].mul(y0s_[l][k], xs()[l][k]); // x[k] . (x[k] / x[k-1])^a
 
