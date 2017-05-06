@@ -62,11 +62,14 @@ void MatrixSparse::alloc(ii nnz)
     if (is1_)
         free();
 
-    is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
-    is1_ = is0_ + 1;
-    is1_[m_ - 1] = nnz;
-    js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
-    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+    if (nnz > 0)
+    {
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+        is1_ = is0_ + 1;
+        is1_[m_ - 1] = nnz;
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+    }
  }
 
 

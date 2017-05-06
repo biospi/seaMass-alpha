@@ -102,11 +102,23 @@ protected:
 
     ii m_; // number of rows
     ii n_; // number of columns
-    
-    ii* is0_; ii* is1_; ii* js_; fp* vs_; // pointers to CSR array
-    sparse_matrix_t mat_; // opaque MKL sparse matrix object
-    bool isSorted_; // true if we definately know the sparse matrix is sorted
+
+    //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routien has been run
+    //!
+    sparse_matrix_t mat_;
+
+    //! Pointers to CSR array if we had to create of use matrix outside of MKL Inspector-executor Sparse BLAS routines
+    //! If isOwned_, this object is responsible for freeing the CSR array
+    //! If both mat_ and is1_ are 0, the matrix has no non-zeros
+    //!
+    ii* is0_;
+    ii* is1_;
+    ii* js_;
+    fp* vs_;
     bool isOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
+
+    //! isSorted_ should be true if we definately know column indices are sorted within each row
+    bool isSorted_;
 
     sparse_status_t status_; // last MKL function status
 
