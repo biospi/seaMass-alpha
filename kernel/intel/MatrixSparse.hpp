@@ -40,7 +40,6 @@ public:
 
     void free();
     void init(ii m, ii n);
-    bool alloc(ii nnz);
     void swap(MatrixSparse& a);
 
     // accessors
@@ -49,8 +48,7 @@ public:
     li size() const;
     ii nnz() const;
     ii nnzActual() const;
-    const ii* is0() const;
-    const ii* is1() const;
+    const ii* ijs() const;
     const ii* js() const;
     const fp* vs() const;
     const bool& isSorted() const;
@@ -102,6 +100,12 @@ public:
     static double sortElapsed_;
 
 protected:
+    bool initMkl() const;
+    bool initCsr() const;
+    bool allocCSR(ii nnz);
+
+
+
     void sort() const;
 
     ii m_; // number of rows
@@ -115,8 +119,8 @@ protected:
     //! If isOwned_, this object is responsible for freeing the CSR array
     //! If both mat_ and is1_ are 0, the matrix has no non-zeros
     //!
-    ii* is0_;
-    ii* is1_;
+    ii* ijs_;
+    ii* ijs1_;
     ii* js_;
     fp* vs_;
     bool isOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
