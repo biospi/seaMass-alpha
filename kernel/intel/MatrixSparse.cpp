@@ -37,7 +37,7 @@ using namespace std;
 using namespace kernel;
 
 
-MatrixSparse::MatrixSparse(ii m, ii n) : m_(m), n_(n), is1_(0), isOwned_(false), isSorted_(true)
+MatrixSparse::MatrixSparse() : m_(0), n_(0), is1_(0), isOwned_(false), isSorted_(true)
 {
 }
 
@@ -55,6 +55,19 @@ void MatrixSparse::init(ii m, ii n)
     m_ = m;
     n_ = n;
 }
+
+
+void MatrixSparse::alloc(ii nnz)
+{
+    if (is1_)
+        free();
+
+    is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+    is1_ = is0_ + 1;
+    is1_[m_ - 1] = nnz;
+    js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
+    vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+ }
 
 
 void MatrixSparse::free()
@@ -83,7 +96,6 @@ void MatrixSparse::swap(MatrixSparse& a)
     a = t;
     t.is1_ = 0;
 }
-
 
 
 ii MatrixSparse::m() const
@@ -134,56 +146,66 @@ fp* MatrixSparse::vs() const
 
 
 // SEEMS OPTIMAL
-void MatrixSparse::copy(const MatrixSparse& a, bool transpose)
+void MatrixSparse::copy(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       " << (transpose ? "t(" : "") << "A" << a << (transpose ? ")" : "") << " := ...";
+        oss << getTimeStamp() << "       A" << a << " := ...";
         info(oss.str());
     }
 
-    if (transpose)
-        init(a.n_, a.m_);
-    else
-        init(a.m_, a.n_);
+    init(a.m_, a.n_);
 
     if (a.is1_)
     {
-        if (transpose)
-        {
-            if (a.is1_)
-            {
-                mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
+        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a.m_ + 1), 64));
+        is1_ = is0_ + 1;
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * a.is1_[m_ - 1], 64));
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * a.is1_[m_ - 1], 64));
 
-                sparse_index_base_t indexing;
-                status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
-                assert(!status_);
+        ippsCopy_32s(a.is0_, is0_, a.m_ + 1);
+        ippsCopy_32s(a.js_, js_, a.is1_[m_ - 1]);
+        ippsCopy_32f(a.vs_, vs_, a.is1_[m_ - 1]);
 
-                isOwned_ = false;
-                isSorted_ = true;
-            }
-        }
-        else
-        {
-            if (a.is1_)
-            {
-                is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a.m_ + 1), 64));
-                is1_ = is0_ + 1;
-                js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * a.is1_[m_ - 1], 64));
-                vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * a.is1_[m_ - 1], 64));
+        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
+        assert(!status_);
 
-                ippsCopy_32s(a.is0_, is0_, a.m_ + 1);
-                ippsCopy_32s(a.js_, js_, a.is1_[m_ - 1]);
-                ippsCopy_32f(a.vs_, vs_, a.is1_[m_ - 1]);
+        isOwned_ = true;
+        isSorted_ = a.isSorted_;
+     }
 
-                status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-                assert(!status_);
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        info(oss.str(), this);
+    }
+}
 
-                isOwned_ = true;
-                isSorted_ = a.isSorted_;
-            }
-        }
+
+// SEEMS OPTIMAL
+void MatrixSparse::transpose(const MatrixSparse& a)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       t(A" << a << ") := ...";
+        info(oss.str());
+    }
+
+    init(a.n_, a.m_);
+
+    if (a.is1_)
+    {
+        mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
+
+        sparse_index_base_t indexing;
+        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &is0_, &is1_, &js_, &vs_);
+        assert(!status_);
+
+        isOwned_ = false;
+        isSorted_ = true;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -712,8 +734,10 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
     }
     else if (!b.is1_)
     {
-        copy(a, transposeA);
-        mul(alpha);
+        if (transposeA)
+            transpose(a);
+        else
+            copy(a);
     }
     else
     {

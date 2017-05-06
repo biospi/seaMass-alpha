@@ -161,7 +161,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         
         // create A
         aTs_[k].copy(getGridInfo().n(), bci[k + 1] - bci[k], acoo.size(), colind.data(), rowind.data(), acoo.data());
-        as_[k].copy(aTs_[k], true);
+        as_[k].transpose(aTs_[k]);
 
         // display progress update
         if (getDebugLevel() % 10 >= 2)
@@ -211,7 +211,7 @@ void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSpar
         if (rowsPruned > 0)
         {
             aTs_[k].swap(t);
-            as_[k].copy(aTs_[k], true);
+            as_[k].transpose(aTs_[k]);
 
             if (getDebugLevel() % 10 >= 3)
             {

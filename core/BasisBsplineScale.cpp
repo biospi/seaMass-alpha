@@ -101,7 +101,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     aT_.copy(n, m, acoo.size(), colind.data(), rowind.data(), acoo.data());
 
     if (dimension == 0)
-        a_.copy(aT_, true);
+        a_.transpose(aT_);
 }
 
 
@@ -132,7 +132,7 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
         aT_.swap(t);
 
         if (dimension_ == 0)
-            a_.copy(aT_, true);
+            a_.transpose(aT_);
 
         if (getDebugLevel() % 10 >= 3)
         {

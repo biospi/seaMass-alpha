@@ -35,11 +35,12 @@ class MatrixSparseView;
 class MatrixSparse : public SubjectMatrixSparse
 {
 public:
-    MatrixSparse(ii m = 0, ii n = 0);
+    MatrixSparse();
     ~MatrixSparse();
 
-    void init(ii m = 0, ii n = 0);
     void free();
+    void init(ii m, ii n);
+    void alloc(ii nnz);
     void swap(MatrixSparse& a);
 
     // accessors
@@ -51,7 +52,6 @@ public:
     fp* vs() const;
 
     // these functions allocate memory
-    void copy(const MatrixSparse& a, bool transpose = false);
     void copy(ii m, ii n, ii nnz, const ii* rowind, const ii* colind, const fp* acoo); // create from COO matrix
     void copy(const Matrix& a); // create from dense matrix a
     void copy(ii m, ii n, fp v); // create from dense matrix of constant value
@@ -60,6 +60,9 @@ public:
     void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
     ii copyPrune(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
     ii copyPruneRows(const MatrixSparse& a, const MatrixSparse& b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
+
+    void copy(const MatrixSparse& a);
+    void transpose(const MatrixSparse& a);
 
     // exports
     void exportTo(ii* rowind, ii* colind, fp* acoo) const; // export as COO matrix

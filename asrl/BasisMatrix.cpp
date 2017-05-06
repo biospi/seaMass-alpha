@@ -42,14 +42,14 @@ BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& 
 
     as_.resize(aTs_.size());
     for (ii i = 0; i < ii(as_.size()); i++)
-        as_[i].copy(aTs_[i], true);
+        as_[i].transpose(aTs_[i]);
 
     if (gT_)
     {
         g_ = new vector<MatrixSparse>(gT_->size());
 
         for (ii i = 0; i < ii(g_->size()); i++)
-            (*g_)[i].copy((*gT_)[i], true);
+            (*g_)[i].transpose((*gT_)[i]);
     }
 }
 
