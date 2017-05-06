@@ -57,14 +57,11 @@ protected:
     bool getRidOfMkl() const;
     bool getRidOfCsr() const;
 
-    bool initMkl(ii m, ii n);
-    const sparse_matrix_t& getMkl() const;
-    sparse_matrix_t& getMkl();
-    void setMkl(bool isSorted);
-
     bool initCsr(ii m, ii n, ii a_nnz);
-    bool getCsr(ii*& ijs, ii*& js, fp*& vs) const;
-    void setCsr(bool isSorted);
+    bool initMkl(ii m, ii n, ii nnz);
+
+    void commitCsr(bool isSorted);
+    void commitMkl(bool isSorted);
 
 public:
     // these functions allocate memory
@@ -135,7 +132,7 @@ protected:
     ii* ijs1_;
     ii* js_;
     fp* vs_;
-    bool isOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
+    bool isCsrOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
 
     //! isSorted_ should be true if we definately know column indices are sorted within each row
     bool isSorted_;

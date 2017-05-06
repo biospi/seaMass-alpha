@@ -37,7 +37,7 @@ using namespace std;
 using namespace kernel;
 
 
-MatrixSparse::MatrixSparse() : m_(0), n_(0), mat_(0), ijs1_(0), isOwned_(false), isSorted_(true)
+MatrixSparse::MatrixSparse() : m_(0), n_(0), mat_(0), ijs1_(0), isCsrOwned_(false), isSorted_(true)
 {
 }
 
@@ -68,7 +68,7 @@ bool MatrixSparse::allocCsr(ii nnz)
         ijs1_[m_ - 1] = nnz;
         js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * ijs1_[m_ - 1], 64));
         vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * ijs1_[m_ - 1], 64));
-        isOwned_ = true;
+        isCsrOwned_ = true;
 
         return true;
     }
@@ -90,7 +90,7 @@ void MatrixSparse::free()
 
     if (ijs1_)
     {
-        if (isOwned_)
+        if (isCsrOwned_)
         {
             mkl_free(ijs_);
             mkl_free(js_);
@@ -233,54 +233,6 @@ bool MatrixSparse::getRidOfMkl() const
 }
 
 
-bool MatrixSparse::initMkl(ii m, ii n)
-{
-    init(m, n);
-}
-
-
-const sparse_matrix_t& MatrixSparse::getMkl() const
-{
-    //if (didSetCsrLast_)
-    if (mat_)
-    {
-        sparse_index_base_t indexing;
-        sparse_matrix_t &_mat_ = const_cast<sparse_matrix_t &>(mat_);
-
-        sparse_status_t status = mkl_sparse_s_create_csr(&_mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-
-        assert(!status);
-        assert(!indexing);
-    }
-
-    return mat_;
-}
-
-
-sparse_matrix_t& MatrixSparse::getMkl()
-{
-    //if (didSetCsrLast_)
-    if (mat_)
-    {
-        sparse_index_base_t indexing;
-
-        sparse_status_t status = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-
-        assert(!status);
-        assert(!indexing);
-    }
-
-    return mat_;
-}
-
-
-void MatrixSparse::setMkl(bool isSorted)
-{
-    isSorted_ = isSorted;
-    //didSetCsrLast_ = false;
-}
-
-
 bool MatrixSparse::initCsr(ii m, ii n, ii nnz)
 {
     init(m, n);
@@ -294,8 +246,7 @@ bool MatrixSparse::initCsr(ii m, ii n, ii nnz)
         js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * nnz, 64));
         vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * nnz, 64));
 
-        //didInitCsr_ = true;
-        isOwned_ = true;
+        isCsrOwned_ = true;
 
         return true;
     }
@@ -306,45 +257,31 @@ bool MatrixSparse::initCsr(ii m, ii n, ii nnz)
 }
 
 
-bool MatrixSparse::getCsr(ii*& ijs, ii*& js, fp*& vs) const
+bool MatrixSparse::initMkl(ii m, ii n, ii nnz)
 {
-    if (mat_ /*&& !didSetCsrLast_*/)
-    {
-        sparse_index_base_t indexing;
-        ii m;
-        ii n;
-        ii* _ijs_ = const_cast<ii*>(ijs_);
-        ii* _ijs1_ = const_cast<ii*>(ijs1_);
-        ii* _js_ = const_cast<ii*>(js_);
-        fp* _vs_ = const_cast<fp*>(vs_);
+    init(m, n);
 
-        sparse_status_t status = mkl_sparse_s_export_csr(mat_, &indexing, &m, &n, &_ijs_, &_ijs1_, &_js_, &_vs_);
-
-        assert(!status);
-        assert(!indexing);
-        assert(m_ == m);
-        assert(n_ == n);
-    }
-
-    if (ijs1_)
-    {
-        ijs = ijs_;
-        js = js_;
-        vs = vs_;
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    return nnz > 0;
 }
 
 
-void MatrixSparse::setCsr(bool isSorted)
+void MatrixSparse::commitCsr(bool isSorted)
 {
     isSorted_ = isSorted;
-    //didSetCsrLast_ = true;
+
+    sparse_status_t status = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
+    assert(!status);
+}
+
+
+void MatrixSparse::commitMkl(bool isSorted)
+{
+    isSorted_ = isSorted;
+
+    sparse_index_base_t indexing;
+    status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
+    assert(!status_);
+    assert(!indexing);
 }
 
 
@@ -359,17 +296,11 @@ void MatrixSparse::copy(const MatrixSparse& a)
 
     if (initCsr(a.m(), a.n(), a.nnz()))
     {
-        ii* a_ijs; ii* a_js; fp* a_vs;
-        a.getCsr(a_ijs, a_js, a_vs);
+        ippsCopy_32s(a.ijs(), ijs_, a.m());
+        ippsCopy_32s(a.js(), js_, a.nnz());
+        ippsCopy_32f(a.vs(), vs_, a.nnz());
 
-        ii* ijs; ii* js; fp* vs;
-        getCsr(ijs, js, vs);
-
-        ippsCopy_32s(a_ijs, ijs, a.m());
-        ippsCopy_32s(a_js, js, a.nnz());
-        ippsCopy_32f(a_vs, vs, a.nnz());
-
-        setCsr(a.isSorted());
+        commitCsr(a.isSorted());
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -390,17 +321,12 @@ void MatrixSparse::transpose(const MatrixSparse& a)
         info(oss.str());
     }
 
-    init(a.n_, a.m_);
-    if (a.getRidOfMkl())
+    ;
+    if (initMkl(a.m(), a.n(), a.nnz()))
     {
         mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
-        isSorted_ = true;
 
-        sparse_index_base_t indexing;
-        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
-        assert(!status_);
-
-        isOwned_ = false;
+        commitMkl(true);
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -441,7 +367,7 @@ void MatrixSparse::importFromCoo(ii m, ii n, ii a_nnz, const ii* a_is, const ii*
         status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
         assert(!status_);
 
-        isOwned_ = false;
+        isCsrOwned_ = false;
         isSorted_ = true;
     }
 
@@ -728,7 +654,7 @@ ii MatrixSparse::copyPrune(const MatrixSparse &a, fp threshold)
             status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
             assert(!status_);
 
-            isOwned_ = true;
+            isCsrOwned_ = true;
             isSorted_ = a.isSorted_;
         }
     }
@@ -807,7 +733,7 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
             status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
             assert(!status_);
 
-            isOwned_ = true;
+            isCsrOwned_ = true;
             isSorted_ = a.isSorted_;
 
             rowsPruned = aNnzRows- bNnzRowsOrCols;
@@ -919,7 +845,7 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
         status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
         assert(!status_);
 
-        isOwned_ = false;
+        isCsrOwned_ = false;
         isSorted_ = true;
     }
 
@@ -991,7 +917,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
                 assert(!status_);
 
-                isOwned_ = false;
+                isCsrOwned_ = false;
             }
             else
             {
@@ -1002,7 +928,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 js_ = js;
                 vs_ = vs;
                 mat_ = t;
-                isOwned_ = true;
+                isCsrOwned_ = true;
             }
 
             isSorted_ = true;
@@ -1055,7 +981,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 }
             }
 
-            isOwned_ = false;
+            isCsrOwned_ = false;
             isSorted_ = false;
         }
     }
@@ -1182,7 +1108,7 @@ void MatrixSparse::sqr(const MatrixSparse& a)
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
         assert(!status_);
 
-        isOwned_ = true;
+        isCsrOwned_ = true;
         isSorted_ = a.isSorted_;
     }
 
@@ -1374,7 +1300,7 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
         assert(!status_);
 
-        isOwned_ = true;
+        isCsrOwned_ = true;
         isSorted_ = a.isSorted_;
     }
 
@@ -1474,7 +1400,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
         assert(!status_);
 
-        isOwned_ = true;
+        isCsrOwned_ = true;
         isSorted_ = true;
     }
 
