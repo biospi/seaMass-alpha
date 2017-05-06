@@ -59,8 +59,7 @@ void MatrixSparse::init(ii m, ii n)
 
 bool MatrixSparse::allocCsr(ii nnz)
 {
-    if (ijs1_)
-        free();
+    free();
 
     if (nnz > 0)
     {
@@ -78,6 +77,63 @@ bool MatrixSparse::allocCsr(ii nnz)
         return false;
     }
  }
+
+
+bool MatrixSparse::initCsr() const
+{
+    if (ijs1_)
+    {
+        return true;
+    }
+    else if (mat_)
+    {
+        sparse_index_base_t indexing;
+        ii m;
+        ii n;
+        ii* _ijs_ = const_cast<ii*>(ijs_);
+        ii* _ijs1_ = const_cast<ii*>(ijs1_);
+        ii* _js_ = const_cast<ii*>(js_);
+        fp* _vs_ = const_cast<fp*>(vs_);
+
+        sparse_status_t status = mkl_sparse_s_export_csr(mat_, &indexing, &m, &n, &_ijs_, &_ijs1_, &_js_, &_vs_);
+
+        assert(!status_);
+        assert(!indexing);
+        assert(m_ == m);
+        assert(n_ == n);
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+bool MatrixSparse::initMkl() const
+{
+    if (mat_)
+    {
+        return true;
+    }
+    else if (ijs1_)
+    {
+        sparse_index_base_t indexing;
+        sparse_matrix_t& _mat_ =  const_cast<sparse_matrix_t&>(mat_);
+
+        sparse_status_t status_ = mkl_sparse_s_create_csr(&_mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
+
+        assert(!status_);
+        assert(!indexing);
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
 
 void MatrixSparse::free()
@@ -205,59 +261,6 @@ void MatrixSparse::copy(const MatrixSparse& a)
         info(oss.str(), this);
     }
 }
-
-
-bool MatrixSparse::initCsr() const
-{
-    if (mat_ && !ijs1_)
-    {
-        sparse_index_base_t indexing;
-        ii m;
-        ii n;
-        ii* _ijs_ = const_cast<ii*>(ijs_);
-        ii* _ijs1_ = const_cast<ii*>(ijs1_);
-        ii* _js_ = const_cast<ii*>(js_);
-        fp* _vs_ = const_cast<fp*>(vs_);
-
-        sparse_status_t status = mkl_sparse_s_export_csr(mat_, &indexing, &m, &n, &_ijs_, &_ijs1_, &_js_, &_vs_);
-
-        assert(!status_);
-        assert(!indexing);
-        assert(m_ == m);
-        assert(n_ == n);
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-
-bool MatrixSparse::initMkl() const
-{
-    if (mat_)
-    {
-        return true;
-    }
-    else if (ijs1_)
-    {
-        sparse_index_base_t indexing;
-        sparse_matrix_t& _mat_ =  const_cast<sparse_matrix_t&>(mat_);
-
-        sparse_status_t status_ = mkl_sparse_s_create_csr(&_mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-
-        assert(!status_);
-        assert(!indexing);
-
-        return true;
-    }
-    else
-    {
-        return false;
-    }
- }
 
 
 void MatrixSparse::transpose(const MatrixSparse& a)
@@ -467,30 +470,22 @@ void MatrixSparse::copySubset(const MatrixSparse &a)
         sort();
         a.sort();
 
-        //ii count = 0;
         //#pragma omp parallel
         for (ii i = 0; i < m_; i++)
         {
             ii a_nz = a.ijs_[i];
             for (ii nz = ijs_[i]; nz < ijs1_[i]; nz++)
             {
-                //bool found = false;
                 for (; a_nz < a.ijs1_[i]; a_nz++)
                 {
                     if (js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
-                        //found = true;
                         break;
                     }
                 }
-
-                //if (!found)
-                //    count++;
              }
         }
-        //if (count > 0) oss << count << " missing.";
-        //if (count > 0) exit(0);
 
         isSorted_ = true;
     }
@@ -514,54 +509,41 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
         info(oss.str());
     }
 
-    assert(a.m_ == b.m_);
-    assert(a.n_ == b.n_);
+    assert(a.m() == b.m());
+    assert(a.n() == b.n());
 
-    init(a.m_, a.n_);
+    init(a.m(), a.n());
 
-    if (a.ijs1_ && b.ijs1_)
+    if (a.initCsr() && b.initCsr())
     {
         a.sort();
         b.sort();
 
-        ijs_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
-        ippsCopy_32s(b.ijs_, ijs_, m_ + 1);
-        ijs1_ = ijs_ + 1;
-        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * ijs1_[m_ - 1], 64));
-        ippsCopy_32s(b.js_, js_, ijs1_[m_ - 1]);
-        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * ijs1_[m_ - 1], 64));
+        allocCsr(b.nnz());
 
-        //ii count = 0;
-        //#pragma omp parallel
-        for (ii i = 0; i < m_; i++)
+        ippsCopy_32s(b.ijs(), ijs_, m());
+        ippsCopy_32s(b.js(), js_, nnz());
+
+        for (ii i = 0; i < m(); i++)
         {
-            ii a_nz = a.ijs_[i];
-            for (ii nz = ijs_[i]; nz < ijs1_[i]; nz++)
+            ii a_nz = a.ijs()[i];
+            for (ii nz = ijs()[i]; nz < ijs1_[i]; nz++)
             {
-                //bool found = false;
                 for (; a_nz < a.ijs1_[i]; a_nz++)
                 {
-                    if (b.js_[nz] == a.js_[a_nz])
+                    if (b.js()[nz] == a.js()[a_nz])
                     {
-                        vs_[nz] = a.vs_[a_nz];
-                        //found = true;
+                        vs_[nz] = a.vs()[a_nz];
                         break;
                     }
                 }
-
-                //if (!found)
-                //    count++;
             }
         }
-        //if (count > 0) oss << count << " missing.";
-        //if (count > 0) exit(0);
 
+        isSorted_ = true;
 
         status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
         assert(!status_);
-
-        isOwned_ = true;
-        isSorted_ = true;
     }
 
     if (getDebugLevel() % 10 >= 4)
