@@ -655,12 +655,9 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
     assert((transposeA ? a.m() : a.n()) == b.m());
 
-    if (!ijs1_)
-        accumulate = false;
-
     if (a.ijs1_ && b.ijs1_)
     {
-        if (accumulate)
+        if (accumulate && ijs1_)
         {
             sparse_matrix_t t;
             status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t);
@@ -675,8 +672,6 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
             clear();
             mat_ = y;
-
-            commitMkl(false);
         }
         else
         {
@@ -684,10 +679,10 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
             status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_);
             assert(!status_);
+       }
 
-            commitMkl(false);
-        }
-     }
+        commitMkl(false);
+    }
     else
     {
         if (!accumulate)
@@ -725,66 +720,62 @@ void MatrixSparse::matmulDense(bool transposeA, const MatrixSparse &a, const Mat
         if (!accumulate)
             init(transposeA ? a.n() : a.m(), b.n());
 
+        ii m = transposeA ? a.n() : a.m();
+        ii n = b.n();
+
+        ii* is0 = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m + 1), 64));
+        is0[0] = 0;
+        ii* is1 = is0 + 1;
+        for (ii i = 0; i < m; i++)
+            is1[i] = is0[i] + n;
+
+        ii* js = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1[m - 1], 64));
+        for (ii nz = 0; nz < is1[m - 1]; nz++)
+            js[nz] = nz % n;
+
+        fp* vs = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1[m - 1], 64));
+        status_ = mkl_sparse_s_spmmd(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, SPARSE_LAYOUT_ROW_MAJOR, vs, n); assert(!status_);
+
+        sparse_matrix_t t;
+        status_ = mkl_sparse_s_create_csr(&t, SPARSE_INDEX_BASE_ZERO, m, n, is0, is1, js, vs);
+        assert(!status_);
+
+        if (accumulate)
         {
-            ii m = transposeA ? a.n() : a.m();
-            ii n = b.n();
-
-            ii* is0 = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m + 1), 64));
-            is0[0] = 0;
-            ii* is1 = is0 + 1;
-            for (ii i = 0; i < m; i++)
-                is1[i] = is0[i] + n;
-
-            ii* js = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1[m - 1], 64));
-            for (ii nz = 0; nz < is1[m - 1]; nz++)
-                js[nz] = nz % n;
-
-            fp* vs = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1[m - 1], 64));
-            status_ = mkl_sparse_s_spmmd(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, SPARSE_LAYOUT_ROW_MAJOR, vs, n); assert(!status_);
-
-            sparse_matrix_t t;
-            status_ = mkl_sparse_s_create_csr(&t, SPARSE_INDEX_BASE_ZERO, m, n, is0, is1, js, vs);
+            sparse_matrix_t y;
+            status_ = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
             assert(!status_);
 
-            if (accumulate)
-            {
-                sparse_matrix_t y;
-                status_ = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
-                assert(!status_);
+            status_ = mkl_sparse_destroy(t);
+            assert(!status_);
 
-                status_ = mkl_sparse_destroy(t);
-                assert(!status_);
+            clear();
+            mat_ = y;
 
-                clear();
-                mat_ = y;
+            sparse_index_base_t indexing;
+            status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
+            assert(!status_);
 
-                sparse_index_base_t indexing;
-                status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
-                assert(!status_);
-
-                isCsrOwned_ = false;
-            }
-            else
-            {
-                m_ = m;
-                n_ = n;
-                ijs_ = is0;
-                ijs1_ = is1;
-                js_ = js;
-                vs_ = vs;
-                mat_ = t;
-                isCsrOwned_ = true;
-            }
-
-            isSorted_ = true;
+            isCsrOwned_ = false;
         }
+        else
+        {
+            m_ = m;
+            n_ = n;
+            ijs_ = is0;
+            ijs1_ = is1;
+            js_ = js;
+            vs_ = vs;
+            mat_ = t;
+            isCsrOwned_ = true;
+        }
+
+        isSorted_ = true;
     }
     else
     {
         if (!accumulate)
-        {
             importFromMatrix(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
-        }
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -809,7 +800,11 @@ void MatrixSparse::mul(fp beta)
     }
 
     if (ijs1_)
+    {
         ippsMulC_32f_I(beta, vs_, ijs1_[m_ - 1]);
+
+        commitCsr(isSorted_);
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {
@@ -852,27 +847,6 @@ void MatrixSparse::mul(const MatrixSparse& a)
 }
 
 
-void MatrixSparse::sqr()
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "       sqr(X" << *this << ") := ...";
-        info(oss.str());
-    }
-
-    if (ijs1_)
-        vsSqr(ijs1_[m_ - 1], vs_, vs_);
-
-    if (getDebugLevel() % 10 >= 4)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "       ... X" << *this;
-        info(oss.str(), this);
-    }
-}
-
-
 void MatrixSparse::sqr(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -882,24 +856,13 @@ void MatrixSparse::sqr(const MatrixSparse& a)
         info(oss.str());
     }
 
-    init(a.m_, a.n_);
-
-    if (a.ijs1_)
+    if (initCsr(a.m(), a.n(), a.nnz()))
     {
-        ijs_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
         ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
-        ijs1_ = ijs_ + 1;
-        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * ijs1_[m_ - 1], 64));
         ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
-        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * ijs1_[m_ - 1], 64));
-
         vsSqr(ijs1_[m_ - 1], a.vs_, vs_);
 
-        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-        assert(!status_);
-
-        isCsrOwned_ = true;
-        isSorted_ = a.isSorted_;
+        commitCsr(a.isSorted_);
     }
 
     if (getDebugLevel() % 10 >= 4)

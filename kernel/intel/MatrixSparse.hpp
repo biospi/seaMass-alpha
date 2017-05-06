@@ -70,11 +70,14 @@ public:
     void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate);
     void matmulDense(bool transposeA, const MatrixSparse &a, const MatrixSparse &b, bool accumulate);
 
-    // elementwise operations
-    void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
+    // elementwise inplace operations
     void mul(fp beta);
+
+    // elementwise copy operations
+    void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
+
+    // elementwise inplace and copy operations
     void mul(const MatrixSparse& a);
-    void sqr();
     void sqr(const MatrixSparse& a);
     void sqrt();
     void pow(fp power);
