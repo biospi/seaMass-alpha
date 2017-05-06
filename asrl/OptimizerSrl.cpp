@@ -220,7 +220,7 @@ fp OptimizerSrl::step()
                         t.matmul(false, y, (*g)[k], false);
                         y.copySubset(t, xs_[l][k]);
                         t.clear();
-                        y.sqrt();
+                        y.sqrt(y);
 
                         // y = x * groupNorm(x)^-1)
                         y.div2Nonzeros(xs_[l][k]);
@@ -469,7 +469,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
             if(l2)
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
-                    xEs[l][k].sqrt();
+                    xEs[l][k].sqrt(xEs[l][k]);
             }
 
             if (l2Normalize)

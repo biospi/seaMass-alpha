@@ -886,7 +886,7 @@ void MatrixSparse::sqr(const MatrixSparse& a)
 }
 
 
-void MatrixSparse::sqrt()
+void MatrixSparse::sqrt(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -895,8 +895,17 @@ void MatrixSparse::sqrt()
         info(oss.str());
     }
 
+    if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
+    {
+        ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+    }
+
     if (ijs1_)
-        vsSqrt(ijs1_[m_ - 1], vs_, vs_);
+    {
+        vsSqrt(ijs1_[m_ - 1], a.vs_, vs_);
+        commitCsr(a.isSorted_);
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {
@@ -907,7 +916,7 @@ void MatrixSparse::sqrt()
 }
 
 
-void MatrixSparse::pow(fp power)
+void MatrixSparse::pow(const MatrixSparse& a, fp power)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -916,8 +925,17 @@ void MatrixSparse::pow(fp power)
         info(oss.str());
     }
 
+    if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
+    {
+        ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+    }
+
     if (ijs1_)
-        vsPowx(ijs1_[m_ - 1], vs_, power, vs_);
+    {
+        vsPowx(ijs1_[m_ - 1], a.vs_, power, vs_);
+        commitCsr(a.isSorted_);
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {
