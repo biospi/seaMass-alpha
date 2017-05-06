@@ -399,7 +399,7 @@ void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
         for (size_t k = 0; k < as.size() - 1; k++)
             assert(as[k].n_ == as[k + 1].n_);
 
-        init((ii)as.size(), as[0].n());
+        init(ii(as.size()), as[0].n());
 
         ii as_nnz = 0;
         for (ii i = 0; i < m_; i++)
@@ -415,10 +415,14 @@ void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
             for (ii i = 0; i < m_; i++)
             {
                 if (as[i].ijs1_)
-                {
                     ippsCopy_32s(as[i].js_, &js_[ijs_[i]], as[i].ijs1_[0]);
+             }
+
+            //#pragma omp parallel
+            for (ii i = 0; i < m_; i++)
+            {
+                if (as[i].ijs1_)
                     ippsCopy_32f(as[i].vs_, &vs_[ijs_[i]], as[i].ijs1_[0]);
-                }
             }
 
             status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
