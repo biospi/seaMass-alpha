@@ -80,7 +80,7 @@ public:
     void mul(const MatrixSparse& a, const MatrixSparse& b);
     void sqr(const MatrixSparse& a);
     void sqrt(const MatrixSparse& a);
-    void pow(fp power);
+    void pow(const MatrixSparse& a, fp power);
     void censorLeft(fp threshold);
 
     // elementwise operations only operating on non-zero elements

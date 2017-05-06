@@ -177,7 +177,7 @@ fp OptimizerAccelerationEve1::step()
                         t.copySubset(x0s_[l][k], xs()[l][k]);
 
                         y0s_[l][k].divNonzeros(t);
-                        y0s_[l][k].pow(aThresh);
+                        y0s_[l][k].pow(y0s_[l][k], aThresh);
                         y0s_[l][k].mul(y0s_[l][k], xs()[l][k]); // x[k] . (x[k] / x[k-1])^a
 
                         x0s_[l][k].copy(xs()[l][k]); // previous 'xs' saved as 'x0s' for next iteration
