@@ -233,6 +233,155 @@ const bool& MatrixSparse::isSorted() const
 }
 
 
+bool MatrixSparse::initMkl(ii m, ii n)
+{
+    init(m, n);
+}
+
+
+const sparse_matrix_t& MatrixSparse::getMkl() const
+{
+    //if (didSetCsrLast_)
+    if (mat_)
+    {
+        sparse_index_base_t indexing;
+        sparse_matrix_t &_mat_ = const_cast<sparse_matrix_t &>(mat_);
+
+        sparse_status_t status = mkl_sparse_s_create_csr(&_mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
+
+        assert(!status);
+        assert(!indexing);
+    }
+
+    return mat_;
+}
+
+
+sparse_matrix_t& MatrixSparse::getMkl()
+{
+    //if (didSetCsrLast_)
+    if (mat_)
+    {
+        sparse_index_base_t indexing;
+
+        sparse_status_t status = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
+
+        assert(!status);
+        assert(!indexing);
+    }
+
+    return mat_;
+}
+
+
+void MatrixSparse::setMkl(bool isSorted)
+{
+    isSorted_ = isSorted;
+    //didSetCsrLast_ = false;
+}
+
+
+bool MatrixSparse::initCsr(ii m, ii n, ii nnz)
+{
+    init(m, n);
+
+    if (nnz > 0)
+    {
+        ijs_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
+        ijs_[m_] = nnz;
+        ijs1_ = ijs_ + 1;
+
+        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * nnz, 64));
+        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * nnz, 64));
+
+        //didInitCsr_ = true;
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+bool MatrixSparse::getCsr(const ii* ijs, const ii* js, const fp* vs) const
+{
+    if (mat_ /*&& !didSetCsrLast_*/)
+    {
+        sparse_index_base_t indexing;
+        ii m;
+        ii n;
+        ii* _ijs_ = const_cast<ii*>(ijs_);
+        ii* _ijs1_ = const_cast<ii*>(ijs1_);
+        ii* _js_ = const_cast<ii*>(js_);
+        fp* _vs_ = const_cast<fp*>(vs_);
+
+        sparse_status_t status = mkl_sparse_s_export_csr(mat_, &indexing, &m, &n, &_ijs_, &_ijs1_, &_js_, &_vs_);
+
+        assert(!status);
+        assert(!indexing);
+        assert(m_ == m);
+        assert(n_ == n);
+    }
+
+    if (ijs1_)
+    {
+        ijs = ijs_;
+        js = js_;
+        vs = vs_;
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+bool MatrixSparse::getCsr(ii* ijs, ii* js, fp* vs)
+{
+    if (mat_ /*&& !didSetCsrLast_*/)
+    {
+        sparse_index_base_t indexing;
+        ii m;
+        ii n;
+        ii* _ijs_ = const_cast<ii*>(ijs_);
+        ii* _ijs1_ = const_cast<ii*>(ijs1_);
+        ii* _js_ = const_cast<ii*>(js_);
+        fp* _vs_ = const_cast<fp*>(vs_);
+
+        sparse_status_t status = mkl_sparse_s_export_csr(mat_, &indexing, &m, &n, &_ijs_, &_ijs1_, &_js_, &_vs_);
+
+        assert(!status);
+        assert(!indexing);
+        assert(m_ == m);
+        assert(n_ == n);
+    }
+
+    if (ijs1_)
+    {
+        ijs = ijs_;
+        js = js_;
+        vs = vs_;
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+void MatrixSparse::setCsr(bool isSorted)
+{
+    isSorted_ = isSorted;
+    //didSetCsrLast_ = true;
+}
+
+
 void MatrixSparse::copy(const MatrixSparse& a)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -249,10 +398,7 @@ void MatrixSparse::copy(const MatrixSparse& a)
         ippsCopy_32s(a.js(), js_, a.nnz());
         ippsCopy_32f(a.vs(), vs_, a.nnz());
         isSorted_ = a.isSorted();
-
-        //status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, is0_, is1_, js_, vs_);
-        //assert(!status_);
-     }
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {

@@ -53,6 +53,18 @@ public:
     const fp* vs() const;
     const bool& isSorted() const;
 
+protected:
+    bool initMkl(ii m, ii n);
+    const sparse_matrix_t& getMkl() const;
+    sparse_matrix_t& getMkl();
+    void setMkl(bool isSorted);
+
+    bool initCsr(ii m, ii n, ii a_nnz);
+    bool getCsr(const ii* ijs, const ii* js, const fp* vs) const;
+    bool getCsr(ii* ijs, ii* js, fp* vs);
+    void setCsr(bool isSorted);
+
+public:
     // these functions allocate memory
     void importFromCoo(ii m, ii n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
     void importFromMatrix(const Matrix &a); // create from dense matrix a
