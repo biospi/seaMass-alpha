@@ -687,7 +687,6 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
             commitMkl(false);
         }
-
      }
     else
     {
