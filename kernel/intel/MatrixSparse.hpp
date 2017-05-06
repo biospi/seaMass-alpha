@@ -65,7 +65,7 @@ protected:
 
 public:
     // these functions allocate memory
-    void importFromCoo(ii m, ii n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
+    void importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
     void importFromMatrix(const Matrix &a); // create from dense matrix a
     void importFromMatrix(ii m, ii n, fp v); // create from dense matrix of constant value
     void concatenateSparseVectors(const std::vector<MatrixSparse> &xs); // the xs must be row vectors

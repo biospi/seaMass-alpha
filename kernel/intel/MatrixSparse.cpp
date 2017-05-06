@@ -321,7 +321,6 @@ void MatrixSparse::transpose(const MatrixSparse& a)
         info(oss.str());
     }
 
-    ;
     if (initMkl(a.m(), a.n(), a.nnz()))
     {
         mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
@@ -338,7 +337,7 @@ void MatrixSparse::transpose(const MatrixSparse& a)
 }
 
 
-void MatrixSparse::importFromCoo(ii m, ii n, ii a_nnz, const ii* a_is, const ii* a_js, const fp* a_vs)
+void MatrixSparse::importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii* a_is, const ii* a_js, const fp* a_vs)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -347,14 +346,13 @@ void MatrixSparse::importFromCoo(ii m, ii n, ii a_nnz, const ii* a_is, const ii*
         info(oss.str());
     }
 
-    init(m, n);
-    if (a_nnz > 0)
+    if (initMkl(a_m, a_n, a_nnz))
     {
         sparse_matrix_t t;
-        fp* _acoo = const_cast<fp*>(a_vs);
-        ii* _rowind = const_cast<ii*>(a_is);
-        ii* _colind = const_cast<ii*>(a_js);
-        status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, a_nnz, _rowind, _colind, _acoo);
+        ii* _a_is = const_cast<ii*>(a_is);
+        ii* _a_js = const_cast<ii*>(a_js);
+        fp* _a_vs = const_cast<fp*>(a_vs);
+        status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m(), n(), a_nnz, _a_is, _a_js, _a_vs);
         assert(!status_);
 
         status_ = mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, &mat_);
@@ -363,12 +361,7 @@ void MatrixSparse::importFromCoo(ii m, ii n, ii a_nnz, const ii* a_is, const ii*
         status_ = mkl_sparse_destroy(t);
         assert(!status_);
 
-        sparse_index_base_t indexing;
-        status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
-        assert(!status_);
-
-        isCsrOwned_ = false;
-        isSorted_ = true;
+        commitMkl(true);
     }
 
     if (getDebugLevel() % 10 >= 4)
