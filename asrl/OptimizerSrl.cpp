@@ -235,7 +235,7 @@ fp OptimizerSrl::step()
                         y.div2Nonzeros(xs_[l][k]);
 
                         // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        xEs_ys[l][k].mul(y);
+                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
                     }
                 }
                 else
@@ -255,7 +255,7 @@ fp OptimizerSrl::step()
                         y.divNonzeros(xs_[l][k], l1l2sPlusLambda_[l][k]);
 
                         // y = xE * x / (l1l2 + lambda)
-                        xEs_ys[l][k].mul(y);
+                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
                     }
                 }
             }

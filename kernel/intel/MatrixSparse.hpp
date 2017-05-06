@@ -77,7 +77,7 @@ public:
     void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
 
     // elementwise inplace and copy operations
-    void mul(const MatrixSparse& a);
+    void mul(const MatrixSparse& a, const MatrixSparse& b);
     void sqr(const MatrixSparse& a);
     void sqrt();
     void pow(fp power);

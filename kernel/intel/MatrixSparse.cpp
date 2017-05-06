@@ -802,7 +802,6 @@ void MatrixSparse::mul(fp beta)
     if (ijs1_)
     {
         ippsMulC_32f_I(beta, vs_, ijs1_[m_ - 1]);
-
         commitCsr(isSorted_);
     }
 
@@ -815,7 +814,7 @@ void MatrixSparse::mul(fp beta)
 }
 
 
-void MatrixSparse::mul(const MatrixSparse& a)
+void MatrixSparse::mul(const MatrixSparse& a, const MatrixSparse& b)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -824,18 +823,28 @@ void MatrixSparse::mul(const MatrixSparse& a)
         info(oss.str());
     }
 
+    if (this != &a && this != &b && initCsr(a.m(), a.n(), a.nnz()))
+    {
+        ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+    }
+
     if (ijs1_)
     {
-        sort();
-        a.sort();
+        if (&a != &b)
+        {
+            a.sort();
+            b.sort();
+        }
 
-        assert(ijs1_[m_ - 1] == a.ijs1_[m_ - 1]);
+        assert(a.ijs1_[m_ - 1] == b.ijs1_[m_ - 1]);
         for (ii i = 0; i < m_; i++)
-            assert(ijs_[i] == a.ijs_[i]);
+            assert(a.ijs_[i] == b.ijs_[i]);
         for (ii nz = 0; nz < ijs1_[m_ - 1]; nz++)
-            assert(js_[nz] == a.js_[nz]);
+            assert(a.js_[nz] == b.js_[nz]);
 
-        vsMul(ijs1_[m_ - 1], vs_, a.vs_, vs_);
+        vsMul(ijs1_[m_ - 1], a.vs_, b.vs_, vs_);
+        commitCsr(true);
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -856,12 +865,15 @@ void MatrixSparse::sqr(const MatrixSparse& a)
         info(oss.str());
     }
 
-    if (initCsr(a.m(), a.n(), a.nnz()))
+    if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
     {
         ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
         ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
-        vsSqr(ijs1_[m_ - 1], a.vs_, vs_);
+    }
 
+    if (ijs1_)
+    {
+        vsSqr(ijs1_[m_ - 1], a.vs_, vs_);
         commitCsr(a.isSorted_);
     }
 
