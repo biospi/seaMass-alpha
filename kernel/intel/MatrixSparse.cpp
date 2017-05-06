@@ -916,7 +916,7 @@ void MatrixSparse::sqrt(const MatrixSparse& a)
 }
 
 
-void MatrixSparse::pow(const MatrixSparse& a, fp power)
+void MatrixSparse::pow(fp power)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -925,17 +925,8 @@ void MatrixSparse::pow(const MatrixSparse& a, fp power)
         info(oss.str());
     }
 
-    if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
-    {
-        ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
-        ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
-    }
-
     if (ijs1_)
-    {
-        vsPowx(ijs1_[m_ - 1], a.vs_, power, vs_);
-        commitCsr(a.isSorted_);
-    }
+        vsPowx(ijs1_[m_ - 1], vs_, power, vs_);
 
     if (getDebugLevel() % 10 >= 4)
     {
@@ -1370,6 +1361,9 @@ bool MatrixSparse::initCsr(ii m, ii n, ii nnz)
 
         isCsrOwned_ = true;
 
+        sparse_status_t status = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
+        assert(!status);
+
         return true;
     }
     else
@@ -1382,15 +1376,6 @@ bool MatrixSparse::initCsr(ii m, ii n, ii nnz)
 void MatrixSparse::commitCsr(bool isSorted)
 {
     isSorted_ = isSorted;
-
-    if (mat_)
-    {
-        status_ = mkl_sparse_destroy(mat_);
-        assert(!status_);
-    }
-
-    sparse_status_t status = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-    assert(!status);
 }
 
 
@@ -1405,13 +1390,6 @@ void MatrixSparse::initMkl(ii m, ii n)
 void MatrixSparse::commitMkl(bool isSorted)
 {
     isSorted_ = isSorted;
-
-    if (ijs1_ && isCsrOwned_)
-    {
-        mkl_free(ijs_);
-        mkl_free(js_);
-        mkl_free(vs_);
-    }
 
     sparse_index_base_t indexing;
     status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
