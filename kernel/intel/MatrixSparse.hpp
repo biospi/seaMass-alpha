@@ -40,7 +40,7 @@ public:
 
     void free();
     void init(ii m, ii n);
-    void alloc(ii nnz);
+    bool alloc(ii nnz);
     void swap(MatrixSparse& a);
 
     // accessors

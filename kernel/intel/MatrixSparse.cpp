@@ -37,7 +37,7 @@ using namespace std;
 using namespace kernel;
 
 
-MatrixSparse::MatrixSparse() : m_(0), n_(0), is1_(0), isOwned_(false), isSorted_(true)
+MatrixSparse::MatrixSparse() : m_(0), n_(0), mat_(0), is1_(0), isOwned_(false), isSorted_(true)
 {
 }
 
@@ -57,7 +57,7 @@ void MatrixSparse::init(ii m, ii n)
 }
 
 
-void MatrixSparse::alloc(ii nnz)
+bool MatrixSparse::alloc(ii nnz)
 {
     if (is1_)
         free();
@@ -69,24 +69,33 @@ void MatrixSparse::alloc(ii nnz)
         is1_[m_ - 1] = nnz;
         js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * is1_[m_ - 1], 64));
         vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * is1_[m_ - 1], 64));
+
+        return true;
+    }
+    else
+    {
+        return false;
     }
  }
 
 
 void MatrixSparse::free()
 {
-    if (is1_)
+    if (mat_)
     {
         status_ = mkl_sparse_destroy(mat_);
         assert(!status_);
+        mat_ = 0;
+    }
 
+    if (is1_)
+    {
         if (isOwned_)
         {
             mkl_free(is0_);
             mkl_free(js_);
             mkl_free(vs_);
         }
-
         is1_ = 0;
     }
 }
@@ -98,6 +107,7 @@ void MatrixSparse::swap(MatrixSparse& a)
     *this = a;
     a = t;
     t.is1_ = 0;
+    t.mat_ = 0;
 }
 
 
@@ -160,14 +170,9 @@ void MatrixSparse::copy(const MatrixSparse& a)
 
     init(a.m_, a.n_);
 
-    if (a.is1_)
+    if (alloc(a.nnz()))
     {
-        is0_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (a.m_ + 1), 64));
-        is1_ = is0_ + 1;
-        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * a.is1_[m_ - 1], 64));
-        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * a.is1_[m_ - 1], 64));
-
-        ippsCopy_32s(a.is0_, is0_, a.m_ + 1);
+        ippsCopy_32s(a.is0_, is0_, a.m_);
         ippsCopy_32s(a.js_, js_, a.is1_[m_ - 1]);
         ippsCopy_32f(a.vs_, vs_, a.is1_[m_ - 1]);
 
