@@ -57,7 +57,7 @@ void MatrixSparse::init(ii m, ii n)
 }
 
 
-bool MatrixSparse::allocCSR(ii nnz)
+bool MatrixSparse::allocCsr(ii nnz)
 {
     if (ijs1_)
         free();
@@ -187,7 +187,7 @@ void MatrixSparse::copy(const MatrixSparse& a)
     }
 
     init(a.m_, a.n_);
-    if (allocCSR(a.nnz()))
+    if (allocCsr(a.nnz()))
     {
         ippsCopy_32s(a.ijs(), ijs_, a.m());
         ippsCopy_32s(a.js(), js_, a.nnz());
@@ -291,26 +291,23 @@ void MatrixSparse::transpose(const MatrixSparse& a)
 }
 
 
-// SEEMS OPTIMAL
-void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colind, const fp* acoo)
+void MatrixSparse::importFromCoo(ii m, ii n, ii a_nnz, const ii* a_is, const ii* a_js, const fp* a_vs)
 {
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       copy(COO) := ...";
+        oss << getTimeStamp() << "       importFrom(COO) := ...";
         info(oss.str());
     }
 
     init(m, n);
-
-    if (length > 0)
+    if (a_nnz > 0)
     {
-        fp* c_acoo = const_cast<fp*>(acoo);
-        ii* c_rowind = const_cast<ii*>(rowind);
-        ii* c_colind = const_cast<ii*>(colind);
-
         sparse_matrix_t t;
-        status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, length, c_rowind, c_colind, c_acoo);
+        fp* _acoo = const_cast<fp*>(a_vs);
+        ii* _rowind = const_cast<ii*>(a_is);
+        ii* _colind = const_cast<ii*>(a_js);
+        status_ = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, a_nnz, _rowind, _colind, _acoo);
         assert(!status_);
 
         status_ = mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, &mat_);
@@ -337,13 +334,13 @@ void MatrixSparse::copy(ii m, ii n, ii length, const ii* rowind, const ii* colin
 
 
 // todo: optimize
-void MatrixSparse::copy(const Matrix &a)
+void MatrixSparse::importFromMatrix(const Matrix &a)
 {
     free();
 
-    vector<ii> rowind;
-    vector<ii> colind;
-    vector<fp> acoo;
+    vector<ii> is;
+    vector<ii> js;
+    vector<fp> vs;
 
     for (ii i = 0; i < a.m(); i++)
     {
@@ -351,48 +348,48 @@ void MatrixSparse::copy(const Matrix &a)
         {
             if (a.vs()[j + i * a.n()] != 0.0)
             {
-                rowind.push_back(i);
-                colind.push_back(j);
-                acoo.push_back(a.vs()[j + i * a.n()]);
+                is.push_back(i);
+                js.push_back(j);
+                vs.push_back(a.vs()[j + i * a.n()]);
             }
         }
     }
 
-    copy(a.m(), a.n(), acoo.size(), rowind.data(), colind.data(), acoo.data());
+    importFromCoo(a.m(), a.n(), vs.size(), is.data(), js.data(), vs.data());
 }
 
 
 // todo: optimize
-void MatrixSparse::copy(ii m, ii n, fp v)
+void MatrixSparse::importFromMatrix(ii m, ii n, fp v)
 {
     free();
 
-    vector<ii> rowind;
-    vector<ii> colind;
-    vector<fp> acoo;
+    vector<ii> is;
+    vector<ii> js;
+    vector<fp> vs;
 
     for (ii i = 0; i < m; i++)
     {
         for (ii j = 0; j < n; j++)
         {
-            rowind.push_back(i);
-            colind.push_back(j);
-            acoo.push_back(v);
+            is.push_back(i);
+            js.push_back(j);
+            vs.push_back(v);
         }
     }
 
-    copy(m, n, acoo.size(), rowind.data(), colind.data(), acoo.data());
+    importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
 }
 
 
-void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
+void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
 {
     if (as.size() > 0)
     {
         if (getDebugLevel() % 10 >= 4)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "       " << "copyConcatenate(A" << as.front() << " x " << as.size() << ")" << " := ...";
+            oss << getTimeStamp() << "       " << "concatenateSparseVectors(A" << as.front() << " x " << as.size() << ")" << " := ...";
             info(oss.str());
         }
 
@@ -404,20 +401,16 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
 
         init((ii)as.size(), as[0].n());
 
-        ii nnz = 0;
+        ii as_nnz = 0;
         for (ii i = 0; i < m_; i++)
-            nnz += as[i].nnz();
+            as_nnz += as[i].nnz();
 
-        if (nnz > 0)
+        if (allocCsr(as_nnz))
         {
-            ijs_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
             ijs_[0] = 0;
-            ijs1_ = ijs_ + 1;
-            for (ii i = 0; i < m_; i++)
-                ijs1_[i] = ijs_[i] + as[i].nnz();
+            for (ii i = 0; i < m_ - 1; i++)
+                ijs_[i + 1] = ijs_[i] + as[i].nnz();
 
-            js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * ijs1_[m_ - 1], 64));
-            vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * ijs1_[m_ - 1], 64));
             //#pragma omp parallel
             for (ii i = 0; i < m_; i++)
             {
@@ -431,7 +424,6 @@ void MatrixSparse::copyConcatenate(const std::vector<MatrixSparse> &as)
             status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
             assert(!status_);
 
-            isOwned_ = true;
             isSorted_ = true;
             for (ii k = 0; k < ii(as.size()); k++)
             {
@@ -968,7 +960,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
         if (!accumulate)
         {
             if (denseOutput)
-                copy(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
+                importFromMatrix(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
             else
                 init(transposeA ? a.n() : a.m(), b.n());
         }

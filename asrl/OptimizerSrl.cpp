@@ -43,7 +43,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
-                t[k].copy(1, b_[k].n(), fp(1.0));
+                t[k].importFromMatrix(1, b_[k].n(), fp(1.0));
 
             analyze(l2s_, t, true, false);
 
@@ -59,7 +59,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
-                t[k].copy(b_[k]);
+                t[k].importFromMatrix(b_[k]);
 
             analyze(xs_, t, false, false);
 

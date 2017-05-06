@@ -128,7 +128,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     }
 
     // create transformation matrix 'a'
-    aT_.copy(getGridInfo().m(), parentGridInfo.m(), acoo.size(), colind.data(), rowind.data(), acoo.data());
+    aT_.importFromCoo(getGridInfo().m(), parentGridInfo.m(), acoo.size(), colind.data(), rowind.data(), acoo.data());
 
     if (scaleAuto != scale)
         cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";

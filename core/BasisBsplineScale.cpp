@@ -98,7 +98,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     }
 
     // create A
-    aT_.copy(n, m, acoo.size(), colind.data(), rowind.data(), acoo.data());
+    aT_.importFromCoo(n, m, acoo.size(), colind.data(), rowind.data(), acoo.data());
 
     if (dimension == 0)
         a_.transpose(aT_);

@@ -54,10 +54,10 @@ public:
     const bool& isSorted() const;
 
     // these functions allocate memory
-    void copy(ii m, ii n, ii nnz, const ii* rowind, const ii* colind, const fp* acoo); // create from COO matrix
-    void copy(const Matrix& a); // create from dense matrix a
-    void copy(ii m, ii n, fp v); // create from dense matrix of constant value
-    void copyConcatenate(const std::vector<MatrixSparse>& xs); // the xs must be row vectors
+    void importFromCoo(ii m, ii n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
+    void importFromMatrix(const Matrix &a); // create from dense matrix a
+    void importFromMatrix(ii m, ii n, fp v); // create from dense matrix of constant value
+    void concatenateSparseVectors(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copySubset(const MatrixSparse& a); // only non-zero elements of this matrix are overwritten by corresponding elements in a
     void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
     ii copyPrune(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
@@ -102,7 +102,7 @@ public:
 protected:
     bool initMkl() const;
     bool initCsr() const;
-    bool allocCSR(ii nnz);
+    bool allocCsr(ii nnz);
 
 
 

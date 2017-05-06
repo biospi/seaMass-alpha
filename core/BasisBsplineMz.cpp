@@ -160,7 +160,8 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         }
         
         // create A
-        aTs_[k].copy(getGridInfo().n(), bci[k + 1] - bci[k], acoo.size(), colind.data(), rowind.data(), acoo.data());
+        aTs_[k].importFromCoo(getGridInfo().n(), bci[k + 1] - bci[k], acoo.size(), colind.data(), rowind.data(),
+                              acoo.data());
         as_[k].transpose(aTs_[k]);
 
         // display progress update
@@ -259,7 +260,7 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
     }
     
     xE.resize(1);
-    xE[0].copyConcatenate(xEs);
+    xE[0].concatenateSparseVectors(xEs);
 
     if (getDebugLevel() % 10 >= 3)
     {

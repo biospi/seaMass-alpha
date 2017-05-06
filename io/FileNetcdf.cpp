@@ -273,7 +273,7 @@ void FileNetcdf::read(MatrixSparse& a, const string name, int grpid)
         vector<fp> acoo;
         read_VecNC("v", acoo, grpidMat);
 
-        a.copy(m[0], n[0], acoo.size(), rowind.data(), colind.data(), acoo.data());
+        a.importFromCoo(m[0], n[0], acoo.size(), rowind.data(), colind.data(), acoo.data());
     }
     else
     {
