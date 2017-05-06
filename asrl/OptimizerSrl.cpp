@@ -223,7 +223,7 @@ fp OptimizerSrl::step()
                         y.sqrt(y);
 
                         // y = x * groupNorm(x)^-1)
-                        y.div2Nonzeros(xs_[l][k]);
+                        y.divNonzeros(xs_[l][k], y);
 
                         // y = lambdaGroup * x * groupNorm(x)^-1
                         y.mul(lambdaGroup_);
@@ -232,7 +232,7 @@ fp OptimizerSrl::step()
                         y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
 
                         // y = x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        y.div2Nonzeros(xs_[l][k]);
+                        y.divNonzeros(xs_[l][k], y);
 
                         // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
                         xEs_ys[l][k].mul(xEs_ys[l][k], y);
