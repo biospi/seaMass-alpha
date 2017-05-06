@@ -158,7 +158,7 @@ fp OptimizerSrl::step()
         for (ii k = 0; k < ii(f_fE.size()); k++)
         {
             // any zeros in f_fE are due to underflow. We need to do this to avoid divide by zero error
-            f_fE[k].censorLeft(numeric_limits<fp>::min());
+            f_fE[k].censorLeft(f_fE[k], numeric_limits<fp>::min());
             f_fE[k].div2(b_[k]);
 
             MatrixSparse t;
@@ -229,7 +229,7 @@ fp OptimizerSrl::step()
                         y.mul(lambdaGroup_);
 
                         // y = l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1
-                        y.addNonzeros(l1l2sPlusLambda_[l][k]);
+                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
 
                         // y = x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
                         y.div2Nonzeros(xs_[l][k]);

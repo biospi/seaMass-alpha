@@ -946,7 +946,7 @@ void MatrixSparse::pow(const MatrixSparse& a, fp power)
 }
 
 
-void MatrixSparse::censorLeft(fp threshold)
+void MatrixSparse::censorLeft(const MatrixSparse& a, fp threshold)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -957,8 +957,17 @@ void MatrixSparse::censorLeft(fp threshold)
         info(oss.str());
     }
 
+    if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
+    {
+        ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+    }
+
     if (ijs1_)
-        ippsThreshold_LT_32f(vs_, vs_, ijs1_[m_ - 1], threshold);
+    {
+        ippsThreshold_LT_32f(a.vs_, vs_, ijs1_[m_ - 1], threshold);
+        commitCsr(a.isSorted_);
+    }
 
     if (getDebugLevel() % 10 >= 4)
     {
@@ -992,7 +1001,7 @@ void MatrixSparse::addNonzeros(fp beta)
 }
 
 
-void MatrixSparse::addNonzeros(const MatrixSparse& a)
+void MatrixSparse::addNonzeros(const MatrixSparse& a, const MatrixSparse& b)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -1001,47 +1010,28 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a)
         info(oss.str());
     }
 
+    if (this != &a && this != &b && initCsr(a.m(), a.n(), a.nnz()))
+    {
+        ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+    }
+
     if (ijs1_)
     {
-        sort();
-        a.sort();
+        if (&a != &b)
+        {
+            a.sort();
+            b.sort();
+        }
 
-        assert(ijs1_[m_ - 1] == a.ijs1_[m_ - 1]);
+        assert(a.ijs1_[m_ - 1] == b.ijs1_[m_ - 1]);
         for (ii i = 0; i < m_; i++)
-            assert(ijs_[i] == a.ijs_[i]);
+            assert(a.ijs_[i] == b.ijs_[i]);
         for (ii nz = 0; nz < ijs1_[m_ - 1]; nz++)
-            assert(js_[nz] == a.js_[nz]);
+            assert(a.js_[nz] == b.js_[nz]);
 
-        vsAdd(ijs1_[m_ - 1], vs_, a.vs_, vs_);
-    }
-
-    if (getDebugLevel() % 10 >= 4)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "       ... X" << *this;
-        info(oss.str(), this);
-    }
-}
-
-
-
-void MatrixSparse::lnNonzeros()
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "       ln(X" << *this << ") := ...";
-        info(oss.str());
-    }
-
-    if (ijs1_)
-    {
-#ifdef NDEBUG
-        vsLn(is1_[m_ - 1], vs_, vs_); // for some reason this causes valgrind to crash
-#else
-        for (ii i = 0; i < ijs1_[m_ - 1]; i++)
-            vs_[i] = log(vs_[i]);
-#endif
+        vsAdd(ijs1_[m_ - 1], a.vs_, b.vs_, vs_);
+        commitCsr(true);
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -1058,55 +1048,26 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       ln(X" << a << ") := ...";
+        oss << getTimeStamp() << "       ln(X" << *this << ") := ...";
         info(oss.str());
     }
 
-    init(a.m_, a.n_);
-
-    if (a.ijs1_)
+    if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
     {
-        ijs_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
         ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
-        ijs1_ = ijs_ + 1;
-        js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * ijs1_[m_ - 1], 64));
         ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
-        vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * ijs1_[m_ - 1], 64));
+    }
 
+    if (ijs1_)
+    {
 #ifdef NDEBUG
         vsLn(is1_[m_ - 1], a.vs_, vs_); // for some reason this causes valgrind to crash
 #else
         for (ii i = 0; i < ijs1_[m_ - 1]; i++)
             vs_[i] = log(a.vs_[i]);
 #endif
-
-        status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-        assert(!status_);
-
-        isCsrOwned_ = true;
-        isSorted_ = a.isSorted_;
+        commitCsr(a.isSorted_);
     }
-
-    if (getDebugLevel() % 10 >= 4)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "       ... X" << *this;
-        info(oss.str(), this);
-    }
-}
-
-
-void MatrixSparse::expNonzeros()
-{
-    if (getDebugLevel() % 10 >= 4)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "       exp(X" << *this << ") := ...";
-        info(oss.str());
-    }
-
-    if (ijs1_)
-        vsExp(ijs1_[m_ - 1], vs_, vs_);
 
     if (getDebugLevel() % 10 >= 4)
     {

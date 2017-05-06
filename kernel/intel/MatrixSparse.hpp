@@ -81,14 +81,12 @@ public:
     void sqr(const MatrixSparse& a);
     void sqrt(const MatrixSparse& a);
     void pow(const MatrixSparse& a, fp power);
-    void censorLeft(fp threshold);
+    void censorLeft(const MatrixSparse& a, fp threshold);
 
     // elementwise operations only operating on non-zero elements
     void addNonzeros(fp beta);
-    void addNonzeros(const MatrixSparse& a);
-    void lnNonzeros();
+    void addNonzeros(const MatrixSparse& a, const MatrixSparse& b);
     void lnNonzeros(const MatrixSparse& a);
-    void expNonzeros();
     void divNonzeros(const MatrixSparse& b); // a is denominator
     void divNonzeros(const MatrixSparse& a, const MatrixSparse& b); // a/b
     void div2Nonzeros(const MatrixSparse& a); // a is numerator
