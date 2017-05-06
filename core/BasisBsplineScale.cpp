@@ -126,7 +126,7 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
 
     // zero basis functions that are no longer needed
     MatrixSparse t;
-    ii rowsPruned = t.copyPruneRows(aT_, x[0], dimension_ > 0, 0.75);
+    ii rowsPruned = t.pruneRows(aT_, x[0], dimension_ > 0, 0.75);
     if (rowsPruned > 0)
     {
         aT_.swap(t);

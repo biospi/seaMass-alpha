@@ -272,7 +272,7 @@ void MatrixSparse::transpose(const MatrixSparse& a)
         info(oss.str());
     }
 
-    if (initMkl(a.m(), a.n(), a.nnz()))
+    if (initMkl(a.n(), a.m(), a.nnz()))
     {
         mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
 
@@ -553,7 +553,7 @@ ii MatrixSparse::copyPrune(const MatrixSparse &a, fp threshold)
 
 
 // MOSTLY OPTIMAL, MIGHT BE BETTER IF OMP LOOP DIDN'T INCLUDE PRUNED ROWS
-ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold)
+ii MatrixSparse::pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold)
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -569,56 +569,66 @@ ii MatrixSparse::copyPruneRows(const MatrixSparse &a, const MatrixSparse &b, boo
     init(a.m_, a.n_);
 
     ii rowsPruned = 0;
-    if (a.ijs1_ && b.ijs1_)
+    if (a.ijs1_)
     {
         ii aNnzRows = 0;
-        for (ii i = 0; i < m_; i++)
+        for (ii i = 0; i < a.m_; i++)
             if (a.ijs1_[i] - a.ijs_[i] > 0)
                 aNnzRows++;
-        //oss << "aNnzRows=" << aNnzRows;
 
-        vector<ii> rowOrColNnzs(m_, 0);
-        if (bRows)
+        if (b.ijs1_)
         {
-            for (ii i = 0; i < m_; i++)
-                rowOrColNnzs[i] = b.ijs1_[i] - b.ijs_[i];
+            vector<ii> rowOrColNnzs(a.m_, 0);
+            if (bRows)
+            {
+                for (ii i = 0; i < b.m_; i++)
+                    rowOrColNnzs[i] = b.ijs1_[i] - b.ijs_[i];
+            }
+            else
+            {
+                for (ii nz = 0; nz < b.nnz(); nz++)
+                    rowOrColNnzs[b.js_[nz]]++;
+            }
+
+            ii bNnzRowsOrCols = 0;
+            for (ii i = 0; i < a.m_; i++)
+            {
+                if (rowOrColNnzs[i] > 0)
+                    bNnzRowsOrCols++;
+            }
+
+            if (bNnzRowsOrCols / fp(aNnzRows) < threshold)
+            {
+                ii bNnzRowsOrCols = 0;
+                ii outNnzs = 0;
+                for (ii i = 0; i < a.m_; i++)
+                {
+                    if (rowOrColNnzs[i] > 0)
+                        outNnzs += a.ijs1_[i] - a.ijs_[i];
+                }
+
+                initCsr(m_, n_, outNnzs);
+
+                ijs_[0] = 0;
+                for (ii i = 0; i < m_; i++)
+                    ijs1_[i] = ijs_[i] + (rowOrColNnzs[i] > 0 ? a.ijs1_[i] - a.ijs_[i] : 0);
+
+                //#pragma omp parallel
+                for (ii i = 0; i < m_; i++)
+                    ippsCopy_32s(&a.js_[a.ijs_[i]], &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
+
+                //#pragma omp parallel
+                for (ii i = 0; i < m_; i++)
+                    ippsCopy_32f(&a.vs_[a.ijs_[i]], &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
+
+                commitCsr(a.isSorted_);
+
+                rowsPruned = aNnzRows- bNnzRowsOrCols;
+            }
         }
         else
         {
-            for (ii nz = 0; nz < b.nnz(); nz++)
-                rowOrColNnzs[b.js_[nz]]++;
-        }
-
-        ii bNnzRowsOrCols = 0;
-        for (ii i = 0; i < m_; i++)
-            if (rowOrColNnzs[i] > 0)
-                bNnzRowsOrCols++;
-        //oss << "bNnzRowsOrCols=" << bNnzRowsOrCols;
-
-        if (bNnzRowsOrCols / (fp) aNnzRows < threshold)
-        {
-            ijs_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * (m_ + 1), 64));
-            ijs_[0] = 0;
-            ijs1_ = ijs_ + 1;
-            for (ii i = 0; i < m_; i++)
-                ijs1_[i] = ijs_[i] + (rowOrColNnzs[i] > 0 ? a.ijs1_[i] - a.ijs_[i] : 0);
-
-            js_ = static_cast<ii*>(mkl_malloc(sizeof(ii) * ijs1_[m_ - 1], 64));
-            vs_ = static_cast<fp*>(mkl_malloc(sizeof(fp) * ijs1_[m_ - 1], 64));
-            //#pragma omp parallel
-            for (ii i = 0; i < m_; i++)
-            {
-                ippsCopy_32s(&a.js_[a.ijs_[i]], &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
-                ippsCopy_32f(&a.vs_[a.ijs_[i]], &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
-            }
-
-            status_ = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
-            assert(!status_);
-
-            isCsrOwned_ = true;
-            isSorted_ = a.isSorted_;
-
-            rowsPruned = aNnzRows- bNnzRowsOrCols;
+            rowsPruned = aNnzRows;
         }
     }
 
