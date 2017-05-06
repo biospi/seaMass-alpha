@@ -679,7 +679,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
             status_ = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_);
             assert(!status_);
-       }
+        }
 
         commitMkl(false);
     }
@@ -1365,6 +1365,12 @@ void MatrixSparse::commitCsr(bool isSorted)
 {
     isSorted_ = isSorted;
 
+    if (mat_)
+    {
+        status_ = mkl_sparse_destroy(mat_);
+        assert(!status_);
+    }
+
     sparse_status_t status = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
     assert(!status);
 }
@@ -1381,6 +1387,13 @@ void MatrixSparse::initMkl(ii m, ii n)
 void MatrixSparse::commitMkl(bool isSorted)
 {
     isSorted_ = isSorted;
+
+    if (ijs1_ && isCsrOwned_)
+    {
+        mkl_free(ijs_);
+        mkl_free(js_);
+        mkl_free(vs_);
+    }
 
     sparse_index_base_t indexing;
     status_ = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
