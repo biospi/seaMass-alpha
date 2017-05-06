@@ -38,7 +38,7 @@ public:
     MatrixSparse();
     ~MatrixSparse();
 
-    void free();
+    void clear();
     void init(ii m, ii n);
     void swap(MatrixSparse& a);
 
@@ -48,15 +48,6 @@ public:
     li size() const;
     ii nnz() const;
     ii nnzActual() const;
-
-protected:
-    bool getRidOfCsr() const;
-
-    bool initCsr(ii m, ii n, ii a_nnz);
-    bool initMkl(ii m, ii n, ii nnz);
-
-    void commitCsr(bool isSorted);
-    void commitMkl(bool isSorted);
 
 public:
     // these functions allocate memory
@@ -72,12 +63,15 @@ public:
     void transpose(const MatrixSparse& a);
 
     // exports
-    void exportTo(ii* rowind, ii* colind, fp* acoo) const; // export as COO matrix
+    void exportTo(ii* is, ii* js, fp* vs) const; // export as COO matrix
     void exportTo(fp *vs) const; // export as dense matrix
+
+    // matrix multiplication
+    void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate);
+    void matmulDense(bool transposeA, const MatrixSparse &a, const MatrixSparse &b, bool accumulate);
 
     // elementwise operations
     void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
-    void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate, bool denseOutput = false);
     void mul(fp beta);
     void mul(const MatrixSparse& a);
     void sqr();
@@ -105,10 +99,10 @@ public:
     static double sortElapsed_;
 
 protected:
-   bool allocCsr(ii nnz);
-
-
-
+    bool initCsr(ii m, ii n, ii a_nnz);
+    void commitCsr(bool isSorted);
+    void initMkl(ii m, ii n);
+    void commitMkl(bool isSorted);
     void sort() const;
 
     ii m_; // number of rows

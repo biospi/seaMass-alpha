@@ -87,10 +87,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                         // normalise and prune xs
                         MatrixSparse x;
                         x.divNonzeros(xs_[l][k], l1l2PlusLambda);
-                        l1l2PlusLambda.free();
+                        l1l2PlusLambda.clear();
                         x.mul((fp) (sumB / sumX));
                         xs_[l][k].copyPrune(x, pruneThreshold);
-                        x.free();
+                        x.clear();
 
                         // remove unneeded l2s
                         MatrixSparse t;
@@ -183,7 +183,7 @@ fp OptimizerSrl::step()
         analyze(xEs_ys, f_fE, false);
 
         for (ii k = 0; k < ii(f_fE.size()); k++)
-            f_fE[k].free();
+            f_fE[k].clear();
     }
     double analysisDuration = getElapsedTime() - analysisStart;
 
@@ -219,7 +219,7 @@ fp OptimizerSrl::step()
                         y.matmul(false, t, (*gT)[k], false);
                         t.matmul(false, y, (*g)[k], false);
                         y.copySubset(t, xs_[l][k]);
-                        t.free();
+                        t.clear();
                         y.sqrt();
 
                         // y = x * groupNorm(x)^-1)
@@ -308,7 +308,7 @@ fp OptimizerSrl::step()
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
                     xs_[l][k].copyPrune(xEs_ys[l][k], pruneThreshold_);
-                    xEs_ys[l][k].free();
+                    xEs_ys[l][k].clear();
 
                     // prune l1l2s
                     MatrixSparse t;
