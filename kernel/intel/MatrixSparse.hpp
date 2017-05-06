@@ -56,7 +56,7 @@ public:
     void importFromMatrix(ii m, ii n, fp v); // create from dense matrix of constant value
     void concatenateSparseVectors(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
-    ii copyPrune(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
+    ii prune(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
     ii pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
     void copy(const MatrixSparse& a);
@@ -104,12 +104,10 @@ protected:
     void commitMkl(bool isSorted);
     void sort() const;
 
-    ii m_; // number of rows
-    ii n_; // number of columns
-
-    //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routien has been run
+    //! number of rows and columns
     //!
-    sparse_matrix_t mat_;
+    ii m_;
+    ii n_;
 
     //! Pointers to CSR array if we had to create of use matrix outside of MKL Inspector-executor Sparse BLAS routines
     //! If isOwned_, this object is responsible for freeing the CSR array
@@ -121,10 +119,13 @@ protected:
     fp* vs_;
     bool isCsrOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
 
-    //! isSorted_ should be true if we definately know column indices are sorted within each row
-    bool isSorted_;
+    //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routien has been run
+    //!
+    sparse_matrix_t mat_;
 
-    sparse_status_t status_; // last MKL function status
+    //! isSorted_ should be true if we definately know column indices are sorted within each row
+    //!
+    bool isSorted_;
 
     friend ObserverMatrixSparse;
     friend MatrixSparseView;

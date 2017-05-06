@@ -89,7 +89,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                         x.divNonzeros(xs_[l][k], l1l2PlusLambda);
                         l1l2PlusLambda.clear();
                         x.mul((fp) (sumB / sumX));
-                        xs_[l][k].copyPrune(x, pruneThreshold);
+                        xs_[l][k].prune(x, pruneThreshold);
                         x.clear();
 
                         // remove unneeded l2s
@@ -162,7 +162,7 @@ fp OptimizerSrl::step()
             f_fE[k].div2(b_[k]);
 
             MatrixSparse t;
-            t.copyPrune(f_fE[k]);
+            t.prune(f_fE[k]);
             f_fE[k].swap(t);
          }
     }
@@ -307,7 +307,7 @@ fp OptimizerSrl::step()
 
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
-                    xs_[l][k].copyPrune(xEs_ys[l][k], pruneThreshold_);
+                    xs_[l][k].prune(xEs_ys[l][k], pruneThreshold_);
                     xEs_ys[l][k].clear();
 
                     // prune l1l2s
