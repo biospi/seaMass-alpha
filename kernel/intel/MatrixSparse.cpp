@@ -1509,7 +1509,7 @@ MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row) : isOwned_(fal
 
     init(1, a.n_);
 
-    if (a.nnz() > 0)
+    if (initCsr(a.nnz() > 0))
     {
         ii newNnz = a.ijs1_[row] - a.ijs_[row];
 
@@ -1528,7 +1528,8 @@ MatrixSparseView::MatrixSparseView(const MatrixSparse &a, ii row) : isOwned_(fal
             assert(!status);
 
             isOwned_ = true;
-            isSorted_ = a.isSorted_;
+
+            commitCsr(a.isSorted_);
         }
     }
 
