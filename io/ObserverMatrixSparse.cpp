@@ -56,6 +56,12 @@ void ObserverMatrixSparse::notice(const std::string& message, const MatrixSparse
             if (a->vs_[nz] != a->vs_[nz])
                 throw runtime_error("BUG: NAN found!");
         }
+
+        for (ii nz = 0; nz < a->nnz(); nz++)
+        {
+            if (a->vs_[nz] == 0.0)
+                throw runtime_error("BUG: Zero found!");
+        }
     }
 }
 

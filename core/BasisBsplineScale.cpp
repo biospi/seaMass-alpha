@@ -67,10 +67,10 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     ii nh = order + 2;
     vector<fp> hs(nh);
     double sum = 0.0;
-    for (ii i = 0; i < nh; i++)
+    for (ii k = 0; k < nh; k++)
     {
-        hs[i] = (fp) (1.0 / pow(2.0, (double)order) * Bspline::factorial(order + 1) / (double)(Bspline::factorial(i)*Bspline::factorial(order + 1 - i)));
-        sum += hs[i];
+        hs[k] = (fp) (1.0 / pow(2.0, (double)order) * Bspline::factorial(order + 1) / (double)(Bspline::factorial(k)*Bspline::factorial(order + 1 - k)));
+        sum += hs[k];
     }
     for (ii i = 0; i < nh; i++)
         hs[i] /= (fp) sum;
@@ -78,27 +78,26 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     // create A as a temporary COO matrix
     ii m = parentGridInfo.extent[dimension_];
     ii n = gridInfo().extent[dimension_];
-    vector<ii> rowind(nh * n);
-    vector<ii> colind(nh * n);
-    vector<fp> acoo(nh * n);
+    vector<ii> is;
+    vector<ii> js;
+    vector<fp> vs;
 
-    ii nnz = 0;
     ii offset = order + ((parentGridInfo.offset[dimension_] + 1) % 2);
     for (ii j = 0; j < n; j++)
     {
-        for (ii i = 0; i < nh; i++)
+        for (ii k = 0; k < nh; k++)
         {
-            rowind[nnz] = 2 * j + i - offset;
-            if (rowind[nnz] < 0 || rowind[nnz] >= m) continue;
-            acoo[nnz] = hs[i];
-            colind[nnz] = j;
+            ii i = 2 * j + k - offset;
+            if (i < 0 || i >= m) continue;
 
-            nnz++;
+            is.push_back(i);
+            js.push_back(j);
+            vs.push_back(hs[k]);
         }
     }
 
     // create A
-    aT_.importFromCoo(n, m, acoo.size(), colind.data(), rowind.data(), acoo.data());
+    aT_.importFromCoo(n, m, vs.size(), js.data(), is.data(), vs.data());
 
     if (dimension == 0)
         a_.transpose(aT_);

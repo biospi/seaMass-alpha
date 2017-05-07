@@ -152,9 +152,12 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
                     // basis coefficient b is _integral_ of area under b-spline basis
                     fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-                    acoo.push_back(b);
-                    rowind.push_back(i - bei[k]);
-                    colind.push_back(x - gridInfo().offset[0]);
+                    if (b > 0.0)
+                    {
+                        acoo.push_back(b);
+                        rowind.push_back(i - bei[k]);
+                        colind.push_back(x - gridInfo().offset[0]);
+                    }
                 }
             }
         }

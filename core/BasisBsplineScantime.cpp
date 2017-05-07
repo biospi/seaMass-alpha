@@ -121,10 +121,13 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
             // basis coefficient b is _integral_ of area under b-spline basis
             fp b = exposures[i] * fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
 
-            rowind.push_back(i);
-            colind.push_back(x - gridInfo().offset[1]);
-            acoo.push_back(b);
-        }
+            if (b > 0.0)
+            {
+                rowind.push_back(i);
+                colind.push_back(x - gridInfo().offset[1]);
+                acoo.push_back(b);
+            }
+       }
     }
 
     // create transformation matrix 'a'
