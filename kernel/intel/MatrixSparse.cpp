@@ -1381,31 +1381,28 @@ void MatrixSparse::commitMkl(bool isSorted) const
 // I've tried sorting with mkl_scsradd, ippsSortIndexAscend_32s_I & std::sort, this is fastest
 void MatrixSparse::sort() const
 {
-    // this function sorts in place and I'd like everything else to think the object hasn't changed
-    bool& _isSorted_ = const_cast<bool&>(isSorted_);
-
-    if (initCsr(nnz() > 0))
+    if (!isSorted_)
     {
-        if (!isSorted_)
+        if (initCsr(nnz() > 0))
         {
             // check if we really need to sort
-            _isSorted_ = true;
+            bool isSorted = true;
             for (ii i = 0; i < m_; i++)
             {
                 for (ii nz = ijs_[i]; nz < ijs1_[i] - 1; nz++)
                 {
                     if (js_[nz] > js_[nz + 1])
                     {
-                        _isSorted_ = false;
+                        isSorted = false;
                         break;
                     }
                 }
 
-                if (!isSorted_)
+                if (!isSorted)
                     break;
             }
 
-            if (!isSorted_)
+            if (!isSorted)
             {
                 if (getDebugLevel() % 10 >= 4)
                 {
@@ -1454,7 +1451,7 @@ void MatrixSparse::sort() const
                 }
                 sortElapsed_ += getElapsedTime() - sortStart;
 
-                _isSorted_ = true;
+                commitCsr(true);
 
                 if (getDebugLevel() % 10 >= 4)
                 {
@@ -1464,10 +1461,12 @@ void MatrixSparse::sort() const
                 }
             }
         }
-    }
-    else
-    {
-        _isSorted_ = true;
+        else
+        {
+            // this function sorts in place and I'd like everything else to think the object hasn't changed
+            bool& _isSorted_ = const_cast<bool&>(isSorted_);
+            _isSorted_ = true;
+        }
     }
 }
 
