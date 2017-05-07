@@ -789,7 +789,7 @@ void MatrixSparse::mul(fp beta)
         info(oss.str());
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
         IppStatus status;
         status = ippsMulC_32f_I(beta, vs_, ijs1_[m_ - 1]);
@@ -818,14 +818,14 @@ void MatrixSparse::mul(const MatrixSparse& a, const MatrixSparse& b)
 
     if (this != &a && this != &b && initCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status;
-        status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
         assert(!status);
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+
+        status = ippsCopy_32s(a.js_, js_, nnz());
         assert(!status);
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
         if (&a != &b)
         {
@@ -833,15 +833,16 @@ void MatrixSparse::mul(const MatrixSparse& a, const MatrixSparse& b)
             b.sort();
         }
 
-        assert(a.ijs1_[m_ - 1] == b.ijs1_[m_ - 1]);
+        assert(a.nnz() == b.nnz());
         for (ii i = 0; i < m_; i++)
             assert(a.ijs_[i] == b.ijs_[i]);
         for (ii nz = 0; nz < ijs1_[m_ - 1]; nz++)
             assert(a.js_[nz] == b.js_[nz]);
 
-        vsMul(ijs1_[m_ - 1], a.vs_, b.vs_, vs_);
+        vsMul(nnz(), a.vs_, b.vs_, vs_);
         int err = vmlGetErrStatus();
         assert(err == VML_STATUS_OK);
+
         commitCsr(true);
     }
 
@@ -865,18 +866,19 @@ void MatrixSparse::sqr(const MatrixSparse& a)
 
     if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status;
-        status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
         assert(!status);
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+
+        status = ippsCopy_32s(a.js_, js_, nnz());
         assert(!status);
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
-        vsSqr(ijs1_[m_ - 1], a.vs_, vs_);
+        vsSqr(nnz(), a.vs_, vs_);
         int err = vmlGetErrStatus();
         assert(err == VML_STATUS_OK);
+
         commitCsr(a.isSorted_);
     }
 
@@ -900,18 +902,19 @@ void MatrixSparse::sqrt(const MatrixSparse& a)
 
     if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status;
-        status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
         assert(!status);
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+
+        status = ippsCopy_32s(a.js_, js_, nnz());
         assert(!status);
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
-        vsSqrt(ijs1_[m_ - 1], a.vs_, vs_);
+        vsSqrt(nnz(), a.vs_, vs_);
         int err = vmlGetErrStatus();
         assert(err == VML_STATUS_OK);
+
         commitCsr(a.isSorted_);
     }
 
@@ -935,16 +938,16 @@ void MatrixSparse::pow(const MatrixSparse& a, fp power)
 
     if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status;
-        status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
         assert(!status);
+
         status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
         assert(!status);
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
-        vsPowx(ijs1_[m_ - 1], a.vs_, power, vs_);
+        vsPowx(nnz(), a.vs_, power, vs_);
         int err = vmlGetErrStatus();
         assert(err == VML_STATUS_OK);
 
@@ -973,19 +976,16 @@ void MatrixSparse::censorLeft(const MatrixSparse& a, fp threshold)
 
     if (this != &a && initCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status;
-        status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
         assert(!status);
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+
+        status = ippsCopy_32s(a.js_, js_, nnz());
         assert(!status);
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
-        IppStatus status;
-        status = ippsThreshold_LT_32f(a.vs_, vs_, ijs1_[m_ - 1], threshold);
-        assert(!status);
-        status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = ippsThreshold_LT_32f(a.vs_, vs_, nnz(), threshold);
         assert(!status);
 
         commitCsr(a.isSorted_);
