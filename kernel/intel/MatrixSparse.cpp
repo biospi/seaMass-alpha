@@ -682,6 +682,8 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
         info(oss.str());
     }
 
+    assert(this != &a);
+    assert(this != &b);
     assert((transposeA ? a.m() : a.n()) == b.m());
 
     if (nnz() == 0)
@@ -739,12 +741,12 @@ void MatrixSparse::matmulDense(bool transposeA, const MatrixSparse &a, const Mat
         info(oss.str());
     }
 
+    assert(this != &a);
+    assert(this != &b);
     assert((transposeA ? a.m() : a.n()) == b.m());
 
-    if (a.ijs1_ && b.ijs1_)
+    if (initCsr(transposeA ? a.n() : a.m(), b.n(), (transposeA ? a.n() : a.m()) * b.n()))
     {
-        initCsr(transposeA ? a.n() : a.m(), b.n(), (transposeA ? a.n() : a.m()) * b.n());
-
         ijs_[0] = 0;
         for (ii i = 0; i < m_; i++)
             ijs1_[i] = ijs_[i] + n_;
@@ -752,14 +754,19 @@ void MatrixSparse::matmulDense(bool transposeA, const MatrixSparse &a, const Mat
         for (ii nz = 0; nz < nnz(); nz++)
             js_[nz] = nz % n_;
 
-        sparse_status_t status = mkl_sparse_s_spmmd(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, SPARSE_LAYOUT_ROW_MAJOR, vs_, n_); assert(!status);
+        if (a.nnz() > 0 && b.nnz() > 0)
+        {
+            sparse_status_t status = mkl_sparse_s_spmmd(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, SPARSE_LAYOUT_ROW_MAJOR, vs_, n_);
+            assert(!status);
+        }
+        else
+        {
+            memset(vs_, 0, sizeof(fp) * size());
+        }
 
         commitCsr(true);
     }
-    else
-    {
-        initDense(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
-    }
+
 
     if (getDebugLevel() % 10 >= 4)
     {
