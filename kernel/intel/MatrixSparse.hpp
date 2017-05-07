@@ -88,7 +88,7 @@ public:
     void addNonzeros(const MatrixSparse& a, const MatrixSparse& b);
     void lnNonzeros(const MatrixSparse& a);
     void divNonzeros(const MatrixSparse& a, const MatrixSparse& b); // a/b
-    void div2(const Matrix &a); // a is numerator & must be dense
+    void div2Dense(const Matrix &a); // a is numerator & must be dense
 
     // aggregate operations
     fp sum() const;
@@ -98,10 +98,14 @@ public:
     static double sortElapsed_;
 
 protected:
-    bool initCsr(ii m, ii n, ii a_nnz);
+    bool createCsr(ii m, ii n, ii a_nnz);
+    bool initCsr(bool notEmpty) const;
     void commitCsr(bool isSorted);
-    bool initMkl(ii m, ii n, bool notEmpty);
+
+    bool createMkl(ii m, ii n, bool notEmpty);
+    bool initMkl(bool notEmpty) const;
     void commitMkl(bool isSorted);
+
     void sort() const;
 
     //! number of rows and columns

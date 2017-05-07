@@ -159,7 +159,7 @@ fp OptimizerSrl::step()
         {
             // any zeros in f_fE are due to underflow. We need to do this to avoid divide by zero error
             f_fE[k].censorLeft(f_fE[k], numeric_limits<fp>::min());
-            f_fE[k].div2(b_[k]);
+            f_fE[k].div2Dense(b_[k]);
 
             MatrixSparse t;
             t.pruneCells(f_fE[k]);
