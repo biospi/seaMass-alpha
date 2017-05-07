@@ -183,7 +183,7 @@ void Asrl::getOutput(Output& output) const
     for (ii i = 0; i < ii(output.xTaT.size()); i++)
     {
         output.xTaT[i].init(f[i].m(), f[i].n());
-        f[i].exportTo(output.xTaT[i].vs());
+        f[i].exportToDense(output.xTaT[i].vs());
     }
 
     if (lambdaGroupStart_ > 0.0)

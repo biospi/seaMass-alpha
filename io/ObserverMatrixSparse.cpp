@@ -47,9 +47,11 @@ void ObserverMatrixSparse::notice(const std::string& message, const MatrixSparse
 
         ostringstream oss;
         oss << setw(8) << setfill('0') << id << ".coo";
-        FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.write(*a, "a");
+        {
+            FileNetcdf file(oss.str(), NC_NETCDF4);
+            file.write(*a, "a");
+        }
 
         for (ii nz = 0; nz < a->nnz(); nz++)
         {
@@ -57,11 +59,11 @@ void ObserverMatrixSparse::notice(const std::string& message, const MatrixSparse
                 throw runtime_error("BUG: NAN found!");
         }
 
-        for (ii nz = 0; nz < a->nnz(); nz++)
+        /*for (ii nz = 0; nz < a->nnz(); nz++)
         {
             if (a->vs_[nz] == 0.0)
                 throw runtime_error("BUG: Zero found!");
-        }
+        }*/
     }
 }
 

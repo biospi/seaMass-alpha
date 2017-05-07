@@ -43,7 +43,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
-                t[k].importFromMatrix(1, b_[k].n(), fp(1.0));
+                t[k].initDense(1, b_[k].n(), fp(1.0));
 
             analyze(l2s_, t, true, false);
 
@@ -87,10 +87,10 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                         // normalise and prune xs
                         MatrixSparse x;
                         x.divNonzeros(xs_[l][k], l1l2PlusLambda);
-                        l1l2PlusLambda.clear();
+                        l1l2PlusLambda.empty();
                         x.mul((fp) (sumB / sumX));
-                        xs_[l][k].prune(x, pruneThreshold);
-                        x.clear();
+                        xs_[l][k].pruneCells(x, pruneThreshold);
+                        x.empty();
 
                         // remove unneeded l2s
                         MatrixSparse t;
@@ -162,7 +162,7 @@ fp OptimizerSrl::step()
             f_fE[k].div2(b_[k]);
 
             MatrixSparse t;
-            t.prune(f_fE[k]);
+            t.pruneCells(f_fE[k]);
             f_fE[k].swap(t);
          }
     }
@@ -183,7 +183,7 @@ fp OptimizerSrl::step()
         analyze(xEs_ys, f_fE, false);
 
         for (ii k = 0; k < ii(f_fE.size()); k++)
-            f_fE[k].clear();
+            f_fE[k].empty();
     }
     double analysisDuration = getElapsedTime() - analysisStart;
 
@@ -219,7 +219,7 @@ fp OptimizerSrl::step()
                         y.matmul(false, t, (*gT)[k], false);
                         t.matmul(false, y, (*g)[k], false);
                         y.copySubset(t, xs_[l][k]);
-                        t.clear();
+                        t.empty();
                         y.sqrt(y);
 
                         // y = x * groupNorm(x)^-1)
@@ -307,8 +307,8 @@ fp OptimizerSrl::step()
 
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
-                    xs_[l][k].prune(xEs_ys[l][k], pruneThreshold_);
-                    xEs_ys[l][k].clear();
+                    xs_[l][k].pruneCells(xEs_ys[l][k], pruneThreshold_);
+                    xEs_ys[l][k].empty();
 
                     // prune l1l2s
                     MatrixSparse t;

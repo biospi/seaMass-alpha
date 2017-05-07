@@ -297,7 +297,7 @@ void FileNetcdf::write(const MatrixSparse& a, const string name, int grpid)
         vector<ii> rowind(a.nnz());
         vector<ii> colind(a.nnz());
         vector<fp> acoo(a.nnz());
-        a.exportTo(rowind.data(), colind.data(), acoo.data());
+        a.exportToCoo(rowind.data(), colind.data(), acoo.data());
 
         if (acoo.size() > 0)
         {

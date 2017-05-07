@@ -38,7 +38,7 @@ public:
     MatrixSparse();
     ~MatrixSparse();
 
-    void clear();
+    void empty();
     void init(ii m, ii n);
     void swap(MatrixSparse& a);
 
@@ -53,18 +53,18 @@ public:
     // these functions allocate memory
     void importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
     void importFromMatrix(const Matrix &a); // create from dense matrix a
-    void importFromMatrix(ii m, ii n, fp v); // create from dense matrix of constant value
-    void concatenateSparseVectors(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
+    void initDense(ii m, ii n, fp v); // create from dense matrix of constant value
+    void concatenateRows(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
-    ii prune(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
+    ii pruneCells(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
     ii pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
     void copy(const MatrixSparse& a);
     void transpose(const MatrixSparse& a);
 
     // exports
-    void exportTo(ii* is, ii* js, fp* vs) const; // export as COO matrix
-    void exportTo(fp *vs) const; // export as dense matrix
+    void exportToCoo(ii *is, ii *js, fp *vs) const; // export as COO matrix
+    void exportToDense(fp *vs) const; // export as dense matrix
 
     // matrix multiplication
     void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate);
@@ -100,7 +100,7 @@ public:
 protected:
     bool initCsr(ii m, ii n, ii a_nnz);
     void commitCsr(bool isSorted);
-    void initMkl(ii m, ii n);
+    bool initMkl(ii m, ii n, bool notEmpty);
     void commitMkl(bool isSorted);
     void sort() const;
 

@@ -44,25 +44,24 @@ MatrixSparse::MatrixSparse() : m_(0), n_(0), mat_(0), ijs1_(0), isCsrOwned_(fals
 
 MatrixSparse::~MatrixSparse()
 {
-    clear();
+    empty();
 }
 
 
 void MatrixSparse::init(ii m, ii n)
 {
-    clear();
+    empty();
 
     m_ = m;
     n_ = n;
 }
 
 
-void MatrixSparse::clear()
+void MatrixSparse::empty()
 {
     if (mat_)
     {
-        sparse_status_t status;
-        status = mkl_sparse_destroy(mat_);
+        sparse_status_t status = mkl_sparse_destroy(mat_);
         assert(!status);
         mat_ = 0;
     }
@@ -142,13 +141,16 @@ void MatrixSparse::copy(const MatrixSparse& a)
         info(oss.str());
     }
 
+    assert(this != &a);
+
     if (initCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status;
-        status = ippsCopy_32s(a.ijs_, ijs_, a.m_ + 1);
+        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, a.m_ + 1);
         assert(!status);
+
         status = ippsCopy_32s(a.js_, js_, a.nnz());
         assert(!status);
+
         status = ippsCopy_32f(a.vs_, vs_, a.nnz());
         assert(!status);
 
@@ -173,10 +175,12 @@ void MatrixSparse::transpose(const MatrixSparse& a)
         info(oss.str());
     }
 
-    init(a.n(), a.m());
-    if (a.ijs1_)
+    assert(this != &a);
+
+    if (initMkl(a.n(), a.m(), a.nnz() > 0))
     {
-        mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
+        sparse_status_t status = mkl_sparse_convert_csr(a.mat_, SPARSE_OPERATION_TRANSPOSE, &mat_);
+        assert(!status);
 
         commitMkl(true);
     }
@@ -199,15 +203,14 @@ void MatrixSparse::importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii* a_is, const
         info(oss.str());
     }
 
-    init(a_m, a_n);
-    if (a_nnz > 0)
+    if (initMkl(a_m, a_n, a_nnz > 0))
     {
         sparse_matrix_t t;
         ii* _a_is = const_cast<ii*>(a_is);
         ii* _a_js = const_cast<ii*>(a_js);
         fp* _a_vs = const_cast<fp*>(a_vs);
-        sparse_status_t status;
-        status = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, a_nnz, _a_is, _a_js, _a_vs);
+
+        sparse_status_t status = mkl_sparse_s_create_coo(&t, SPARSE_INDEX_BASE_ZERO, m_, n_, a_nnz, _a_is, _a_js, _a_vs);
         assert(!status);
 
         status = mkl_sparse_convert_csr(t, SPARSE_OPERATION_NON_TRANSPOSE, &mat_);
@@ -231,7 +234,7 @@ void MatrixSparse::importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii* a_is, const
 // todo: optimize
 void MatrixSparse::importFromMatrix(const Matrix &a)
 {
-    clear();
+    empty();
 
     vector<ii> is;
     vector<ii> js;
@@ -255,9 +258,9 @@ void MatrixSparse::importFromMatrix(const Matrix &a)
 
 
 // todo: optimize
-void MatrixSparse::importFromMatrix(ii m, ii n, fp v)
+void MatrixSparse::initDense(ii m, ii n, fp v)
 {
-    clear();
+    empty();
 
     vector<ii> is;
     vector<ii> js;
@@ -277,14 +280,14 @@ void MatrixSparse::importFromMatrix(ii m, ii n, fp v)
 }
 
 
-void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
+void MatrixSparse::concatenateRows(const std::vector<MatrixSparse> &as)
 {
     if (as.size() > 0)
     {
         if (getDebugLevel() % 10 >= 4)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "       " << "concatenateSparseVectors(A" << as.front() << " x " << as.size() << ")" << " := ...";
+            oss << getTimeStamp() << "       " << "concatenateRows(A" << as.front() << " x " << as.size() << ")" << " := ...";
             info(oss.str());
         }
 
@@ -311,8 +314,7 @@ void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
             {
                 if (as[i].ijs1_)
                 {
-                    IppStatus status;
-                    status = ippsCopy_32s(as[i].js_, &js_[ijs_[i]], as[i].nnz());
+                    IppStatus status = ippsCopy_32s(as[i].js_, &js_[ijs_[i]], as[i].nnz());
                     assert(!status);
                 }
              }
@@ -322,8 +324,7 @@ void MatrixSparse::concatenateSparseVectors(const std::vector<MatrixSparse> &as)
             {
                 if (as[i].ijs1_)
                 {
-                    IppStatus status;
-                    status = ippsCopy_32f(as[i].vs_, &vs_[ijs_[i]], as[i].nnz());
+                    IppStatus status = ippsCopy_32f(as[i].vs_, &vs_[ijs_[i]], as[i].nnz());
                     assert(!status);
                 }
             }
@@ -359,6 +360,8 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
         info(oss.str());
     }
 
+    assert(this != &a);
+    assert(this != &b);
     assert(a.m() == b.m());
     assert(a.n() == b.n());
 
@@ -367,9 +370,9 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
         a.sort();
         b.sort();
 
-        IppStatus status;
-        status = ippsCopy_32s(b.ijs_, ijs_, m_ + 1);
+        IppStatus status = ippsCopy_32s(b.ijs_, ijs_, m_ + 1);
         assert(!status);
+
         status = ippsCopy_32s(b.js_, js_, nnz());
         assert(!status);
 
@@ -401,22 +404,24 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
 }
 
 
-ii MatrixSparse::prune(const MatrixSparse &a, fp threshold)
+ii MatrixSparse::pruneCells(const MatrixSparse &a, fp threshold)
 {
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       copyPrune(A" << a << " <= ";
+        oss << getTimeStamp() << "       pruneCells(A" << a << " <= ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << threshold << ") := ...";
         info(oss.str());
     }
 
+    assert(this != &a);
 
     ii nnzCells = 0;
+    vector<ii> nnzs;
     if (a.ijs1_)
     {
-        vector<ii> nnzs(a.m_, 0);
+        nnzs.resize(a.m_, 0);
         for (ii i = 0; i < a.m_; i++)
         {
             for (ii a_nz = a.ijs_[i]; a_nz < a.ijs1_[i]; a_nz++)
@@ -426,34 +431,30 @@ ii MatrixSparse::prune(const MatrixSparse &a, fp threshold)
             }
             nnzCells += nnzs[i];
         }
+    }
 
-        if (initCsr(a.m_, a.n_, nnzCells))
+    if (initCsr(a.m_, a.n_, nnzCells))
+    {
+        ijs_[0] = 0;
+        for (ii i = 0; i < a.m_; i++)
+            ijs1_[i] = ijs_[i] + nnzs[i];
+
+        //#pragma omp parallel
+        for (ii i = 0; i < a.m_; i++)
         {
-            ijs_[0] = 0;
-            for (ii i = 0; i < a.m_; i++)
-                ijs1_[i] = ijs_[i] + nnzs[i];
-
-            //#pragma omp parallel
-            for (ii i = 0; i < a.m_; i++)
+            ii nz = ijs_[i];
+            for (ii a_nz = a.ijs_[i]; a_nz < a.ijs1_[i]; a_nz++)
             {
-                ii nz = ijs_[i];
-                for (ii a_nz = a.ijs_[i]; a_nz < a.ijs1_[i]; a_nz++)
+                if (a.vs_[a_nz] > threshold)
                 {
-                    if (a.vs_[a_nz] > threshold)
-                    {
-                        js_[nz] = a.js_[a_nz];
-                        vs_[nz] = a.vs_[a_nz];
-                        nz++;
-                    }
+                    js_[nz] = a.js_[a_nz];
+                    vs_[nz] = a.vs_[a_nz];
+                    nz++;
                 }
             }
-
-            commitCsr(a.isSorted_);
         }
-    }
-    else
-    {
-        init(a.m_, a.n_);
+
+        commitCsr(a.isSorted_);
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -467,31 +468,33 @@ ii MatrixSparse::prune(const MatrixSparse &a, fp threshold)
 }
 
 
-// MOSTLY OPTIMAL, MIGHT BE BETTER IF OMP LOOP DIDN'T INCLUDE PRUNED ROWS
+// THIS WOULD BE BETTER DONE FAKE-INPLACE SO NO PRUNING IS A NULL OP
 ii MatrixSparse::pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold)
 {
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       copyPruneRows(" << a << ",";
+        oss << getTimeStamp() << "       pruneRows(" << a << ",";
         oss << (bRows ? "rows(" : "columns(") << b << ")) where ";
         oss << (bRows ? "nRows" : "nColumns") << " to prune > " << fixed << setprecision(1) << threshold * 100.0 << "% := ...";
         info(oss.str());
     }
 
+    assert(this != &a);
+    assert(this != &b);
     assert(bRows ? a.m_ == b.m_ : a.m_ == b.n_);
 
     init(a.m_, a.n_);
 
     ii rowsPruned = 0;
-    if (a.ijs1_)
+    if (a.nnz() > 0)
     {
         ii aNnzRows = 0;
         for (ii i = 0; i < a.m_; i++)
             if (a.ijs1_[i] - a.ijs_[i] > 0)
                 aNnzRows++;
 
-        if (b.ijs1_)
+        if (b.nnz() > 0)
         {
             vector<ii> rowOrColNnzs(a.m_, 0);
             if (bRows)
@@ -539,7 +542,6 @@ ii MatrixSparse::pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bR
                     }
                 }
 
-
                 //#pragma omp parallel
                 for (ii i = 0; i < m_; i++)
                 {
@@ -573,7 +575,7 @@ ii MatrixSparse::pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bR
 }
 
 
-void MatrixSparse::exportTo(ii* is, ii* js, fp* vs) const
+void MatrixSparse::exportToCoo(ii *is, ii *js, fp *vs) const
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -582,7 +584,7 @@ void MatrixSparse::exportTo(ii* is, ii* js, fp* vs) const
         info(oss.str());
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
         ii job[] = { 0, 0, 0, 0 , ijs1_[m_ - 1], 3 };
         ii info;
@@ -598,7 +600,7 @@ void MatrixSparse::exportTo(ii* is, ii* js, fp* vs) const
 }
 
 
-void MatrixSparse::exportTo(fp *vs) const
+void MatrixSparse::exportToDense(fp *vs) const
 {
     if (getDebugLevel() % 10 >= 4)
     {
@@ -607,7 +609,7 @@ void MatrixSparse::exportTo(fp *vs) const
         info(oss.str());
     }
 
-    if (ijs1_)
+    if (nnz() > 0)
     {
         ii job[] = { 1, 0, 0, 2, 0, 0 };
         ii info;
@@ -637,31 +639,25 @@ void MatrixSparse::add(fp alpha, bool transposeA, const MatrixSparse& a, const M
         info(oss.str());
     }
 
+    assert(this != &a);
+    assert(this != &b);
     assert((transposeA ? a.n() : a.m()) == b.m());
     assert((transposeA ? a.m() : a.n()) == b.n());
 
-
-    if (!a.ijs1_ && !b.ijs1_)
-    {
-        init(transposeA ? a.n() : a.m(), b.n());
-    }
-    else if (!b.ijs1_)
+    if (a.nnz() > 0 && b.nnz() == 0)
     {
         if (transposeA)
             transpose(a);
         else
             copy(a);
     }
-    else if (!a.ijs1_)
+    else if (a.nnz() == 0 && b.nnz() > 0)
     {
         copy(b);
     }
-    else
+    else if (initMkl(transposeA ? a.n() : a.m(), b.n(), a.nnz() > 0 && b.nnz() > 0))
     {
-        init(transposeA ? a.n() : a.m(), b.n());
-
-        sparse_status_t status;
-        status = mkl_sparse_s_add(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, alpha, b.mat_, &mat_); assert(!status);
+        sparse_status_t status = mkl_sparse_s_add(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, alpha, b.mat_, &mat_); assert(!status);
 
         commitMkl(true);
     }
@@ -688,13 +684,15 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
 
     assert((transposeA ? a.m() : a.n()) == b.m());
 
-    if (a.ijs1_ && b.ijs1_)
+    if (nnz() == 0)
+        accumulate = false;
+
+    if (accumulate)
     {
-        if (accumulate && ijs1_)
+        if (a.nnz() > 0 && b.nnz() > 0)
         {
             sparse_matrix_t t;
-            sparse_status_t status;
-            status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t);
+            sparse_status_t status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t);
             assert(!status);
 
             sparse_matrix_t y;
@@ -704,24 +702,21 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
             status = mkl_sparse_destroy(t);
             assert(!status);
 
-            clear();
+            empty();
             mat_ = y;
-        }
-        else
-        {
-            initMkl(transposeA ? a.n() : a.m(), b.n());
 
-            sparse_status_t status;
-            status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_);
-            assert(!status);
+            commitMkl(false);
         }
-
-        commitMkl(false);
     }
     else
     {
-        if (!accumulate)
-            init(transposeA ? a.n() : a.m(), b.n());
+        if (initMkl(transposeA ? a.n() : a.m(), b.n(), a.nnz() > 0 && b.nnz() > 0))
+        {
+             sparse_status_t status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_);
+            assert(!status);
+
+            commitMkl(false);
+        }
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -785,7 +780,7 @@ void MatrixSparse::matmulDense(bool transposeA, const MatrixSparse &a, const Mat
             status = mkl_sparse_destroy(t);
             assert(!status);
 
-            clear();
+            empty();
             mat_ = y;
 
             sparse_index_base_t indexing;
@@ -811,7 +806,7 @@ void MatrixSparse::matmulDense(bool transposeA, const MatrixSparse &a, const Mat
     else
     {
         if (!accumulate)
-            importFromMatrix(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
+            initDense(transposeA ? a.n() : a.m(), b.n(), fp(0.0));
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -858,7 +853,7 @@ void MatrixSparse::mul(const MatrixSparse& a, const MatrixSparse& b)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       X" << *this << " * A := ...";
+        oss << getTimeStamp() << "       " << (this == &a ? "X" : "A") << a << " * " << (this == &b ? "X" : "B") << b << " := ...";
         info(oss.str());
     }
 
@@ -905,7 +900,7 @@ void MatrixSparse::sqr(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       sqr(A" << a << ") := ...";
+        oss << getTimeStamp() << "       sqr(" << (this == &a ? "X" : "A") << a << ") := ...";
         info(oss.str());
     }
 
@@ -940,7 +935,7 @@ void MatrixSparse::sqrt(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       sqrt(X" << *this << ") := ...";
+        oss << getTimeStamp() << "       sqrt(" << (this == &a ? "X" : "A") << a << ") := ...";
         info(oss.str());
     }
 
@@ -975,7 +970,7 @@ void MatrixSparse::pow(const MatrixSparse& a, fp power)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       pow(X" << *this << ", " << power << ") := ...";
+        oss << getTimeStamp() << "       pow(" << (this == &a ? "X" : "A") << a << ", " << power << ") := ...";
         info(oss.str());
     }
 
@@ -1011,7 +1006,7 @@ void MatrixSparse::censorLeft(const MatrixSparse& a, fp threshold)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       censorLeft(X" << *this << ", ";
+        oss << getTimeStamp() << "       censorLeft(" << (this == &a ? "X" : "A") << a << ", ";
         oss.unsetf(ios::floatfield);
         oss << setprecision(8) << threshold << ") := ...";
         info(oss.str());
@@ -1078,7 +1073,7 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a, const MatrixSparse& b)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       X" << *this << " / A" << a << " := ...";
+        oss << getTimeStamp() << "       " << (this == &a ? "X" : "A") << a << " / " << (this == &b ? "X" : "B") << b << " := ...";
         info(oss.str());
     }
 
@@ -1108,6 +1103,7 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a, const MatrixSparse& b)
         vsAdd(ijs1_[m_ - 1], a.vs_, b.vs_, vs_);
         int err = vmlGetErrStatus();
         assert(err == VML_STATUS_OK);
+
         commitCsr(true);
     }
 
@@ -1125,7 +1121,7 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       ln(X" << *this << ") := ...";
+        oss << getTimeStamp() << "       ln(" << (this == &a ? "X" : "A") << a << ") := ...";
         info(oss.str());
     }
 
@@ -1165,7 +1161,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       X" << *this << " / A" << a << " := ...";
+        oss << getTimeStamp() << "       " << (this == &a ? "X" : "A") << a << " / " << (this == &a ? "X" : "A") << a << " := ...";
         info(oss.str());
     }
 
@@ -1379,11 +1375,13 @@ void MatrixSparse::commitCsr(bool isSorted)
 }
 
 
-void MatrixSparse::initMkl(ii m, ii n)
+bool MatrixSparse::initMkl(ii m, ii n, bool notEmpty)
 {
     init(m, n);
 
     isCsrOwned_ = false;
+
+    return notEmpty;
 }
 
 

@@ -44,6 +44,8 @@ SubjectMatrixSparse::~SubjectMatrixSparse()
 
 void SubjectMatrixSparse::info(const string &message, const MatrixSparse *a) const
 {
+    Subject::info(message);
+
     int debugLevel = getDebugLevel();
     setDebugLevel(0);
 
@@ -51,27 +53,25 @@ void SubjectMatrixSparse::info(const string &message, const MatrixSparse *a) con
         observers_[i]->notice(message, a);
 
     setDebugLevel(debugLevel);
-
-    Subject::info(message);
 }
 
 
 void SubjectMatrixSparse::warning(const string &message, const MatrixSparse* a) const
 {
+    Subject::warning(message);
+
     int debugLevel = getDebugLevel();
     setDebugLevel(0);
 
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->warning(message, a);
-
-    setDebugLevel(debugLevel);
-
-    Subject::warning(message);
 }
 
 
 void SubjectMatrixSparse::error(const string &message, const MatrixSparse* a) const
 {
+    Subject::error(message);
+
     int debugLevel = getDebugLevel();
     setDebugLevel(0);
 
@@ -79,8 +79,6 @@ void SubjectMatrixSparse::error(const string &message, const MatrixSparse* a) co
         observers_[i]->error(message, a);
 
     setDebugLevel(debugLevel);
-
-    Subject::error(message);
 }
 
 

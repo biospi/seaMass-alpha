@@ -327,7 +327,7 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
     li i = 0;
     for (ii k = 0; k < ii(f.size()); k++)
     {
-        f[k].exportTo(&binCounts.data()[i]);
+        f[k].exportToDense(&binCounts.data()[i]);
         i += f[k].size();
     }
 }
@@ -351,7 +351,7 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
     }
 
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
-    c[0].exportTo(controlPoints.coeffs.data());
+    c[0].exportToDense(controlPoints.coeffs.data());
 
     controlPoints.scale = meshInfo.scale;
     controlPoints.offset = meshInfo.offset;
@@ -376,7 +376,7 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints) const
         optimizer_->synthesize(c, cs, 0);
     }
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
-    c[0].exportTo(controlPoints.coeffs.data());
+    c[0].exportToDense(controlPoints.coeffs.data());
 
     controlPoints.scale = meshInfo.scale;
     controlPoints.offset = meshInfo.offset;

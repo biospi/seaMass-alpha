@@ -263,7 +263,7 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
     }
     
     xE.resize(1);
-    xE[0].concatenateSparseVectors(xEs);
+    xE[0].concatenateRows(xEs);
 
     if (getDebugLevel() % 10 >= 3)
     {

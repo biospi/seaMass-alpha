@@ -52,7 +52,7 @@ popd
 
 mkdir 2.seamass
 pushd 2.seamass
-../../../../build/$1/debug/commandline/seamass ../1.mzmlb2smb/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.p.smb -d1
+../../../../build/$1/debug/commandline/seamass ../1.mzmlb2smb/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.p.smb -d1 -l4
 popd
 
 mkdir 3.seamass-restore
