@@ -100,11 +100,11 @@ public:
 protected:
     bool createCsr(ii m, ii n, ii a_nnz);
     bool initCsr(bool notEmpty) const;
-    void commitCsr(bool isSorted);
+    void commitCsr(bool isSorted) const;
 
     bool createMkl(ii m, ii n, bool notEmpty);
     bool initMkl(bool notEmpty) const;
-    void commitMkl(bool isSorted);
+    void commitMkl(bool isSorted) const;
 
     void sort() const;
 

@@ -871,7 +871,7 @@ void MatrixSparse::sqr(const MatrixSparse& a)
         assert(!status);
     }
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         vsSqr(nnz(), a.vs_, vs_);
         int err = vmlGetErrStatus();
@@ -907,7 +907,7 @@ void MatrixSparse::sqrt(const MatrixSparse& a)
         assert(!status);
     }
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         vsSqrt(nnz(), a.vs_, vs_);
         int err = vmlGetErrStatus();
@@ -943,7 +943,7 @@ void MatrixSparse::pow(const MatrixSparse& a, fp power)
         assert(!status);
     }
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         vsPowx(nnz(), a.vs_, power, vs_);
         int err = vmlGetErrStatus();
@@ -981,7 +981,7 @@ void MatrixSparse::censorLeft(const MatrixSparse& a, fp threshold)
         assert(!status);
     }
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         IppStatus status = ippsThreshold_LT_32f(a.vs_, vs_, nnz(), threshold);
         assert(!status);
@@ -1009,7 +1009,7 @@ void MatrixSparse::addNonzeros(fp beta)
         info(oss.str());
     }
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         IppStatus status = ippsAddC_32f_I(beta, vs_, nnz());
         assert(!status);
@@ -1042,7 +1042,7 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a, const MatrixSparse& b)
         assert(!status);
     }
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         if (&a != &b)
         {
@@ -1090,7 +1090,7 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
         assert(!status);
     }
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
 //#ifdef NDEBUG // for some reason this causes valgrind to crash
         vsLn(nnz(), a.vs_, vs_);
@@ -1131,7 +1131,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
         assert(!status);
     }
 
-    if (nnz())
+    if (initCsr(nnz() > 0))
     {
         if (&a != &b)
         {
@@ -1175,7 +1175,7 @@ void MatrixSparse::div2Dense(const Matrix &a)
     assert(m_ = a.m());
     assert(n_ = a.n());
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         vsDiv(nnz(), a.vs(), vs_, vs_);
         int err = vmlGetErrStatus();
@@ -1203,7 +1203,7 @@ fp MatrixSparse::sum() const
     }
 
     fp sum = 0.0;
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         IppStatus status = ippsSum_32f(vs_, nnz(), &sum, ippAlgHintFast);
         assert(!status);
@@ -1232,7 +1232,7 @@ fp MatrixSparse::sumSqrs() const
     }
 
     fp sum = 0.0;
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         IppStatus status = ippsNorm_L2_32f(vs_, nnz(), &sum);
         assert(!status);
@@ -1263,7 +1263,7 @@ fp MatrixSparse::sumSqrDiffsNonzeros(const MatrixSparse& a) const
     }
 
     fp sum = 0.0;
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         sort();
         a.sort();
@@ -1311,6 +1311,7 @@ bool MatrixSparse::createCsr(ii m, ii n, ii nnz)
 
         isCsrOwned_ = true;
 
+        // todo: defer this MKL setup to initMkl
         sparse_status_t status = mkl_sparse_s_create_csr(&mat_, SPARSE_INDEX_BASE_ZERO, m_, n_, ijs_, ijs1_, js_, vs_);
         assert(!status);
 
@@ -1330,9 +1331,11 @@ bool MatrixSparse::initCsr(bool notEmpty) const
 }
 
 
-void MatrixSparse::commitCsr(bool isSorted)
+void MatrixSparse::commitCsr(bool isSorted) const
 {
-    isSorted_ = isSorted;
+    // this function sorts in place and I'd like everything else to think the object hasn't changed
+    bool& _isSorted_ = const_cast<bool&>(isSorted_);
+    _isSorted_ = isSorted;
 }
 
 
@@ -1353,13 +1356,23 @@ bool MatrixSparse::initMkl(bool notEmpty) const
 }
 
 
-void MatrixSparse::commitMkl(bool isSorted)
+void MatrixSparse::commitMkl(bool isSorted) const
 {
-    isSorted_ = isSorted;
+    // this function sorts in place and I'd like everything else to think the object hasn't changed
+    bool& _isSorted_ = const_cast<bool&>(isSorted_);
+    _isSorted_ = isSorted;
+
+    // todo: defer this CSR setup to initCsr
+    ii& _m_  = const_cast<ii&>(m_);
+    ii& _n_  = const_cast<ii&>(n_);
+    ii*& _ijs_  = const_cast<ii*&>(ijs_);
+    ii*& _ijs1_  = const_cast<ii*&>(ijs1_);
+    ii*& _js_  = const_cast<ii*&>(js_);
+    fp*& _vs_  = const_cast<fp*&>(vs_);
 
     sparse_index_base_t indexing;
     sparse_status_t status;
-    status = mkl_sparse_s_export_csr(mat_, &indexing, &m_, &n_, &ijs_, &ijs1_, &js_, &vs_);
+    status = mkl_sparse_s_export_csr(mat_, &indexing, &_m_, &_n_, &_ijs_, &_ijs1_, &_js_, &_vs_);
     assert(!status);
     assert(!indexing);
 }
@@ -1371,7 +1384,7 @@ void MatrixSparse::sort() const
     // this function sorts in place and I'd like everything else to think the object hasn't changed
     bool& _isSorted_ = const_cast<bool&>(isSorted_);
 
-    if (nnz() > 0)
+    if (initCsr(nnz() > 0))
     {
         if (!isSorted_)
         {
@@ -1473,7 +1486,7 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
         {
             os << "(" << a.nnzActual() << ")";
         }
-        
+
         os << "/" << a.size() << ":";
         os.unsetf(ios::floatfield);
         os << setprecision(3) << 100.0 * a.nnz() / (double)a.size() << "%";
