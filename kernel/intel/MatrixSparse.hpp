@@ -68,7 +68,7 @@ public:
 
     // matrix multiplication
     void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate);
-    void matmulDense(bool transposeA, const MatrixSparse &a, const MatrixSparse &b, bool accumulate);
+    void matmulDense(bool transposeA, const MatrixSparse &a, const MatrixSparse &b);
 
     // elementwise inplace operations
     void mul(fp beta);

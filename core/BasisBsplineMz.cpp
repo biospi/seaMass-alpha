@@ -226,7 +226,7 @@ void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSpar
         }
 
         // synthesise with dense result
-        f[k].matmulDense(false, row, aTs_[k], accumulate);
+        f[k].matmulDense(false, row, aTs_[k]);
 
         if (getDebugLevel() % 10 >= 3)
         {
