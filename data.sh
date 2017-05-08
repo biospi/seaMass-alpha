@@ -7,9 +7,9 @@ mkdir $DIR/data/out
 export MKL_NUM_THREADS=1
 export OMP_NUM_THREADS=1
 
-
 mkdir $DIR/data/out/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163
 pushd $DIR/data/out/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163
+
 
 mkdir 1.mzmlb2smb
 pushd 1.mzmlb2smb
@@ -52,7 +52,7 @@ popd
 
 mkdir 2.seamass
 pushd 2.seamass
-../../../../build/$1/debug/commandline/seamass ../1.mzmlb2smb/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.p.smb -d1 -l4
+../../../../build/$1/debug/commandline/seamass ../1.mzmlb2smb/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.p.smb -d1
 popd
 
 mkdir 3.seamass-restore

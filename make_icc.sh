@@ -18,4 +18,4 @@ cmake -DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icc -DCMAKE_CXX_FLAGS="-std=c+
 make
 popd
 
-source data.sh gcc
+source data.sh icc
