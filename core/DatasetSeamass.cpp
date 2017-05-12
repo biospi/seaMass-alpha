@@ -149,27 +149,55 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
     fileIn_->read_AttNC("tolerance", NC_GLOBAL, tolerance, grpid);
     output.tolerance = tolerance[0];
 
-    ii n = 0;
-    for (;; n++)
     {
-        ostringstream oss1; oss1 << "xs[" << n << "]";
-        if (fileIn_->open_Group(oss1.str(), grpid) == -1)
-            break;
+        ii n = 0;
+        for (;; n++)
+        {
+            ostringstream oss1; oss1 << "xs[" << n << "]";
+            if (fileIn_->open_Group(oss1.str(), grpid) == -1)
+                break;
+        }
+
+        output.xs.resize(n);
+        for (ii k = 0; k < n; k++)
+        {
+            ostringstream oss1; oss1 << "xs[" << k << "]";
+            fileIn_->read(output.xs[k], oss1.str(), grpid);
+        }
     }
 
-    output.xs.resize(n);
-    output.l2s.resize(n);
-    output.l1l2s.resize(n);
-    for (ii k = 0; k < n; k++)
     {
-        ostringstream oss1; oss1 << "xs[" << k << "]";
-        fileIn_->read(output.xs[k], oss1.str(), grpid);
+        ii n = 0;
+        for (;; n++)
+        {
+            ostringstream oss1; oss1 << "l2s[" << n << "]";
+            if (fileIn_->open_Group(oss1.str(), grpid) == -1)
+                break;
+        }
 
-        ostringstream oss2; oss2 << "l2s[" << k << "]";
-        fileIn_->read(output.l2s[k], oss2.str(), grpid);
+        output.l2s.resize(n);
+        for (ii k = 0; k < n; k++)
+        {
+            ostringstream oss1; oss1 << "l2s[" << k << "]";
+            fileIn_->read(output.l2s[k], oss1.str(), grpid);
+        }
+    }
 
-        ostringstream oss3; oss3 << "l1l2s[" << k << "]";
-        fileIn_->read(output.l1l2s[k], oss3.str(), grpid);
+    {
+        ii n = 0;
+        for (;; n++)
+        {
+            ostringstream oss1; oss1 << "l1l2s[" << n << "]";
+            if (fileIn_->open_Group(oss1.str(), grpid) == -1)
+                break;
+        }
+
+        output.l1l2s.resize(n);
+        for (ii k = 0; k < n; k++)
+        {
+            ostringstream oss1; oss1 << "l1l2s[" << k << "]";
+            fileIn_->read(output.l1l2s[k], oss1.str(), grpid);
+        }
     }
 
     /*for (ii k = 0; k < (ii)output.xs.size(); k++)

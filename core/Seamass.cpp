@@ -41,43 +41,57 @@ void Seamass::notice()
 }
 
 
-Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance) : lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
+Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
 {
     init(input, scale, true);
     optimizer_->setLambda((fp) lambda_);
 }
 
 
-Seamass::Seamass(const Input& input, const Output& seed) : lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), iteration_(0)
+Seamass::Seamass(const Input& input, const Output& seed) : innerOptimizer_(0), lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), iteration_(0)
 {
     init(input, seed.scale, false);
 
     // import seed
-    optimizer_->xs().resize(bases_.size());
-    optimizer_->l2s().resize(bases_.size());
-    optimizer_->l1l2s().resize(bases_.size());
-    for (ii k = 0; k < ii(bases_.size()); k++)
+    optimizer_->xs().resize(seed.xs.size());
+    for (ii k = 0; k < ii(optimizer_->xs().size()); k++)
     {
         if (!bases_[k]->isTransient())
         {
             optimizer_->xs()[k].resize(1);
             optimizer_->xs()[k][0].copy(seed.xs[k]);
+        }
+   }
 
+    optimizer_->l2s().resize(seed.l2s.size());
+    for (ii k = 0; k < ii(optimizer_->l2s().size()); k++)
+    {
+        if (!bases_[k]->isTransient())
+        {
             optimizer_->l2s()[k].resize(1);
             optimizer_->l2s()[k][0].copy(seed.l2s[k]);
+        }
+    }
 
+    optimizer_->l1l2s().resize(seed.l1l2s.size());
+    for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
+    {
+        if (!bases_[k]->isTransient())
+        {
             optimizer_->l1l2s()[k].resize(1);
             optimizer_->l1l2s()[k][0].copy(seed.l1l2s[k]);
         }
-   }
-   optimizer_->setLambda((fp) lambda_);
+    }
+
+    optimizer_->setLambda((fp) lambda_);
 }
 
 
 Seamass::~Seamass()
 {
     delete optimizer_;
-    delete innerOptimizer_;
+    if (innerOptimizer_)
+        delete innerOptimizer_;
 
     for (ii i = 0; i < (ii)bases_.size(); i++)
         delete bases_[i];
@@ -148,6 +162,7 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     // INIT OPTIMISER
     innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
     optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
+    //optimizer_ = new OptimizerSrl(bases_, b_, seed);
 }
 
 
@@ -257,15 +272,20 @@ void Seamass::getOutput(Output& output) const
     output.shrinkage = lambdaStart_;
     output.tolerance = tolerance_;
 
-    output.xs.resize(bases_.size());
-    output.l2s.resize(bases_.size());
-    output.l1l2s.resize(bases_.size());
-    for (ii k = 0; k < (ii)bases_.size(); k++)
-    {
-        output.xs[k].copy(optimizer_->xs()[k][0]);
-        output.l2s[k].copy(optimizer_->l2s()[k][0]);
-        output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
-    }
+    output.xs.resize(optimizer_->xs().size());
+    for (ii k = 0; k < ii(optimizer_->xs().size()); k++)
+        if (!bases_[k]->isTransient())
+            output.xs[k].copy(optimizer_->xs()[k][0]);
+
+    output.l2s.resize(optimizer_->l2s().size());
+    for (ii k = 0; k < ii(optimizer_->l2s().size()); k++)
+        if (!bases_[k]->isTransient())
+            output.l2s[k].copy(optimizer_->l2s()[k][0]);
+
+    output.l1l2s.resize(optimizer_->l1l2s().size());
+    for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
+        if (!bases_[k]->isTransient())
+            output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
 
     /*output.baselineScale.resize(dimensions_);
     output.baselineOffset.resize(dimensions_);

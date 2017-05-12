@@ -67,6 +67,9 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             for (ii k = 0; k < ii(b_.size()); k++)
                 sumB += b_[k].sum();
 
+            if (getDebugLevel() % 10 >= 2)
+                cout << getTimeStamp() << "    volume_b=" << fixed << sumB << endl;
+
             double sumX = 0.0;
             for (ii l = 0; l < ii(bases_.size()); l++)
             {
@@ -146,6 +149,14 @@ fp OptimizerSrl::step()
     double synthesisStart = getElapsedTime();
     {
         synthesize(f_fE, xEs_ys);
+
+        if (getDebugLevel() % 10 >= 2)
+        {
+            double sumF = 0.0;
+            for (ii k = 0; k < ii(b_.size()); k++)
+                sumF += f_fE[k].sum();
+            cout << getTimeStamp() << "    volume_f=" << fixed << sumF << endl;
+        }
     }
     double synthesisDuration = getElapsedTime() - synthesisStart;
 
@@ -167,12 +178,6 @@ fp OptimizerSrl::step()
          }
     }
     double errorDuration = getElapsedTime() - errorStart;
-
-    // init l1s_ and l1l2sPlusLambda_
-    /*if (l2s_.size() != bases_.size())
-    {
-     // TODO
-    }*/
 
     // ANALYSIS
     if (getDebugLevel() % 10 >= 3)
@@ -453,7 +458,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
     {
         if (!bases_[l]->isTransient())
         {
-            if (xs_.size())
+            if (xs_.size() > 0)
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
                 {
@@ -477,6 +482,10 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
                     xEs[l][k].divNonzeros(xEs[l][k], l2s_[l][k]);
             }
+        }
+        else
+        {
+            vector<MatrixSparse>().swap(xEs[l]);
         }
     }
 }
