@@ -56,6 +56,11 @@ private:
     int iteration_;
 
     std::vector< std::vector<MatrixSparse> > xs_;
+
+    ii xsC_;
+    ii l2sC_;
+    ii l1l2sPlusLambdaC_;
+
     std::vector< std::vector<MatrixSparse> > l2s_;
     std::vector< std::vector<MatrixSparse> > l1l2sPlusLambda_;
     

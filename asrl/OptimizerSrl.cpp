@@ -37,7 +37,22 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
     if (seed)
     {
-        {   // compute L2 and L1 norm of each basis function and store in 'l2s' and 'l1l2s'
+        // initialise starting estimate of 'x' from analysis of 'b'
+        if (getDebugLevel() % 10 >= 1)
+            cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
+
+        {
+            vector<MatrixSparse> t(b_.size());
+            for (ii k = 0; k < ii(t.size()); k++)
+                t[k].importFromMatrix(b_[k]);
+
+            analyze(xs_, t, false, false);
+
+            xsC_ = 0;
+        }
+
+        // compute L2 and L1 norm of each basis function and store in 'l2s' and 'l1l2s'
+        {
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L2 norms ..." << endl;
 
@@ -45,69 +60,93 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             for (ii k = 0; k < ii(t.size()); k++)
                 t[k].initDense(1, b_[k].n(), fp(1.0));
 
-            analyze(l2s_, t, true, false);
+            {
+                vector< vector<MatrixSparse> > l2s;
+                analyze(l2s, t, true, false);
+
+                l2sC_ = 1;
+                for (ii l = 0; l < ii(bases_.size()); l++)
+                {
+                    if (!bases_[l]->isTransient())
+                    {
+                        for (ii k = 0; k < ii(xs_[l].size()); k++)
+                            xs_[l][k].addChannel(l2s[l][k]);
+                    }
+                }
+            }
 
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
 
-            analyze(l1l2sPlusLambda_, t, false);
+            {
+                vector< vector<MatrixSparse> > l1s;
+                analyze(l1s, t, false, false);
+
+                l1l2sPlusLambdaC_ = 2;
+                for (ii l = 0; l < ii(bases_.size()); l++)
+                {
+                    if (!bases_[l]->isTransient())
+                    {
+                        for (ii k = 0; k < ii(xs_[l].size()); k++)
+                        {
+                            xs_[l][k].addChannel(l1s[l][k]);
+                            xs_[l][k].divNonzeros(l1l2sPlusLambdaC_, l2sC_, l1l2sPlusLambdaC_);
+                        }
+                    }
+                }
+            }
         }
 
-        {   // initialise starting estimate of 'x' from analysis of 'b'
-            if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
+        if (getDebugLevel() % 10 >= 1)
+            cout << getTimeStamp() << "  Normalize and prune seed ..." << endl;
 
-            vector<MatrixSparse> t(b_.size());
-            for (ii k = 0; k < ii(t.size()); k++)
-                t[k].importFromMatrix(b_[k]);
-
-            analyze(xs_, t, false, false);
-
-            double sumB = 0.0;
+        {
+            // work out volume of B
+            double volumeB = 0.0;
             for (ii k = 0; k < ii(b_.size()); k++)
-                sumB += b_[k].sum();
+                volumeB += b_[k].sum();
 
             if (getDebugLevel() % 10 >= 2)
-                cout << getTimeStamp() << "    volume_b=" << fixed << sumB << endl;
+                cout << getTimeStamp() << "    volume_b=" << fixed << volumeB << endl;
 
-            double sumX = 0.0;
+            // work out volume of X
+            double volumeX = 0.0;
             for (ii l = 0; l < ii(bases_.size()); l++)
             {
-                for (ii k = 0; k < ii(xs_[l].size()); k++)
-                    sumX += xs_[l][k].sum();
+                if (!bases_[l]->isTransient())
+                {
+                    for (ii k = 0; k < ii(xs_[l].size()); k++)
+                        volumeX += xs_[l][k].sum();
+                }
             }
 
+            // normalize and prune
             for (ii l = 0; l < ii(bases_.size()); l++)
             {
                 if (!bases_[l]->isTransient())
                 {
                     for (ii k = 0; k < ii(xs_[l].size()); k++)
                     {
-                        // remove unneeded l1l2sPlusLambda
-                        MatrixSparse l1l2PlusLambda;
-                        l1l2PlusLambda.copySubset(l1l2sPlusLambda_[l][k], xs_[l][k]);
+                        xs_[l][k].divNonzeros(xsC_, l1l2sPlusLambdaC_);
+                        xs_[l][k].mul(fp(volumeB / volumeX));
 
-                        // normalise and prune xs
                         MatrixSparse x;
-                        x.divNonzeros(xs_[l][k], l1l2PlusLambda);
-                        l1l2PlusLambda.empty();
-                        x.mul((fp) (sumB / sumX));
-                        xs_[l][k].pruneCells(x, pruneThreshold);
-                        x.empty();
-
-                        // remove unneeded l2s
-                        MatrixSparse t;
-                        t.copySubset(l2s_[l][k], xs_[l][k]);
-                        l2s_[l][k].swap(t);
-
-                        // remove unneeded l1l2s
-                        t.copySubset(l1l2sPlusLambda_[l][k], xs_[l][k]);
-                        l1l2sPlusLambda_[l][k].swap(t);
+                        x.pruneCells(xs_[l][k], pruneThreshold);
+                        xs_[l][k].swap(x);
                     }
                 }
             }
         }
+
+        double sumX = 0.0;
+        for (ii l = 0; l < ii(xs_.size()); l++)
+            if (!bases_[l]->isTransient())
+                for (ii k = 0; k < ii(xs_[l].size()); k++)
+                    sumX += xs_[l][k].sum();
+
+        cout << getTimeStamp() << "    volume_x=" << fixed << sumX << endl;
     }
+    exit(0);
 }
 
 
@@ -480,7 +519,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
             if (l2Normalize)
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
-                    xEs[l][k].divNonzeros(xEs[l][k], l2s_[l][k]);
+                    xEs[l][k].divNonzeros(0, 0, 1);
             }
         }
         else

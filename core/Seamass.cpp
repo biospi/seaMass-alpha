@@ -160,9 +160,9 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     }
 
     // INIT OPTIMISER
-    innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
-    optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
-    //optimizer_ = new OptimizerSrl(bases_, b_, seed);
+    //innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
+    //optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
+    optimizer_ = new OptimizerSrl(bases_, b_, seed);
 }
 
 

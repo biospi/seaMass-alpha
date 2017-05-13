@@ -38,29 +38,31 @@ public:
     MatrixSparse();
     ~MatrixSparse();
 
-    void empty();
-    void init(ii m, ii n);
-    void swap(MatrixSparse& a);
-
     // accessors
     ii m() const;
     ii n() const;
     li size() const;
     ii nnz() const;
-    ii nnzActual() const;
+    ii channels() const;
+    ii nnzActual(ii channel) const;
 
-public:
-    // these functions allocate memory
+    // might not be needed if we go to pointers
+    void swap(MatrixSparse& a);
+
+    // these should be constructors
+    void empty();
+    void init(ii m, ii n);
+    void copy(const MatrixSparse& a);
+    void transpose(const MatrixSparse& a);
     void importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
     void importFromMatrix(const Matrix &a); // create from dense matrix a
     void initDense(ii m, ii n, fp v); // create from dense matrix of constant value
     void concatenateRows(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
     void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
-    ii pruneCells(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
     ii pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
-    void copy(const MatrixSparse& a);
-    void transpose(const MatrixSparse& a);
+    // constructors with channel ops
+    ii pruneCells(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
 
     // exports
     void exportToCoo(ii *is, ii *js, fp *vs) const; // export as COO matrix
@@ -70,8 +72,12 @@ public:
     void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate);
     void matmulDense(bool transposeA, const MatrixSparse &a, const MatrixSparse &b);
 
-    // elementwise inplace operations
-    void mul(fp beta);
+    // new channel ops
+    ii addChannel(const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
+
+    // elementwise channel operations
+    void mul(fp beta, ii c = 0);
+    void divNonzeros(ii a, ii b, ii c = 0); // a/b -> c
 
     // elementwise copy operations
     void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
@@ -98,13 +104,15 @@ public:
     static double sortElapsed_;
 
 protected:
-    bool createCsr(ii m, ii n, ii a_nnz);
+    bool createCsr(ii m, ii n, ii a_nnz, ii extraChannels);
     bool initCsr(bool notEmpty) const;
     void commitCsr(bool isSorted) const;
 
     bool createMkl(ii m, ii n, bool notEmpty);
     bool initMkl(bool notEmpty) const;
     void commitMkl(bool isSorted) const;
+
+    ii createChannel(ii nnz);
 
     void sort() const;
 
@@ -120,7 +128,7 @@ protected:
     ii* ijs_;
     ii* ijs1_;
     ii* js_;
-    fp* vs_;
+    std::vector<fp*> vs_;
     bool isCsrOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
 
     //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routien has been run
