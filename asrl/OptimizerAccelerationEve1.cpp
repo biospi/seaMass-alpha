@@ -102,7 +102,7 @@ fp OptimizerAccelerationEve1::step()
                         }
                         // can now calcaulte first gradient vector 'u0s'
                         MatrixSparse t;
-                        t.copySubset(y0s_[l][k], xs()[l][k]);
+                        //t.copySubset(y0s_[l][k], xs()[l][k]);
 
                         u0s_[l][k].divNonzeros(xs()[l][k], t);
                         // no extrapolation this iteration, just save 'xs'
@@ -138,10 +138,10 @@ fp OptimizerAccelerationEve1::step()
 
                         // update to new gradient vector 'u0s'
                         MatrixSparse t;
-                        t.copySubset(y0s_[l][k], xs()[l][k]);
+                        //t.copySubset(y0s_[l][k], xs()[l][k]);
                         u0s_[l][k].divNonzeros(xs()[l][k], t);
 
-                        t.copySubset(cLogU0, xs()[l][k]);
+                        //t.copySubset(cLogU0, xs()[l][k]);
 
                         // using new gradient vector 'u0s'
                         MatrixSparse c1LogU;
@@ -174,7 +174,7 @@ fp OptimizerAccelerationEve1::step()
                         y0s_[l][k].copy(xs()[l][k]);
 
                         MatrixSparse t;
-                        t.copySubset(x0s_[l][k], xs()[l][k]);
+                        //t.copySubset(x0s_[l][k], xs()[l][k]);
 
                         y0s_[l][k].divNonzeros(y0s_[l][k], t);
                         y0s_[l][k].pow(y0s_[l][k], aThresh);
@@ -212,7 +212,7 @@ void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vect
 
 
 void
-OptimizerAccelerationEve1::analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize) const
+OptimizerAccelerationEve1::analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize)
 {
     optimizer_->analyze(xEs, fE, l2, l2Normalize);
 }

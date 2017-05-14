@@ -37,32 +37,36 @@ class MatrixSparse : public SubjectMatrixSparse
 public:
     MatrixSparse();
     ~MatrixSparse();
+    void swap(MatrixSparse& a);
 
     // accessors
     ii m() const;
     ii n() const;
     li size() const;
     ii nnz() const;
-    ii channels() const;
-    ii nnzActual(ii channel) const;
+    ii nnzActual() const;
 
-    // might not be needed if we go to pointers
-    void swap(MatrixSparse& a);
-
-    // these should be constructors
-    void empty();
+    // these free the existing contents and create new contents
+    void free();
     void init(ii m, ii n);
+    void initWithSharedIndexes(MatrixSparse& x, const MatrixSparse& a);
+    ii pruneCells(fp threshold = 0.0); // prune values under threshold
+
+    // elementwise operators: inputs must have shared indexes
+    void divNonzeros(MatrixSparse& a, MatrixSparse& b);
+
+    // todo:
+
     void copy(const MatrixSparse& a);
+
     void transpose(const MatrixSparse& a);
     void importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
     void importFromMatrix(const Matrix &a); // create from dense matrix a
     void initDense(ii m, ii n, fp v); // create from dense matrix of constant value
     void concatenateRows(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
-    void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
     ii pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
     // constructors with channel ops
-    ii pruneCells(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
 
     // exports
     void exportToCoo(ii *is, ii *js, fp *vs) const; // export as COO matrix
@@ -72,12 +76,9 @@ public:
     void matmul(bool transposeA, const MatrixSparse& a, const MatrixSparse& b, bool accumulate);
     void matmulDense(bool transposeA, const MatrixSparse &a, const MatrixSparse &b);
 
-    // new channel ops
-    ii addChannel(const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
-
     // elementwise channel operations
-    void mul(fp beta, ii c = 0);
-    void divNonzeros(ii a, ii b, ii c = 0); // a/b -> c
+    void mul(fp beta);
+    //void divNonzeros(ii a, ii b, ii c = 0); // a/b -> c
 
     // elementwise copy operations
     void add(fp alpha, bool transposeA, const MatrixSparse& a, const MatrixSparse& b);
@@ -93,7 +94,6 @@ public:
     void addNonzeros(fp beta);
     void addNonzeros(const MatrixSparse& a, const MatrixSparse& b);
     void lnNonzeros(const MatrixSparse& a);
-    void divNonzeros(const MatrixSparse& a, const MatrixSparse& b); // a/b
     void div2Dense(const Matrix &a); // a is numerator & must be dense
 
     // aggregate operations
@@ -103,8 +103,9 @@ public:
 
     static double sortElapsed_;
 
-protected:
-    bool createCsr(ii m, ii n, ii a_nnz, ii extraChannels);
+public:
+    bool createCsr(ii m, ii n, ii a_nnz);
+    bool createCsrWithSharedIndexes(MatrixSparse& x);
     bool initCsr(bool notEmpty) const;
     void commitCsr(bool isSorted) const;
 
@@ -116,28 +117,52 @@ protected:
 
     void sort() const;
 
-    //! number of rows and columns
+    //! number of rows
     //!
     ii m_;
+
+    //! number of columns
+    //!
     ii n_;
 
-    //! Pointers to CSR array if we had to create of use matrix outside of MKL Inspector-executor Sparse BLAS routines
-    //! If isOwned_, this object is responsible for freeing the CSR array
-    //! If both mat_ and is1_ are 0, the matrix has no non-zeros
+    //! number of nnz (this is a convenience for debugging only, it is also available in ijs_[m_])
+    //!
+    ii nnz_;
+
+    //! CSR row indexes of size m_+1. They point to where in js_ the row starts.
     //!
     ii* ijs_;
-    ii* ijs1_;
-    ii* js_;
-    std::vector<fp*> vs_;
-    bool isCsrOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
 
-    //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routien has been run
+    //! CSR column indexes of size nnz_
+    //!
+    ii* js_;
+
+    //! CSR cell values of size nnz_.
+    fp* vs_;
+
+    //! True if ijs_ and js_ were malloc'ed by us, False if allocated by _mat or shared with another MatrixSparse.
+    //
+    bool isCsrIndexesOwned_;
+
+    //! True if vs_ was malloc'ed by us, False if allocated by _mat.
+    //
+    bool isCsrValuesOwned_;
+
+    //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routine created this matrix.
     //!
     sparse_matrix_t mat_;
 
-    //! isSorted_ should be true if we definately know column indices are sorted within each row
+    //! isSorted_ should be true only if we definitely know column indices are sorted within each row
     //!
     bool isSorted_;
+
+    //! pointer to MatrixSparse that holds the ijs_ and js_
+    //!
+    MatrixSparse* parent_;
+
+    //! pointers to MatrixSparse's that share this ijs_ and js_
+    //!
+    std::vector<MatrixSparse*> children_;
 
     friend ObserverMatrixSparse;
     friend MatrixSparseView;

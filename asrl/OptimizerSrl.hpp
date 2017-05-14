@@ -40,7 +40,7 @@ public:
     virtual fp step();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, std::vector< std::vector<MatrixSparse> >& xEs, ii basis = -1);
-    virtual void analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize = true) const;
+    virtual void analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize = true);
 
     std::vector< std::vector<MatrixSparse> >& xs();
     std::vector< std::vector<MatrixSparse> >& l2s();
@@ -56,11 +56,6 @@ private:
     int iteration_;
 
     std::vector< std::vector<MatrixSparse> > xs_;
-
-    ii xsC_;
-    ii l2sC_;
-    ii l1l2sPlusLambdaC_;
-
     std::vector< std::vector<MatrixSparse> > l2s_;
     std::vector< std::vector<MatrixSparse> > l1l2sPlusLambda_;
     
