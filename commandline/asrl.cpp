@@ -82,7 +82,22 @@ int main(int argc, const char * const * argv)
 
         cout << endl;
         Asrl::notice();
+        cout << endl;
         initKernel(debugLevel);
+
+        Subject::setDebugLevel(debugLevel);
+        Observer* observer = 0;
+        if (debugLevel % 10 >= 1)
+            Subject::registerObserver(observer = new Observer());
+
+        ObserverMatrix* observerMatrix = 0;
+        ObserverMatrixSparse* observerMatrixSparse = 0;
+        if (debugLevel / 10 >= 1)
+        {
+            SubjectMatrix::registerObserver(observerMatrix = new ObserverMatrix());
+            SubjectMatrixSparse::registerObserver(observerMatrixSparse = new ObserverMatrixSparse());
+        }
+
 
         if(vm.count("help") || !vm.count("file"))
         {
