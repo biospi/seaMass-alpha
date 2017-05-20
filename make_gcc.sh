@@ -7,14 +7,16 @@ mkdir $DIR/build/gcc
 
 mkdir $DIR/build/gcc/debug
 pushd $DIR/build/gcc/debug
-cmake -DCMAKE_BUILD_TYPE=Debug $@ ../../..
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=seamass $@ ../../..
 make
+make install
 popd
 
 mkdir $DIR/build/gcc/release
 pushd $DIR/build/gcc/release
-cmake -DCMAKE_BUILD_TYPE=Release $@ ../../..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=seamass $@ ../../..
 make
+make install
 popd
 
 source data.sh gcc
