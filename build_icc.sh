@@ -8,14 +8,14 @@ mkdir $DIR/build/icc
 
 mkdir $DIR/build/icc/debug
 pushd $DIR/build/icc/debug
-cmake -DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icc -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Debug $@ ../../..
+cmake -DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icc -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=install $@ ../../..
 make
 make install
 popd
 
 mkdir $DIR/build/icc/release
 pushd $DIR/build/icc/release
-cmake -DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icc -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Release $@ ../../..
+cmake -DCMAKE_C_COMPILER=icc -DCMAKE_CXX_COMPILER=icc -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install $@ ../../..
 make
 make install
 popd
