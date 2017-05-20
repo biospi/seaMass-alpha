@@ -12,7 +12,9 @@ add_library(seamass_asrl
         Asrl.cpp
         Asrl.hpp
         )
-
+target_include_directories(seamass_asrl PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
 target_link_libraries(seamass_asrl
         seamass_io
         )

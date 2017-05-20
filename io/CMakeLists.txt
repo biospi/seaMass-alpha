@@ -15,6 +15,7 @@ add_library(seamass_io
         ObserverMatrixSparse.hpp
         )
 target_include_directories(seamass_io PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${netCDF_INCLUDE_DIR}
         )
 target_link_libraries(seamass_io

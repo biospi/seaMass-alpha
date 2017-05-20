@@ -22,6 +22,7 @@ add_library(seamass_core
         DatasetMzmlb.tpp
         )
 target_include_directories(seamass_core PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${PugiXML_INCLUDE_DIR}
         )
 target_link_libraries(seamass_core
