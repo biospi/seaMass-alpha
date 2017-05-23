@@ -43,7 +43,8 @@ public:
     li size() const;
     fp* vs() const;
 
-    void copy(ii m, ii n, const fp *vs);
+    void importFromArray(ii m, ii n, const fp *vs);
+    void exportToArray(fp *vs) const;
     fp sum() const;
 
 private:

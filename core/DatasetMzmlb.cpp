@@ -92,13 +92,6 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
             xml::xpath_node_set detectorTypes = itrDetectors->node().select_nodes("cvParam[@accession='MS:1000253']");
             if(!detectorTypes.empty())
             {
-                if (getDebugLevel() % 10 >= 1)
-                {
-                    ostringstream oss;
-                    oss << getTimeStamp() << " Detector: electron multiplier (ion count)";
-                    info(oss.str());
-                }
-
                 if (dataType == SpectrumMetadata::DataType::Unknown || dataType == SpectrumMetadata::DataType::IonCount)
                     dataType = SpectrumMetadata::DataType::IonCount;
                 else
@@ -108,13 +101,6 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
             detectorTypes = itrDetectors->node().select_nodes("cvParam[@accession='MS:1000116']");
             if(!detectorTypes.empty())
             {
-                if (getDebugLevel() % 10 >= 1)
-                {
-                    ostringstream oss;
-                    oss << getTimeStamp() << " Detector: photomultiplier (ion count)";
-                    info(oss.str());
-                }
-
                 if (dataType == SpectrumMetadata::DataType::Unknown || dataType == SpectrumMetadata::DataType::IonCount)
                     dataType = SpectrumMetadata::DataType::IonCount;
                 else
@@ -124,13 +110,6 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
             detectorTypes = itrDetectors->node().select_nodes("cvParam[@accession='MS:1000624']");
             if(!detectorTypes.empty())
             {
-                if (getDebugLevel() % 10 >= 1)
-                {
-                    ostringstream oss;
-                    oss << getTimeStamp() << " Detector: inductive (ion current)";
-                    info(oss.str());
-                }
-
                 if (dataType == SpectrumMetadata::DataType::Unknown || dataType == SpectrumMetadata::DataType::IonCurrent)
                     dataType = SpectrumMetadata::DataType::IonCurrent;
                 else
@@ -265,18 +244,31 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
 
         if (getDebugLevel() % 10 >= 3)
         {
-            ostringstream oss;
-            oss << getTimeStamp() << "  " << metadata_[i].mzmlSpectrumIndex << " id=" << metadata_[i].id;
-            oss << getTimeStamp() << "    Intensities dataset=" << metadata_[i].intensitiesDataset;
-            oss << " offset=" << metadata_[i].intensitiesOffset;
-            oss << " extent=" << metadata_[i].defaultArrayLength;
-            oss << getTimeStamp() << "    Mzs dataset=" << metadata_[i].mzsDataset;
-            oss << " offset=" << metadata_[i].mzsOffset;
-            oss << " extent=" << metadata_[i].defaultArrayLength;
-            oss << getTimeStamp() << "    start_time=" << metadata_[i].startTime << "s";
-            info(oss.str());
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "  " << metadata_[i].mzmlSpectrumIndex << " id=" << metadata_[i].id;
+                info(oss.str());
+            }
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "    Intensities dataset=" << metadata_[i].intensitiesDataset;
+                oss << " offset=" << metadata_[i].intensitiesOffset;
+                oss << " extent=" << metadata_[i].defaultArrayLength;
+                info(oss.str());
+            }
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "    Mzs dataset=" << metadata_[i].mzsDataset;
+                oss << " offset=" << metadata_[i].mzsOffset;
+                oss << " extent=" << metadata_[i].defaultArrayLength;
+                info(oss.str());
+            }
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "    start_time=" << metadata_[i].startTime << "s";
+                info(oss.str());
+            }
         }
-
 
         // display progress update
         if (getDebugLevel() % 10 >= 1)
@@ -506,7 +498,7 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
         else if ((extent_ > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "  Converting to bins ...";
+            oss << getTimeStamp() << "  Converting from " << (metadata_[offset].dataType == SpectrumMetadata::DataType::IonCount ? "IonCount" : "IonCurrent") << " to bins ...";
             info(oss.str());
         }
 

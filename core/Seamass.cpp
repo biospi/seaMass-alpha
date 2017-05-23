@@ -148,14 +148,15 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     if (input.countsIndex.size() == 0)
     {
         b_.resize(1);
-        b_[0].copy(1, input.counts.size(), input.counts.data());
+        b_[0].importFromArray(1, input.counts.size(), input.counts.data());
     }
     else
     {
         b_.resize(input.countsIndex.size() - 1);
         for (ii i = 0; i < input.countsIndex.size() - 1; i++)
         {
-            b_[i].copy(1, input.countsIndex[i + 1] - input.countsIndex[i], &input.counts.data()[input.countsIndex[i]]);
+            b_[i].importFromArray(1, input.countsIndex[i + 1] - input.countsIndex[i],
+                                  &input.counts.data()[input.countsIndex[i]]);
         }
     }
 

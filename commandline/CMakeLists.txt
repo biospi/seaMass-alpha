@@ -61,7 +61,11 @@ add_executable(smb2mzmlb
 target_include_directories(smb2mzmlb PUBLIC
         ${Boost_INCLUDE_DIRS}
         )
-target_link_libraries (smb2mzmlb LINK_PUBLIC
+target_link_libraries(smb2mzmlb LINK_PUBLIC
         seamass_core
         ${Boost_LIBRARIES}
+        )
+
+install(TARGETS mzmlb2smb seamass seamass-restore seamass-peak smb2mzmlb
+        RUNTIME DESTINATION bin
         )
