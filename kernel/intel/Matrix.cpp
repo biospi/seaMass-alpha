@@ -65,14 +65,20 @@ void Matrix::free()
 }
 
 
-void Matrix::copy(ii m, ii n, const fp *vs)
+void Matrix::importFromArray(ii m, ii n, const fp *vs)
 {
     init(m, n);
 
     for (ii i = 0; i < m_; i++)
-        ippsCopy_32f(&vs[i * n_], vs_, n_);
+        ippsCopy_32f(&vs[i * n_], &vs_[i * n_], n_);
 }
 
+
+void Matrix::exportToArray(fp *vs) const
+{
+    for (ii i = 0; i < m_; i++)
+        ippsCopy_32f(&vs_[i * n_], &vs[i * n_], n_);
+}
 
 
 fp Matrix::sum() const

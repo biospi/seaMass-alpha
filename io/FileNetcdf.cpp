@@ -223,7 +223,7 @@ void FileNetcdf::read(Matrix& a, const string name, int grpid)
         // HDF5 1D dataset is treated as a row vector
         vector<fp> v;
         read_VecNC(name, v, grpid);
-        a.copy(1, v.size(), v.data());
+        a.importFromArray(1, v.size(), v.data());
     }
     else
     {
@@ -231,7 +231,7 @@ void FileNetcdf::read(Matrix& a, const string name, int grpid)
         read_MatNC(name, vm, grpid);
         uli dims[2];
         vm.getDims(dims);
-        a.copy(dims[0], dims[1], vm.v.data());
+        a.importFromArray(dims[0], dims[1], vm.v.data());
     }
 }
 

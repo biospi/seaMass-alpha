@@ -98,7 +98,6 @@ int main(int argc, const char * const * argv)
             SubjectMatrixSparse::registerObserver(observerMatrixSparse = new ObserverMatrixSparse());
         }
 
-
         if(vm.count("help") || !vm.count("file"))
         {
             cout << desc << endl;
