@@ -20,3 +20,4 @@ make install
 popd
 
 source data.sh gcc
+julia runtests.jl
