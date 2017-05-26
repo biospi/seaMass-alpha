@@ -24,6 +24,7 @@
 #include "kernel.hpp"
 #include <iomanip>
 #include <sstream>
+#include <cassert>
 #include <ippcore.h>
 #include <ipps.h>
 using namespace std;
@@ -78,6 +79,39 @@ void Matrix::exportToArray(fp *vs) const
 {
     for (ii i = 0; i < m_; i++)
         ippsCopy_32f(&vs_[i * n_], &vs[i * n_], n_);
+}
+
+
+void Matrix::conv1d(Matrix& h, Matrix& a)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       conv1d(H" << h << ", A" << a << ") := ...";
+        info(oss.str());
+    }
+
+    assert(h.m_ == 1);
+    assert(a.m_ == 1);
+
+    init(1, a.n_ - h.n_ + 1);
+
+    int status;
+    VSLConvTaskPtr task;
+    vslsConvNewTask1D(&task, VSL_CONV_MODE_DIRECT, h.n_, a.n_, n_);
+    int start = h.n_ - 1;
+    vslConvSetStart(task, &start);
+    status = vslsConvExec1D(task, h.vs_, 1, a.vs_, 1, vs_, 1);
+    vslConvDeleteTask(&task);
+
+    assert(!status);
+
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        info(oss.str(), this);
+    }
 }
 
 

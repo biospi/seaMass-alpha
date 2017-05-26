@@ -45,6 +45,8 @@ public:
 
     void importFromArray(ii m, ii n, const fp *vs);
     void exportToArray(fp *vs) const;
+
+    void conv1d(Matrix& h, Matrix& x);
     fp sum() const;
 
 private:
