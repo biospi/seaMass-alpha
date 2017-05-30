@@ -216,10 +216,6 @@ int main(int argc, const char * const * argv)
 
 				for(int idx = 0; idx < rtmax; ++idx)
                 {
-                    ii m = resolution;
-                    ii k = 4;
-                    ii n = (ii(mzmax) - resolution + 1) * k;
-
                     /* M = 1/6*[1,4,1,0;-3,0,3,0;3,-6,3,0;-1,3,-3,1]
                      * M =1/6 * | 1     4     1     0 |
                      *          |-3     0     3     0 |
@@ -227,10 +223,13 @@ int main(int argc, const char * const * argv)
                      *          |-1     3    -3     1 |
                      *
                      * P=T*M*C
+                     * P=TM*C
                      */
 
+                    ii m = resolution;
+                    ii k = 4;
+                    ii n = (ii(mzmax) - resolution + 1) * m;
 
-                    float tm = float(1.0 / 6.0);
                     float Mval[16] = {0.1666667, 0.6666667, 0.1666667, 0.0, -0.5, 0.0,
                                       0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
                                       -0.5, 0.1666667};
@@ -243,10 +242,54 @@ int main(int argc, const char * const * argv)
                     vector<float> t(resolution);
                     vector<double> mz;
 
-                    for (int i = 0; i < (m*n); i++) {
-                        C[i] = 0.0;
+                    ii crow,ccol,csize;
+                    crow = m;
+                    ccol = mzmax - m + 1;
+                    csize= n;
+
+                    float **Cidx;
+                    vector<float*> matidx;
+                    matidx.reserve(crow);
+
+                    for (ii i = 0; i < csize; i++) {
+                        C[i] = i;
                     }
-                    float dt = 1.0 / (float(resolution - 1));
+
+                    vector<float> x(contpts.coeffs.size());
+                    for (ii i = 0; i < x.size(); ++i)
+                    {
+                        x[i]=i;
+                    }
+
+                    for (int i=0; i < crow; ++i)
+                    {
+                        matidx.push_back(&C[i*ccol]);
+                    }
+                    Cidx=matidx.data();
+
+                    ii cptr=0;
+                    for (ii j = 0; j < ccol; ++j)
+                    {
+                        for(ii i = 0; i < crow; ++i)
+                        {
+                            //Cidx[i][j]=contpts.coeffs[cptr];
+                            Cidx[i][j]=x[cptr];
+                            ++cptr;
+                        }
+                        cptr=cptr-crow+1;
+                    }
+
+                    cout<<"C repack!"<<endl;
+                    for(ii i=0; i < crow; ++i)
+                    {
+                        for (ii j = 0; j < ccol; ++j)
+                        {
+                            cout << Cidx[i][j] << "  ";
+                        }
+                        cout << endl;
+                    }
+
+                    float dt = 1 / (float(resolution - 1));
 
                     for (int i = 0; i < t.size(); ++i)
                         t[i] = float(i) * dt;
@@ -254,24 +297,42 @@ int main(int argc, const char * const * argv)
                     for (int i = 0; i < k * k; ++i)
                         M[i] = Mval[i];
 
-                    int jidx = 0;
-                    for (int i = 0; i < (m * k); i = i + 4, ++jidx)
+                    int tidx = 0;
+                    for (int i = 0; i < (m * k); i = i + k, ++tidx)
                     {
                         T[i] = 1.0;
-                        T[i + 1] = t[jidx];
-                        T[i + 2] = t[jidx] * t[jidx];
-                        T[i + 3] = t[jidx] * t[jidx] * t[jidx];
+                        T[i + 1] = t[tidx];
+                        T[i + 2] = t[tidx] * t[tidx];
+                        T[i + 3] = t[tidx] * t[tidx] * t[tidx];
                     }
 
-                    jidx = 0;
-                    for (int i = 0; i < mzmax - k + 1; ++i, jidx = jidx + 4)
-                    {
-                        C[jidx] = contpts.coeffs[i + idx * mzmax];
-                        C[jidx + 1] = contpts.coeffs[i + 1 + idx * mzmax];
-                        C[jidx + 2] = contpts.coeffs[i + 2 + idx * mzmax];
-                        C[jidx + 3] = contpts.coeffs[i + 3 + idx * mzmax];
-                    }
+                    matDmul(T,M,TM,m,k,k);
+                    matDmul(TM,C,P,m,k,n);
 
+                    genMZAxis(mz,contpts,n,resolution);
+
+                    input.locations.insert(input.locations.end(), mz.begin(), mz.end());
+                    input.counts.insert(input.counts.end(), P, P + n);
+                    input.countsIndex.push_back(input.counts.size());
+
+                    delMat(M);
+                    delMat(T);
+                    delMat(TM);
+                    delMat(C);
+                    delMat(P);
+
+                    //jidx = 0;
+                    //for (int i = 0; i < mzmax - k + 1; ++i, jidx = jidx + 4)
+                    //{
+                    //    C[jidx] = contpts.coeffs[i + idx * mzmax];
+                    //    C[jidx + 1] = contpts.coeffs[i + 1 + idx * mzmax];
+                    //    C[jidx + 2] = contpts.coeffs[i + 2 + idx * mzmax];
+                    //    C[jidx + 3] = contpts.coeffs[i + 3 + idx * mzmax];
+                    //}
+
+
+
+                    /*
                     int zm=4;
                     int zn=10;
                     int zsize=zm*(zn - zm);
@@ -335,13 +396,6 @@ int main(int argc, const char * const * argv)
                     int xidx=0;
                     for (int t = 0; t < zcol; ++t)
                     {
-
-                        //Zidx[0][t]=x[xidx];
-                        //Zidx[1][t]=x[xidx+1];
-                        //Zidx[2][t]=x[xidx+2];
-                        //Zidx[3][t]=x[xidx+3];
-                        //xidx=xidx+4;
-
                         for(int s =0;s < zrow; ++s)
                         {
                            Zidx[s][t]=x[xidx];
@@ -360,35 +414,17 @@ int main(int argc, const char * const * argv)
                         cout << endl;
                     }
 
-                    /*
                     j=0;
-                    for (int i = 0; i < zsize ; ++i, j = j + 4)
-                    {
-                        Z[j] = x[i + idx * zsize];
-                        Z[j + 1] = x[i + 1 + idx * zsize];
-                        Z[j + 2] = x[i + 2 + idx * zsize];
-                        Z[j + 3] = x[i + 3 + idx * zsize];
-                    }
-                    */
+                    //for (int i = 0; i < zsize ; ++i, j = j + 4)
+                    //{
+                    //   Z[j] = x[i + idx * zsize];
+                    //    Z[j + 1] = x[i + 1 + idx * zsize];
+                    //    Z[j + 2] = x[i + 2 + idx * zsize];
+                    //    Z[j + 3] = x[i + 3 + idx * zsize];
+                    //}
+
                     delMat(Z);
-
-
-
-
-					matDmul(T,M,TM,m,k,k);
-                    matDmul(TM,C,P,m,k,n);
-					
-					genMZAxis(mz,contpts,n,resolution);
-
-                    input.locations.insert(input.locations.end(), mz.begin(), mz.end());
-                    input.counts.insert(input.counts.end(), P, P + n);
-                    input.countsIndex.push_back(input.counts.size());
-
-                    delMat(M);
-                    delMat(T);
-                    delMat(TM);
-                    delMat(C);
-                    delMat(P);
+                    */
 				}
             }
 
