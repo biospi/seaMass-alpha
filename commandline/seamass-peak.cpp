@@ -229,7 +229,7 @@ int main(int argc, const char * const * argv)
                      * P=T*M*C
                      */
 
-                    /*
+
                     float tm = float(1.0 / 6.0);
                     float Mval[16] = {0.1666667, 0.6666667, 0.1666667, 0.0, -0.5, 0.0,
                                       0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
@@ -237,29 +237,15 @@ int main(int argc, const char * const * argv)
 
                     float *M = alcMat(M, k, k);
                     float *T = alcMat(T, m, k);
-                    float *TM; // = alcMat(TM,m,k);
+                    float *TM = alcMat(TM,m,k);
                     float *C = alcMat(C, m, n);
-                    float *P; // = alcMat(P,m,n);
+                    float *P = alcMat(P,m,n);
                     vector<float> t(resolution);
                     vector<double> mz;
-                    C = (T *)mkl_malloc( m*n*sizeof(T), 64);
-                    if (C == NULL)
-                    {
-                        cout << "ERROR: Can't allocate memory for matrices. Aborting... \n\n"<<endl;
-                        mkl_free(C);
-                        return 1;
-                    }
-                    P = (T *)mkl_malloc( m*n*sizeof(T), 64);
-                    if (C == NULL)
-                    {
-                        cout << "ERROR: Can't allocate memory for matrices. Aborting... \n\n"<<endl;
-                        mkl_free(C);
-                        return 1;
-                    }
 
-    for (i = 0; i < (m*n); i++) {
-        C[i] = 0.0;
-    }
+                    for (int i = 0; i < (m*n); i++) {
+                        C[i] = 0.0;
+                    }
                     float dt = 1.0 / (float(resolution - 1));
 
                     for (int i = 0; i < t.size(); ++i)
@@ -268,92 +254,141 @@ int main(int argc, const char * const * argv)
                     for (int i = 0; i < k * k; ++i)
                         M[i] = Mval[i];
 
-                    int j = 0;
-                    for (int i = 0; i < (m * k); i = i + 4, ++j)
+                    int jidx = 0;
+                    for (int i = 0; i < (m * k); i = i + 4, ++jidx)
                     {
                         T[i] = 1.0;
-                        T[i + 1] = t[j];
-                        T[i + 2] = t[j] * t[j];
-                        T[i + 3] = t[j] * t[j] * t[j];
+                        T[i + 1] = t[jidx];
+                        T[i + 2] = t[jidx] * t[jidx];
+                        T[i + 3] = t[jidx] * t[jidx] * t[jidx];
                     }
 
-                    j = 0;
-                    for (int i = 0; i < mzmax - k + 1; ++i, j = j + 4)
+                    jidx = 0;
+                    for (int i = 0; i < mzmax - k + 1; ++i, jidx = jidx + 4)
                     {
-                        C[j] = contpts.coeffs[i + idx * mzmax];
-                        C[j + 1] = contpts.coeffs[i + 1 + idx * mzmax];
-                        C[j + 2] = contpts.coeffs[i + 2 + idx * mzmax];
-                        C[j + 3] = contpts.coeffs[i + 3 + idx * mzmax];
+                        C[jidx] = contpts.coeffs[i + idx * mzmax];
+                        C[jidx + 1] = contpts.coeffs[i + 1 + idx * mzmax];
+                        C[jidx + 2] = contpts.coeffs[i + 2 + idx * mzmax];
+                        C[jidx + 3] = contpts.coeffs[i + 3 + idx * mzmax];
+                    }
+
+                    int zm=4;
+                    int zn=10;
+                    int zsize=zm*(zn - zm);
+                    int zcol=zn-zm+1;
+                    int zrow=zm;
+
+
+                    float *Z;
+                    Z=alcMat(Z, zm, zn-4+1);
+                    //Z = (float *)mkl_malloc(zsize * sizeof(float), 64);
+                    //if (Z == NULL)
+                    //{
+                    //   cout << "ERROR: Can't allocate memory for matrices. Aborting... \n\n"<<endl;
+                    //    mkl_free(Z);
+                    //    return 1;
+                    //}
+
+                    for(int i=0; i<zsize ; ++i)
+                    {
+                        Z[i]=0;
+                    }
+
+                    float **Zidx;
+                    vector<float*> matidx;
+                    matidx.reserve(zrow);
+                    for (int i=0; i < zrow; ++i)
+                    {
+                        matidx.push_back(&Z[i*zcol]);
+                    }
+                    Zidx=matidx.data();
+
+                    vector<fp> x(zn,0);
+
+                    for(int i =0; i < zn; ++i)
+                    {
+                        x[i]=i;
+                    }
+
+                    int loopidx=0;
+                    cout<<"setup of Z in vector form"<<endl;
+                    for (int s = 0; s < zrow; s++)
+                    {
+                        for(int t =0;t < zcol; ++t)
+                        {
+                            Zidx[s][t] = loopidx;
+                            cout<<"Z["<<s<<","<<t<<"]: "<<Zidx[s][t]<<endl;
+                            ++loopidx;
+                        }
+                    }
+
+                    cout<<"Inital Z"<<endl;
+                    for(int s=0; s < zrow; ++s)
+                    {
+                        for (int t = 0; t < zcol; ++t)
+                        {
+                            cout << Zidx[s][t] << "  ";
+                        }
+                        cout << endl;
+                    }
+
+                    int xidx=0;
+                    for (int t = 0; t < zcol; ++t)
+                    {
+
+                        //Zidx[0][t]=x[xidx];
+                        //Zidx[1][t]=x[xidx+1];
+                        //Zidx[2][t]=x[xidx+2];
+                        //Zidx[3][t]=x[xidx+3];
+                        //xidx=xidx+4;
+
+                        for(int s =0;s < zrow; ++s)
+                        {
+                           Zidx[s][t]=x[xidx];
+                            ++xidx;
+                        }
+                        xidx=xidx-zm+1;
+                    }
+
+                    cout<<"Z repact!"<<endl;
+                    for(int s=0; s < zrow; ++s)
+                    {
+                        for (int t = 0; t < zcol; ++t)
+                        {
+                            cout << Zidx[s][t] << "  ";
+                        }
+                        cout << endl;
+                    }
+
+                    /*
+                    j=0;
+                    for (int i = 0; i < zsize ; ++i, j = j + 4)
+                    {
+                        Z[j] = x[i + idx * zsize];
+                        Z[j + 1] = x[i + 1 + idx * zsize];
+                        Z[j + 2] = x[i + 2 + idx * zsize];
+                        Z[j + 3] = x[i + 3 + idx * zsize];
                     }
                     */
+                    delMat(Z);
 
-                    double *x, *y, *z;
-                    x = (double *)mkl_malloc( 6*4*sizeof( double ), 64 );
-                    y = (double *)mkl_malloc( 4*4*sizeof( double ), 64 );
-                    z = (double *)mkl_malloc( 6*4*sizeof( double ), 64 );
-                    if (x == NULL || y == NULL || z == NULL)
-                    {
-                        printf( "\n ERROR: Can't allocate memory for matrices. Aborting... \n\n");
-                        mkl_free(x);
-                        mkl_free(y);
-                        mkl_free(z);
-                        return 1;
-                    }
 
-                    for (int u = 0; u < 24; ++u)
-                    {
-                        x[u] = float(u);
-                    }
-                    for (int u = 0; u < 16; ++u)
-                    {
-                        y[u] = float(u);
-                    }
 
-                    for(int v=0; v<6; ++v )
-                    {
-                        for(int u=0; u<4; ++u)
-                            cout<<x[u+4*v]<<"  ";
-                        cout<<endl;
-                    }
 
-                    for(int v=0; v<4; ++v )
-                    {
-                        for(int u=0; u<4; ++u)
-                            cout<<y[u+4*v]<<"  ";
-                        cout<<endl;
-                    }
-
-                    matDmul(x,y,z,6,4,4);
-
-                    for(int v=0; v<6; ++v )
-                    {
-                        for(int u=0; u<4; ++u)
-                            cout<<z[u+4*v]<<"  ";
-                        cout<<endl;
-                    }
-
-                    mkl_free(x);
-                    mkl_free(y);
-                    mkl_free(z);
-                    //delMat(x);
-                    //delMat(y);
-                    //delMat(z);
-
-/*
 					matDmul(T,M,TM,m,k,k);
-					matDmul(TM,C,P,m,k,n);
+                    matDmul(TM,C,P,m,k,n);
 					
 					genMZAxis(mz,contpts,n,resolution);
 
                     input.locations.insert(input.locations.end(), mz.begin(), mz.end());
-                    input.counts.insert(input.counts.end(), P, P + m*n);
+                    input.counts.insert(input.counts.end(), P, P + n);
                     input.countsIndex.push_back(input.counts.size());
 
                     delMat(M);
                     delMat(T);
                     delMat(TM);
                     delMat(C);
-                    delMat(P);*/
+                    delMat(P);
 				}
             }
 
