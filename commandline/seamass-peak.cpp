@@ -31,6 +31,8 @@
 #include "../peak/PeakOperator.hpp"
 #include "../peak/PeakData.hpp"
 #include "../peak/PeakManager.hpp"
+#include "seamass-peak.hpp"
+
 using namespace std;
 using namespace kernel;
 namespace po = boost::program_options;
@@ -44,11 +46,10 @@ int main(int argc, const char * const * argv)
     {
         string filePathIn;
         vector<char> scales(2);
-        int shrinkageExponent;
-        int toleranceExponent;
         int debugLevel;
-        bool centroid;
+        bool centroid=true;
         double threshold;
+        ii resolution;
 
         // *******************************************************************
 
@@ -65,8 +66,12 @@ int main(int argc, const char * const * argv)
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
-            ("threshold,t", po::value<double>(&threshold)->default_value(10.0),
-             "Minimum ion counts in a peak. Default is 10.")
+                ("resolution,r",po::value<int>(&resolution),
+             "High resolution output, number of pooints per unit b-spline. When enable,"
+             "Centroiding is switched off and a high resolution seamass output. is produced."
+             "Default value = 6.")
+            ("threshold,t", po::value<double>(&threshold)->default_value(5.0),
+             "Minimum ion counts in a peak. Default is 5.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level.")
         ;
@@ -106,12 +111,10 @@ int main(int argc, const char * const * argv)
             cout << desc << endl;
             return 0;
         }
-
-        if (!vm.count("mz_scale"))
-            scales[0] = numeric_limits<char>::max();
-
-        if (!vm.count("st_scale"))
-            scales[1] = numeric_limits<char>::max();
+        if (vm.count("resolution"))
+        {
+            centroid = false;
+        }
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
         Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::Input);
@@ -122,6 +125,8 @@ int main(int argc, const char * const * argv)
         Seamass::Output output;
         string id;
 
+        FileNetcdf sm_coeff("seamass_coeff.h5",NC_NETCDF4);
+
         while (dataset->read(input, output, id))
         {
             if (debugLevel % 10 == 0)
@@ -129,64 +134,230 @@ int main(int argc, const char * const * argv)
 
             // load back into Seamass
             Seamass seamassCore(input, output);
-
-            // now centroid
-            VecMat<double> mzPeak;
-            VecMat<float> pkPeak;
-            vector<size_t> mzpkVecSize;
-
             Seamass::ControlPoints contpts;
             seamassCore.getOutputControlPoints1d(contpts);
-            uli dims[2];
-            double mzRes;
-            double rtRes;
-            vector<ii> offset=contpts.offset;
-            mzRes=double(contpts.scale[0]);
-            if (contpts.scale.size() > 1)
-                rtRes=double(contpts.scale[1]);
+
+            sm_coeff.write_VecNC("coeffs",contpts.coeffs,NC_FLOAT);
+            sm_coeff.write_VecNC("scale",contpts.scale,NC_BYTE);
+            sm_coeff.write_VecNC("offset",contpts.offset,NC_INT);
+            sm_coeff.write_VecNC("extent",contpts.extent,NC_INT);
+
+            if (centroid)
+            {
+				// Now preform 1D Centroid
+				cout << "Preforming 1D centoiding of scans"<<endl;
+                VecMat<double> mzPeak;
+				VecMat<float> pkPeak;
+				vector<size_t> mzpkVecSize;
+				
+				uli dims[2];
+				double mzRes;
+				double rtRes;
+				vector<ii> offset=contpts.offset;
+				mzRes=double(contpts.scale[0]);
+				if (contpts.scale.size() > 1)
+				    rtRes=double(contpts.scale[1]);
+				else
+				    rtRes=0;
+
+				VecMat<float> rawCoeff(contpts.extent[1],contpts.extent[0],contpts.coeffs);
+				rawCoeff.getDims(dims);
+				
+				SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+				SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+				SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+				
+				for (size_t i = 0; i < A.rt.size(); ++i)
+				{
+				    A.rt[i] = input.startTimes[i];
+				    dhA.rt[i] = input.startTimes[i];
+				    d2hA.rt[i] = input.startTimes[i];
+				}
+				
+				BsplineData<> bsData(A,dhA,d2hA);
+				
+				PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold);
+				centriodPeak.execute();
+				centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
+				
+				input.type = Seamass::Input::Type::Centroided;
+				vector<double>().swap(input.locations);
+				vector<fp>().swap(input.counts);
+				vector<li>().swap(input.countsIndex);
+				input.countsIndex.push_back(0);
+				
+				uli peakDims[2];
+				mzPeak.getDims(peakDims);
+				for (ii i = 0; i < mzpkVecSize.size(); i++)
+				{
+				    if (mzpkVecSize[i] > 0)
+				    {
+				        li idxOffset=li(i*peakDims[1]);
+				        input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
+				                               mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+				        input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
+				                            pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+				    }
+				    input.countsIndex.push_back(input.counts.size());
+				}
+
+            }
             else
-                rtRes=0;
-
-            VecMat<float> rawCoeff(contpts.extent[1],contpts.extent[0],contpts.coeffs);
-            rawCoeff.getDims(dims);
-
-            SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-            SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-            SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-
-            for (size_t i = 0; i < A.rt.size(); ++i)
             {
-                A.rt[i] = input.startTimes[i];
-                dhA.rt[i] = input.startTimes[i];
-                d2hA.rt[i] = input.startTimes[i];
-            }
+                cout << "Preforming high resolution output of seaMass." << endl;
 
-            BsplineData<> bsData(A,dhA,d2hA);
+                vector<double>().swap(input.locations);
+				vector<fp>().swap(input.counts);
+				vector<li>().swap(input.countsIndex);
+				input.countsIndex.push_back(0);
 
-            PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold);
-            centriodPeak.execute();
-            centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
+                int mzmax=contpts.extent[0];
+                int rtmax=contpts.extent[1];
 
-            input.type = Seamass::Input::Type::Centroided;
-            vector<double>().swap(input.locations);
-            vector<fp>().swap(input.counts);
-            vector<li>().swap(input.countsIndex);
-            input.countsIndex.push_back(0);
-
-            uli peakDims[2];
-            mzPeak.getDims(peakDims);
-            for (ii i = 0; i < mzpkVecSize.size(); i++)
-            {
-                if (mzpkVecSize[i] > 0)
+				for(int idx = 0; idx < rtmax; ++idx)
                 {
-                    li idxOffset=li(i*peakDims[1]);
-                    input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
-                                           mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-                    input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
-                                        pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-                }
-	            input.countsIndex.push_back(input.counts.size());
+                    ii m = resolution;
+                    ii k = 4;
+                    ii n = (ii(mzmax) - resolution + 1) * k;
+
+                    /* M = 1/6*[1,4,1,0;-3,0,3,0;3,-6,3,0;-1,3,-3,1]
+                     * M =1/6 * | 1     4     1     0 |
+                     *          |-3     0     3     0 |
+                     *          | 3    -6     3     0 |
+                     *          |-1     3    -3     1 |
+                     *
+                     * P=T*M*C
+                     */
+
+                    /*
+                    float tm = float(1.0 / 6.0);
+                    float Mval[16] = {0.1666667, 0.6666667, 0.1666667, 0.0, -0.5, 0.0,
+                                      0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
+                                      -0.5, 0.1666667};
+
+                    float *M = alcMat(M, k, k);
+                    float *T = alcMat(T, m, k);
+                    float *TM; // = alcMat(TM,m,k);
+                    float *C = alcMat(C, m, n);
+                    float *P; // = alcMat(P,m,n);
+                    vector<float> t(resolution);
+                    vector<double> mz;
+                    C = (T *)mkl_malloc( m*n*sizeof(T), 64);
+                    if (C == NULL)
+                    {
+                        cout << "ERROR: Can't allocate memory for matrices. Aborting... \n\n"<<endl;
+                        mkl_free(C);
+                        return 1;
+                    }
+                    P = (T *)mkl_malloc( m*n*sizeof(T), 64);
+                    if (C == NULL)
+                    {
+                        cout << "ERROR: Can't allocate memory for matrices. Aborting... \n\n"<<endl;
+                        mkl_free(C);
+                        return 1;
+                    }
+
+    for (i = 0; i < (m*n); i++) {
+        C[i] = 0.0;
+    }
+                    float dt = 1.0 / (float(resolution - 1));
+
+                    for (int i = 0; i < t.size(); ++i)
+                        t[i] = float(i) * dt;
+
+                    for (int i = 0; i < k * k; ++i)
+                        M[i] = Mval[i];
+
+                    int j = 0;
+                    for (int i = 0; i < (m * k); i = i + 4, ++j)
+                    {
+                        T[i] = 1.0;
+                        T[i + 1] = t[j];
+                        T[i + 2] = t[j] * t[j];
+                        T[i + 3] = t[j] * t[j] * t[j];
+                    }
+
+                    j = 0;
+                    for (int i = 0; i < mzmax - k + 1; ++i, j = j + 4)
+                    {
+                        C[j] = contpts.coeffs[i + idx * mzmax];
+                        C[j + 1] = contpts.coeffs[i + 1 + idx * mzmax];
+                        C[j + 2] = contpts.coeffs[i + 2 + idx * mzmax];
+                        C[j + 3] = contpts.coeffs[i + 3 + idx * mzmax];
+                    }
+                    */
+
+                    double *x, *y, *z;
+                    x = (double *)mkl_malloc( 6*4*sizeof( double ), 64 );
+                    y = (double *)mkl_malloc( 4*4*sizeof( double ), 64 );
+                    z = (double *)mkl_malloc( 6*4*sizeof( double ), 64 );
+                    if (x == NULL || y == NULL || z == NULL)
+                    {
+                        printf( "\n ERROR: Can't allocate memory for matrices. Aborting... \n\n");
+                        mkl_free(x);
+                        mkl_free(y);
+                        mkl_free(z);
+                        return 1;
+                    }
+
+                    for (int u = 0; u < 24; ++u)
+                    {
+                        x[u] = float(u);
+                    }
+                    for (int u = 0; u < 16; ++u)
+                    {
+                        y[u] = float(u);
+                    }
+
+                    for(int v=0; v<6; ++v )
+                    {
+                        for(int u=0; u<4; ++u)
+                            cout<<x[u+4*v]<<"  ";
+                        cout<<endl;
+                    }
+
+                    for(int v=0; v<4; ++v )
+                    {
+                        for(int u=0; u<4; ++u)
+                            cout<<y[u+4*v]<<"  ";
+                        cout<<endl;
+                    }
+
+                    matDmul(x,y,z,6,4,4);
+
+                    for(int v=0; v<6; ++v )
+                    {
+                        for(int u=0; u<4; ++u)
+                            cout<<z[u+4*v]<<"  ";
+                        cout<<endl;
+                    }
+
+                    mkl_free(x);
+                    mkl_free(y);
+                    mkl_free(z);
+                    //delMat(x);
+                    //delMat(y);
+                    //delMat(z);
+
+/*
+					matDmul(T,M,TM,m,k,k);
+					matDmul(TM,C,P,m,k,n);
+					
+					genMZAxis(mz,contpts,n,resolution);
+
+                    input.locations.insert(input.locations.end(), mz.begin(), mz.end());
+                    input.counts.insert(input.counts.end(), P, P + m*n);
+                    input.countsIndex.push_back(input.counts.size());
+
+                    delMat(M);
+                    delMat(T);
+                    delMat(TM);
+                    delMat(C);
+                    delMat(P);*/
+				}
             }
+
+
             dataset->write(input, id);
 
             if (debugLevel % 10 == 0)

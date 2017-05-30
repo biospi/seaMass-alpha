@@ -32,22 +32,22 @@ namespace po = boost::program_options;
 
 int main(int argc, char** argv){
 
-	string smiFileName, channel;
+	string smbFileName, channel;
 	int mz_res=0;
 	pair<double,double> mzInputRange;
 	pair<double,double> rtInputRange;
 	pair<ui,ui> xyview;
 	bool rescaleExp = false;
 
-	po::options_description usage("Usage: image [OPTION...] [SMI FILE]\n"
-			"Example: image -m [200,300] -r [20,140] -o [3000,1000] --ms2 datafile.smi\n"
+	po::options_description usage("Usage: smimage [OPTION...] [SMB FILE]\n"
+			"Example: image -m [200,300] -r [20,140] -o [3000,1000] --ms2 datafile.smb\n"
 			"         image -o [,500] -m[,300] -r [12,] -f datafile.smj\n\n"
 			"Options");
 
 	usage.add_options()
 		("help,h", "Produce help message")
 		("file,f",
-			po::value<string>(&smiFileName),
+			po::value<string>(&smbFileName),
 				"Filename - Load data from seaMass input file format (smj).")
 		("output-image,o",
 			po::value<string>(),
@@ -116,18 +116,14 @@ int main(int argc, char** argv){
 		{
 			rescaleExp=true;
 		}
-		else
-		{
-			rescaleExp=false;
-		}
 		if(vm.count("file"))
 		{
-			cout<<"Opening SMI file: "<<vm["file"].as<string>()<<endl;
+			cout<<"Opening SMB file: "<<vm["file"].as<string>()<<endl;
 		}
 		else
 		{
 			cout<<usage<<endl;
-			throw "Input SMI file was not give...";
+			throw "Input SMB file was not give...";
 		}
 	}
 	catch(exception& e)
@@ -145,24 +141,24 @@ int main(int argc, char** argv){
 		cerr<<"Exception of unknown type!\n";
 	}
 
-	string outFileName=smiFileName.substr(0,smiFileName.size()-4);
-	FileNetcdf smiInput(smiFileName);
+	string outFileName=smbFileName.substr(0,smbFileName.size()-4);
+	FileNetcdf smbInput(smbFileName);
 
 	cout<<"Load raw data from data filies:"<<endl;
 	MassSpecData raw;
 
-	// Load Data from smi file
-	cout<<"Load Start Time from SMI:"<<endl;
-	int data2D = smiInput.search_Group("startTimes");
+	// Load Data from smb file
+	cout<<"Load Start Time from SMB:"<<endl;
+	int data2D = smbInput.search_Group("startTimes");
 
 	if(data2D == 0)
 	{
 		raw.N = 2;
 		raw.rt.push_back(1);
 		raw.rt.push_back(2);
-		smiInput.read_VecNC("locations",raw.mz);
-		smiInput.read_VecNC("counts",raw.sc);
-		smiInput.read_VecNC("exposures",raw.exp);
+		smbInput.read_VecNC("binLocations",raw.mz);
+		smbInput.read_VecNC("counts",raw.sc);
+		smbInput.read_VecNC("exposures",raw.exp);
 		raw.sci.push_back(0);
 		raw.sci.push_back(lli(raw.mz.size())-1);
 		xyview.second=1;
@@ -171,8 +167,8 @@ int main(int argc, char** argv){
 	{
 		vector<double> finishTimes;
 		vector<double> rtBuff;
-		smiInput.read_VecNC("startTimes",raw.rt);
-		smiInput.read_VecNC("finishTimes",finishTimes);
+		smbInput.read_VecNC("startTimes",raw.rt);
+		smbInput.read_VecNC("finishTimes",finishTimes);
 		for(size_t i =0; i < finishTimes.size(); ++i)
 		{
 			rtBuff.push_back(raw.rt[i]);
@@ -181,10 +177,10 @@ int main(int argc, char** argv){
 		raw.rt.clear();
 		raw.rt=rtBuff;
 		raw.N = raw.rt.size();
-		smiInput.read_VecNC("locations",raw.mz);
-		smiInput.read_VecNC("counts",raw.sc);
-		smiInput.read_VecNC("countsIndex",raw.sci);
-		smiInput.read_VecNC("exposures",raw.exp);
+		smbInput.read_VecNC("binLocations",raw.mz);
+		smbInput.read_VecNC("counts",raw.sc);
+		smbInput.read_VecNC("countsIndex",raw.sci);
+		smbInput.read_VecNC("exposures",raw.exp);
 	}
 
 	MassSpecImage imgBox(xyview);
@@ -199,7 +195,7 @@ int main(int argc, char** argv){
 
 			raw.exp[i]=1.0/raw.exp[i];
 
-			for(size_t j=idx_beg; j <= idx_end; ++j)
+			for(lli j=idx_beg; j <= idx_end; ++j)
 			{
 				raw.sc[j]=raw.sc[j]*raw.exp[i];
 			}
@@ -217,7 +213,7 @@ int main(int argc, char** argv){
 	//	raw.rti[i]=i;
 	//for(size_t i=0; i < raw.N/2-1; ++i)
 	for(size_t i=0; i < raw.N; i=i+2)
-		raw.rti[i]=i/2;
+		raw.rti[i]=lli(i/2);
 
 	// Clip Box if needed
 	// Min MZ Value
@@ -271,8 +267,8 @@ int main(int argc, char** argv){
 			double drt = fabs(raw.rt[idx + 1] - raw.rt[idx]);
 			double yn = (raw.rt[idx] - imgBox.rt[0]) / imgBox.drt;
 			double yp = (raw.rt[idx + 1] - imgBox.rt[0]) / imgBox.drt;
-			lli rowN = floor(yn);
-			lli rowP = floor(yp);
+			lli rowN = lli(floor(yn));
+			lli rowP = lli(floor(yp));
 
 			if (rowP > imgBox.xypxl.second - 2) rowP = imgBox.xypxl.second - 1;
 			if (rowN >= imgBox.xypxl.second - 1) break;
@@ -326,8 +322,8 @@ int main(int argc, char** argv){
 		double drt = fabs(raw.rt[idx + 1] - raw.rt[idx]);
 		double yn = (raw.rt[idx] - imgBox.rt[0]) / imgBox.drt;
 		double yp = (raw.rt[idx + 1] - imgBox.rt[0]) / imgBox.drt;
-		lli rowN = floor(yn);
-		lli rowP = floor(yp);
+		lli rowN = lli(floor(yn));
+		lli rowP = lli(floor(yp));
 		if (raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], rowN, scaleRT);
 	}
 

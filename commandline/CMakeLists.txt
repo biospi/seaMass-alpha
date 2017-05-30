@@ -46,6 +46,7 @@ target_link_libraries (seamass-restore LINK_PUBLIC
 
 add_executable(seamass-peak
         seamass-peak.cpp
+		seamass-peak.hpp
         )
 target_include_directories(seamass-peak PUBLIC
         ${Boost_INCLUDE_DIRS}
