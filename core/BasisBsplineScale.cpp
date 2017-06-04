@@ -53,7 +53,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
         oss << getTimeStamp() << "     parent=" << getParentIndex();
         info(oss.str());
         ostringstream oss2;
-        oss2 << getTimeStamp() << "     dimension=" << (int) dimension_;
+        oss2 << getTimeStamp() << "     dimension=" << int(dimension_);
         info(oss2.str());
         ostringstream oss3;
         oss3 << getTimeStamp() << "     " << gridInfo();
@@ -69,7 +69,8 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     double sum = 0.0;
     for (ii k = 0; k < nh; k++)
     {
-        hs[k] = (fp) (1.0 / pow(2.0, (double)order) * Bspline::factorial(order + 1) / (double)(Bspline::factorial(k)*Bspline::factorial(order + 1 - k)));
+        hs[k] = fp(1.0 / pow(2.0, double(order)) * Bspline::factorial(order + 1)
+                   / double(Bspline::factorial(k)* Bspline::factorial(order + 1 - k)));
         sum += hs[k];
     }
     for (ii i = 0; i < nh; i++)

@@ -30,9 +30,12 @@ using namespace std;
 using namespace kernel;
 
 
-BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex,
-                               const std::vector<double>& binEdges, char scale, bool transient, int order)
-    : BasisBspline(bases, 1, transient)
+double BasisBsplineMz::PROTON_MASS = 1.007276466879;
+
+
+BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts,
+                               const std::vector<li>& binCountsIndex_, const std::vector<double>& binEdges,
+                               char scale, bool transient) : BasisBspline(bases, 1, transient)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -47,115 +50,112 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         info(oss.str());
     }
     
-    std::vector<li> bci;
-    std::vector<li> bei;
-    if (binCountsIndex.size() > 0)
+    std::vector<li> binCountsIndex;
+    std::vector<li> binEdgesIndex;
+    if (binCountsIndex_.size() > 0)
     {
-        bci = binCountsIndex;
-        bei = binCountsIndex;
-        for (ii i = 0; i < bei.size(); i++) bei[i] += i;
+        binCountsIndex = binCountsIndex_;
+        binEdgesIndex = binCountsIndex_;
+        for (ii i = 0; i < ii(binEdgesIndex.size()); i++) binEdgesIndex[i] += i;
     }
     else
     {
-        bci.push_back(0);
-        bci.push_back(binCounts.size());
-        bei.push_back(0);
-        bei.push_back(binEdges.size());
+        binCountsIndex.push_back(0);
+        binCountsIndex.push_back(binCounts.size());
+        binEdgesIndex.push_back(0);
+        binEdgesIndex.push_back(binEdges.size());
     }
 
-    ///////////////////////////////////////////////////////////////////////
-    // create A as a temporary COO matrix
-
-    // find min and max m/z across spectra, and m for each A
+    // find min and max m/z across spectra, m for each A
     double mzMin = numeric_limits<double>::max();
     double mzMax = 0.0;
-    double mzDiff = numeric_limits<double>::max();
-    for (ii k = 0; k < (ii)bei.size() - 1; k++)
+    double xDiff = 0.0;
+    li n = 0;
+    for (ii k = 0; k < ii(binEdgesIndex.size()) - 1; k++)
     {
-        mzMin = binEdges[bei[k]] < mzMin ? binEdges[bei[k]] : mzMin;
-        mzMax = binEdges[bei[k + 1] - 1] > mzMax ? binEdges[bei[k + 1] - 1] : mzMax;
+        mzMin = binEdges[binEdgesIndex[k]] < mzMin ? binEdges[binEdgesIndex[k]] : mzMin;
+        mzMax = binEdges[binEdgesIndex[k + 1] - 1] > mzMax ? binEdges[binEdgesIndex[k + 1] - 1] : mzMax;
 
-        for (ii i = bei[k]; i < bei[k + 1] - 1; i++)
+        // find mean difference in index between edges, ignoring first, last and zeros
+        for (ii i = 1; i < binCountsIndex[k + 1] - binCountsIndex[k] - 1; i++)
         {
-            double diff = binEdges[i + 1] - binEdges[i];
-            mzDiff = diff < mzDiff ? diff : mzDiff;
+            if (binCounts[binCountsIndex[k] + i] != 0)
+            {
+                ii ei = binEdgesIndex[k] + i;
+                xDiff += log2(binEdges[ei + 1] - PROTON_MASS) - log2(binEdges[ei] - PROTON_MASS);
+                n++;
+            }
         }
     }
-    
-    ii scaleAuto = (ii) floor(log2(1.0 / mzDiff / 60.0 / 1.0033548378));
+    xDiff /= double(n);
+
+    ii scaleAuto = ii(ceil(log2(1.0 / xDiff))) + 1;
     if (scale == numeric_limits<char>::max())
     {
         scale = scaleAuto;
 
-        if (getDebugLevel() % 10 >= 2)
+        if (getDebugLevel() % 10 >= 1)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << (int) scale;
+            oss << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << int(scale);
             info(oss.str());
         }
     }
 
-    // Bases per 1.0033548378Th (difference between carbon12 and carbon13)
-    double bpi = pow(2.0, (double)scale) * 60 / 1.0033548378;
-    
     // fill in b-spline grid info
-    gridInfo().count = (ii)bei.size() - 1;
+    gridInfo().count = ii(binCountsIndex.size()) - 1;
     gridInfo().scale[0] = scale;
-    gridInfo().offset[0] = (ii)floor(mzMin * bpi);
-    gridInfo().extent[0] = ((ii)ceil(mzMax * bpi)) + order - gridInfo().offset[0];
+    gridInfo().offset[0] = ii(floor(log2(mzMin - PROTON_MASS) * (1L << scale))) - 1;
+    gridInfo().extent[0] = (ii(ceil(log2(mzMax - PROTON_MASS) * (1L << scale))) + 1)
+                           - gridInfo().offset[0] + 1;
 
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "     range=" << fixed << setprecision(3) << mzMin << ":";
-        oss.unsetf(std::ios::floatfield);
-        oss << mzDiff << ":" << fixed << mzMax << "Th";
+        oss << getTimeStamp() << "     range=" << fixed << setprecision(3) << mzMin << ":" << mzMax << "Th";
         info(oss.str());
         ostringstream oss2;
-        oss2 << getTimeStamp() << "     scale=" << fixed << setprecision(1) << (int) scale << " (" << bpi << " bases per 1.0033548378Th)";
+        oss2 << getTimeStamp() << "     " << gridInfo();
         info(oss2.str());
-        ostringstream oss3;
-        oss3 << getTimeStamp() << "     " << gridInfo();
-        info(oss3.str());
     }
-   
-    aTs_.resize(bei.size() - 1);
-    as_.resize(bei.size() - 1);
-    
-    Bspline bspline(order, 65536); // bspline basis function lookup table
-    for (ii k = 0; k < (ii)bei.size() - 1; k++)
+
+    // create A matrices
+    Bspline bspline(3, 65536); // bspline basis function lookup table
+    aTs_.resize(binCountsIndex.size() - 1);
+    as_.resize(aTs_.size());
+    for (ii k = 0; k < ii(aTs_.size()); k++)
     {
         vector<ii> rowind;
         vector<ii> colind;
         vector<fp> acoo;
 
-        for (ii i = bei[k]; i < bei[k + 1] - 1; i++)
+        for (ii i = 0; i < binEdgesIndex[k + 1] - binEdgesIndex[k] - 1; i++)
         {
-            if (binCounts[i - bei[k] + bci[k]] >= 0.0)
+            if (binCounts[binCountsIndex[k] + i] >= 0.0)
             {
-                double xfMin = binEdges[i] * bpi;
-                double xfMax = binEdges[i + 1] * bpi;
+                ii ei = binEdgesIndex[k] + i;
+                double xfMin = log2(binEdges[ei] - PROTON_MASS) * (1L << scale);
+                double xfMax = log2(binEdges[ei + 1] - PROTON_MASS) * (1L << scale);
 
-                ii xMin = (ii)floor(xfMin);
-                ii xMax = ((ii)ceil(xfMax)) + order;
+                ii xMin = ii(floor(xfMin)) - 1;
+                ii xMax = ii(ceil(xfMax)) + 1;
 
                 // work out basis coefficients
-                for (ii x = xMin; x < xMax; x++)
+                for (ii x = xMin; x <= xMax; x++)
                 {
-                    double bfMin = (double)(x - order);
-                    double bfMax = (double)(x + 1);
+                    double bfMin = double(x - 2);
+                    double bfMax = double(x + 2);
 
-                    // intersection of bin and basis, between 0 and order+1
+                    // intersection of bin and basis, between 0.0 and 4.0
                     double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
                     double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
 
                     // basis coefficient b is _integral_ of area under b-spline basis
-                    fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
-
+                    fp b = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
                     if (b > 0.0)
                     {
                         acoo.push_back(b);
-                        rowind.push_back(i - bei[k]);
+                        rowind.push_back(i);
                         colind.push_back(x - gridInfo().offset[0]);
                     }
                 }
@@ -163,17 +163,18 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         }
         
         // create A
-        aTs_[k].importFromCoo(getGridInfo().n(), bci[k + 1] - bci[k], acoo.size(), colind.data(), rowind.data(),
-                              acoo.data());
+        aTs_[k].importFromCoo(getGridInfo().n(), binCountsIndex[k + 1] - binCountsIndex[k], acoo.size(),
+                              colind.data(), rowind.data(), acoo.data());
         as_[k].transpose(aTs_[k]);
 
         // display progress update
         if (getDebugLevel() % 10 >= 2)
         {
-            if ((k + 1) % 100 == 0 || k == (ii)bei.size() - 2)
+            if ((k + 1) % 100 == 0 || k == (ii)binEdgesIndex.size() - 2)
             {
                 ostringstream oss;
-                oss << getTimeStamp() << "     " << setw(1 + (int)(log10((float)bci.size() - 1))) << (k + 1) << "/" << (bci.size() - 1);
+                oss << getTimeStamp() << "     " << setw(1 + int(log10((float)binCountsIndex.size() - 1)))
+                    << (k + 1) << "/" << (binCountsIndex.size() - 1);
                 info(oss.str());
             }
         }
@@ -205,7 +206,7 @@ void BasisBsplineMz::synthesize(vector<MatrixSparse> &f, const vector<MatrixSpar
     if (!f.size())
         f.resize(aTs_.size());
 
-    for (size_t k = 0; k < aTs_.size(); k++)
+    for (ii k = 0; k < ii(aTs_.size()); k++)
     {
         MatrixSparseView row(x[0], k);
 
@@ -248,7 +249,7 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
     }
 
     vector<MatrixSparse> xEs(aTs_.size());
-    for (size_t k = 0; k < aTs_.size(); k++)
+    for (ii k = 0; k < ii(aTs_.size()); k++)
     {
         if (sqrA)
         {

@@ -31,8 +31,12 @@ using namespace kernel;
 
 
 // TODO: support ion mobility
-BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-                                           const std::vector<fp>& exposures, char scale, bool transient, ii order) : BasisBspline(bases, 2, transient, parentIndex)
+BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex,
+                                           const std::vector<double>& startTimes,
+                                           const std::vector<double>& finishTimes,
+                                           const std::vector<fp>& exposures,
+                                           char scale, bool transient)
+        : BasisBspline(bases, 2, transient, parentIndex)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -50,14 +54,12 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     double scantimeMin = startTimes.front();
     double scantimeMax = finishTimes.back();
 
-    double scantimeDiff = numeric_limits<double>::max();
-    for (ii j = 0; j < (ii)startTimes.size() - 1; j++)
-    {
-        double diff = 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
-        scantimeDiff = diff < scantimeDiff ? diff : scantimeDiff;
-    }
+    double scantimeDiff = 0.0;
+    for (ii j = 0; j < ii(startTimes.size()) - 1; j++)
+        scantimeDiff += 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
+    scantimeDiff /= ii(startTimes.size()) - 1;
 
-    ii scaleAuto = (ii)floor(log2(1.0 / scantimeDiff));
+    ii scaleAuto = ii(ceil(log2(1.0 / scantimeDiff))) + 1;
     if (scale == numeric_limits<char>::max())
     {
         scale = scaleAuto;
@@ -65,13 +67,10 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         if (getDebugLevel() % 10 >= 1)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << (int) scale;
+            oss << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << int(scale);
             info(oss.str());
         }
     }
-    
-    // Bases per second
-    double bpi = pow(2.0, (double)scale);
     
     // fill in b-spline grid info
     const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
@@ -80,52 +79,55 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     gridInfo().offset[0] = parentGridInfo.offset[0];
     gridInfo().extent[0] = parentGridInfo.extent[0];
     gridInfo().scale[1] = scale;
-    gridInfo().offset[1] = (ii)floor(scantimeMin * bpi);
-    gridInfo().extent[1] = ((ii)ceil(scantimeMax * bpi)) + order - gridInfo().offset[1];
+    gridInfo().offset[1] = ii(floor(scantimeMin * (1L << scale))) - 1;
+    gridInfo().extent[1] = (ii(ceil(scantimeMax * (1L << scale))) + 1)
+                           - gridInfo().offset[1] + 1;
     
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
         oss << getTimeStamp() << "     parent=" << getParentIndex();
-        oss << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
-        oss.unsetf(std::ios::floatfield);
-        oss << scantimeDiff << ":" << fixed << scantimeMax << "seconds";
-        oss << getTimeStamp() << "     scale=" << fixed << setprecision(1) << (int) scale << " (" << bpi << " bases per second)";
-        oss << getTimeStamp() << "     " << gridInfo();
         info(oss.str());
+        ostringstream oss2;
+        oss2 << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
+        oss2.unsetf(std::ios::floatfield);
+        oss2 << scantimeDiff << ":" << fixed << scantimeMax << "seconds";
+        info(oss2.str());
+        ostringstream oss3;
+        oss3 << getTimeStamp() << "     " << gridInfo();
+        info(oss3.str());
     }
 
     // populate coo matrix
     vector<ii> rowind;
     vector<ii> colind;
     vector<fp> acoo;
-    Bspline bspline(order, 65536); // bspline basis function lookup table
+    Bspline bspline(3, 65536); // bspline basis function lookup table
     for (ii i = 0; i < startTimes.size(); i++)
     {
-        double xfMin = startTimes[i] * bpi;
-        double xfMax = finishTimes[i] * bpi;
+        double xfMin = startTimes[i] * (1L << scale);
+        double xfMax = finishTimes[i] * (1L << scale);
 
-        ii xMin = (ii) floor(xfMin);
-        ii xMax = ((ii) ceil(xfMax)) + order;
+        ii xMin = ii(floor(xfMin)) - 1;
+        ii xMax = ii(ceil(xfMax)) + 1;
         
         // work out basis coefficients
-        for (int x = xMin; x < xMax; x++)
+        for (int x = xMin; x <= xMax; x++)
         {
-            double bfMin = (double)(x - order);
-            double bfMax = (double)(x + 1);
+            double bfMin = (double)(x - 2);
+            double bfMax = (double)(x + 2);
             
-            // intersection of bin and basis, between 0 and order+1
+            // intersection of bin and basis, between 0.0 and 4.0
             double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
             double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
 
             // basis coefficient b is _integral_ of area under b-spline basis
             fp b = exposures[i] * fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
-
             if (b > 0.0)
             {
+                acoo.push_back(b);
                 rowind.push_back(i);
                 colind.push_back(x - gridInfo().offset[1]);
-                acoo.push_back(b);
             }
        }
     }
@@ -133,8 +135,12 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     // create transformation matrix 'a'
     aT_.importFromCoo(getGridInfo().m(), parentGridInfo.m(), acoo.size(), colind.data(), rowind.data(), acoo.data());
 
-    if (scaleAuto != scale)
-        cerr << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";
+    if (scaleAuto != scale && getDebugLevel() % 10 >= 2)
+    {
+        ostringstream oss;
+        oss << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";
+        warning(oss.str());
+    }
 }
 
 
