@@ -58,7 +58,7 @@ int main(int argc, const char * const * argv)
             "-----\n"
             "Peak detects 'seamass' output and writes the result to a new mzMLb or smb file.\n"
             "\n"
-            "centroid [OPTIONS...] <file>\n"
+            "seamass-peak [OPTIONS...] <file>\n"
         );
 
         general.add_options()
@@ -67,7 +67,7 @@ int main(int argc, const char * const * argv)
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
                 ("resolution,r",po::value<int>(&resolution),
-             "High resolution output, number of pooints per unit b-spline. When enable,"
+             "High resolution output, number of points per unit b-spline. When enable,"
              "Centroiding is switched off and a high resolution seamass output. is produced."
              "Default value = 6.")
             ("threshold,t", po::value<double>(&threshold)->default_value(5.0),
@@ -200,7 +200,6 @@ int main(int argc, const char * const * argv)
 				    }
 				    input.countsIndex.push_back(input.counts.size());
 				}
-
             }
             else
             {
@@ -211,10 +210,19 @@ int main(int argc, const char * const * argv)
 				vector<li>().swap(input.countsIndex);
 				input.countsIndex.push_back(0);
 
-                int mzmax=contpts.extent[0];
-                int rtmax=contpts.extent[1];
+                int csCol=contpts.extent[0];
+                int csRow=contpts.extent[1];
 
-				for(int idx = 0; idx < rtmax; ++idx)
+                ii m = resolution-1;
+                ii k = 4;
+                //ii n = (ii(csCol) - k + 1) * k;
+                ii n = ii(csCol) - k + 1;
+
+                float Mval[16] = {0.1666667, 0.6666667, 0.1666667, 0.0, -0.5, 0.0,
+                                  0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
+                                  -0.5, 0.1666667};
+
+				for(int idx = 0; idx < csRow; ++idx)
                 {
                     /* M = 1/6*[1,4,1,0;-3,0,3,0;3,-6,3,0;-1,3,-3,1]
                      * M =1/6 * | 1     4     1     0 |
@@ -226,26 +234,18 @@ int main(int argc, const char * const * argv)
                      * P=TM*C
                      */
 
-                    ii m = resolution;
-                    ii k = 4;
-                    ii n = (ii(mzmax) - resolution + 1) * m;
-
-                    float Mval[16] = {0.1666667, 0.6666667, 0.1666667, 0.0, -0.5, 0.0,
-                                      0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
-                                      -0.5, 0.1666667};
-
                     float *M = alcMat(M, k, k);
                     float *T = alcMat(T, m, k);
                     float *TM = alcMat(TM,m,k);
-                    float *C = alcMat(C, m, n);
+                    float *C = alcMat(C, k, n);
                     float *P = alcMat(P,m,n);
-                    vector<float> t(resolution);
+                    vector<float> t(resolution-1);
                     vector<double> mz;
 
                     ii crow,ccol,csize;
-                    crow = m;
-                    ccol = mzmax - m + 1;
-                    csize= n;
+                    crow = k;
+                    ccol = csCol - k + 1;
+                    csize= n*k;
 
                     float **Cidx;
                     vector<float*> matidx;
@@ -255,11 +255,12 @@ int main(int argc, const char * const * argv)
                         C[i] = i;
                     }
 
+                    /*
                     vector<float> x(contpts.coeffs.size());
                     for (ii i = 0; i < x.size(); ++i)
                     {
                         x[i]=i;
-                    }
+                    }*/
 
                     for (int i=0; i < crow; ++i)
                     {
@@ -272,13 +273,14 @@ int main(int argc, const char * const * argv)
                     {
                         for(ii i = 0; i < crow; ++i)
                         {
-                            //Cidx[i][j]=contpts.coeffs[cptr];
-                            Cidx[i][j]=x[cptr];
+                            Cidx[i][j]=contpts.coeffs[cptr];
+                            //Cidx[i][j]=x[cptr];
                             ++cptr;
                         }
                         cptr=cptr-crow+1;
                     }
 
+                    /*
                     cout<<"C repack!"<<endl;
                     for(ii i=0; i < crow; ++i)
                     {
@@ -288,6 +290,7 @@ int main(int argc, const char * const * argv)
                         }
                         cout << endl;
                     }
+                    */
 
                     float dt = 1 / (float(resolution - 1));
 
@@ -309,10 +312,20 @@ int main(int argc, const char * const * argv)
                     matDmul(T,M,TM,m,k,k);
                     matDmul(TM,C,P,m,k,n);
 
-                    genMZAxis(mz,contpts,n,resolution);
+                    genMZAxis(mz,contpts,m*n,resolution-1);
 
                     input.locations.insert(input.locations.end(), mz.begin(), mz.end());
-                    input.counts.insert(input.counts.end(), P, P + n);
+                    //input.counts.insert(input.counts.end(), P, P + n);
+                    li pIdx=0;
+                    input.counts.resize(m*n,0);
+                    for (int j = 0; j < n; ++j)
+                    {
+                        for (int i = 0; i < m; ++i)
+                        {
+                            input.counts[pIdx]=P[j+i*n];
+                            ++pIdx;
+                        }
+                    }
                     input.countsIndex.push_back(input.counts.size());
 
                     delMat(M);
@@ -321,18 +334,18 @@ int main(int argc, const char * const * argv)
                     delMat(C);
                     delMat(P);
 
+
+                    /*
                     //jidx = 0;
-                    //for (int i = 0; i < mzmax - k + 1; ++i, jidx = jidx + 4)
+                    //for (int i = 0; i < csCol - k + 1; ++i, jidx = jidx + 4)
                     //{
-                    //    C[jidx] = contpts.coeffs[i + idx * mzmax];
-                    //    C[jidx + 1] = contpts.coeffs[i + 1 + idx * mzmax];
-                    //    C[jidx + 2] = contpts.coeffs[i + 2 + idx * mzmax];
-                    //    C[jidx + 3] = contpts.coeffs[i + 3 + idx * mzmax];
+                    //    C[jidx] = contpts.coeffs[i + idx * csCol];
+                    //    C[jidx + 1] = contpts.coeffs[i + 1 + idx * csCol];
+                    //    C[jidx + 2] = contpts.coeffs[i + 2 + idx * csCol];
+                    //    C[jidx + 3] = contpts.coeffs[i + 3 + idx * csCol];
                     //}
 
 
-
-                    /*
                     int zm=4;
                     int zn=10;
                     int zsize=zm*(zn - zm);
@@ -427,7 +440,6 @@ int main(int argc, const char * const * argv)
                     */
 				}
             }
-
 
             dataset->write(input, id);
 

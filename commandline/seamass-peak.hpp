@@ -80,7 +80,8 @@ void genMZAxis(vector<double> &mz,Seamass::ControlPoints &cpts, int n, int res)
 {
     mz.resize(n);
     double offset = double(cpts.offset[0]+1);
-    double dmz=1.0/(res -1);
+    //double dmz=1.0/(res -1);
+    double dmz=1.0/(res);
     double ppbmz = 1.0033548378 / (pow(2.0, cpts.scale[0]) * 60.0);
     for (lli i = 0; i < mz.size(); ++i) {
         mz[i] = (offset + i*dmz) * ppbmz;
