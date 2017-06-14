@@ -1,3 +1,5 @@
+ENV["PYTHON"]=""
+
 if !haskey(Pkg.installed(), "SeaMass")
   Pkg.clone("https://github.com/biospi/SeaMass.jl")
 else
