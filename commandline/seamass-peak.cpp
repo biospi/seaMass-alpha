@@ -246,7 +246,7 @@ int main(int argc, const char * const * argv)
                 matDmul(T,M,TM,m,k,k);
 
                 input.counts.reserve(m*n*csRow);
-                ii cptr=0;
+                //ii cptr=0;
                 for(int idx = 0; idx < csRow; ++idx)
                 {
                     /* M = 1/6*[1,4,1,0;-3,0,3,0;3,-6,3,0;-1,3,-3,1]
@@ -290,7 +290,9 @@ int main(int argc, const char * const * argv)
                     }
                     Cidx=matidx.data();
 
-                    //ii cptr=idx*csCol;
+                    //cout<<"size: "<<contpts.coeffs.size()<<"\tIdx: "<<idx<<"\tcptr: "<<cptr<<endl;
+
+                    ii cptr=idx*csCol;
                     for (ii j = 0; j < ccol; ++j)
                     {
                         for(ii i = 0; i < crow; ++i)
