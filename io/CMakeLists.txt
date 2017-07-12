@@ -1,3 +1,7 @@
+if(WIN32)
+    find_package(HDF5 COMPONENTS C HL NO_MODULE REQUIRED static)
+endif()
+
 find_package(netCDF NO_MODULE)
 if(NOT netCDF_FOUND)
     find_package(OldNetCDF REQUIRED)
