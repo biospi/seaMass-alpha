@@ -1,5 +1,5 @@
 //
-// Original author: Andrew Dowsey <ranjeet.bhameber <a.t> bristol.ac.uk>
+// Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
 //
