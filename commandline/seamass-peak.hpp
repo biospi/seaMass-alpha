@@ -24,6 +24,7 @@
 
 #include "../kernel/intel/types.hpp"
 #include <iostream>
+#include <BasisBsplineMz.hpp>
 
 
 template <typename T>
@@ -39,10 +40,8 @@ T* alcMat(T *M, int m, int n)
     return M;
 };
 
-
 template  <typename T>
 void delMat(T *M) { mkl_free(M); };
-
 
 void matDmul(fp *A, fp *B, fp *C, int  m, int k, int n)
 {
@@ -80,11 +79,18 @@ void genMZAxis(vector<double> &mz,Seamass::ControlPoints &cpts, int n, int res)
 {
     mz.resize(n);
     double offset = double(cpts.offset[0]+1);
+    /*
     //double dmz=1.0/(res -1);
     double dmz=1.0/(res);
     double ppbmz = 1.0033548378 / (pow(2.0, cpts.scale[0]) * 60.0);
     for (lli i = 0; i < mz.size(); ++i) {
         mz[i] = (offset + i*dmz) * ppbmz;
+    }
+    */
+    double dmz=1.0/(res);
+    for (lli i = 0; i < mz.size(); ++i)
+    {
+        mz[i] = pow(2.0, (offset + i*dmz) / double(1L << cpts.scale[0])) + BasisBsplineMz::PROTON_MASS;
     }
 }
 #endif //SEAMASS_SEAMASS_PEAK_HPP

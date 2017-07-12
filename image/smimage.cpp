@@ -144,7 +144,7 @@ int main(int argc, char** argv){
 	string outFileName=smbFileName.substr(0,smbFileName.size()-4);
 	FileNetcdf smbInput(smbFileName);
 
-	cout<<"Load raw data from data filies:"<<endl;
+	cout<<"Load raw data from data files:"<<endl;
 	MassSpecData raw;
 
 	// Load Data from smb file
