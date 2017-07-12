@@ -47,7 +47,8 @@ int main(int argc, const char * const * argv)
         string filePathIn;
         vector<char> scales(2);
         int debugLevel;
-        bool centroid=true;
+        enum Mode {Centroid,Smooth,Restore};
+        Mode mode=Restore;
         double threshold;
         ii resolution;
 
@@ -56,9 +57,9 @@ int main(int argc, const char * const * argv)
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "Peak detects 'seamass' output and writes the result to a new mzMLb or smb file.\n"
+            "Restore an mzMLb/smv file to mzMLb/smb with optional resampling or centroiding.\n"
             "\n"
-            "seamass-peak [OPTIONS...] <file>\n"
+            "seamass-restore [OPTIONS...] <file>\n"
         );
 
         general.add_options()
@@ -66,9 +67,9 @@ int main(int argc, const char * const * argv)
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
-                ("resolution,r",po::value<int>(&resolution),
-             "High resolution output, number of points per unit b-spline. When enable,"
-             "Centroiding is switched off and a high resolution seamass output. is produced."
+            ("centroid,c","Preform 1D centroiding on Mass Spectrum data")
+            ("resolution,r",po::value<int>(&resolution),
+             "High resolution output, number of points per unit b-spline."
              "Default value = 6.")
             ("threshold,t", po::value<double>(&threshold)->default_value(5.0),
              "Minimum ion counts in a peak. Default is 5.")
@@ -87,7 +88,7 @@ int main(int argc, const char * const * argv)
         po::notify(vm);
 
         cout << endl;
-        cout << "seaMass-peak : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "seaMass-restore : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
@@ -111,9 +112,13 @@ int main(int argc, const char * const * argv)
             cout << desc << endl;
             return 0;
         }
+        if (vm.count("centroid"))
+        {
+            mode = Centroid;
+        }
         if (vm.count("resolution"))
         {
-            centroid = false;
+            mode = Smooth;
         }
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
@@ -134,16 +139,18 @@ int main(int argc, const char * const * argv)
 
             // load back into Seamass
             Seamass seamassCore(input, output);
-            Seamass::ControlPoints contpts;
-            seamassCore.getOutputControlPoints1d(contpts);
 
-            sm_coeff.write_VecNC("coeffs",contpts.coeffs,NC_FLOAT);
-            sm_coeff.write_VecNC("scale",contpts.scale,NC_BYTE);
-            sm_coeff.write_VecNC("offset",contpts.offset,NC_INT);
-            sm_coeff.write_VecNC("extent",contpts.extent,NC_INT);
 
-            if (centroid)
+            if (mode == Centroid)
             {
+                Seamass::ControlPoints contpts;
+                seamassCore.getOutputControlPoints1d(contpts);
+
+                sm_coeff.write_VecNC("coeffs",contpts.coeffs,NC_FLOAT);
+                sm_coeff.write_VecNC("scale",contpts.scale,NC_BYTE);
+                sm_coeff.write_VecNC("offset",contpts.offset,NC_INT);
+                sm_coeff.write_VecNC("extent",contpts.extent,NC_INT);
+
 				// Now preform 1D Centroid
 				cout << "Preforming 1D centoiding of scans"<<endl;
                 VecMat<double> mzPeak;
@@ -201,9 +208,17 @@ int main(int argc, const char * const * argv)
 				    input.countsIndex.push_back(input.counts.size());
 				}
             }
-            else
+            else if (mode == Smooth)
             {
                 cout << "Preforming high resolution output of seaMass." << endl;
+
+                Seamass::ControlPoints contpts;
+                seamassCore.getOutputControlPoints1d(contpts);
+
+                sm_coeff.write_VecNC("coeffs",contpts.coeffs,NC_FLOAT);
+                sm_coeff.write_VecNC("scale",contpts.scale,NC_BYTE);
+                sm_coeff.write_VecNC("offset",contpts.offset,NC_INT);
+                sm_coeff.write_VecNC("extent",contpts.extent,NC_INT);
 
                 vector<double>().swap(input.locations);
 				vector<fp>().swap(input.counts);
@@ -351,6 +366,15 @@ int main(int argc, const char * const * argv)
                 delMat(M);
                 delMat(T);
                 delMat(TM);
+            }
+            else if (mode == Restore)
+            {
+                seamassCore.getOutputBinCounts(input.counts);
+            }
+            else
+            {
+                cout<<"Error!!! invalid mode.";
+                exit(1);
             }
 
             dataset->write(input, id);
