@@ -61,11 +61,10 @@ int main(int argc, const char * const * argv)
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML/vendor format to mzMLb.")
             ("mz_scale,m", po::value<int>(&scaleMz),
-             "Output m/z resolution given as \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\". "
-             "Use 0 or 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap. "
+             "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
              "Default is to autodetect.")
             ("st_scale,s", po::value<int>(&scaleSt),
-             "output scan-time resolution given as \"b-splines per second = 2^st_scale\". Use around 4. "
+             "output scantime resolution given as \"2^st_scale\"."
              "Default is to autodetect.")
             ("lambda,l", po::value<int>(&shrinkageExponent)->default_value(0),
              "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Use around 0.")
