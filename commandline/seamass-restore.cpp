@@ -49,6 +49,7 @@ int main(int argc, const char * const * argv)
         int debugLevel;
         enum Mode {Centroid,Smooth,Restore};
         Mode mode=Restore;
+        bool peakWidth=false;
         double threshold;
         ii resolution;
 
@@ -68,6 +69,8 @@ int main(int argc, const char * const * argv)
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
             ("centroid,c","Preform 1D centroiding on Mass Spectrum data.")
+            ("peak-width,w","Output 'SMW' file containing Peak infirmation, location,"
+             "width, etc. Only active if centroiding is preformed.")
             ("resolution,r",po::value<int>(&resolution),
              "High resolution output, number of points per unit b-spline."
              "Default value = 6.")
@@ -119,6 +122,10 @@ int main(int argc, const char * const * argv)
         if (vm.count("resolution"))
         {
             mode = Smooth;
+        }
+        if (vm.count("peak-width"))
+        {
+            peakWidth = true;
         }
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
@@ -200,6 +207,10 @@ int main(int argc, const char * const * argv)
 				    }
 				    input.countsIndex.push_back(input.counts.size());
 				}
+                if (peakWidth == true)
+                {
+                    centriodPeak.peak->writePeakWidth(fileStemOut,NC_DOUBLE);
+                }
             }
             else if (mode == Smooth)
             {
