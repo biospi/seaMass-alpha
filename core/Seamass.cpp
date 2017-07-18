@@ -22,6 +22,7 @@
 
 #include "Seamass.hpp"
 #include "BasisBsplineMz.hpp"
+#include "BasisBsplinePeak.hpp"
 #include "BasisBsplineScale.hpp"
 #include "BasisBsplineScantime.hpp"
 #include "../asrl/OptimizerAccelerationEve1.hpp"
@@ -41,14 +42,15 @@ void Seamass::notice()
 }
 
 
-Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
+Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
+                 double peakFwhm) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), iteration_(0)
 {
     init(input, scale, true);
     optimizer_->setLambda((fp) lambda_);
 }
 
 
-Seamass::Seamass(const Input& input, const Output& seed) : innerOptimizer_(0), lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), iteration_(0)
+Seamass::Seamass(const Input& input, const Output& seed) : innerOptimizer_(0), lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), peakFwhm_(seed.peakFwhm), iteration_(0)
 {
     init(input, seed.scale, false);
 
@@ -116,9 +118,11 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     {
         dimensions_ = 1;
 
-        new BasisBsplineMz(bases_, input.counts, input.countsIndex, input.locations, scales[0], false);
-        
-        while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6)
+        new BasisBsplineMz(bases_, input.counts, input.countsIndex, input.locations, scales[0], peakFwhm_ > 0.0);
+        if (peakFwhm_ > 0.0)
+            new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
+
+        while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10)
         {
             new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, false);
         }
@@ -128,9 +132,13 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
         dimensions_ = 2;
 
         new BasisBsplineMz(bases_, input.counts, input.countsIndex, input.locations, scales[0], true);
-        Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes, input.finishTimes, input.exposures, scales[1], false);
+        if (peakFwhm_ > 0.0)
+            new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+
+        Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
+                                                        input.finishTimes, input.exposures, scales[1], false);
  
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > -6; i++)
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10; i++)
         {
             if (i > 0)
             {
@@ -267,11 +275,13 @@ void Seamass::getOutput(Output& output) const
 
     output = Output();
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
+    const BasisBspline::GridInfo& meshInfo =
+            static_cast<BasisBspline*>(bases_[dimensions_ - (peakFwhm_ > 0.0 ? 0 : 1)])->getGridInfo();
     output.scale = meshInfo.scale;
 
     output.shrinkage = lambdaStart_;
     output.tolerance = tolerance_;
+    output.peakFwhm = peakFwhm_;
 
     output.xs.resize(optimizer_->xs().size());
     for (ii k = 0; k < ii(optimizer_->xs().size()); k++)

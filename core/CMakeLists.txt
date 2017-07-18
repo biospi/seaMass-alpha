@@ -7,6 +7,8 @@ add_library(seamass_core
         BasisBspline.cpp
         BasisBsplineMz.hpp
         BasisBsplineMz.cpp
+        BasisBsplinePeak.hpp
+        BasisBsplinePeak.cpp
         BasisBsplineScantime.cpp
         BasisBsplineScantime.hpp
         BasisBsplineScale.cpp

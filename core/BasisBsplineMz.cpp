@@ -41,7 +41,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
     {
         ostringstream oss;
         oss << getTimeStamp();
-        if (getDebugLevel() % 10 >= 2 % 10 >= 2)
+        if (getDebugLevel() % 10 >= 2)
             oss << "   " << getIndex() << " BasisBsplineMz";
         else
             oss << "   BasisBsplineMz";

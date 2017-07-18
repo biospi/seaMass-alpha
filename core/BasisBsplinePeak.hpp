@@ -20,28 +20,25 @@
 //
 
 
-#ifndef SEAMASS_CORE_BASISBSPLINEMZ_HPP
-#define SEAMASS_CORE_BASISBSPLINEMZ_HPP
+#ifndef SEAMASS_CORE_BASISBSPLINEPEAK_HPP
+#define SEAMASS_CORE_BASISBSPLINEPEAK_HPP
 
 
 #include "BasisBspline.hpp"
 
 
-class BasisBsplineMz : public BasisBspline
+class BasisBsplinePeak : public BasisBspline
 {
 public:
-    static double PROTON_MASS;
-
-    BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
-                   const std::vector<double>& binEdges, char scale, bool transient);
-    virtual ~BasisBsplineMz();
+    BasisBsplinePeak(std::vector<Basis*>& bases, int parentIndex, double fwhm, bool transient);
+    virtual ~BasisBsplinePeak();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
 
 private:
-    std::vector<MatrixSparse> aTs_;
-    std::vector<MatrixSparse> as_;
+    MatrixSparse aT_;
+    MatrixSparse a_;
 };
 
 

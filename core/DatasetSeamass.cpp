@@ -149,6 +149,10 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
     fileIn_->read_AttNC("tolerance", NC_GLOBAL, tolerance, grpid);
     output.tolerance = tolerance[0];
 
+    vector<double> peakFwhm;
+    fileIn_->read_AttNC("peakFwhm", NC_GLOBAL, peakFwhm, grpid);
+    output.peakFwhm = peakFwhm[0];
+
     {
         ii n = 0;
         for (;; n++)
@@ -272,6 +276,9 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
 
     vector<double> tolerance(1); tolerance[0] = output.tolerance;
     fileOut_->write_AttNC("", "tolerance", tolerance, NC_DOUBLE, grpid);
+
+    vector<double> peakFwhm(1); peakFwhm[0] = output.peakFwhm;
+    fileOut_->write_AttNC("", "peakFwhm", peakFwhm, NC_DOUBLE, grpid);
 
     for (ii k = 0; k < (ii)output.xs.size(); k++)
     {

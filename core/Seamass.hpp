@@ -51,6 +51,7 @@ public:
         std::vector<char> scale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
         double shrinkage;        // shrinkage used
         double tolerance;        // tolerance used
+        double peakFwhm;
 
         std::vector<MatrixSparse> xs;
         std::vector<MatrixSparse> l2s;
@@ -73,7 +74,8 @@ public:
         std::vector<ii> extent;
     };
 
-    Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance);
+    Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
+            double peakFwhm);
     Seamass(const Input& input, const Output& seed);
     virtual ~Seamass();
 
@@ -107,6 +109,7 @@ private:
     bool taperShrinkage_;
     fp tolerance_;
     int iteration_;
+    double peakFwhm_;
 };
 
 

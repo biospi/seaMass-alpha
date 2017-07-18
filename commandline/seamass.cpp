@@ -44,6 +44,7 @@ int main(int argc, const char * const * argv)
         int shrinkageExponent;
         bool noTaperLambda;
         int toleranceExponent;
+        double peakFwhm;
         int debugLevel;
 
         // *******************************************************************
@@ -71,6 +72,8 @@ int main(int argc, const char * const * argv)
             ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
              "Use this to stop tapering of lambda to 0 before finishing.")
             ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
+             "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+            ("fwhm,w", po::value<double>(&peakFwhm)->default_value(0.0),
              "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
@@ -138,7 +141,7 @@ int main(int argc, const char * const * argv)
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamassCore(input, scale, shrinkage, !noTaperLambda, tolerance);
+            Seamass seamassCore(input, scale, shrinkage, !noTaperLambda, tolerance, peakFwhm);
 
             do
             {
