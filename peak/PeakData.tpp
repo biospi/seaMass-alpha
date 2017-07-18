@@ -269,7 +269,7 @@ void PeakData<T>::writePeakWidth(string filename, nc_type data_type_id)
     // Write data to seaMass Width file SMW.
     //string outFileName = filename.substr(0, filename.size() - 4) + ".smw";
     string outFileName = filename + ".smw";
-    FileNetcdf smpDataFile(string(outFileName), NC_NETCDF4);
+    FileNetcdf smwDataFile(string(outFileName), NC_NETCDF4);
 
     cout << "\nSaving Peak Data to File: " << outFileName << endl;
 
@@ -278,11 +278,11 @@ void PeakData<T>::writePeakWidth(string filename, nc_type data_type_id)
     vector<T> count;
 
     peak = this->getMZ();
-    smpDataFile.write_VecNC("Peak_mz", peak, data_type_id);
+    smwDataFile.write_VecNC("Peak_mz", peak, data_type_id);
     peak = this->getMZwidth();
-    smpDataFile.write_VecNC("Peak_mz_width_locations", peak, data_type_id);
+    smwDataFile.write_VecNC("Peak_mz_width_locations", peak, data_type_id);
     count = this->getPKcount();
-    smpDataFile.write_VecNC("Peak_Count",count,NC_FLOAT);
+    smwDataFile.write_VecNC("Peak_Count",count,NC_FLOAT);
 
     for(li i = 0; i < peak.size()-1; i=i+2)
     {
@@ -290,7 +290,16 @@ void PeakData<T>::writePeakWidth(string filename, nc_type data_type_id)
         absWidth.push_back(width);
     };
 
-    smpDataFile.write_VecNC("Peak_mz_width", absWidth, data_type_id);
+    smwDataFile.write_VecNC("Peak_mz_width", absWidth, data_type_id);
+    peak = this->getRT();
+    smwDataFile.write_VecNC("Peak_rt",peak,data_type_id);
+    absWidth.clear();
+    for(li i = 0; i < peak.size(); ++i)
+    {
+        absWidth.push_back(peak[i]);
+        absWidth.push_back(peak[i]);
+    }
+    smwDataFile.write_VecNC("Peak_rt_width_locations",absWidth,data_type_id);
 }
 
 template<typename T>
