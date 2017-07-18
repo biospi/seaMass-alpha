@@ -24,8 +24,15 @@
 #include <iomanip>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <kernel.hpp>
 #include "../core/DatasetSeamass.hpp"
+#include "../peak/SMData.hpp"
+#include "../peak/MathOperator.hpp"
+#include "../peak/BsplineData.hpp"
+#include "../peak/PeakOperator.hpp"
+#include "../peak/PeakData.hpp"
+#include "../peak/PeakManager.hpp"
+#include "seamass-restore.hpp"
+
 using namespace std;
 using namespace kernel;
 namespace po = boost::program_options;
@@ -38,7 +45,13 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
+        vector<char> scales(2);
         int debugLevel;
+        enum Mode {Centroid,Smooth,Restore};
+        Mode mode=Restore;
+        bool peakWidth=false;
+        double threshold;
+        ii resolution;
 
         // *******************************************************************
 
@@ -55,6 +68,14 @@ int main(int argc, const char * const * argv)
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
+            ("centroid,c","Preform 1D centroiding on Mass Spectrum data.")
+            ("peak-width,w","Output 'SMW' file containing Peak infirmation, location,"
+             "width, etc. Only active if centroiding is preformed.")
+            ("resolution,r",po::value<int>(&resolution),
+             "High resolution output, number of points per unit b-spline."
+             "Default value = 6.")
+            ("threshold,t", po::value<double>(&threshold)->default_value(5.0),
+             "Minimum ion counts in a peak. Default is 5.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level.")
         ;
@@ -70,7 +91,7 @@ int main(int argc, const char * const * argv)
         po::notify(vm);
 
         cout << endl;
-        cout << "seamass-restore : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "seaMass-restore : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
@@ -94,6 +115,18 @@ int main(int argc, const char * const * argv)
             cout << desc << endl;
             return 0;
         }
+        if (vm.count("centroid"))
+        {
+            mode = Centroid;
+        }
+        if (vm.count("resolution"))
+        {
+            mode = Smooth;
+        }
+        if (vm.count("peak-width"))
+        {
+            peakWidth = true;
+        }
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
         Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::Input);
@@ -112,7 +145,200 @@ int main(int argc, const char * const * argv)
             // load back into Seamass
             Seamass seamassCore(input, output);
 
-            seamassCore.getOutputBinCounts(input.counts);
+
+            if (mode == Centroid)
+            {
+                Seamass::ControlPoints contpts;
+                seamassCore.getOutputControlPoints1d(contpts);
+
+				// Now preform 1D Centroid
+				cout << "Preforming 1D centoiding of scans"<<endl;
+                VecMat<double> mzPeak;
+				VecMat<float> pkPeak;
+				vector<size_t> mzpkVecSize;
+				
+				uli dims[2];
+				double mzRes;
+				double rtRes;
+				vector<ii> offset=contpts.offset;
+				mzRes=double(contpts.scale[0]);
+				if (contpts.scale.size() > 1)
+				    rtRes=double(contpts.scale[1]);
+				else
+				    rtRes=0;
+
+				VecMat<float> rawCoeff(contpts.extent[1],contpts.extent[0],contpts.coeffs);
+				rawCoeff.getDims(dims);
+				
+				SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+				SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+				SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+				
+				for (size_t i = 0; i < A.rt.size(); ++i)
+				{
+				    A.rt[i] = input.startTimes[i];
+				    dhA.rt[i] = input.startTimes[i];
+				    d2hA.rt[i] = input.startTimes[i];
+				}
+				
+				BsplineData<> bsData(A,dhA,d2hA);
+				
+				PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold);
+				centriodPeak.execute();
+				centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
+				
+				input.type = Seamass::Input::Type::Centroided;
+				vector<double>().swap(input.locations);
+				vector<fp>().swap(input.counts);
+				vector<li>().swap(input.countsIndex);
+				input.countsIndex.push_back(0);
+				
+				uli peakDims[2];
+				mzPeak.getDims(peakDims);
+				for (ii i = 0; i < mzpkVecSize.size(); i++)
+				{
+				    if (mzpkVecSize[i] > 0)
+				    {
+				        li idxOffset=li(i*peakDims[1]);
+				        input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
+				                               mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+				        input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
+				                            pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+				    }
+				    input.countsIndex.push_back(input.counts.size());
+				}
+                if (peakWidth == true)
+                {
+                    centriodPeak.peak->writePeakWidth(fileStemOut,NC_DOUBLE);
+                }
+            }
+            else if (mode == Smooth)
+            {
+                cout << "Preforming high resolution output of seaMass." << endl;
+
+                Seamass::ControlPoints contpts;
+                seamassCore.getOutputControlPoints1d(contpts);
+
+                vector<double>().swap(input.locations);
+				vector<fp>().swap(input.counts);
+				vector<li>().swap(input.countsIndex);
+				input.countsIndex.push_back(0);
+
+                int csCol=contpts.extent[0];
+                int csRow=contpts.extent[1];
+
+                ii m = resolution-1;
+                ii k = 4;
+                ii n = ii(csCol) - k + 1;
+
+                float Mval[16] = {0.1666667, 0.6666667, 0.1666667, 0.0, -0.5, 0.0,
+                                  0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
+                                  -0.5, 0.1666667};
+
+                float *M = alcMat(M, k, k);
+                float *T = alcMat(T, m, k);
+                float *TM = alcMat(TM,m,k);
+
+                float dt = 1 / (float(m));
+                vector<float> t(m);
+
+                for (int i = 0; i < t.size(); ++i)
+                    t[i] = float(i) * dt;
+
+                for (int i = 0; i < k * k; ++i)
+                    M[i] = Mval[i];
+
+                int tidx = 0;
+                for (int i = 0; i < (m * k); i = i + k, ++tidx)
+                {
+                    T[i] = 1.0;
+                    T[i + 1] = t[tidx];
+                    T[i + 2] = t[tidx] * t[tidx];
+                    T[i + 3] = t[tidx] * t[tidx] * t[tidx];
+                }
+
+                matDmul(T,M,TM,m,k,k);
+
+                input.counts.reserve(m*n*csRow);
+                //ii cptr=0;
+                for(int idx = 0; idx < csRow; ++idx)
+                {
+                    /* M = 1/6*[1,4,1,0;-3,0,3,0;3,-6,3,0;-1,3,-3,1]
+                     * M =1/6 * | 1     4     1     0 |
+                     *          |-3     0     3     0 |
+                     *          | 3    -6     3     0 |
+                     *          |-1     3    -3     1 |
+                     *
+                     * P=T*M*C
+                     * TM=T*M
+                     * P=TM*C
+                     */
+
+                    float *C = alcMat(C, k, n);
+                    float *P = alcMat(P, m, n);
+                    vector<double> mz;
+
+                    ii crow,ccol,csize;
+                    crow = k;
+                    ccol = csCol - k + 1;
+                    csize= n*k;
+
+                    float **Cidx;
+                    vector<float*> matidx;
+                    matidx.reserve(crow);
+
+                    for (ii i = 0; i < csize; i++) {
+                        C[i] = 0;
+                    }
+
+                    for (int i=0; i < crow; ++i)
+                    {
+                        matidx.push_back(&C[i*ccol]);
+                    }
+                    Cidx=matidx.data();
+
+
+                    ii cptr=idx*csCol;
+                    for (ii j = 0; j < ccol; ++j)
+                    {
+                        for(ii i = 0; i < crow; ++i)
+                        {
+                            Cidx[i][j]=contpts.coeffs[cptr];
+                            ++cptr;
+                        }
+                        cptr=cptr-crow+1;
+                    }
+
+                    matDmul(TM,C,P,m,k,n);
+
+                    genMZAxis(mz,contpts,m*n,resolution-1);
+
+                    input.locations.insert(input.locations.end(), mz.begin(), mz.end());
+                    for (int j = 0; j < n; ++j)
+                    {
+                        for (int i = 0; i < m; ++i)
+                        {
+                            input.counts.push_back(P[j+i*n]);
+                        }
+                    }
+                    input.countsIndex.push_back(input.locations.size());
+
+                    delMat(C);
+                    delMat(P);
+				}
+                delMat(M);
+                delMat(T);
+                delMat(TM);
+            }
+            else if (mode == Restore)
+            {
+                seamassCore.getOutputBinCounts(input.counts);
+            }
+            else
+            {
+                cout<<"Error!!! invalid mode.";
+                exit(1);
+            }
 
             dataset->write(input, id);
 

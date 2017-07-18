@@ -72,6 +72,7 @@ public:
 	void getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
 	void getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, vector<size_t> &vecSize);
 	void dumpPeakData(string filename, nc_type data_type_id=NC_FLOAT);
+    void writePeakWidth(string filename, nc_type data_type_id=NC_DOUBLE);
 	lli getFalsePeaks(void);
 	lli getFalseWidths(void);
 	void clear(void);

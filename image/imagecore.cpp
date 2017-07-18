@@ -74,7 +74,6 @@ void MassSpecData::calRange(void)
 	cout<<"Range Min RT(s):   "<<rtRange.first<<"   Range Max RT(s):   "<<rtRange.second<<endl;
 }
 
-
 MassSpecImage::MassSpecImage(pair<ui,ui> _xyview) : xypxl(_xyview)
 {
 	mz.resize(xypxl.first+1,0);// Number of pixels along MZ axis, MZ are edges of bins

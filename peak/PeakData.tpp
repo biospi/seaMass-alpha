@@ -264,6 +264,36 @@ void PeakData<T>::dumpPeakData(string filename, nc_type data_type_id)
 }
 
 template<typename T>
+void PeakData<T>::writePeakWidth(string filename, nc_type data_type_id)
+{
+    // Write data to seaMass Width file SMW.
+    //string outFileName = filename.substr(0, filename.size() - 4) + ".smw";
+    string outFileName = filename + ".smw";
+    FileNetcdf smpDataFile(string(outFileName), NC_NETCDF4);
+
+    cout << "\nSaving Peak Data to File: " << outFileName << endl;
+
+    vector<double> peak;
+    vector<double> absWidth;
+    vector<T> count;
+
+    peak = this->getMZ();
+    smpDataFile.write_VecNC("Peak_mz", peak, data_type_id);
+    peak = this->getMZwidth();
+    smpDataFile.write_VecNC("Peak_mz_width_locations", peak, data_type_id);
+    count = this->getPKcount();
+    smpDataFile.write_VecNC("Peak_Count",count,NC_FLOAT);
+
+    for(li i = 0; i < peak.size()-1; i=i+2)
+    {
+        double width=peak[i+1]-peak[i];
+        absWidth.push_back(width);
+    };
+
+    smpDataFile.write_VecNC("Peak_mz_width", absWidth, data_type_id);
+}
+
+template<typename T>
 lli PeakData<T>::getFalsePeaks(void)
 {
 	return falsePeak;

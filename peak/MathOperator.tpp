@@ -22,6 +22,7 @@
 #ifndef SMPEAK_MATHOPERATOR_TPP_
 #define SMPEAK_MATHOPERATOR_TPP_
 
+#include <BasisBsplineMz.hpp>
 #include "MathOperator.hpp"
 
 template<class T>
@@ -40,10 +41,14 @@ void OpUnitS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_m
 {
 	_mz.resize(dims);
 	double offset = double(_offset);
-	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
-	for (lli i = 0; i < _mz.size(); ++i) {
-		_mz[i] = (offset + i) * ppbmz;
-	}
+	//double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
+	//for (lli i = 0; i < _mz.size(); ++i) {
+	//	_mz[i] = (offset + i) * ppbmz;
+	//}
+    for (lli i = 0; i < _mz.size(); ++i)
+    {
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+    }
 }
 
 
@@ -69,10 +74,15 @@ void OpNablaHS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 0.5;
-	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
-	for (lli i = 0; i < _mz.size(); ++i) {
-		_mz[i] = (offset + i) * ppbmz;
-	}
+    //double offset = double(_offset) - 0.5;
+	//double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
+	//for (lli i = 0; i < _mz.size(); ++i) {
+	//	_mz[i] = (offset + i) * ppbmz;
+	//}
+    for (lli i = 0; i < _mz.size(); ++i)
+    {
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+    }
 }
 
 
@@ -101,10 +111,15 @@ void OpNabla2HS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> 
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 1;
-	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
-	for (lli i = 0; i < _mz.size(); ++i) {
-		_mz[i] = (offset + i) * ppbmz;
-	}
+    //double offset = double(_offset) - 1;
+	//double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
+	//for (lli i = 0; i < _mz.size(); ++i) {
+	//	_mz[i] = (offset + i) * ppbmz;
+	//}
+    for (lli i = 0; i < _mz.size(); ++i)
+    {
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+    }
 }
 
 
@@ -125,11 +140,16 @@ void OpUnit<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz
 {
 	_mz.resize(dims);
 	double offset = double(_offset);
-	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
+    //double offset = double(_offset);
+	//double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	//#pragma omp parallel for
-	for (lli i = 0; i < _mz.size(); ++i) {
-		_mz[i] = (offset + i) * ppbmz;
-	}
+	//for (lli i = 0; i < _mz.size(); ++i) {
+	//	_mz[i] = (offset + i) * ppbmz;
+	//}
+    for (lli i = 0; i < _mz.size(); ++i)
+    {
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+    }
 }
 
 
@@ -157,11 +177,16 @@ void OpNablaH<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 0.5;
-	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
+    //double offset = double(_offset) - 0.5;
+	//double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	//#pragma omp parallel for
-	for (lli i = 0; i < _mz.size(); ++i) {
-		_mz[i] = (offset + i) * ppbmz;
-	}
+	//for (lli i = 0; i < _mz.size(); ++i) {
+	//	_mz[i] = (offset + i) * ppbmz;
+	//}
+    for (lli i = 0; i < _mz.size(); ++i)
+    {
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+    }
 }
 
 
@@ -192,11 +217,16 @@ void OpNabla2H<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &
 {
 	_mz.resize(dims);
 	double offset = double(_offset) - 1;
-	double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
+    //double offset = double(_offset) - 1;
+	//double ppbmz = 1.0033548378 / (pow(2.0, mz_res) * 60.0);
 	//#pragma omp parallel for
-	for (lli i = 0; i < _mz.size(); ++i) {
-		_mz[i] = (offset + i) * ppbmz;
-	}
+	//for (lli i = 0; i < _mz.size(); ++i) {
+	//	_mz[i] = (offset + i) * ppbmz;
+	//}
+    for (lli i = 0; i < _mz.size(); ++i)
+    {
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+    }
 }
 
 
