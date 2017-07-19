@@ -137,7 +137,7 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
 
         Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
                                                         input.finishTimes, input.exposures, scales[1], false);
- 
+
         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10; i++)
         {
             if (i > 0)
@@ -364,7 +364,7 @@ void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
 }
 
 
-void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
+void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvolve) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -373,12 +373,13 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[dimensions_ - 1])->getGridInfo();
+    const BasisBspline::GridInfo& meshInfo =
+            static_cast<BasisBspline*>(bases_[dimensions_ - (peakFwhm_ > 0.0 && deconvolve ? 0 : 1)])->getGridInfo();
 
     vector<MatrixSparse> c(1);
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesize(c, cs, dimensions_ - 1);
+        optimizer_->synthesize(c, cs, dimensions_ - (peakFwhm_ > 0.0 && deconvolve ? 0 : 1));
     }
 
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
@@ -390,7 +391,7 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
 }
 
 
-void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints) const
+void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -399,12 +400,12 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints) const
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[0])->getGridInfo();
+    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[peakFwhm_ > 0.0 && deconvolve ? 1 : 0])->getGridInfo();
 
     vector<MatrixSparse> c(1);
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesize(c, cs, 0);
+        optimizer_->synthesize(c, cs, peakFwhm_ > 0.0 && deconvolve ? 1 : 0);
     }
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
     c[0].exportToDense(controlPoints.coeffs.data());

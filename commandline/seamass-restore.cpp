@@ -47,18 +47,19 @@ int main(int argc, const char * const * argv)
         string filePathIn;
         vector<char> scales(2);
         int debugLevel;
-        enum Mode {Centroid,Smooth,Restore};
-        Mode mode=Restore;
-        bool peakWidth=false;
+        bool peakWidth;
         double threshold;
-        ii resolution;
+        ii samplingRate;
+        bool reconstruct;
+        bool centroid;
+        bool deconvolve;
 
         // *******************************************************************
 
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "Restore an mzMLb/smv file to mzMLb/smb with optional resampling or centroiding.\n"
+            "Restore an mzMLb/smv file to mzMLb/smb with optional reconstruction or centroiding.\n"
             "\n"
             "seamass-restore [OPTIONS...] <file>\n"
         );
@@ -68,14 +69,19 @@ int main(int argc, const char * const * argv)
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLv or smv format produced by 'seamass'.")
-            ("centroid,c","Preform 1D centroiding on Mass Spectrum data.")
-            ("peak-width,w","Output 'SMW' file containing Peak infirmation, location,"
-             "width, etc. Only active if centroiding is preformed.")
-            ("resolution,r",po::value<int>(&resolution)->default_value(-1),
-             "High resolution output, number of points per unit b-spline."
-             "Default sampled resolution.")
-            ("threshold,t", po::value<double>(&threshold)->default_value(5.0),
-             "Minimum ion counts in a peak. Default is 5.")
+            ("sampling_rate,s",po::value<int>(&samplingRate)->default_value(6),
+             "Number of data points to generate per unit b-spline. Default=6")
+            ("deconvolve,v", po::bool_switch(&deconvolve)->default_value(false),
+             "Output deconvolved peaks.")
+            ("reconstruct,r", po::bool_switch(&reconstruct)->default_value(false),
+             "Reconstruct using original m/z locations (ignores sample_rate, deconvolve, centroid).")
+            ("centroid,c", po::bool_switch(&centroid)->default_value(false),
+             "Output centroided data.")
+            ("centroid_threshold,t", po::value<double>(&threshold)->default_value(5.0),
+             "Minimum intensity to keep centroid. Default is 5.")
+            ("centroid_widths,w",po::bool_switch(&peakWidth)->default_value(false),
+             "Output 'SMW' file containing centroid information including location,"
+             "width.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level.")
         ;
@@ -115,25 +121,6 @@ int main(int argc, const char * const * argv)
             cout << desc << endl;
             return 0;
         }
-        if (vm.count("centroid"))
-        {
-            mode = Centroid;
-        }
-        if (vm.count("resolution"))
-        {
-            if (resolution <= 1)
-            {
-                mode = Restore;
-            }
-            else
-            {
-                mode = Smooth;
-            }
-        }
-        if (vm.count("peak-width"))
-        {
-            peakWidth = true;
-        }
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
         Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::Input);
@@ -152,89 +139,98 @@ int main(int argc, const char * const * argv)
             // load back into Seamass
             Seamass seamassCore(input, output);
 
-
-            if (mode == Centroid)
+            if (reconstruct)
+            {
+                seamassCore.getOutputBinCounts(input.counts);
+                input.type = Seamass::Input::Type::Binned;
+            }
+            else if (centroid)
             {
                 Seamass::ControlPoints contpts;
-                seamassCore.getOutputControlPoints1d(contpts);
+                seamassCore.getOutputControlPoints1d(contpts, deconvolve);
 
-				// Now preform 1D Centroid
-				cout << "Preforming 1D centoiding of scans"<<endl;
+                // Now preform 1D Centroid
+                cout << "Performing 1D centoiding of scans"<<endl;
                 VecMat<double> mzPeak;
-				VecMat<float> pkPeak;
-				vector<size_t> mzpkVecSize;
-				
-				uli dims[2];
-				double mzRes;
-				double rtRes;
-				vector<ii> offset=contpts.offset;
-				mzRes=double(contpts.scale[0]);
-				if (contpts.scale.size() > 1)
-				    rtRes=double(contpts.scale[1]);
-				else
-				    rtRes=0;
+                VecMat<float> pkPeak;
+                vector<size_t> mzpkVecSize;
 
-				VecMat<float> rawCoeff(contpts.extent[1],contpts.extent[0],contpts.coeffs);
-				rawCoeff.getDims(dims);
-				
-				SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-				SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-				SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
-				
-				for (size_t i = 0; i < A.rt.size(); ++i)
-				{
-				    A.rt[i] = input.startTimes[i];
-				    dhA.rt[i] = input.startTimes[i];
-				    d2hA.rt[i] = input.startTimes[i];
-				}
-				
-				BsplineData<> bsData(A,dhA,d2hA);
-				
-				PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold);
-				centriodPeak.execute();
-				centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
-				
-				input.type = Seamass::Input::Type::Centroided;
-				vector<double>().swap(input.locations);
-				vector<fp>().swap(input.counts);
-				vector<li>().swap(input.countsIndex);
-				input.countsIndex.push_back(0);
-				
-				uli peakDims[2];
-				mzPeak.getDims(peakDims);
-				for (ii i = 0; i < mzpkVecSize.size(); i++)
-				{
-				    if (mzpkVecSize[i] > 0)
-				    {
-				        li idxOffset=li(i*peakDims[1]);
-				        input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
-				                               mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-				        input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
-				                            pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-				    }
-				    input.countsIndex.push_back(input.counts.size());
-				}
+                uli dims[2];
+                double mzRes;
+                double rtRes;
+                vector<ii> offset=contpts.offset;
+                mzRes=double(contpts.scale[0]);
+                if (contpts.scale.size() > 1)
+                    rtRes=double(contpts.scale[1]);
+                else
+                    rtRes=0;
+
+                VecMat<float> rawCoeff(contpts.extent[1],contpts.extent[0],contpts.coeffs);
+                rawCoeff.getDims(dims);
+
+                SMData2D<OpUnit> A(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+                SMData2D<OpNablaH> dhA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+                SMData2D<OpNabla2H> d2hA(dims,&offset[0],mzRes,rtRes,rawCoeff.v);
+
+                for (size_t i = 0; i < A.rt.size(); ++i)
+                {
+                    A.rt[i] = input.startTimes[i];
+                    dhA.rt[i] = input.startTimes[i];
+                    d2hA.rt[i] = input.startTimes[i];
+                }
+
+                BsplineData<> bsData(A,dhA,d2hA);
+
+                PeakManager<PeakData,BsplineData,Centroid2D> centriodPeak(bsData,threshold);
+                centriodPeak.execute();
+                centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
+
+                input.type = Seamass::Input::Type::Centroided;
+                vector<double>().swap(input.locations);
+                vector<fp>().swap(input.counts);
+                vector<li>().swap(input.countsIndex);
+                input.countsIndex.push_back(0);
+
+                uli peakDims[2];
+                mzPeak.getDims(peakDims);
+                for (ii i = 0; i < mzpkVecSize.size(); i++)
+                {
+                    if (mzpkVecSize[i] > 0)
+                    {
+                        li idxOffset=li(i*peakDims[1]);
+                        input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
+                                               mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+                        input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
+                                            pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+                    }
+                    input.countsIndex.push_back(input.counts.size());
+                }
                 if (peakWidth == true)
                 {
                     centriodPeak.peak->writePeakWidth(fileStemOut,NC_DOUBLE);
                 }
             }
-            else if (mode == Smooth)
+            else
             {
-                cout << "Preforming high resolution output of seaMass." << endl;
+                cout << "Performing high resolution output of seaMass." << endl;
 
                 Seamass::ControlPoints contpts;
-                seamassCore.getOutputControlPoints1d(contpts);
+                seamassCore.getOutputControlPoints1d(contpts, deconvolve);
+
+                li sum = 0;
+                for (li i = 0; i < contpts.coeffs.size(); i++)
+                    sum += contpts.coeffs[i];
+                cout << "BEFORE-SUM:" << sum << endl;
 
                 vector<double>().swap(input.locations);
-				vector<fp>().swap(input.counts);
-				vector<li>().swap(input.countsIndex);
-				input.countsIndex.push_back(0);
+                vector<fp>().swap(input.counts);
+                vector<li>().swap(input.countsIndex);
+                input.countsIndex.push_back(0);
 
                 int csCol=contpts.extent[0];
                 int csRow=contpts.extent[1];
 
-                ii m = resolution-1;
+                ii m = samplingRate-1;
                 ii k = 4;
                 ii n = ii(csCol) - k + 1;
 
@@ -322,7 +318,7 @@ int main(int argc, const char * const * argv)
 
                     matDmul(TM,C,P,m,k,n);
 
-                    genMZAxis(mz,contpts,m*n,resolution-1);
+                    genMZAxis(mz,contpts,m*n,samplingRate-1);
 
                     input.locations.insert(input.locations.end(), mz.begin(), mz.end());
                     for (int j = 0; j < n; ++j)
@@ -336,20 +332,17 @@ int main(int argc, const char * const * argv)
 
                     delMat(C);
                     delMat(P);
-				}
+                }
                 delMat(M);
                 delMat(T);
                 delMat(TM);
-            }
-            else if (mode == Restore)
-            {
-                seamassCore.getOutputBinCounts(input.counts);
-                input.type = Seamass::Input::Type::Binned;
-            }
-            else
-            {
-                cout<<"Error!!! invalid mode.";
-                exit(1);
+
+                li sum2 = 0;
+                for (li i = 0; i < input.counts.size(); i++)
+                    sum2 += input.counts[i];
+                cout << "AFTER-SUM:" << sum2 << endl;
+                cout << "CHANGE:" << sum2/double(sum) << endl;
+
             }
 
             dataset->write(input, id);

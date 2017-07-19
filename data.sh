@@ -1,81 +1,43 @@
 #!/bin/bash                                                     
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"                  
 
-rm -rf $DIR/data/out
 mkdir $DIR/data/out
 
-export MKL_NUM_THREADS=1
-export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=4
+export OMP_NUM_THREADS=4
 
-mkdir $DIR/data/out/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163
-pushd $DIR/data/out/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163
+mkdir $DIR/data/out/$2
+pushd $DIR/data/out/$2
 
 
-mkdir 1.mzmlb2smb
-pushd 1.mzmlb2smb
-../../../../build/$1/debug/commandline/mzmlb2smb ../../../P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163.mzMLb -d1
+mkdir 1.seamass
+pushd 1.seamass
+../../../../build/$1/release/commandline/mzmlb2smb ../../../$2.mzMLb
+../../../../build/$1/release/commandline/seamass $2.$3.smb -w$4 -d1
 popd
 
-mkdir 2.seamass
-pushd 2.seamass
-../../../../build/$1/debug/commandline/seamass ../1.mzmlb2smb/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163.p-411-25-40-27.smb -d1
+mkdir 2.seamass-restore
+pushd 2.seamass-restore
+../../../../build/$1/release/commandline/seamass-restore ../1.seamass/$2.$3.smv -d1
+../../../../build/$1/release/commandline/smb2mzmlb ../../../$2.mzMLb -i .
 popd
 
-mkdir 3.seamass-restore
-pushd 3.seamass-restore
-../../../../build/$1/debug/commandline/seamass-restore ../2.seamass/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163.p-411-25-40-27.smv -d1
+mkdir 3.seamass-restore_--deconvolve
+pushd 3.seamass-restore_--deconvolve
+../../../../build/$1/release/commandline/seamass-restore ../1.seamass/$2.$3.smv -v -d1
+../../../../build/$1/release/commandline/smb2mzmlb ../../../$2.mzMLb -i .
 popd
 
-mkdir 4.smb2mzmlb
-pushd 4.smb2mzmlb
-../../../../build/$1/debug/commandline/smb2mzmlb ../../../P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163.mzMLb -i ../3.seamass-restore -d1
-popd
-
-mkdir 5.seamass-restore_--centroid
-pushd 5.seamass-restore_--centroid
-../../../../build/$1/debug/commandline/seamass-peak ../2.seamass/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163.p-411-25-40-27.smv -d1
-popd
-
-mkdir 6.smb2mzmlb
-pushd 6.smb2mzmlb
-../../../../build/$1/debug/commandline/smb2mzmlb ../../../P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500__index3163.mzMLb -i ../5.seamass-restore_--centroid -d1
-popd
-
-
-mkdir $DIR/data/out/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500
-pushd $DIR/data/out/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500
-
-mkdir 1.mzmlb2smb
-pushd 1.mzmlb2smb
-../../../../build/$1/debug/commandline/mzmlb2smb ../../../P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.mzMLb -d1
-popd
-
-mkdir 2.seamass
-pushd 2.seamass
-../../../../build/$1/debug/commandline/seamass ../1.mzmlb2smb/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.p.smb -d1
-popd
-
-mkdir 3.seamass-restore
-pushd 3.seamass-restore
-../../../../build/$1/debug/commandline/seamass-restore ../2.seamass/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.p.smv -d1
-popd
-
-mkdir 4.smb2mzmlb
-pushd 4.smb2mzmlb
-../../../../build/$1/debug/commandline/smb2mzmlb ../../../P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.mzMLb -i ../3.seamass-restore -d1
+mkdir 4.seamass-restore_--reconstruct
+pushd 4.seamass-restore_--reconstruct
+../../../../build/$1/release/commandline/seamass-restore ../1.seamass/$2.$3.smv -r -d1
+../../../../build/$1/release/commandline/smb2mzmlb ../../../$2.mzMLb -i .
 popd
 
 mkdir 5.seamass-restore_--centroid
 pushd 5.seamass-restore_--centroid
-../../../../build/$1/debug/commandline/seamass-peak ../2.seamass/P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.p.smv -d1
-popd
-
-mkdir 6.smb2mzmlb
-pushd 6.smb2mzmlb
-../../../../build/$1/debug/commandline/smb2mzmlb ../../../P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500.mzMLb -i ../5.seamass-restore_--centroid -d1
-popd
-
-
+../../../../build/$1/release/commandline/seamass-restore ../1.seamass/$2.$3.smv -c -d1
+../../../../build/$1/release/commandline/smb2mzmlb ../../../$2.mzMLb -i .
 popd
 
 
