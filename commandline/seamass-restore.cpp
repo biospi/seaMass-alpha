@@ -71,9 +71,9 @@ int main(int argc, const char * const * argv)
             ("centroid,c","Preform 1D centroiding on Mass Spectrum data.")
             ("peak-width,w","Output 'SMW' file containing Peak infirmation, location,"
              "width, etc. Only active if centroiding is preformed.")
-            ("resolution,r",po::value<int>(&resolution),
+            ("resolution,r",po::value<int>(&resolution)->default_value(-1),
              "High resolution output, number of points per unit b-spline."
-             "Default value = 6.")
+             "Default sampled resolution.")
             ("threshold,t", po::value<double>(&threshold)->default_value(5.0),
              "Minimum ion counts in a peak. Default is 5.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
@@ -121,7 +121,14 @@ int main(int argc, const char * const * argv)
         }
         if (vm.count("resolution"))
         {
-            mode = Smooth;
+            if (resolution <= 1)
+            {
+                mode = Restore;
+            }
+            else
+            {
+                mode = Smooth;
+            }
         }
         if (vm.count("peak-width"))
         {
@@ -337,6 +344,7 @@ int main(int argc, const char * const * argv)
             else if (mode == Restore)
             {
                 seamassCore.getOutputBinCounts(input.counts);
+                input.type = Seamass::Input::Type::Binned;
             }
             else
             {
