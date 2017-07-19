@@ -260,6 +260,10 @@ int main(int argc, const char * const * argv)
                 matDmul(T,M,TM,m,k,k);
 
                 input.counts.reserve(m*n*csRow);
+                vector<double>().swap(input.locations);
+
+                input.type = Seamass::Input::Type::Sampled;
+
                 //ii cptr=0;
                 for(int idx = 0; idx < csRow; ++idx)
                 {
