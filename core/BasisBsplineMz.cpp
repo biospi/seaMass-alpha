@@ -133,6 +133,9 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
         {
             if (binCounts[binCountsIndex[k] + i] >= 0.0)
             {
+                ii startNz = ii(acoo.size());
+                double rowSum = 0.0;
+
                 ii ei = binEdgesIndex[k] + i;
                 double xfMin = log2(binEdges[ei] - PROTON_MASS) * (1L << scale);
                 double xfMax = log2(binEdges[ei + 1] - PROTON_MASS) * (1L << scale);
@@ -158,6 +161,13 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>
                         rowind.push_back(i);
                         colind.push_back(x - gridInfo().offset[0]);
                     }
+                }
+
+                // normalise column
+                if (rowSum > 0.0)
+                {
+                    for (ii nz = startNz; nz < ii(acoo.size()); nz++)
+                        acoo[nz] /= rowSum;
                 }
             }
         }

@@ -97,7 +97,7 @@ public:
 
     static double sortElapsed_;
 
-protected:
+public:
     bool createCsr(ii m, ii n, ii a_nnz);
     bool initCsr(bool notEmpty) const;
     void commitCsr(bool isSorted) const;

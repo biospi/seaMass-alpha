@@ -77,8 +77,8 @@ int main(int argc, const char * const * argv)
              "Reconstruct using original m/z locations (ignores sample_rate, deconvolve, centroid).")
             ("centroid,c", po::bool_switch(&centroid)->default_value(false),
              "Output centroided data.")
-            ("centroid_threshold,t", po::value<double>(&threshold)->default_value(5.0),
-             "Minimum intensity to keep centroid. Default is 5.")
+            ("centroid_threshold,t", po::value<double>(&threshold)->default_value(1000.0),
+             "Minimum ion count density to keep centroid. Default is 1000.")
             ("centroid_widths,w",po::bool_switch(&peakWidth)->default_value(false),
              "Output 'SMW' file containing centroid information including location,"
              "width.")
@@ -217,11 +217,6 @@ int main(int argc, const char * const * argv)
                 Seamass::ControlPoints contpts;
                 seamassCore.getOutputControlPoints1d(contpts, deconvolve);
 
-                li sum = 0;
-                for (li i = 0; i < contpts.coeffs.size(); i++)
-                    sum += contpts.coeffs[i];
-                cout << "BEFORE-SUM:" << sum << endl;
-
                 vector<double>().swap(input.locations);
                 vector<fp>().swap(input.counts);
                 vector<li>().swap(input.countsIndex);
@@ -336,12 +331,6 @@ int main(int argc, const char * const * argv)
                 delMat(M);
                 delMat(T);
                 delMat(TM);
-
-                li sum2 = 0;
-                for (li i = 0; i < input.counts.size(); i++)
-                    sum2 += input.counts[i];
-                cout << "AFTER-SUM:" << sum2 << endl;
-                cout << "CHANGE:" << sum2/double(sum) << endl;
 
             }
 
