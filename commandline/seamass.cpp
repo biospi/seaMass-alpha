@@ -102,7 +102,7 @@ int main(int argc, const char * const * argv)
 
         ObserverMatrix* observerMatrix = 0;
         ObserverMatrixSparse* observerMatrixSparse = 0;
-        if (debugLevel / 10 >= 1)
+        if (debugLevel / 10 >= 2)
         {
             SubjectMatrix::registerObserver(observerMatrix = new ObserverMatrix());
             SubjectMatrixSparse::registerObserver(observerMatrixSparse = new ObserverMatrixSparse());
@@ -143,9 +143,19 @@ int main(int argc, const char * const * argv)
 
             Seamass seamassCore(input, scale, shrinkage, !noTaperLambda, tolerance, peakFwhm);
 
+            if (debugLevel / 10 >= 1)
+            {
+                seamassCore.getInput(input);
+
+                // write input in seaMass format
+                ostringstream oss; oss << fileStemOut << ".input";
+                DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::Input);
+                datasetOut.write(input, id);
+            }
+
             do
             {
-                if (debugLevel >= 10)
+                if (debugLevel / 10 >= 2)
                 {
                     Seamass::Output output;
                     seamassCore.getOutput(output);

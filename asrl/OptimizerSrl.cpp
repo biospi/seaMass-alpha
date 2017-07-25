@@ -30,7 +30,7 @@ using namespace std;
 using namespace kernel;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix>& b, bool seed, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), lambdaGroup_(0.0), iteration_(0), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<MatrixSparse>& b, bool seed, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), lambdaGroup_(0.0), iteration_(0), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
     if (getDebugLevel() % 10 >= 1)
         cout << getTimeStamp() << "  Creating optimizer SRL ..." << endl;
@@ -59,7 +59,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
-                t[k].importFromMatrix(b_[k]);
+                t[k].copy(b_[k]);
 
             analyze(xs_, t, false, false);
 
@@ -168,13 +168,10 @@ fp OptimizerSrl::step()
     {
         for (ii k = 0; k < ii(f_fE.size()); k++)
         {
-            // any zeros in f_fE are due to underflow. We need to do this to avoid divide by zero error
-            f_fE[k].censorLeft(f_fE[k], numeric_limits<fp>::min());
-            f_fE[k].div2Dense(b_[k]);
-
             MatrixSparse t;
-            t.pruneCells(f_fE[k]);
-            f_fE[k].swap(t);
+            t.copySubset(f_fE[k], b_[k]);
+            t.divNonzeros(b_[k], t);
+            f_fE[k].pruneCells(t);
          }
     }
     double errorDuration = getElapsedTime() - errorStart;

@@ -21,6 +21,7 @@
 
 
 #include "Seamass.hpp"
+#include "DatasetSeamass.hpp"
 #include "BasisBsplineMz.hpp"
 #include "BasisBsplinePeak.hpp"
 #include "BasisBsplineScale.hpp"
@@ -42,7 +43,7 @@ void Seamass::notice()
 }
 
 
-Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
+Seamass::Seamass(Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
                  double peakFwhm) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), iteration_(0)
 {
     init(input, scale, true);
@@ -50,7 +51,7 @@ Seamass::Seamass(const Input& input, const std::vector<char>& scale, fp lambda, 
 }
 
 
-Seamass::Seamass(const Input& input, const Output& seed) : innerOptimizer_(0), lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), peakFwhm_(seed.peakFwhm), iteration_(0)
+Seamass::Seamass(Input& input, const Output& seed) : innerOptimizer_(0), lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), peakFwhm_(seed.peakFwhm), iteration_(0)
 {
     init(input, seed.scale, false);
 
@@ -100,12 +101,8 @@ Seamass::~Seamass()
 }
 
 
-void Seamass::init(const Input& input, const std::vector<char>& scales, bool seed)
+void Seamass::init(Input& input, const std::vector<char>& scales, bool seed)
 {
-    // for speed only, merge bins if rc_mz is set more than 8 times higher than the bin width
-    // this is conservative, 4 times might be ok, but 2 times isn't enough
-    //merge_bins(mzs, intensities, 0.125 / rc_mz);
-    
     // INIT BASIS FUNCTIONS
     // Create our tree of bases
     if (getDebugLevel() % 10 >= 1)
@@ -118,9 +115,11 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     {
         dimensions_ = 1;
 
-        new BasisBsplineMz(bases_, input.counts, input.countsIndex, input.locations, scales[0], peakFwhm_ > 0.0);
-        if (peakFwhm_ > 0.0)
-            new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
+        Basis* basisMz = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,
+                                            scales[0], true);
+
+        //if (peakFwhm_ > 0.0)
+        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
 
         while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10)
         {
@@ -131,7 +130,7 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     {
         dimensions_ = 2;
 
-        new BasisBsplineMz(bases_, input.counts, input.countsIndex, input.locations, scales[0], true);
+        new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations, scales[0], true);
         if (peakFwhm_ > 0.0)
             new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
 
@@ -153,20 +152,23 @@ void Seamass::init(const Input& input, const std::vector<char>& scales, bool see
     }
 
     // INIT B
-    if (input.countsIndex.size() == 0)
+    /*if (input.countsIndex.size() == 0)
     {
-        b_.resize(1);
-        b_[0].importFromArray(1, input.counts.size(), input.counts.data());
+        Matrix b;
+        b.importFromArray(1, input.counts.size(), input.counts.data());
+        b_[0].importFromMatrix(b);
     }
     else
     {
         b_.resize(input.countsIndex.size() - 1);
         for (ii i = 0; i < input.countsIndex.size() - 1; i++)
         {
-            b_[i].importFromArray(1, input.countsIndex[i + 1] - input.countsIndex[i],
+            Matrix b;
+            b.importFromArray(1, input.countsIndex[i + 1] - input.countsIndex[i],
                                   &input.counts.data()[input.countsIndex[i]]);
+            b_[i].importFromMatrix(b);
         }
-    }
+    }*/
 
     // INIT OPTIMISER
     innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
@@ -388,6 +390,34 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvol
     controlPoints.scale = meshInfo.scale;
     controlPoints.offset = meshInfo.offset;
     controlPoints.extent = meshInfo.extent;
+}
+
+
+void Seamass::getInput(Input& input) const
+{
+    if (getDebugLevel() % 10 >= 1)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Deriving 1D input control points ...";
+        info(oss.str());
+    }
+
+    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
+    vector<fp>(meshInfo.size()).swap(input.counts);
+    b_[0].exportToDense(input.counts.data());
+
+    vector<double>(meshInfo.size() + meshInfo.m()).swap(input.locations);
+    for (ii i = 0; i < meshInfo.m(); i++)
+    {
+        input.countsIndex[i + 1] = (i + 1) * meshInfo.n();
+
+        for (ii j = 0; j <= meshInfo.n(); j++)
+        {
+            double mz = pow(2.0, (meshInfo.offset[0] + j - 0.5) / double(1L << meshInfo.scale[0])) +
+                    BasisBsplineMz::PROTON_MASS;
+            input.locations[i * (meshInfo.n() + 1) + j] = mz;
+        }
+    }
 }
 
 

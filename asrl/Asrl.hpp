@@ -39,7 +39,7 @@ public:
     {
         std::vector<MatrixSparse> aT; // transpose of A from Ax = b
         std::vector<MatrixSparse> xT; // transpose of x from Ax = b (leave x empty to autogenerate seed)
-        std::vector<Matrix> bT;       // transpose of b from Ax = b
+        std::vector<MatrixSparse> bT; // transpose of b from Ax = b
         std::vector<MatrixSparse> gT; // transpose of Group indicator matrix
     };
 
@@ -60,7 +60,7 @@ public:
 
 private:
     std::vector<Basis*> bases_;
-    const std::vector<Matrix>& bT_;
+    const std::vector<MatrixSparse>& bT_;
 
     Optimizer* innerOptimizer_;
     Optimizer* optimizer_;

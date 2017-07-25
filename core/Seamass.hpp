@@ -74,9 +74,9 @@ public:
         std::vector<ii> extent;
     };
 
-    Seamass(const Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
+    Seamass(Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
             double peakFwhm);
-    Seamass(const Input& input, const Output& seed);
+    Seamass(Input& input, const Output& seed);
     virtual ~Seamass();
 
     bool step();
@@ -88,6 +88,9 @@ public:
     // get restored bin counts derived from seaMass output
     void getOutputBinCounts(std::vector<fp>& binCounts) const;
 
+    // get seaMass input (convolved)
+    void getInput(Input& input) const;
+
     // get restored 1D control points (i.e. per spectra) derived from seaMass output
     void getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve) const;
 
@@ -95,11 +98,11 @@ public:
     void getOutputControlPoints(ControlPoints& controlPoints, bool deconvolve) const;
 
 private:
-    void init(const Input& input, const std::vector<char>& scales, bool seed);
+    void init(Input& input, const std::vector<char>& scales, bool seed);
 
     char dimensions_;
     std::vector<Basis*> bases_;
-    std::vector<Matrix> b_;
+    std::vector<MatrixSparse> b_;
 
     Optimizer* innerOptimizer_;
     Optimizer* optimizer_;
