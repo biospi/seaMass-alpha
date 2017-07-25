@@ -162,8 +162,11 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
                 }
 
                 // normalise column
-                for (ii nz = startNz; nz < ii(acoo.size()); nz++)
-                    acoo[nz] /= rowSum;
+                if (rowSum > 0.0)
+                {
+                    for (ii nz = startNz; nz < ii(acoo.size()); nz++)
+                        acoo[nz] /= rowSum;
+                }
             }
 
             // create b

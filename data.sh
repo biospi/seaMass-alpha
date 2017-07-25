@@ -41,5 +41,11 @@ pushd 5.seamass-restore_--centroid
 ../../../../build/$1/release/commandline/smb2mzmlb ../../../$2.mzMLb -i .
 popd
 
+mkdir 6.seamass-restore_--deconvolve_--centroid || true
+pushd 6.seamass-restore_--deconvolve_--centroid
+../../../../build/$1/release/commandline/seamass-restore ../1.seamass/$2.$3.smv -v -c -d1
+../../../../build/$1/release/commandline/smb2mzmlb ../../../$2.mzMLb -i .
+popd
+
 
 popd
