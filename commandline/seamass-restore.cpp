@@ -150,7 +150,7 @@ int main(int argc, const char * const * argv)
                 seamassCore.getOutputControlPoints1d(contpts, deconvolve);
 
                 // Now preform 1D Centroid
-                cout << "Performing 1D centoiding of scans"<<endl;
+                cout << "Performing 1D centroiding of scans"<<endl;
                 VecMat<double> mzPeak;
                 VecMat<float> pkPeak;
                 vector<size_t> mzpkVecSize;
@@ -257,7 +257,8 @@ int main(int argc, const char * const * argv)
 
                 matDmul(T,M,TM,m,k,k);
 
-                input.counts.reserve(m*n*csRow);
+                li countsSize=li(m)*li(n)*li(csRow);
+                input.counts.reserve(countsSize);
                 vector<double>().swap(input.locations);
 
                 input.type = Seamass::Input::Type::Sampled;
@@ -276,6 +277,7 @@ int main(int argc, const char * const * argv)
                      * P=TM*C
                      */
 
+                    cout<<"Scan: "<<csRow<<"/"<<idx+1<<"\r";
                     float *C = alcMat(C, k, n);
                     float *P = alcMat(P, m, n);
                     vector<double> mz;
