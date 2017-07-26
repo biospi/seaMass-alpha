@@ -175,20 +175,11 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
                             rowind.data(), colind.data(), acoo.data());
 
             Matrix t;
-            t.importFromArray(1, binCounts.size(), binCounts.data());
-            MatrixSparse t2;
+            t.importFromArray(1, binCountsIndex[k + 1] - binCountsIndex[k], &binCounts.data()[binCountsIndex[k]]);
+            MatrixSparse t2, t3;
             t2.importFromMatrix(t);
-            bs[k].matmul(false, t2, a, false);
-
-            if (getDebugLevel() % 10 >= 2)
-            {
-                for (ii k = 0; k < ii(bs.size()); k++)
-                {
-                    ostringstream oss;
-                    oss << getTimeStamp() << "     b[" << k << "]=" << bs[k];
-                    info(oss.str());
-                }
-            }
+            t3.matmul(false, t2, a, false);
+            bs[k].pruneCells(t3);
         }
 
         b.resize(1);
@@ -202,8 +193,8 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         }
     }
 
-    gridInfo().count = 1;
-    gridInfo().scale[0] = scale;
+    gridInfo().count = bGridInfo_.count;
+    gridInfo().scale[0] = bGridInfo_.scale[0];
     gridInfo().offset[0] = bGridInfo_.offset[0] - 1;
     gridInfo().extent[0] = bGridInfo_.extent[0] + 3;
 
@@ -216,9 +207,9 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
 
     if (getDebugLevel() % 10 >= 2)
     {
-        ostringstream oss3;
-        oss3 << getTimeStamp() << "     " << gridInfo();
-        info(oss3.str());
+        ostringstream oss;
+        oss << getTimeStamp() << "     input=B" << b[0];
+        info(oss.str());
 
         for (ii k = 0; k < 4; k++)
         {
@@ -226,6 +217,10 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
             oss2 << getTimeStamp() << "     kernel=" << hs[k];
             info(oss2.str());
         }
+
+        ostringstream oss3;
+        oss3 << getTimeStamp() << "     " << gridInfo();
+        info(oss3.str());
     }
 
     // create A as a temporary COO matrix
@@ -266,7 +261,7 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
     if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplinePeak::synthesise";
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::synthesise";
         info(oss.str());
     }
 
@@ -306,7 +301,7 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
     if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplinePeak::analyse";
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineMz::analyse";
         info(oss.str());
     }
 

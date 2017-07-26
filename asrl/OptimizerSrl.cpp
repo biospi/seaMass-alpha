@@ -43,9 +43,24 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
-                t[k].initDense(1, b_[k].n(), fp(1.0));
+                t[k].initDense(b_[k].m(), b_[k].n(), fp(1.0));
 
             analyze(l2s_, t, true, false);
+
+            for (ii l = 0; l < ii(l2s_.size()); l++)
+            {
+                for (ii k = 0; k < ii(l2s_[l].size()); k++)
+                {
+                    for(ii nz = 0; nz < l2s_[l][k].nnz(); nz++)
+                    {
+                        if (l2s_[l][k].vs_[nz] == 0.0)
+                        {
+                            cout << "eek!" << endl;
+                            exit(0);
+                        }
+                    }
+                }
+            }
 
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
@@ -168,10 +183,13 @@ fp OptimizerSrl::step()
     {
         for (ii k = 0; k < ii(f_fE.size()); k++)
         {
+            // need to improve copySubset to improve this silliness
             MatrixSparse t;
             t.copySubset(f_fE[k], b_[k]);
-            t.divNonzeros(b_[k], t);
             f_fE[k].pruneCells(t);
+            t.copySubset(b_[k], f_fE[k]);
+
+            f_fE[k].divNonzeros(t, f_fE[k]);
          }
     }
     double errorDuration = getElapsedTime() - errorStart;
@@ -455,6 +473,13 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
     {
         if (!bases_[l]->isTransient())
         {
+            if (getDebugLevel() % 10 >= 3)
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "     " << l << " BasisBsplineMz::analyze2";
+                info(oss.str());
+            }
+
             if (xs_.size() > 0)
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)

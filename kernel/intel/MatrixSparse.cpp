@@ -381,18 +381,32 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
             ii a_nz = a.ijs_[i];
             for (ii nz = ijs_[i]; nz < ijs1_[i]; nz++)
             {
+                bool found = false;
                 for (; a_nz < a.ijs1_[i]; a_nz++)
                 {
                     if (b.js_[nz] == a.js_[a_nz])
                     {
                         vs_[nz] = a.vs_[a_nz];
+                        found = true;
                         break;
                     }
                 }
+
+                if (!found)
+                    vs_[nz] = 0.0f;
             }
         }
 
         commitCsr(true);
+    }
+
+    for (ii nz = 0; nz < nnz(); nz++)
+    {
+        if (vs_[nz] != vs_[nz])
+            cout << "NaN found in *this" << endl;
+
+        if (isinf(vs_[nz]))
+            cout << "Infinity found in *this" << endl;
     }
 
     if (getDebugLevel() % 10 >= 4)
@@ -1144,6 +1158,8 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
             assert(a.ijs_[i] == b.ijs_[i]);
         for (ii nz = 0; nz < ijs1_[m_ - 1]; nz++)
             assert(a.js_[nz] == b.js_[nz]);
+        for (ii nz = 0; nz < ijs1_[m_ - 1]; nz++)
+            assert(b.vs_[nz] != 0.0f);
 
         vsDiv(nnz(), a.vs_, b.vs_, vs_);
         int err = vmlGetErrStatus();

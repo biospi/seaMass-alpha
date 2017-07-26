@@ -145,12 +145,18 @@ int main(int argc, const char * const * argv)
 
             if (debugLevel / 10 >= 1)
             {
-                seamassCore.getInput(input);
+                Seamass::Input input2;
+                input2.countsIndex = input.countsIndex;
+                input2.startTimes = input.startTimes;
+                input2.finishTimes = input.finishTimes;
+                input2.exposures = input.exposures;
+                input2.type = input.type;
+                seamassCore.getInput(input2);
 
                 // write input in seaMass format
                 ostringstream oss; oss << fileStemOut << ".input";
                 DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::Input);
-                datasetOut.write(input, id);
+                datasetOut.write(input2, id);
             }
 
             do

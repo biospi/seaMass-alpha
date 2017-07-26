@@ -17,7 +17,7 @@ make -j $1
 make install
 popd
 
-source data.sh gcc HYE124_TTOF6600_64var_lgillet_I150211_008__index_59994 p-55-227433333333 6
-source data.sh gcc P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500 p 6
+source data.sh gcc release HYE124_TTOF6600_64var_lgillet_I150211_008__index_59994 p-55-227433333333 6
+source data.sh gcc release P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500 p 6
 
 julia runtests.jl

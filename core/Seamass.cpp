@@ -48,7 +48,7 @@ Seamass::Seamass(Input& input, const std::vector<char>& scale, fp lambda, bool t
                  double peakFwhm) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), iteration_(0)
 {
     init(input, scale, true);
-    optimizer_->setLambda((fp) lambda_);
+    optimizer_->setLambda(fp(lambda_));
 }
 
 
@@ -116,22 +116,20 @@ void Seamass::init(Input& input, const std::vector<char>& scales, bool seed)
     {
         dimensions_ = 1;
 
-        Basis* basisMz = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,
-                                            scales[0], true);
+        new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,scales[0], true);
 
-        //if (peakFwhm_ > 0.0)
-        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
+        if (peakFwhm_ > 0.0)
+            new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
 
         while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10)
-        {
             new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, false);
-        }
     }
     else
     {
         dimensions_ = 2;
 
         new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations, scales[0], true);
+
         if (peakFwhm_ > 0.0)
             new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
 
