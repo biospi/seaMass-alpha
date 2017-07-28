@@ -341,26 +341,44 @@ void Seamass::getOutput(Output& output) const
 }
 
 
-void Seamass::getOutputBinCounts(std::vector<fp>& binCounts) const
+void Seamass::getInput(Input &input, bool reconstruct) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "  Deriving restored bin counts ..." ;
+        oss << getTimeStamp() << (reconstruct ? "  Deriving reconstructed output ..." : "  Deriving blurred input ...");
         info(oss.str());
     }
 
-    vector<MatrixSparse> f;
+    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
+    vector<fp>(meshInfo.size()).swap(input.counts);
+
+    if (reconstruct)
     {
-        vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesize(f, cs);
+        vector<MatrixSparse> f;
+        {
+            vector<vector<MatrixSparse> > cs;
+            optimizer_->synthesize(f, cs);
+        }
+
+        f[0].exportToDense(input.counts.data());
+    }
+    else
+    {
+        b_[0].exportToDense(input.counts.data());
     }
 
-    li i = 0;
-    for (ii k = 0; k < ii(f.size()); k++)
+    vector<double>(meshInfo.size() + meshInfo.m()).swap(input.locations);
+    for (ii i = 0; i < meshInfo.m(); i++)
     {
-        f[k].exportToDense(&binCounts.data()[i]);
-        i += f[k].size();
+        input.countsIndex[i + 1] = (i + 1) * meshInfo.n();
+
+        for (ii j = 0; j <= meshInfo.n(); j++)
+        {
+            double mz = pow(2.0, (meshInfo.offset[0] + j - 0.5) / double(1L << meshInfo.scale[0])) +
+                        BasisBsplineMz::PROTON_MASS;
+            input.locations[i * (meshInfo.n() + 1) + j] = mz;
+        }
     }
 }
 
@@ -389,34 +407,6 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvol
     controlPoints.scale = meshInfo.scale;
     controlPoints.offset = meshInfo.offset;
     controlPoints.extent = meshInfo.extent;
-}
-
-
-void Seamass::getInput(Input& input) const
-{
-    if (getDebugLevel() % 10 >= 1)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "  Deriving 1D input control points ...";
-        info(oss.str());
-    }
-
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
-    vector<fp>(meshInfo.size()).swap(input.counts);
-    b_[0].exportToDense(input.counts.data());
-
-    vector<double>(meshInfo.size() + meshInfo.m()).swap(input.locations);
-    for (ii i = 0; i < meshInfo.m(); i++)
-    {
-        input.countsIndex[i + 1] = (i + 1) * meshInfo.n();
-
-        for (ii j = 0; j <= meshInfo.n(); j++)
-        {
-            double mz = pow(2.0, (meshInfo.offset[0] + j - 0.5) / double(1L << meshInfo.scale[0])) +
-                    BasisBsplineMz::PROTON_MASS;
-            input.locations[i * (meshInfo.n() + 1) + j] = mz;
-        }
-    }
 }
 
 

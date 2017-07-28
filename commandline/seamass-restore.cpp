@@ -141,7 +141,7 @@ int main(int argc, const char * const * argv)
 
             if (reconstruct)
             {
-                seamassCore.getOutputBinCounts(input.counts);
+                seamassCore.getInput(input, true);
                 input.type = Seamass::Input::Type::Binned;
             }
             else if (centroid)

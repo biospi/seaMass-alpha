@@ -29,11 +29,11 @@ pushd 3.seamass-restore_--deconvolve
 ../../../../build/$1/$2/commandline/smb2mzmlb ../../../$3.mzMLb -i .
 popd
 
-#mkdir 4.seamass-restore_--reconstruct || true
-#pushd 4.seamass-restore_--reconstruct
-#../../../../build/$1/$2/commandline/seamass-restore ../1.seamass/$3.$4.smv -r -d1
-#../../../../build/$1/$2/commandline/smb2mzmlb ../../../$3.mzMLb -i .
-#popd
+mkdir 4.seamass-restore_--reconstruct || true
+pushd 4.seamass-restore_--reconstruct
+../../../../build/$1/$2/commandline/seamass-restore ../1.seamass/$3.$4.smv -r -d1
+../../../../build/$1/$2/commandline/smb2mzmlb ../../../$3.mzMLb -i .
+popd
 
 mkdir 5.seamass-restore_--centroid || true
 pushd 5.seamass-restore_--centroid

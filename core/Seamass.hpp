@@ -82,14 +82,11 @@ public:
     bool step();
     ii getIteration() const;
 
+    // get seaMass convolved input or restored output
+    void getInput(Input &input, bool reconstruct = false) const;
+
     // get seaMass output (for smv file)
     void getOutput(Output& output) const;
-
-    // get restored bin counts derived from seaMass output
-    void getOutputBinCounts(std::vector<fp>& binCounts) const;
-
-    // get seaMass input (convolved)
-    void getInput(Input& input) const;
 
     // get restored 1D control points (i.e. per spectra) derived from seaMass output
     void getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve) const;

@@ -193,17 +193,18 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         }
     }
 
+    // create our kernel
+    vector<fp> hs(5);
+    hs[0] = Bspline::im(0.5, 4) - Bspline::im(0.0, 4);
+    hs[1] = Bspline::im(1.5, 4) - Bspline::im(0.5, 4);
+    hs[2] = Bspline::im(2.5, 4) - Bspline::im(1.5, 4);
+    hs[3] = Bspline::im(3.5, 4) - Bspline::im(2.5, 4);
+    hs[4] = Bspline::im(4.0, 4) - Bspline::im(3.5, 4);
+
     gridInfo().count = bGridInfo_.count;
     gridInfo().scale[0] = bGridInfo_.scale[0];
-    gridInfo().offset[0] = bGridInfo_.offset[0] - 1;
-    gridInfo().extent[0] = bGridInfo_.extent[0] + 3;
-
-    // create our kernel
-    vector<fp> hs(4);
-    hs[0] = Bspline::im(4.0, 4) - Bspline::im(3.0, 4);
-    hs[1] = Bspline::im(3.0, 4) - Bspline::im(2.0, 4);
-    hs[2] = Bspline::im(2.0, 4) - Bspline::im(1.0, 4);
-    hs[3] = Bspline::im(1.0, 4) - Bspline::im(0.0, 4);
+    gridInfo().offset[0] = bGridInfo_.offset[0] - ii(hs.size() - 1) / 2;
+    gridInfo().extent[0] = bGridInfo_.extent[0] + ii(hs.size() - 1);
 
     if (getDebugLevel() % 10 >= 2)
     {
@@ -211,7 +212,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         oss << getTimeStamp() << "     input=B" << b[0];
         info(oss.str());
 
-        for (ii k = 0; k < 4; k++)
+        for (ii k = 0; k < ii(hs.size()); k++)
         {
             ostringstream oss2;
             oss2 << getTimeStamp() << "     kernel=" << hs[k];
@@ -232,14 +233,15 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
 
     for (ii j = 0; j < n; j++)
     {
-        for (ii k = 0; k < 4; k++)
+        for (ii k = 0; k < ii(hs.size()); k++)
         {
-            ii i = j + k - 3;
-            if (i < 0 || i >= m) continue;
-
-            is.push_back(i);
-            js.push_back(j);
-            vs.push_back(hs[k]);
+            ii i = j + k - ii(hs.size() - 1);
+            if (i >= 0 && i < m)
+            {
+                is.push_back(i);
+                js.push_back(j);
+                vs.push_back(hs[k]);
+           }
         }
     }
 
