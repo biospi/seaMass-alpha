@@ -162,7 +162,7 @@ void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<Matr
         f.resize(1);
 
     // zero basis functions that are no longer needed
-    MatrixSparse t;
+    /*MatrixSparse t;
     ii rowsPruned = t.pruneRows(aT_, x[0], true, 0.75);
     if (rowsPruned > 0)
     {
@@ -174,7 +174,7 @@ void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<Matr
             oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
             info(oss.str());
         }
-    }
+    }*/
 
     // synthesise
     f[0].matmul(true, aT_, x[0], accumulate);

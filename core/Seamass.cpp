@@ -116,10 +116,10 @@ void Seamass::init(Input& input, const std::vector<char>& scales, bool seed)
     {
         dimensions_ = 1;
 
-        new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,scales[0], true);
+        new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,scales[0], false);
 
-        if (peakFwhm_ > 0.0)
-            new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
+        //if (peakFwhm_ > 0.0)
+        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
 
         while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10)
             new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, false);

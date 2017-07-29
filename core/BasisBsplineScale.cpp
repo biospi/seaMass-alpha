@@ -125,7 +125,7 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
         f.resize(1);
 
     // zero basis functions that are no longer needed
-    MatrixSparse t;
+    /*MatrixSparse t;
     ii rowsPruned = t.pruneRows(aT_, x[0], dimension_ > 0, 0.75);
     if (rowsPruned > 0)
     {
@@ -140,7 +140,7 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
             oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
             info(oss.str());
         }
-    }
+    }*/
 
     // synthesise
     if (dimension_ == 0)

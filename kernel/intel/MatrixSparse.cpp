@@ -729,6 +729,18 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
              sparse_status_t status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_);
             assert(!status);
 
+            // MKL will fail if output has zero non-zeros
+            /*if (status == SPARSE_STATUS_ALLOC_FAILED)
+            {
+                init(transposeA ? a.n() : a.m(), b.n());
+            }
+            else
+            {
+                assert(!status);
+
+                commitMkl(false);
+            }*/
+
             commitMkl(false);
         }
     }
@@ -1129,10 +1141,10 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
 
 void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
 {
-    if (getDebugLevel() % 10 >= 4)
+    if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       " << (this == &a ? "X" : "A") << a << " / " << (this == &a ? "X" : "A") << a << " := ...";
+        oss << getTimeStamp() << "       " << (this == &a ? "X" : "A") << a << " / " << (this == &b ? "X" : "B") << b << " := ...";
         info(oss.str());
     }
 
@@ -1168,7 +1180,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
         commitCsr(true);
     }
 
-    if (getDebugLevel() % 10 >= 4)
+    if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
@@ -1497,7 +1509,7 @@ ostream& operator<<(ostream& os, const MatrixSparse& a)
     {
         os << "[" << a.m_ << "," << a.n_ << "]:" << a.nnz();
         
-        if (MatrixSparse::getDebugLevel()% 10 >= 4)
+        if (MatrixSparse::getDebugLevel()% 10 >= 3)
         {
             os << "(" << a.nnzActual() << ")";
         }

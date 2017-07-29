@@ -212,7 +212,7 @@ void OptimizerAccelerationEve1::synthesize(vector<MatrixSparse>& f, vector< vect
 
 
 void
-OptimizerAccelerationEve1::analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize) const
+OptimizerAccelerationEve1::analyze(std::vector< std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize)
 {
     optimizer_->analyze(xEs, fE, l2, l2Normalize);
 }

@@ -164,14 +164,6 @@ fp OptimizerSrl::step()
     double synthesisStart = getElapsedTime();
     {
         synthesize(f_fE, xEs_ys);
-
-        if (getDebugLevel() % 10 >= 2)
-        {
-            double sumF = 0.0;
-            for (ii k = 0; k < ii(b_.size()); k++)
-                sumF += f_fE[k].sum();
-            cout << getTimeStamp() << "    volume_f=" << fixed << sumF << endl;
-        }
     }
     double synthesisDuration = getElapsedTime() - synthesisStart;
 
@@ -191,6 +183,13 @@ fp OptimizerSrl::step()
 
             f_fE[k].divNonzeros(t, f_fE[k]);
          }
+
+        if (getDebugLevel() % 10 >= 3)
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "       " << f_fE[0];
+            info(oss.str());
+        }
     }
     double errorDuration = getElapsedTime() - errorStart;
 
@@ -278,6 +277,13 @@ fp OptimizerSrl::step()
                         xEs_ys[l][k].mul(xEs_ys[l][k], y);
                     }
                 }
+
+                if (getDebugLevel() % 10 >= 3)
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << "       " << xEs_ys[l][0];
+                    info(oss.str());
+                }
             }
         }
     }
@@ -306,9 +312,25 @@ fp OptimizerSrl::step()
 
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
+                    // remove unneeded l2s
+                    /*MatrixSparse t;
+                    t.copySubset(xs_[l][k], xEs_ys[l][k]);
+
+                    sumSqrs += t.sumSqrs();
+                    sumSqrs2 += xEs_ys[l][k].sumSqrs();
+                    sumSqrDiffs += t.sumSqrDiffsNonzeros(xEs_ys[l][k]);*/
+
                     sumSqrs += xs_[l][k].sumSqrs();
                     sumSqrs2 += xEs_ys[l][k].sumSqrs();
                     sumSqrDiffs += xs_[l][k].sumSqrDiffsNonzeros(xEs_ys[l][k]);
+
+                }
+
+                if (getDebugLevel() % 10 >= 3)
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << "       " << xEs_ys[l][0];
+                    info(oss.str());
                 }
             }
         }
@@ -338,6 +360,13 @@ fp OptimizerSrl::step()
                     // prune l2s
                     t.copySubset(l2s_[l][k], xs_[l][k]);
                     l2s_[l][k].swap(t);
+                }
+
+                if (getDebugLevel() % 10 >= 3)
+                {
+                    ostringstream oss;
+                    oss << getTimeStamp() << "       " << xs_[l][0];
+                    info(oss.str());
                 }
             }
         }
@@ -415,7 +444,7 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
 }
 
 
-void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize) const
+void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::vector<MatrixSparse> &fE, bool l2, bool l2Normalize)
 {
     if (xEs.size() != bases_.size())
         xEs.resize(bases_.size());
@@ -476,7 +505,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
             if (getDebugLevel() % 10 >= 3)
             {
                 ostringstream oss;
-                oss << getTimeStamp() << "     " << l << " BasisBsplineMz::analyze2";
+                oss << getTimeStamp() << "     " << l << " analyzeNorm";
                 info(oss.str());
             }
 
@@ -502,7 +531,19 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
             if (l2Normalize)
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
-                    xEs[l][k].divNonzeros(xEs[l][k], l2s_[l][k]);
+                {
+                    MatrixSparse t;
+                    t.copySubset(xEs[l][k], l2s_[l][k]);
+
+                    xEs[l][k].divNonzeros(t, l2s_[l][k]);
+                }
+            }
+
+            if (getDebugLevel() % 10 >= 3)
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "       " << xEs[l][0];
+                info(oss.str());
             }
         }
         else
