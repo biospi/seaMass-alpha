@@ -20,42 +20,25 @@
 //
 
 
-#ifndef SEAMASS_KERNEL_INTEL_MATRIX_HPP
-#define SEAMASS_KERNEL_INTEL_MATRIX_HPP
+#ifndef SEAMASS_CORE_BASISBSPLINECHARGE_HPP
+#define SEAMASS_CORE_BASISBSPLINECHARGE_HPP
 
 
-#include "types.hpp"
-#include "../SubjectMatrix.hpp"
-#include <iostream>
+#include "BasisBspline.hpp"
 
 
-class Matrix : public SubjectMatrix
+class BasisBsplineCharge : public BasisBspline
 {
 public:
-    Matrix();
-    ~Matrix();
+    BasisBsplineCharge(std::vector<Basis*>& bases, ii parentIndex, bool transient);
+    virtual ~BasisBsplineCharge();
 
-    void init(ii m, ii n);
-    void free();
+    virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
+    virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
 
-    ii m() const;
-    ii n() const;
-    li size() const;
-    fp* vs() const;
-
-    void importFromArray(ii m, ii n, const fp *vs);
-    void exportToArray(fp *vs) const;
-
-    void conv1d(Matrix& h, Matrix& x);
-    fp sum() const;
-
-public:
-    ii m_; // rows
-    ii n_; // columns
-    fp* vs_; // data
+private:
+    MatrixSparse aT_;
 };
-
-std::ostream& operator<<(std::ostream& os, const Matrix& mat);
 
 
 #endif

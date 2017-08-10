@@ -45,6 +45,7 @@ int main(int argc, const char * const * argv)
         bool noTaperLambda;
         int toleranceExponent;
         double peakFwhm;
+        short chargeStates;
         int debugLevel;
 
         // *******************************************************************
@@ -71,6 +72,8 @@ int main(int argc, const char * const * argv)
              "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Use around 0.")
             ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
              "Use this to stop tapering of lambda to 0 before finishing.")
+            ("charge_states,c", po::value<short>(&chargeStates)->default_value(0),
+             "Highest charge state to deconvolute. Default is no charge state deconvolution.")
             ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
              "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("fwhm,w", po::value<double>(&peakFwhm)->default_value(0.0),
@@ -141,7 +144,7 @@ int main(int argc, const char * const * argv)
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamassCore(input, scale, shrinkage, !noTaperLambda, tolerance, peakFwhm);
+            Seamass seamassCore(input, scale, shrinkage, !noTaperLambda, tolerance, peakFwhm, chargeStates);
 
             if (debugLevel / 10 >= 1)
             {
@@ -163,21 +166,44 @@ int main(int argc, const char * const * argv)
             {
                 if (debugLevel / 10 >= 2)
                 {
-                    Seamass::Output output;
-                    seamassCore.getOutput(output);
+                    /*{
+                        Seamass::Output output;
+                        seamassCore.getOutput(output, false);
 
-                    // write intermediate output in seaMass format
-                    ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamassCore.getIteration();
-                    DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                    datasetOut.write(input, output, id);
+                        // write intermediate output in seaMass format
+                        ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamassCore.getIteration();
+                        DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                        datasetOut.write(input, output, id);
+                    }*/
+                    {
+                        Seamass::Output output;
+                        seamassCore.getOutput(output, true);
+
+                        // write intermediate output in seaMass format
+                        ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamassCore.getIteration();
+                        DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                        datasetOut.write(input, output, id);
+                    }
                 }
             }
             while (seamassCore.step());
 
             // write output
-            Seamass::Output output;
-            seamassCore.getOutput(output);
-            dataset->write(input, output, id);
+            {
+                Seamass::Output output;
+                seamassCore.getOutput(output, false);
+                dataset->write(input, output, id);
+            }
+
+            if (debugLevel / 10 >= 1)
+            {
+                Seamass::Output output;
+                seamassCore.getOutput(output, true);
+
+                ostringstream oss; oss << fileStemOut << ".synthesized";
+                DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                datasetOut.write(input, output, id);
+            }
 
             if (debugLevel % 10 == 0)
                 cout << endl;

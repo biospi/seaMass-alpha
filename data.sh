@@ -14,7 +14,7 @@ pushd $DIR/data/out/$3
 mkdir 1.seamass || true
 pushd 1.seamass
 ../../../../build/$1/$2/commandline/mzmlb2smb ../../../$3.mzMLb
-../../../../build/$1/$2/commandline/seamass $3.$4.smb -w$5 -d11 -m15 -l-2
+../../../../build/$1/$2/commandline/seamass $3.$4.smb -w$5 -d11 -m10 -c20 --no_taper
 popd
 
 mkdir 2.seamass-restore || true

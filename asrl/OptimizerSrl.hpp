@@ -30,7 +30,8 @@
 class OptimizerSrl : public Optimizer
 {
 public:
-    OptimizerSrl(const std::vector<Basis*>& bases, const std::vector<MatrixSparse>& b, bool seed = true, fp pruneThreshold = (fp)0.001);
+    OptimizerSrl(const std::vector<Basis*>& bases, const std::vector<MatrixSparse>& b,
+                 bool seed = true, fp pruneThreshold = fp(0.00000));
     virtual ~OptimizerSrl();
 
     virtual void setLambda(fp lambda, fp lambdaGroup = fp(0.0));
@@ -45,6 +46,9 @@ public:
     std::vector< std::vector<MatrixSparse> >& xs();
     std::vector< std::vector<MatrixSparse> >& l2s();
     std::vector< std::vector<MatrixSparse> >& l1l2s();
+
+    // temp hack
+    std::vector< std::vector<MatrixSparse> >& l1s();
 
 private:
     const std::vector<Basis*>& bases_;

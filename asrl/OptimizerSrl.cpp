@@ -47,21 +47,6 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
             analyze(l2s_, t, true, false);
 
-            for (ii l = 0; l < ii(l2s_.size()); l++)
-            {
-                for (ii k = 0; k < ii(l2s_[l].size()); k++)
-                {
-                    for(ii nz = 0; nz < l2s_[l][k].nnz(); nz++)
-                    {
-                        if (l2s_[l][k].vs_[nz] == 0.0)
-                        {
-                            cout << "eek!" << endl;
-                            exit(0);
-                        }
-                    }
-                }
-            }
-
             if (getDebugLevel() % 10 >= 1)
                 cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
 
@@ -293,9 +278,9 @@ fp OptimizerSrl::step()
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "    Termination Check and Pruning..." << endl;
 
-    fp sumSqrs = 0.0;
-    fp sumSqrs2 = 0.0;
-    fp sumSqrDiffs = 0.0;
+    double sumSqrs = 0.0;
+    double sumSqrs2 = 0.0;
+    double sumSqrDiffs = 0.0;
     double updateStart = getElapsedTime();
     {
         // termination check
@@ -312,18 +297,18 @@ fp OptimizerSrl::step()
 
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
-                    // remove unneeded l2s
-                    /*MatrixSparse t;
-                    t.copySubset(xs_[l][k], xEs_ys[l][k]);
+                    //xEs_ys[l][k].censorRight(xEs_ys[l][k], sqrt(numeric_limits<fp>::max())/100.0);
 
-                    sumSqrs += t.sumSqrs();
-                    sumSqrs2 += xEs_ys[l][k].sumSqrs();
-                    sumSqrDiffs += t.sumSqrDiffsNonzeros(xEs_ys[l][k]);*/
+                    fp _sumSqrs = xs_[l][k].sumSqrs();
+                    fp _sumSqrs2 = xEs_ys[l][k].sumSqrs();
+                    fp _sumSqrDiff = xs_[l][k].sumSqrDiffsNonzeros(xEs_ys[l][k]);
 
-                    sumSqrs += xs_[l][k].sumSqrs();
-                    sumSqrs2 += xEs_ys[l][k].sumSqrs();
-                    sumSqrDiffs += xs_[l][k].sumSqrDiffsNonzeros(xEs_ys[l][k]);
+                    if (isinf(_sumSqrs) || isinf(_sumSqrs2) || isinf(_sumSqrDiff))
+                        throw runtime_error("BUG: Coefficient will overflow, model probably misspecified.");
 
+                    sumSqrs += _sumSqrs;
+                    sumSqrs2 += _sumSqrs2;
+                    sumSqrDiffs += _sumSqrDiff;
                 }
 
                 if (getDebugLevel() % 10 >= 3)
@@ -389,7 +374,7 @@ fp OptimizerSrl::step()
         cout << getTimeStamp()  << "                                     total_sort = " << setprecision(4) << setw(12) << MatrixSparse::sortElapsed_ << endl;
      }
 
-    return sqrt(sumSqrDiffs) / sqrt(sumSqrs);
+    return fp(sqrt(sumSqrDiffs) / sqrt(sumSqrs));
 }
 
 
@@ -548,7 +533,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
         }
         else
         {
-            vector<MatrixSparse>().swap(xEs[l]);
+            //vector<MatrixSparse>().swap(xEs[l]);
         }
     }
 }

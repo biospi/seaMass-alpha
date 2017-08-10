@@ -24,7 +24,7 @@
 #define SEAMASS_CORE_SEAMASS_HPP
 
 
-#include "../asrl/Basis.hpp"
+#include "BasisBspline.hpp"
 #include "../asrl/OptimizerSrl.hpp"
 
 
@@ -52,7 +52,9 @@ public:
         double shrinkage;        // shrinkage used
         double tolerance;        // tolerance used
         double peakFwhm;
+        short chargeStates;
 
+        std::vector<BasisBspline::GridInfo> gridInfos;
         std::vector<MatrixSparse> xs;
         std::vector<MatrixSparse> l2s;
         std::vector<MatrixSparse> l1l2s;
@@ -75,7 +77,7 @@ public:
     };
 
     Seamass(Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
-            double peakFwhm);
+            double peakFwhm, short chargeStates);
     Seamass(Input& input, const Output& seed);
     virtual ~Seamass();
 
@@ -86,16 +88,16 @@ public:
     void getInput(Input &input, bool reconstruct = false) const;
 
     // get seaMass output (for smv file)
-    void getOutput(Output& output) const;
+    void getOutput(Output& output, bool synthesize) const;
 
     // get restored 1D control points (i.e. per spectra) derived from seaMass output
-    void getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve) const;
+    void getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve, bool density) const;
 
     // get restored control points with dimension depending on input (i.e. 1D or 2D)
     void getOutputControlPoints(ControlPoints& controlPoints, bool deconvolve) const;
 
 private:
-    void init(Input& input, const std::vector<char>& scales, bool seed);
+    void init(Input& input, const std::vector<char>& scales, short chargeStates, bool seed);
 
     char dimensions_;
     std::vector<Basis*> bases_;
@@ -110,6 +112,7 @@ private:
     fp tolerance_;
     int iteration_;
     double peakFwhm_;
+    short chargeStates_;
 };
 
 

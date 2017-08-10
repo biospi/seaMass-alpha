@@ -34,7 +34,7 @@ public:
 
     BasisBsplineMz(std::vector<Basis*>& bases, std::vector<MatrixSparse>& b, const std::vector<fp>& binCounts,
                    const std::vector<li>& binCountsIndex_, const std::vector<double>& binEdges, char scale,
-                   bool transient);
+                   short chargeStates, bool transient);
 
     virtual ~BasisBsplineMz();
 
@@ -45,9 +45,11 @@ public:
 
 private:
     GridInfo bGridInfo_;
+    bool chargeDeconvolution_;
+    short chargeStates_;
 
-    MatrixSparse aT_;
-    MatrixSparse a_;
+    std::vector<MatrixSparse> aTs_;
+    std::vector<MatrixSparse> as_;
 };
 
 

@@ -147,7 +147,7 @@ int main(int argc, const char * const * argv)
             else if (centroid)
             {
                 Seamass::ControlPoints contpts;
-                seamassCore.getOutputControlPoints1d(contpts, deconvolve);
+                seamassCore.getOutputControlPoints1d(contpts, deconvolve, false);
 
                 // Now preform 1D Centroid
                 cout << "Performing 1D centoiding of scans"<<endl;
@@ -215,7 +215,7 @@ int main(int argc, const char * const * argv)
                 cout << "Performing high resolution output of seaMass." << endl;
 
                 Seamass::ControlPoints contpts;
-                seamassCore.getOutputControlPoints1d(contpts, deconvolve);
+                seamassCore.getOutputControlPoints1d(contpts, deconvolve, true);
 
                 vector<double>().swap(input.locations);
                 vector<fp>().swap(input.counts);

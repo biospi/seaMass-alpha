@@ -39,6 +39,7 @@ public:
         std::vector<ii> extent;  // number of coefficients for each dimension (make up the columns)
         ii count;                // number of grids
 
+        GridInfo() {};
         GridInfo(char dimensions_);
         ~GridInfo();
 

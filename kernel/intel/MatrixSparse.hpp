@@ -82,6 +82,7 @@ public:
     void sqrt(const MatrixSparse& a);
     void pow(const MatrixSparse& a, fp power);
     void censorLeft(const MatrixSparse& a, fp threshold);
+    void censorRight(const MatrixSparse& a, fp threshold);
 
     // elementwise operations only operating on non-zero elements
     void addNonzeros(fp beta);

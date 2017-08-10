@@ -26,6 +26,7 @@
 #include "BasisBsplinePeak.hpp"
 #include "BasisBsplineScale.hpp"
 #include "BasisBsplineScantime.hpp"
+#include "BasisBsplineCharge.hpp"
 #include "../asrl/OptimizerAccelerationEve1.hpp"
 #include <kernel.hpp>
 #include <cstring>
@@ -45,16 +46,18 @@ void Seamass::notice()
 
 
 Seamass::Seamass(Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
-                 double peakFwhm) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), iteration_(0)
+                 double peakFwhm, short chargeStates) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda),
+                                                        taperShrinkage_(taperShrinkage), tolerance_(tolerance),
+                                                        peakFwhm_(peakFwhm), chargeStates_(chargeStates), iteration_(0)
 {
-    init(input, scale, true);
+    init(input, scale, chargeStates, true);
     optimizer_->setLambda(fp(lambda_));
 }
 
 
 Seamass::Seamass(Input& input, const Output& seed) : innerOptimizer_(0), lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), peakFwhm_(seed.peakFwhm), iteration_(0)
 {
-    init(input, seed.scale, false);
+    init(input, seed.scale, seed.chargeStates, false);
 
     // import seed
     optimizer_->xs().resize(seed.xs.size());
@@ -87,7 +90,7 @@ Seamass::Seamass(Input& input, const Output& seed) : innerOptimizer_(0), lambda_
         }
     }
 
-    optimizer_->setLambda((fp) lambda_);
+    optimizer_->setLambda(fp(lambda_));
 }
 
 
@@ -102,7 +105,7 @@ Seamass::~Seamass()
 }
 
 
-void Seamass::init(Input& input, const std::vector<char>& scales, bool seed)
+void Seamass::init(Input& input, const std::vector<char>& scales, short chargeStates, bool seed)
 {
     // INIT BASIS FUNCTIONS
     // Create our tree of bases
@@ -112,28 +115,52 @@ void Seamass::init(Input& input, const std::vector<char>& scales, bool seed)
         oss << getTimeStamp() << "  Initialising overcomplete tree of basis functions ...";
         info(oss.str());
     }
+
     if (input.countsIndex.size() <= 2)
     {
         dimensions_ = 1;
 
-        new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,scales[0], false);
+        BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex,
+                                                    input.locations, scales[0], chargeStates, true);
 
         //if (peakFwhm_ > 0.0)
         //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
 
-        while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10)
-            new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, false);
+        Basis* previousBasis = new BasisBsplineCharge(bases_, bases_.back()->getIndex(), false);
+
+        for (ii i = 0; static_cast<BasisBspline*>(
+                               bases_.back())->getGridInfo().scale[0] > basisMz->getBGridInfo().scale[0] - 5; i++)
+        {
+            if (i > 0)
+               previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, false);
+
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] >= 4)
+                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
+        }
     }
     else
     {
         dimensions_ = 2;
 
-        new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations, scales[0], true);
+        BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex,
+                                                     input.locations, scales[0], chargeStates, true);
 
-        if (peakFwhm_ > 0.0)
-            new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+        Basis* previousBasis = new BasisBsplineCharge(bases_, bases_.back()->getIndex(), false);
 
-        Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
+        for (ii i = 0; static_cast<BasisBspline*>(
+                               bases_.back())->getGridInfo().scale[0] > basisMz->getBGridInfo().scale[0] - 5; i++)
+        {
+            if (i > 0)
+                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, false);
+
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] >= 4)
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
+        }
+
+        //if (peakFwhm_ > 0.0)
+        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+
+        /*Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
                                                         input.finishTimes, input.exposures, scales[1], false);
 
         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10; i++)
@@ -147,7 +174,7 @@ void Seamass::init(Input& input, const std::vector<char>& scales, bool seed)
             {
                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
             }
-        }
+        }*/
     }
 
     // INIT B
@@ -239,7 +266,7 @@ bool Seamass::step()
         {
             if (getDebugLevel() % 10 == 0) cout << "o" << flush;
             lambda_ *= (lambda_ > 0.0625 ? 0.5 : 0.0);
-            optimizer_->setLambda((fp) lambda_);
+            optimizer_->setLambda(fp(lambda_));
         }
     }
     else
@@ -265,39 +292,70 @@ ii Seamass::getIteration() const
 }
 
 
-void Seamass::getOutput(Output& output) const
+void Seamass::getOutput(Output& output, bool synthesize) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "  Getting output ...";
+        oss << getTimeStamp() << "  Getting " << (synthesize ? "synthesized " : "") << "output ...";
         info(oss.str());
     }
 
     output = Output();
 
-    const BasisBspline::GridInfo& meshInfo =
-            static_cast<BasisBspline*>(bases_[dimensions_ - (peakFwhm_ > 0.0 ? 0 : 1)])->getGridInfo();
+    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
     output.scale = meshInfo.scale;
 
     output.shrinkage = lambdaStart_;
     output.tolerance = tolerance_;
     output.peakFwhm = peakFwhm_;
+    output.chargeStates = chargeStates_;
 
-    output.xs.resize(optimizer_->xs().size());
-    for (ii k = 0; k < ii(optimizer_->xs().size()); k++)
-        if (!bases_[k]->isTransient())
-            output.xs[k].copy(optimizer_->xs()[k][0]);
+    output.gridInfos.resize(bases_.size());
+    for (ii k = 0; k < ii(bases_.size()); k++)
+        output.gridInfos[k] = static_cast<BasisBspline*>(bases_[k])->getGridInfo();
 
-    output.l2s.resize(optimizer_->l2s().size());
-    for (ii k = 0; k < ii(optimizer_->l2s().size()); k++)
-        if (!bases_[k]->isTransient())
-            output.l2s[k].copy(optimizer_->l2s()[k][0]);
+    if (synthesize)
+    {
+        vector<vector<MatrixSparse> > xs;
+        {
+            vector<MatrixSparse> f;
+            optimizer_->synthesize(f, xs);
+        }
 
-    output.l1l2s.resize(optimizer_->l1l2s().size());
-    for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
-        if (!bases_[k]->isTransient())
-            output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
+        output.xs.resize(xs.size());
+        for (ii k = 0; k < ii(xs.size()); k++)
+            output.xs[k].copy(xs[k][0]);
+
+        output.l2s.resize(optimizer_->l2s().size());
+        for (ii k = 0; k < ii(optimizer_->l2s().size()); k++)
+                output.l2s[k].copy(optimizer_->l2s()[k][0]);
+
+        optimizer_->setLambda(0.0);
+        output.l1l2s.resize(optimizer_->l1l2s().size());
+        for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
+                output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
+        optimizer_->setLambda(lambda_);
+    }
+    else
+    {
+        output.xs.resize(optimizer_->xs().size());
+        for (ii k = 0; k < ii(optimizer_->xs().size()); k++)
+            if (!bases_[k]->isTransient())
+                output.xs[k].copy(optimizer_->xs()[k][0]);
+
+        output.l2s.resize(optimizer_->l2s().size());
+        for (ii k = 0; k < ii(optimizer_->l2s().size()); k++)
+            if (!bases_[k]->isTransient())
+                output.l2s[k].copy(optimizer_->l2s()[k][0]);
+
+        optimizer_->setLambda(0.0);
+        output.l1l2s.resize(optimizer_->l1l2s().size());
+        for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
+            if (!bases_[k]->isTransient())
+                output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
+        optimizer_->setLambda(lambda_);
+    }
 
     /*output.baselineScale.resize(dimensions_);
     output.baselineOffset.resize(dimensions_);
@@ -371,7 +429,8 @@ void Seamass::getInput(Input &input, bool reconstruct) const
     vector<double>(meshInfo.size() + meshInfo.m()).swap(input.locations);
     for (ii i = 0; i < meshInfo.m(); i++)
     {
-        input.countsIndex[i + 1] = (i + 1) * meshInfo.n();
+        if (input.countsIndex.size() > 0)
+            input.countsIndex[i + 1] = (i + 1) * meshInfo.n();
 
         for (ii j = 0; j <= meshInfo.n(); j++)
         {
@@ -410,7 +469,7 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvol
 }
 
 
-void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve) const
+void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve, bool density) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -427,22 +486,43 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
         optimizer_->synthesize(c, cs, peakFwhm_ > 0.0 && deconvolve ? 1 : 0);
     }
 
-    // temporary hack (differentiate instead)
-    for (ii nz = 0; nz < c[0].nnz(); nz++)
+    // temporary hack (integrate instead)
+    if (density)
     {
-        double mz0 = pow(2.0, (meshInfo.offset[0] + c[0].js_[nz] - 0.5) / double(1L << meshInfo.scale[0])) +
-                BasisBsplineMz::PROTON_MASS;
-        double mz1 = pow(2.0, (meshInfo.offset[0] + c[0].js_[nz] + 0.5) / double(1L << meshInfo.scale[0])) +
-                BasisBsplineMz::PROTON_MASS;
+        for (ii nz = 0; nz < c[0].nnz(); nz++)
+        {
+            double mz0 = pow(2.0, (meshInfo.offset[0] + c[0].js_[nz] - 0.5) / double(1L << meshInfo.scale[0])) +
+                         BasisBsplineMz::PROTON_MASS;
+            double mz1 = pow(2.0, (meshInfo.offset[0] + c[0].js_[nz] + 0.5) / double(1L << meshInfo.scale[0])) +
+                         BasisBsplineMz::PROTON_MASS;
 
-        c[0].vs_[nz] /= mz1 - mz0;
+            c[0].vs_[nz] /= mz1 - mz0;
+        }
     }
 
-    vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
-    c[0].exportToDense(controlPoints.coeffs.data());
+    // sum across charge states
+    vector<fp>(meshInfo.extent[0], 0.0f).swap(controlPoints.coeffs);
+    {
+        vector<fp> t(meshInfo.size());
+        c[0].exportToDense(t.data());
 
-    controlPoints.scale = meshInfo.scale;
-    controlPoints.offset = meshInfo.offset;
-    controlPoints.extent = meshInfo.extent;
+        for (ii y = 0; y < meshInfo.extent[1]; y++)
+        {
+            for (ii x = 0; x < meshInfo.extent[0]; x++)
+                controlPoints.coeffs[x] += t[x + y * meshInfo.extent[0]];
+        }
+    }
+
+    //vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
+    //c[0].exportToDense(controlPoints.coeffs.data());
+
+    controlPoints.scale.resize(1);
+    controlPoints.scale[0] = meshInfo.scale[0];
+
+    controlPoints.offset.resize(1);
+    controlPoints.offset[0] = meshInfo.offset[0];
+
+    controlPoints.extent.resize(1);
+    controlPoints.extent[0] = meshInfo.extent[0];
     controlPoints.extent.push_back(meshInfo.count);
 }

@@ -151,7 +151,7 @@ public:
     void write(const Matrix& a, const string name, int grpid = 0);
 
     void read(MatrixSparse& a, const string name, int grpid = 0);
-    void write(const MatrixSparse& a, const string name, int grpid = 0);
+    int write(const MatrixSparse& a, const string name, int grpid = 0);
 
     vector<InfoGrpVar> get_Info(void) {return dataSetList_;};
 private:

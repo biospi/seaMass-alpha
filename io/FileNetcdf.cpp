@@ -282,7 +282,7 @@ void FileNetcdf::read(MatrixSparse& a, const string name, int grpid)
 }
 
 
-void FileNetcdf::write(const MatrixSparse& a, const string name, int grpid)
+int FileNetcdf::write(const MatrixSparse& a, const string name, int grpid)
 {
     int grpidMat = create_Group(name, grpid);
 
@@ -292,20 +292,17 @@ void FileNetcdf::write(const MatrixSparse& a, const string name, int grpid)
     vector<ii> n(1); n[0] = a.n();
     write_AttNC("", "n", n, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
 
+    vector<ii> rowind(a.nnz());
+    vector<ii> colind(a.nnz());
+    vector<fp> acoo(a.nnz());
     if (a.nnz() > 0)
-    {
-        vector<ii> rowind(a.nnz());
-        vector<ii> colind(a.nnz());
-        vector<fp> acoo(a.nnz());
         a.exportToCoo(rowind.data(), colind.data(), acoo.data());
 
-        if (acoo.size() > 0)
-        {
-            write_VecNC("i", rowind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-            write_VecNC("j", colind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-            write_VecNC("v", acoo, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpidMat);
-        }
-    }
+    write_VecNC("i", rowind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat, true);
+    write_VecNC("j", colind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat, true);
+    write_VecNC("v", acoo, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpidMat, true);
+
+    return grpidMat;
 }
 
 

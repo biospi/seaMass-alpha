@@ -367,34 +367,41 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
 
     if (createCsr(b.m(), b.n(), b.nnz()))
     {
-        a.sort();
-        b.sort();
-
-        IppStatus status = ippsCopy_32s(b.ijs_, ijs_, m_ + 1);
-        assert(!status);
-
-        status = ippsCopy_32s(b.js_, js_, nnz());
-        assert(!status);
-
-        for (ii i = 0; i < m_; i++)
+        if (a.nnz() > 0)
         {
-            ii a_nz = a.ijs_[i];
-            for (ii nz = ijs_[i]; nz < ijs1_[i]; nz++)
-            {
-                bool found = false;
-                for (; a_nz < a.ijs1_[i]; a_nz++)
-                {
-                    if (b.js_[nz] == a.js_[a_nz])
-                    {
-                        vs_[nz] = a.vs_[a_nz];
-                        found = true;
-                        break;
-                    }
-                }
+            a.sort();
+            b.sort();
 
-                if (!found)
-                    vs_[nz] = 0.0f;
+            IppStatus status = ippsCopy_32s(b.ijs_, ijs_, m_ + 1);
+            assert(!status);
+
+            status = ippsCopy_32s(b.js_, js_, nnz());
+            assert(!status);
+
+            for (ii i = 0; i < m_; i++)
+            {
+                ii a_nz = a.ijs_[i];
+                for (ii nz = ijs_[i]; nz < ijs1_[i]; nz++)
+                {
+                    bool found = false;
+                    for (; a_nz < a.ijs1_[i]; a_nz++)
+                    {
+                        if (b.js_[nz] == a.js_[a_nz])
+                        {
+                            vs_[nz] = a.vs_[a_nz];
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                        vs_[nz] = 0.0f;
+                }
             }
+        }
+        else
+        {
+            memset(vs_, 0, sizeof(fp) * nnz());
         }
 
         commitCsr(true);
@@ -707,30 +714,35 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
         {
             sparse_matrix_t t;
             sparse_status_t status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t);
-            assert(!status);
 
-            sparse_matrix_t y;
-            status = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
-            assert(!status);
+            // MKL will fail if output has zero non-zeros, if it does just pass this
+            if (status != SPARSE_STATUS_ALLOC_FAILED)
+            {
+                assert(!status);
 
-            status = mkl_sparse_destroy(t);
-            assert(!status);
+                sparse_matrix_t y;
+                status = mkl_sparse_s_add(SPARSE_OPERATION_NON_TRANSPOSE, mat_, 1.0, t, &y);
+                assert(!status);
 
-            empty();
-            mat_ = y;
+                status = mkl_sparse_destroy(t);
+                assert(!status);
 
-            commitMkl(false);
-        }
+                empty();
+                mat_ = y;
+
+                commitMkl(false);
+            }
+       }
     }
     else
     {
         if (createMkl(transposeA ? a.n() : a.m(), b.n(), a.nnz() > 0 && b.nnz() > 0))
         {
-             sparse_status_t status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &mat_);
-            assert(!status);
+            sparse_matrix_t t;
+            sparse_status_t status = mkl_sparse_spmm(transposeA ? SPARSE_OPERATION_TRANSPOSE : SPARSE_OPERATION_NON_TRANSPOSE, a.mat_, b.mat_, &t);
 
             // MKL will fail if output has zero non-zeros
-            /*if (status == SPARSE_STATUS_ALLOC_FAILED)
+            if (status == SPARSE_STATUS_ALLOC_FAILED)
             {
                 init(transposeA ? a.n() : a.m(), b.n());
             }
@@ -738,10 +750,9 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
             {
                 assert(!status);
 
+                mat_ = t;
                 commitMkl(false);
-            }*/
-
-            commitMkl(false);
+            }
         }
     }
 
@@ -1024,6 +1035,43 @@ void MatrixSparse::censorLeft(const MatrixSparse& a, fp threshold)
 }
 
 
+void MatrixSparse::censorRight(const MatrixSparse& a, fp threshold)
+{
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       censorRight(" << (this == &a ? "X" : "A") << a << ", ";
+        oss.unsetf(ios::floatfield);
+        oss << setprecision(8) << threshold << ") := ...";
+        info(oss.str());
+    }
+
+    if (this != &a && createCsr(a.m(), a.n(), a.nnz()))
+    {
+        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        assert(!status);
+
+        status = ippsCopy_32s(a.js_, js_, nnz());
+        assert(!status);
+    }
+
+    if (initCsr(nnz() > 0))
+    {
+        IppStatus status = ippsThreshold_GT_32f(a.vs_, vs_, nnz(), threshold);
+        assert(!status);
+
+        commitCsr(a.isSorted_);
+    }
+
+    if (getDebugLevel() % 10 >= 4)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       ... X" << *this;
+        info(oss.str(), this);
+    }
+}
+
+
 void MatrixSparse::addNonzeros(fp beta)
 {
     if (getDebugLevel() % 10 >= 4)
@@ -1180,7 +1228,7 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
         commitCsr(true);
     }
 
-    if (getDebugLevel() % 10 >= 3)
+    if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;

@@ -22,6 +22,7 @@
 
 #include "DatasetSeamass.hpp"
 #include <kernel.hpp>
+#include <iomanip>
 using namespace kernel;
 
 
@@ -52,7 +53,7 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
     if(finished_ == true)
         return false;
 
-    if (fileIn_->read_VarIDNC("countsIndex") != -1)
+    if (fileIn_->read_VarIDNC("counts") != -1)
         fileIn_->read_VecNC("counts", input.counts);
     else
         throw runtime_error("ERROR: 'counts' dataset not found in smb file");
@@ -152,6 +153,10 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
     vector<double> peakFwhm;
     fileIn_->read_AttNC("peakFwhm", NC_GLOBAL, peakFwhm, grpid);
     output.peakFwhm = peakFwhm[0];
+
+    vector<short> chargeStates;
+    fileIn_->read_AttNC("chargeStates", NC_GLOBAL, chargeStates, grpid);
+    output.chargeStates = chargeStates[0];
 
     {
         ii n = 0;
@@ -280,21 +285,33 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
     vector<double> peakFwhm(1); peakFwhm[0] = output.peakFwhm;
     fileOut_->write_AttNC("", "peakFwhm", peakFwhm, NC_DOUBLE, grpid);
 
-    for (ii k = 0; k < (ii)output.xs.size(); k++)
+    vector<short> chargeStates(1); chargeStates[0] = output.chargeStates;
+    fileOut_->write_AttNC("", "chargeStates", chargeStates, NC_SHORT, grpid);
+
+    for (ii k = 0; k < ii(output.xs.size()); k++)
     {
-        ostringstream oss; oss << "xs[" << k << "]";
-        fileOut_->write(output.xs[k], oss.str(), grpid);
+        ostringstream oss;
+        oss << setw(4) << setfill('0') << k << " X";
+        int grpidMat = fileOut_->write(output.xs[k], oss.str(), grpid);
+
+        fileOut_->write_AttNC("", "scale", output.gridInfos[k].scale, NC_BYTE, grpidMat);
+        fileOut_->write_AttNC("", "offset", output.gridInfos[k].offset, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        fileOut_->write_AttNC("", "extent", output.gridInfos[k].extent, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        vector<ii> count(1); count[0] = output.gridInfos[k].count;
+        fileOut_->write_AttNC("", "count", count, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
     }
 
-    for (ii k = 0; k < (ii)output.l2s.size(); k++)
+    for (ii k = 0; k < ii(output.l2s.size()); k++)
     {
-        ostringstream oss; oss << "l2s[" << k << "]";
+        ostringstream oss;
+        oss << setw(4) << setfill('0') << k << " L2";
         fileOut_->write(output.l2s[k], oss.str(), grpid);
     }
 
-    for (ii k = 0; k < (ii)output.l1l2s.size(); k++)
+    for (ii k = 0; k < ii(output.l1l2s.size()); k++)
     {
-        ostringstream oss; oss << "l1l2s[" << k << "]";
+        ostringstream oss;
+        oss << setw(4) << setfill('0') << k << " L1L2";
         fileOut_->write(output.l1l2s[k], oss.str(), grpid);
     }
 

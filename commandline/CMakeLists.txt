@@ -34,7 +34,7 @@ target_link_libraries (seamass LINK_PUBLIC
         )
 
 add_executable(seamass-restore
-		seamass-restore.hpp
+        seamass-restore.hpp
         seamass-restore.cpp
         )
 target_include_directories(seamass-restore PUBLIC
