@@ -56,7 +56,7 @@ BasisBsplineCharge::BasisBsplineCharge(std::vector<Basis*>& bases, ii parentInde
     // fill in b-spline grid info
     const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
     gridInfo() = parentGridInfo;
-    gridInfo().extent[1] += ii(hs.size() - 1);
+    gridInfo().colExtent[1] += ii(hs.size() - 1);
     
     if (getDebugLevel() % 10 >= 2)
     {
@@ -69,8 +69,8 @@ BasisBsplineCharge::BasisBsplineCharge(std::vector<Basis*>& bases, ii parentInde
     }
 
     // create A as a temporary COO matrix
-    ii m = parentGridInfo.extent[1];
-    ii n = gridInfo().extent[1];
+    ii m = parentGridInfo.colExtent[1];
+    ii n = gridInfo().colExtent[1];
     vector<ii> is;
     vector<ii> js;
     vector<fp> vs;

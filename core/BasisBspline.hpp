@@ -33,24 +33,29 @@ class BasisBspline : public Basis
 public:
     struct GridInfo
     {
-        char dimensions;         // dimension of each b-spline coefficients grid
-        std::vector<char> scale; // dyadic scale for each dimension
-        std::vector<ii> offset;  // coefficient offset for each dimension
-        std::vector<ii> extent;  // number of coefficients for each dimension (make up the columns)
-        ii count;                // number of grids
+        char rowDimensions() const;
+        std::vector<char> rowScale; // dyadic scale for each dimension
+        std::vector<ii> rowOffset;  // coefficient offset for each dimension
+        std::vector<ii> rowExtent;  // number of coefficients for each dimension
+
+        char colDimensions() const;
+        std::vector<char> colScale; // dyadic scale for each dimension
+        std::vector<ii> colOffset;  // coefficient offset for each dimension
+        std::vector<ii> colExtent;  // number of coefficients for each dimension
 
         GridInfo() {};
-        GridInfo(char dimensions_);
+        GridInfo(char rowDimensions, char colDimensions);
         ~GridInfo();
 
         ii m() const;           // number of rows in resulting matrix
         ii n() const;           // number of columns in resulting matrix
         li size() const;        // number of coefficients across all grids
 
-        void operator=(const GridInfo& gridInfo);
+        //void operator=(const GridInfo& gridInfo);
     };
 
-    BasisBspline(std::vector<Basis*>& bases, char dimensions, bool transient, int parentIndex = -1);
+    BasisBspline(std::vector<Basis*>& bases, char rowDimensions, char colDimensions,
+                 bool transient, int parentIndex = -1);
     virtual ~BasisBspline();
 
     const GridInfo& getGridInfo() const;

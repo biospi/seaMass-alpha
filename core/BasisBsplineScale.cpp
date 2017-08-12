@@ -29,8 +29,11 @@ using namespace kernel;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool transient, int order)
-    : BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions, transient, parentIndex), dimension_(dimension)
+BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool transient, int order) :
+        BasisBspline(bases,
+                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
+                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().colDimensions(),
+                     transient, parentIndex), dimension_(dimension)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -43,9 +46,9 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
 
     const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
     gridInfo() = parentGridInfo;
-    gridInfo().scale[dimension_] = parentGridInfo.scale[dimension_] - 1;
-    gridInfo().offset[dimension_] = parentGridInfo.offset[dimension_] / 2;
-    gridInfo().extent[dimension_] = (parentGridInfo.offset[dimension_] + parentGridInfo.extent[dimension_]) / 2 + 1 - gridInfo().offset[dimension_];
+    gridInfo().colScale[dimension_] = parentGridInfo.colScale[dimension_] - 1;
+    gridInfo().colOffset[dimension_] = parentGridInfo.colOffset[dimension_] / 2;
+    gridInfo().colExtent[dimension_] = (parentGridInfo.colOffset[dimension_] + parentGridInfo.colExtent[dimension_]) / 2 + 1 - gridInfo().colOffset[dimension_];
     
     if (getDebugLevel() % 10 >= 2)
     {
@@ -61,7 +64,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
     }
     
     ii stride = 1;
-    for (ii j = 0; j < dimension_; j++) stride *= gridInfo().extent[j];
+    for (ii j = 0; j < dimension_; j++) stride *= gridInfo().colExtent[j];
 
     // create our kernel
     ii nh = order + 2;
@@ -77,13 +80,13 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
         hs[i] /= (fp) sum;
 
     // create A as a temporary COO matrix
-    ii m = parentGridInfo.extent[dimension_];
-    ii n = gridInfo().extent[dimension_];
+    ii m = parentGridInfo.colExtent[dimension_];
+    ii n = gridInfo().colExtent[dimension_];
     vector<ii> is;
     vector<ii> js;
     vector<fp> vs;
 
-    ii offset = order + ((parentGridInfo.offset[dimension_] + 1) % 2);
+    ii offset = order + ((parentGridInfo.colOffset[dimension_] + 1) % 2);
     for (ii j = 0; j < n; j++)
     {
         for (ii k = 0; k < nh; k++)

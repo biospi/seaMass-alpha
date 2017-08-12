@@ -47,11 +47,14 @@ void convolution(vector<double>& x, const vector<double>& a, const vector<double
 }
 
 
-BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>& b, const std::vector<fp>& binCounts,
-                               const std::vector<li>& binCountsIndex_, const std::vector<double>& binEdges,
-                               char scale, short chargeStates, bool transient)
-        : BasisBspline(bases, chargeStates <= 1 ? 1 : 2, transient), bGridInfo_(1),
-          chargeDeconvolution_(chargeStates > 0), chargeStates_(chargeStates == 0 ? 1 : chargeStates)
+BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>& b,
+                               const std::vector<fp>& binCounts,
+                               const std::vector<li>& binCountsIndex_,
+                               const std::vector<double>& binEdges,
+                               char scale, short chargeStates, bool transient) :
+        BasisBspline(bases, 1, chargeStates <= 1 ? 1 : 2, transient),
+        bGridInfo_(1, 1),
+        chargeDeconvolution_(chargeStates > 0)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -66,8 +69,12 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         info(oss.str());
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // blur the input data by the B-spline kernel and place in 'b'
-    Bspline bspline(3, 65536); // bspline basis function lookup table
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // bspline basis function lookup table
+    Bspline bspline(3, 65536);
     {
         std::vector<li> binCountsIndex;
         std::vector<li> binEdgesIndex;
@@ -100,7 +107,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
             {
                 if (binCounts[binCountsIndex[k] + i] != 0)
                 {
-                    ii ei = binEdgesIndex[k] + i;
+                    li ei = binEdgesIndex[k] + i;
                     xDiff += log2(binEdges[ei + 1] - PROTON_MASS) - log2(binEdges[ei] - PROTON_MASS);
                     n++;
                 }
@@ -120,6 +127,14 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
                 info(oss.str());
             }
         }
+
+        bGridInfo_.rowScale[0] = numeric_limits<char>::min();
+        bGridInfo_.rowOffset[0] = 0;
+        bGridInfo_.rowExtent[0] = ii(binCountsIndex.size()) - 1;
+        bGridInfo_.colScale[0] = scale;
+        bGridInfo_.colOffset[0] = ii(floor(log2(mzMin - PROTON_MASS) * (1L << scale)));
+        bGridInfo_.colExtent[0] = (ii(ceil(log2(mzMax - PROTON_MASS) * (1L << scale)))) - bGridInfo_.colOffset[0] + 1;
+
         if (getDebugLevel() % 10 >= 2)
         {
             ostringstream oss;
@@ -129,17 +144,15 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
             oss2 << getTimeStamp() << "     charge_deconvolution=" << chargeDeconvolution_;
             info(oss2.str());
             ostringstream oss3;
-            oss3 << getTimeStamp() << "     charge_states=" << chargeStates_;
+            oss3 << getTimeStamp() << "     charge_states=" << chargeStates;
             info(oss3.str());
+            ostringstream oss4;
+            oss4 << getTimeStamp() << "     b_" << bGridInfo_;
+            info(oss4.str());
         }
 
-        bGridInfo_.count = ii(binCountsIndex.size()) - 1;
-        bGridInfo_.scale[0] = scale;
-        bGridInfo_.offset[0] = ii(floor(log2(mzMin - PROTON_MASS) * (1L << scale))) - 1;
-        bGridInfo_.extent[0] = (ii(ceil(log2(mzMax - PROTON_MASS) * (1L << scale))) + 1) - bGridInfo_.offset[0] + 1;
-
-        vector<MatrixSparse> bs(bGridInfo_.count);
-        for (ii k = 0; k < bGridInfo_.count; k++)
+        vector<MatrixSparse> bs(bGridInfo_.rowExtent[0]);
+        for (ii k = 0; k < bGridInfo_.rowExtent[0]; k++)
         {
             vector<ii> rowind;
             vector<ii> colind;
@@ -148,36 +161,38 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
             // create transformation matrix
             for (ii i = 0; i < binEdgesIndex[k + 1] - binEdgesIndex[k] - 1; i++)
             {
-                ii startNz = ii(acoo.size());
+                auto startNz = ii(acoo.size());
                 double rowSum = 0.0;
 
                 if (binCounts[binCountsIndex[k] + i] >= 0.0)
                 {
-                    ii ei = binEdgesIndex[k] + i;
+                    li ei = binEdgesIndex[k] + i;
                     double xfMin = log2(binEdges[ei] - PROTON_MASS) * (1L << scale);
                     double xfMax = log2(binEdges[ei + 1] - PROTON_MASS) * (1L << scale);
 
-                    ii xMin = ii(floor(xfMin)) - 1;
-                    ii xMax = ii(ceil(xfMax)) + 1;
+                    auto xMin = ii(floor(xfMin)) - 2;
+                    auto xMax = ii(ceil(xfMax)) + 2;
 
                     // work out basis coefficients
                     for (ii x = xMin; x <= xMax; x++)
                     {
-                        double bfMin = double(x - 2);
-                        double bfMax = double(x + 2);
+                        double bfMin = x - 1.5;
+                        double bfMax = x + 2.5;
 
                         // intersection of bin and basis, between 0.0 and 4.0
                         double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
                         double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
 
                         // basis coefficient b is _integral_ of area under b-spline basis
-                        fp bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
-                        if (bc > 0.0)
+                        auto bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+
+                        ii j = x - bGridInfo_.colOffset[0];
+                        if (j >= 0 && j < bGridInfo_.colExtent[0] && bc > 0.0)
                         {
                             rowSum += bc;
                             acoo.push_back(bc);
                             rowind.push_back(i);
-                            colind.push_back(x - bGridInfo_.offset[0]);
+                            colind.push_back(j);
                        }
                     }
                 }
@@ -192,11 +207,11 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
 
             // create b
             MatrixSparse a;
-            a.importFromCoo(binCountsIndex[k + 1] - binCountsIndex[k], bGridInfo_.n(), acoo.size(),
+            a.importFromCoo(ii(binCountsIndex[k + 1] - binCountsIndex[k]), bGridInfo_.n(), acoo.size(),
                             rowind.data(), colind.data(), acoo.data());
 
             Matrix t;
-            t.importFromArray(1, binCountsIndex[k + 1] - binCountsIndex[k], &binCounts.data()[binCountsIndex[k]]);
+            t.importFromArray(1, ii(binCountsIndex[k + 1] - binCountsIndex[k]), &binCounts.data()[binCountsIndex[k]]);
             MatrixSparse t2, t3;
             t2.importFromMatrix(t);
             t3.matmul(false, t2, a, false);
@@ -214,17 +229,27 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         }
     }
 
-    // create our kernel
-    vector<fp> hs(5);
-    gridInfo().count = bGridInfo_.count;
-    gridInfo().scale[0] = bGridInfo_.scale[0];
-    gridInfo().offset[0] = bGridInfo_.offset[0] - ii(hs.size() - 1) / 2;
-    gridInfo().extent[0] = (bGridInfo_.extent[0] + ii(hs.size() - 1)) + ii(log2(fp(chargeStates_)) * (1L << scale));
-    if (gridInfo().dimensions > 1)
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Set up 'A'
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    vector<double> hs(5);
+
+    gridInfo().rowScale[0] = bGridInfo_.rowScale[0];
+    gridInfo().rowOffset[0] = bGridInfo_.rowOffset[0];
+    gridInfo().rowExtent[0] = bGridInfo_.rowExtent[0];
+
+    gridInfo().colScale[gridInfo().colDimensions() - 1] = bGridInfo_.colScale[0];
+    gridInfo().colOffset[gridInfo().colDimensions() - 1] = bGridInfo_.colOffset[0] - ii(hs.size() - 1) / 2;
+    gridInfo().colExtent[gridInfo().colDimensions() - 1] = bGridInfo_.colExtent[0] + ii(hs.size() - 1);
+    //gridInfo().extent[0] = (bGridInfo_.extent[0] + ii(hs.size() - 1)) + ii(log2(fp(chargeStates_)) * (1L << scale));
+    cout << gridInfo().colOffset[gridInfo().colDimensions() - 1] << endl;
+
+    if (gridInfo().colDimensions() > 1)
     {
-        gridInfo().scale[1] = 0;
-        gridInfo().offset[1] = 0;
-        gridInfo().extent[1] = chargeStates_;
+        gridInfo().colScale[0] = numeric_limits<char>::min();
+        gridInfo().colOffset[0] = 0;
+        gridInfo().colExtent[0] = chargeStates;
     }
 
     if (getDebugLevel() % 10 >= 2)
@@ -232,23 +257,19 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         ostringstream oss;
         oss << getTimeStamp() << "     input=B" << b[0];
         info(oss.str());
-
-        /*for (ii k = 0; k < ii(hs.size()); k++)
-        {
-            ostringstream oss2;
-            oss2 << getTimeStamp() << "     kernel=" << hs[k];
-            info(oss2.str());
-        }*/
-
-        ostringstream oss3;
-        oss3 << getTimeStamp() << "     " << gridInfo();
-        info(oss3.str());
+        ostringstream oss2;
+        oss2 << getTimeStamp() << "     a_" << gridInfo();
+        info(oss2.str());
     }
 
-    // isotopes
-    double mz1 = pow(2.0, (gridInfo().offset[0] + gridInfo().extent[0]) / double(1L << scale)) + PROTON_MASS;
-    ii maxCarbons = ii(ceil(mz1 * 0.008));
-    cout << "maxCarbons=" << maxCarbons;
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // generate carbon isotope distributions
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    double extent = (bGridInfo_.colExtent[0] + ii(hs.size() - 1)) + ii(log2(fp(chargeStates)) * (1L << scale));
+    double mz1 = pow(2.0, (getGridInfo().colOffset[1] + extent) / double(1L << scale)) + PROTON_MASS;
+    auto maxCarbons = ii(ceil(mz1 * 0.03));
+    //cout << "maxCarbons=" << maxCarbons;
     vector< vector<double> > carbons(maxCarbons);
     carbons[0].resize(2);
     carbons[0][0] = 0.9893;
@@ -274,85 +295,103 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         }
     }
 
-    // create A as a temporary COO matrix
-    ii m = bGridInfo_.extent[0];
-    ii n = gridInfo().extent[0];
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Set up 'A'
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    aTs_.resize(chargeStates_);
-    as_.resize(chargeStates_);
-    for (short z = 0; z < chargeStates_; z++)
+    // work out zOffsets
+    zOffsets_.resize(getGridInfo().colExtent[0]);
+    vector<double> zFraction(getGridInfo().colExtent[0]);
+    for (short z = 0; z < getGridInfo().colExtent[0]; z++)
     {
-        aTs_[z].init(n, m);
-        fp iz = log2(fp(z + 1)) * (1L << scale);
+        double iz = log2(double(z + 1)) * (1L << scale);
+        double offset;
+        zFraction[z] = modf(iz, &offset);
+        zOffsets_[z] = ii(offset);
+    }
 
-        //for (ii c = 0; c < maxIsotopes; c++)
-        for (ii c = 0; c < 1; c++)
+    // create A as a temporary COO matrix
+    ii m = bGridInfo_.n();
+    ii n = gridInfo().n();
+    aT_.init(n, m);
+
+    vector<ii> is;
+    vector<ii> js;
+    vector<fp> vs;
+    for (short z = 0; z < getGridInfo().colExtent[0]; z++)
+    {
+        cout << "CHARGE STATE " << (z+1) << ", " << zOffsets_[z] << ", " << zFraction[z] << endl;
+
+        for (ii x = 0; x < getGridInfo().colExtent[1]; x++)
         {
-            cout << z << ":" << (c+1) << "/" << maxIsotopes << endl;
+            double y = getGridInfo().colOffset[1] + x + zOffsets_[z] + zFraction[z];
+            double mass0 = pow(2.0, y / (1L << scale));
+            double mz0 = pow(2.0, log2(mass0) - log2(double(z+1))) + PROTON_MASS;
 
-            vector<ii> is;
-            vector<ii> js;
-            vector<fp> vs;
-            for (ii j = 0; j < n; j++)
+            //double y = getGridInfo().colOffset[1] + x - zFraction[z];
+            //double mz0 = pow(2.0, y / (1L << scale)) + PROTON_MASS;
+            //double mass0 = pow(2.0, y / (1L << scale) + log2(double(z+1)));
+
+            //cout << (z+1) << " INDEX " << x << ", MZ " << fixed << mz0 << ", MASS " << fixed << mass0 << endl;
+
+            vector<double> feature(m, 0.0);
+            ii iMin = numeric_limits<ii>::max();
+            ii iMax = 0;
+            auto nCarbons = ii(ceil(mass0 * 0.03));
+            for (ii c = 0; c < ii(carbons[nCarbons - 1].size()); c++)
             {
-                double iMono = j - iz;
-                double mz0 = pow(2.0, (gridInfo().offset[0] + iMono + 0.5) / double(1L << scale)) + PROTON_MASS;
+                double mz = mz0 + c * 1.0033548378 / (z + 1);
+                //double mass1 = mass0 + c * 1.0033548378;
+                double _iIsotope = log2(mz - PROTON_MASS) * (1L << scale) - bGridInfo_.colOffset[0] - zFraction[z];
 
-                double mass0 = pow(2.0, (gridInfo().offset[0] + iMono + 0.5) / double(1L << scale) + log2(z+1));
-
-                ii nCarbons = ii(ceil(mass0 * 0.008));
-                if (c < carbons[nCarbons - 1].size())
+                double t;
+                double hc = modf(_iIsotope, &t);
+                auto iIsotope = ii(_iIsotope);
+                if (hc >= 0.5)
                 {
-                    //cout << z << ":" << mass0 << ":" << nCarbons << ":" << carbons[nCarbons - 1].size() << endl;
+                    iIsotope++;
+                    hc -= 1.0;
+                }
 
-                    double mz = mz0 + c * 1.0033548378 / (z + 1);
-                    double iIsotope = log2(mz - PROTON_MASS) * (1L << scale) - bGridInfo_.offset[0] - 0.5;
+                hs[0] = bspline.ibasis(0.5 - hc) - bspline.ibasis(0.0);
+                hs[1] = bspline.ibasis(1.5 - hc) - bspline.ibasis(0.5 - hc);
+                hs[2] = bspline.ibasis(2.5 - hc) - bspline.ibasis(1.5 - hc);
+                hs[3] = bspline.ibasis(3.5 - hc) - bspline.ibasis(2.5 - hc);
+                hs[4] = bspline.ibasis(4.0) - bspline.ibasis(3.5 - hc);
 
-                    double t;
-                    double hc = modf(iIsotope, &t);
-                    ii i0 = ii(iIsotope);
-                    if (hc >= 0.5)
+                for (ii k = 0; k < ii(hs.size()); k++)
+                {
+                    ii i = iIsotope + k - ii(hs.size() - 1) / 2;
+
+                    if (i >= 0 && i < m && hs[k] > 0.0)
                     {
-                        i0++;
-                        hc -= 1.0;
-                    }
+                        iMin = iMin < i ? iMin : i;
+                        iMax = iMax > i ? iMax : i;
 
-                    hs[0] = bspline.ibasis(0.5 - hc) - bspline.ibasis(0.0);
-                    hs[1] = bspline.ibasis(1.5 - hc) - bspline.ibasis(0.5 - hc);
-                    hs[2] = bspline.ibasis(2.5 - hc) - bspline.ibasis(1.5 - hc);
-                    hs[3] = bspline.ibasis(3.5 - hc) - bspline.ibasis(2.5 - hc);
-                    hs[4] = bspline.ibasis(4.0) - bspline.ibasis(3.5 - hc);
-
-                    for (ii k = 0; k < ii(hs.size()); k++)
-                    {
-                        ii i = i0 + k - ii(hs.size() - 1) / 2;
-
-                        if (i >= 0 && i < m && hs[k] > 0.0)
-                        {
-                            is.push_back(i);
-                            js.push_back(j);
-                            //vs.push_back(hs[k] * carbons[nCarbons - 1][c]);
-                            vs.push_back(hs[k]);
-                        }
+                        feature[i] += hs[k] * carbons[nCarbons - 1][c];
                     }
                 }
             }
 
-            // add to A
-            MatrixSparse a;
-            a.importFromCoo(n, m, vs.size(), js.data(), is.data(), vs.data());
-
-            MatrixSparse t;
-            t.add(1.0, false, a, aTs_[z]);
-            aTs_[z].swap(t);
-        }
-
-        //ostringstream oss; oss << z << ".coo";
-        //FileNetcdf fileOut(oss.str(), NC_NETCDF4);
-        //fileOut.write(aTs_[z], "At");
-
-        as_[z].transpose(aTs_[z]);
+            for (ii i = iMin; i <= iMax; i++)
+            {
+                if (feature[i] > 0.0)
+                {
+                    is.push_back(i);
+                    js.push_back(x + z * getGridInfo().colExtent[1]);
+                    vs.push_back(feature[i]);
+                }
+            }
+       }
     }
+
+    aT_.importFromCoo(n, m, vs.size(), js.data(), is.data(), vs.data());
+    a_.transpose(aT_);
+
+    //cout << aT_ << endl;
+
+    //FileNetcdf fileOut("BasisBsplineMz.coo", NC_NETCDF4);
+    //fileOut.write(aT_, "At");
 }
 
 
@@ -375,29 +414,24 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
     if (!f.size())
         f.resize(1);
 
-    for (short c = 0; c < chargeStates_; c++)
+    // zero basis functions that are no longer needed
+    /*MatrixSparse t;
+    ii rowsPruned = t.pruneRows(aT_, x[0], false, 0.75);
+    if (rowsPruned > 0)
     {
-        MatrixSparseView row(x[0], c);
+        aT_.swap(t);
+        a_.transpose(aT_);
 
-        // zero basis functions that are no longer needed
-        /*MatrixSparse t;
-        ii rowsPruned = t.pruneRows(aT_, x[0], false, 0.75);
-        if (rowsPruned > 0)
+        if (getDebugLevel() % 10 >= 3)
         {
-            aT_.swap(t);
-            a_.transpose(aT_);
+            ostringstream oss;
+            oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
+            info(oss.str());
+        }
+    }*/
 
-            if (getDebugLevel() % 10 >= 3)
-            {
-                ostringstream oss;
-                oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
-                info(oss.str());
-            }
-        }*/
-
-        // synthesise
-        f[0].matmul(false, row, aTs_[c], (accumulate || c > 0) ? true : false);
-    }
+    // synthesise
+    f[0].matmul(false, x[0], aT_, accumulate);
 
     if (getDebugLevel() % 10 >= 3)
     {
@@ -417,24 +451,19 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
         info(oss.str());
     }
 
-    vector<MatrixSparse> xEs(chargeStates_);
-    for (short c = 0; c < chargeStates_; c++)
+    if (!xE.size())
+        xE.resize(1);
+
+    if (sqrA)
     {
-        if (sqrA)
-        {
-            MatrixSparse t;
-            t.sqr(as_[c]);
-
-            xEs[c].matmul(false, fE[0], t, false);
-        }
-        else
-        {
-            xEs[c].matmul(false, fE[0], as_[c], false);
-        }
+        MatrixSparse t;
+        t.sqr(a_);
+        xE[0].matmul(false, fE[0], t, false);
     }
-
-    xE.resize(1);
-    xE[0].concatenateRows(xEs);
+    else
+    {
+        xE[0].matmul(false, fE[0], a_, false);
+    }
 
     if (getDebugLevel() % 10 >= 3)
     {

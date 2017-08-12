@@ -31,7 +31,9 @@ using namespace kernel;
 
 
 BasisBsplinePeak::BasisBsplinePeak(std::vector<Basis*>& bases, int parentIndex, double fwhm, bool transient) :
-        BasisBspline(bases, static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().dimensions,
+        BasisBspline(bases,
+                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
+                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().colDimensions(),
                      transient, parentIndex)
 {
     if (getDebugLevel() % 10 >= 2)
@@ -68,8 +70,8 @@ BasisBsplinePeak::BasisBsplinePeak(std::vector<Basis*>& bases, int parentIndex, 
 
     const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
     gridInfo() = parentGridInfo;
-    gridInfo().offset[0] = parentGridInfo.offset[0] - (nh/2);
-    gridInfo().extent[0] = parentGridInfo.extent[0] + 2 * (nh/2);
+    gridInfo().colOffset[0] = parentGridInfo.colOffset[0] - (nh/2);
+    gridInfo().colExtent[0] = parentGridInfo.colExtent[0] + 2 * (nh/2);
 
     if (getDebugLevel() % 10 >= 2)
     {
@@ -90,8 +92,8 @@ BasisBsplinePeak::BasisBsplinePeak(std::vector<Basis*>& bases, int parentIndex, 
     }
 
     // create A as a temporary COO matrix
-    ii m = parentGridInfo.extent[0];
-    ii n = gridInfo().extent[0];
+    ii m = parentGridInfo.colExtent[0];
+    ii n = gridInfo().colExtent[0];
     vector<ii> is;
     vector<ii> js;
     vector<fp> vs;

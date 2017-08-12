@@ -74,14 +74,14 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     
     // fill in b-spline grid info
     const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
-    gridInfo().count = 1;
-    gridInfo().scale[0] = parentGridInfo.scale[0];
-    gridInfo().offset[0] = parentGridInfo.offset[0];
-    gridInfo().extent[0] = parentGridInfo.extent[0];
-    gridInfo().scale[1] = scale;
-    gridInfo().offset[1] = ii(floor(scantimeMin * (1L << scale))) - 1;
-    gridInfo().extent[1] = (ii(ceil(scantimeMax * (1L << scale))) + 1)
-                           - gridInfo().offset[1] + 1;
+    //gridInfo().count = 1;
+    gridInfo().colScale[0] = parentGridInfo.colScale[0];
+    gridInfo().colOffset[0] = parentGridInfo.colOffset[0];
+    gridInfo().colExtent[0] = parentGridInfo.colExtent[0];
+    gridInfo().colScale[1] = scale;
+    gridInfo().colOffset[1] = ii(floor(scantimeMin * (1L << scale))) - 1;
+    gridInfo().colExtent[1] = (ii(ceil(scantimeMax * (1L << scale))) + 1)
+                           - gridInfo().colOffset[1] + 1;
     
     if (getDebugLevel() % 10 >= 2)
     {
@@ -127,7 +127,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
             {
                 acoo.push_back(b);
                 rowind.push_back(i);
-                colind.push_back(x - gridInfo().offset[1]);
+                colind.push_back(x - gridInfo().colOffset[1]);
             }
        }
     }

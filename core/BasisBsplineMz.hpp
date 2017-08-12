@@ -46,10 +46,10 @@ public:
 private:
     GridInfo bGridInfo_;
     bool chargeDeconvolution_;
-    short chargeStates_;
 
-    std::vector<MatrixSparse> aTs_;
-    std::vector<MatrixSparse> as_;
+    MatrixSparse aT_;
+    MatrixSparse a_;
+    std::vector<ii> zOffsets_;
 };
 
 

@@ -121,14 +121,23 @@ void Seamass::init(Input& input, const std::vector<char>& scales, short chargeSt
         dimensions_ = 1;
 
         BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex,
-                                                    input.locations, scales[0], chargeStates, true);
+                                                    input.locations, scales[0], chargeStates, false);
 
         //if (peakFwhm_ > 0.0)
         //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
 
-        Basis* previousBasis = new BasisBsplineCharge(bases_, bases_.back()->getIndex(), false);
 
-        for (ii i = 0; static_cast<BasisBspline*>(
+        /*for (ii i = 0; static_cast<BasisBspline*>(
+                               bases_.back())->getGridInfo().colScale[0] > basisMz->getBGridInfo().colScale[0] - 5; i++)
+        {
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, false);
+        }*/
+
+
+        /*
+         *         Basis* previousBasis = new BasisBsplineCharge(bases_, bases_.back()->getIndex(), false);
+
+         for (ii i = 0; static_cast<BasisBspline*>(
                                bases_.back())->getGridInfo().scale[0] > basisMz->getBGridInfo().scale[0] - 5; i++)
         {
             if (i > 0)
@@ -136,7 +145,7 @@ void Seamass::init(Input& input, const std::vector<char>& scales, short chargeSt
 
             while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] >= 4)
                  new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
-        }
+        }*/
     }
     else
     {
@@ -148,12 +157,12 @@ void Seamass::init(Input& input, const std::vector<char>& scales, short chargeSt
         Basis* previousBasis = new BasisBsplineCharge(bases_, bases_.back()->getIndex(), false);
 
         for (ii i = 0; static_cast<BasisBspline*>(
-                               bases_.back())->getGridInfo().scale[0] > basisMz->getBGridInfo().scale[0] - 5; i++)
+                               bases_.back())->getGridInfo().colScale[0] > basisMz->getBGridInfo().colScale[0] - 5; i++)
         {
             if (i > 0)
                 previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, false);
 
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] >= 4)
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().colExtent[1] >= 4)
                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
         }
 
@@ -304,7 +313,7 @@ void Seamass::getOutput(Output& output, bool synthesize) const
     output = Output();
 
     const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
-    output.scale = meshInfo.scale;
+    output.scale = meshInfo.colScale;
 
     output.shrinkage = lambdaStart_;
     output.tolerance = tolerance_;
@@ -434,7 +443,7 @@ void Seamass::getInput(Input &input, bool reconstruct) const
 
         for (ii j = 0; j <= meshInfo.n(); j++)
         {
-            double mz = pow(2.0, (meshInfo.offset[0] + j - 0.5) / double(1L << meshInfo.scale[0])) +
+            double mz = pow(2.0, (meshInfo.colOffset[0] + j) / double(1L << meshInfo.colScale[0])) +
                         BasisBsplineMz::PROTON_MASS;
             input.locations[i * (meshInfo.n() + 1) + j] = mz;
         }
@@ -463,9 +472,9 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvol
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
     c[0].exportToDense(controlPoints.coeffs.data());
 
-    controlPoints.scale = meshInfo.scale;
-    controlPoints.offset = meshInfo.offset;
-    controlPoints.extent = meshInfo.extent;
+    controlPoints.scale = meshInfo.colScale;
+    controlPoints.offset = meshInfo.colOffset;
+    controlPoints.extent = meshInfo.colExtent;
 }
 
 
@@ -491,9 +500,9 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
     {
         for (ii nz = 0; nz < c[0].nnz(); nz++)
         {
-            double mz0 = pow(2.0, (meshInfo.offset[0] + c[0].js_[nz] - 0.5) / double(1L << meshInfo.scale[0])) +
+            double mz0 = pow(2.0, (meshInfo.colOffset[0] + c[0].js_[nz] - 0.5) / double(1L << meshInfo.colScale[0])) +
                          BasisBsplineMz::PROTON_MASS;
-            double mz1 = pow(2.0, (meshInfo.offset[0] + c[0].js_[nz] + 0.5) / double(1L << meshInfo.scale[0])) +
+            double mz1 = pow(2.0, (meshInfo.colOffset[0] + c[0].js_[nz] + 0.5) / double(1L << meshInfo.colScale[0])) +
                          BasisBsplineMz::PROTON_MASS;
 
             c[0].vs_[nz] /= mz1 - mz0;
@@ -501,15 +510,15 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
     }
 
     // sum across charge states
-    vector<fp>(meshInfo.extent[0], 0.0f).swap(controlPoints.coeffs);
+    vector<fp>(meshInfo.colExtent[0], 0.0f).swap(controlPoints.coeffs);
     {
         vector<fp> t(meshInfo.size());
         c[0].exportToDense(t.data());
 
-        for (ii y = 0; y < meshInfo.extent[1]; y++)
+        for (ii y = 0; y < meshInfo.colExtent[1]; y++)
         {
-            for (ii x = 0; x < meshInfo.extent[0]; x++)
-                controlPoints.coeffs[x] += t[x + y * meshInfo.extent[0]];
+            for (ii x = 0; x < meshInfo.colExtent[0]; x++)
+                controlPoints.coeffs[x] += t[x + y * meshInfo.colExtent[0]];
         }
     }
 
@@ -517,12 +526,12 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
     //c[0].exportToDense(controlPoints.coeffs.data());
 
     controlPoints.scale.resize(1);
-    controlPoints.scale[0] = meshInfo.scale[0];
+    controlPoints.scale[0] = meshInfo.colScale[0];
 
     controlPoints.offset.resize(1);
-    controlPoints.offset[0] = meshInfo.offset[0];
+    controlPoints.offset[0] = meshInfo.colOffset[0];
 
     controlPoints.extent.resize(1);
-    controlPoints.extent[0] = meshInfo.extent[0];
-    controlPoints.extent.push_back(meshInfo.count);
+    controlPoints.extent[0] = meshInfo.colExtent[0];
+    //controlPoints.extent.push_back(meshInfo.count);
 }

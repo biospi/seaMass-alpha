@@ -294,11 +294,14 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
         oss << setw(4) << setfill('0') << k << " X";
         int grpidMat = fileOut_->write(output.xs[k], oss.str(), grpid);
 
-        fileOut_->write_AttNC("", "scale", output.gridInfos[k].scale, NC_BYTE, grpidMat);
-        fileOut_->write_AttNC("", "offset", output.gridInfos[k].offset, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        fileOut_->write_AttNC("", "extent", output.gridInfos[k].extent, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        vector<ii> count(1); count[0] = output.gridInfos[k].count;
-        fileOut_->write_AttNC("", "count", count, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        fileOut_->write_AttNC("", "gridInfo.rowScale", output.gridInfos[k].rowScale, NC_BYTE, grpidMat);
+        fileOut_->write_AttNC("", "gridInfo.rowOffset", output.gridInfos[k].rowOffset, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        fileOut_->write_AttNC("", "gridInfo.rowExtent", output.gridInfos[k].rowExtent, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        fileOut_->write_AttNC("", "gridInfo.colScale", output.gridInfos[k].colScale, NC_BYTE, grpidMat);
+        fileOut_->write_AttNC("", "gridInfo.colOffset", output.gridInfos[k].colOffset, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        fileOut_->write_AttNC("", "gridInfo.colExtent", output.gridInfos[k].colExtent, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        //vector<ii> count(1); count[0] = output.gridInfos[k].count;
+        //fileOut_->write_AttNC("", "count", count, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
     }
 
     for (ii k = 0; k < ii(output.l2s.size()); k++)
