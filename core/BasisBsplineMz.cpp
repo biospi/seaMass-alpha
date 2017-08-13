@@ -266,6 +266,8 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
     // generate carbon isotope distributions
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    double carbonStart = getElapsedTime();
+
     double extent = (bGridInfo_.colExtent[0] + ii(hs.size() - 1)) + ii(log2(fp(chargeStates)) * (1L << scale));
     double mz1 = pow(2.0, (getGridInfo().colOffset[1] + extent) / double(1L << scale)) + PROTON_MASS;
     auto maxCarbons = ii(ceil(mz1 * 0.03));
@@ -275,8 +277,8 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
     carbons[0][0] = 0.9893;
     carbons[0][1] = 0.0107;
 
-    for (ii i = 1; i < ii(carbons.size()); i++)
-        convolution(carbons[i], carbons[i - 1], carbons[0]);
+    for (ii i = 0; i < ii(carbons.size()) - 1; i++)
+        convolution(carbons[i+1], carbons[i/2], carbons[i-i/2]);
 
     ii maxIsotopes = 0;
     for (ii i = 1; i < ii(carbons.size()); i++)
@@ -295,19 +297,24 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         }
     }
 
+    double carbonDuration = getElapsedTime() - carbonStart;
+    cout << "carbonDuration=" << fixed << carbonDuration << endl;
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Set up 'A'
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    double distributionStart = getElapsedTime();
+
     // work out zOffsets
-    zOffsets_.resize(getGridInfo().colExtent[0]);
-    vector<double> zFraction(getGridInfo().colExtent[0]);
+    //zOffsets_.resize(getGridInfo().colExtent[0]);
+    vector<double> zOffsets(getGridInfo().colExtent[0]);
+    vector<double> zFractions(getGridInfo().colExtent[0]);
     for (short z = 0; z < getGridInfo().colExtent[0]; z++)
     {
-        double iz = log2(double(z + 1)) * (1L << scale);
-        double offset;
-        zFraction[z] = modf(iz, &offset);
-        zOffsets_[z] = ii(offset);
+        zOffsets[z] = log2(double(z + 1)) * (1L << scale);
+        double t;
+        zFractions[z] = modf(zOffsets[z], &t);
     }
 
     // create A as a temporary COO matrix
@@ -320,30 +327,22 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
     vector<fp> vs;
     for (short z = 0; z < getGridInfo().colExtent[0]; z++)
     {
-        cout << "CHARGE STATE " << (z+1) << ", " << zOffsets_[z] << ", " << zFraction[z] << endl;
+        cout << "CHARGE STATE " << (z+1) << endl;
 
         for (ii x = 0; x < getGridInfo().colExtent[1]; x++)
         {
-            double y = getGridInfo().colOffset[1] + x + zOffsets_[z] + zFraction[z];
-            double mass0 = pow(2.0, y / (1L << scale));
-            double mz0 = pow(2.0, log2(mass0) - log2(double(z+1))) + PROTON_MASS;
-
-            //double y = getGridInfo().colOffset[1] + x - zFraction[z];
-            //double mz0 = pow(2.0, y / (1L << scale)) + PROTON_MASS;
-            //double mass0 = pow(2.0, y / (1L << scale) + log2(double(z+1)));
-
-            //cout << (z+1) << " INDEX " << x << ", MZ " << fixed << mz0 << ", MASS " << fixed << mass0 << endl;
+            double y = getGridInfo().colOffset[1] + x;
+            double mz0 = pow(2.0, y / (1L << scale)) + PROTON_MASS;
 
             vector<double> feature(m, 0.0);
             ii iMin = numeric_limits<ii>::max();
             ii iMax = 0;
-            auto nCarbons = ii(ceil(mass0 * 0.03));
+            auto nCarbons = ii(ceil(pow(2.0, (y + zOffsets[z]) / (1L << scale)) * 0.03));
             for (ii c = 0; c < ii(carbons[nCarbons - 1].size()); c++)
             {
                 double mz = mz0 + c * 1.0033548378 / (z + 1);
-                //double mass1 = mass0 + c * 1.0033548378;
-                double _iIsotope = log2(mz - PROTON_MASS) * (1L << scale) - bGridInfo_.colOffset[0] - zFraction[z];
 
+                double _iIsotope = log2(mz - PROTON_MASS) * (1L << scale) - bGridInfo_.colOffset[0] - zFractions[z];
                 double t;
                 double hc = modf(_iIsotope, &t);
                 auto iIsotope = ii(_iIsotope);
@@ -387,6 +386,11 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
 
     aT_.importFromCoo(n, m, vs.size(), js.data(), is.data(), vs.data());
     a_.transpose(aT_);
+
+    double distributionDuration = getElapsedTime() - distributionStart;
+    cout << "distributionDuration=" << fixed << distributionDuration << endl;
+
+    //exit(0);
 
     //cout << aT_ << endl;
 

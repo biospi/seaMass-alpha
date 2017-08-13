@@ -49,7 +49,7 @@ private:
 
     MatrixSparse aT_;
     MatrixSparse a_;
-    std::vector<ii> zOffsets_;
+    //std::vector<ii> zOffsets_;
 };
 
 
