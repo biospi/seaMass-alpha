@@ -50,18 +50,64 @@ struct InfoGrpVar
 class FileNetcdf
 {
 public:
-    FileNetcdf(void) : fileStatus_(false), ncid_(0),retval_(0){};
-    FileNetcdf(const string _fileName, int omode = NC_NOWRITE);
-    void open(const string _fileName, int omode = NC_NOWRITE);
-    void close(void);
+    FileNetcdf();
+    FileNetcdf(const string& filename, int omode = NC_NOWRITE);
     ~FileNetcdf();
 
-    template<typename T>
-    void read_VecNC(const string dataSet, vector<T> &vecData, int grpid = 0);
-    template<typename T>
-    void read_VecNC(const string dataSet, T *vecData, int grpid = 0);
+    void open(const string& filename, int omode = NC_NOWRITE);
+    void close(void);
 
-    int read_VarIDNC(const string dataSet, int grpid = 0);
+    bool exists(const string& variable, int parentId = 0);
+
+    int createGroup(const string& name, int parentId = 0);
+    int openGroup(const string& name, int parentId = 0);
+
+    void readExtent(vector<size_t>& extent, const string& name, int parentId = 0);
+    size_t readSize(const string& name, int parentId = 0);
+
+    template<typename T>
+    void readAttribute(vector<T>& data, const string& name, const string& dataset, int parentId = 0);
+    template<typename T>
+    void writeAttribute(const vector<T> &data, const string& attribute, const string& dataset,
+                        int parentId = 0);
+
+    template<typename T>
+    T readAttribute(const string& name, const string& dataset, int parentId = 0);
+    template<typename T>
+    void writeAttribute(T data, const string& attribute, const string& dataset, int parentId = 0);
+
+    template<typename T>
+    void readVector(T* data, const string& dataset, int parentId = 0);
+    template<typename T>
+    void writeVector(const T* data, size_t length, const string& dataset,
+                     int parentId = 0, size_t chunkExtent = 1048576, int deflateLevel = 4);
+
+    template<typename T>
+    void readVector(vector<T> &data, const string& dataset, int parentId = 0);
+    template<typename T>
+    void writeVector(const vector<T>& data, const string& dataset,
+                     int parentId = 0, size_t chunkExtent = 1048576, int deflateLevel = 4);
+
+    void readMatrix(Matrix &a, const string& name, int grpid = 0);
+    void writeMatrix(const Matrix &a, const string& name, int parentId = 0);
+
+    int readMatrixSparseCoo(MatrixSparse &a, const string& name, int parentId = 0);
+    int writeMatrixSparseCoo(const MatrixSparse &a, const string& name, int parentId = 0);
+
+    int readMatrixSparseCsr(MatrixSparse &a, const string& dataset, int parentId = 0);
+    int writeMatrixSparseCsr(const MatrixSparse &a, const string& name, int parentId = 0);
+
+
+    // make clearer?
+
+    int searchGroup(const string dataSet, int parentId = 0);
+
+
+    // deprecate?
+
+    template<typename T>
+    T searchGroup(size_t level, int parentId = 0);
+
 
     template<typename T>
     void read_MatNC(const string dataSet, VecMat<T> &vm, int grpid = 0);
@@ -71,11 +117,7 @@ public:
     void read_MatNC(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
     template<typename T>
     void read_MatNCT(const string dataSet, vector<vector<T> > &vm, int grpid = 0);
-    template<typename T>
-    vector<size_t> read_DimNC(const string dataSet, int grpid = 0);
-    template<typename T>
-    void read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid = 0);
-    vector<size_t> read_DimNC(const string dataSet, int grpid = 0);
+
 
     template<typename T>
     void read_HypVecNC(const string dataSet, vector<T> &vm,
@@ -84,23 +126,9 @@ public:
     void read_HypMatNC(const string dataSet, VecMat<T> &vm,
             size_t *rcIdx, size_t *len, int grpid = 0);
 
-    int create_Group(const string name, int grpid = 0);
-    int open_Group(const string name, int grpid = 0);
 
-    int search_Group(const string dataSet, int grpid = 0);
-    template<typename T>
-    T search_Group(size_t level, int grpid = 0);
 
-    template<typename T>
-    int write_VecNC(const string dataSet, const vector<T> &vec, nc_type xtype,
-            int grpid = 0, bool unlim = false,
-            size_t chunks = 1048576, int deflate_level = 4,
-            int shuffle = NC_SHUFFLE);
-    template<typename T>
-    int write_VecNC(const string dataSet, const T *vec, size_t len, nc_type xtype,
-            int grpid = 0, bool unlim = false,
-            size_t chunks = 1048576, int deflate_level = 4,
-            int shuffle = NC_SHUFFLE);
+
     template<typename T>
     int write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type xtype,
             int grpid = 0, const string rowY="", const string colX="",
@@ -114,9 +142,6 @@ public:
                     int grpid = 0,
                     size_t chunk = 1048576, int deflate_level = 4,
                     int shuffle = NC_SHUFFLE);
-    template<typename T>
-    void write_AttNC(const string dataSet, const string attName,
-                     const vector<T> &attVal, nc_type xtype, int grpid = 0);
 
     template<typename T>
     void write_DefHypVecNC(const string dataSet, nc_type xtype, int grpid = 0,
@@ -147,20 +172,19 @@ public:
     void write_PutHypMatNC(const string dataSet, const T *vm,
         size_t rcIdx[2], size_t len[2], int grpid = 0);
 
-    void read(Matrix& a, const string name, int grpid = 0);
-    void write(const Matrix& a, const string name, int grpid = 0);
-
-    void read(MatrixSparse& a, const string name, int grpid = 0);
-    int write(const MatrixSparse& a, const string name, int grpid = 0);
-
     vector<InfoGrpVar> get_Info(void) {return dataSetList_;};
+
 private:
-    string fileName_;
+    template<typename T>
+    int getType() const;
+
+    void err(int e);
+
+    string filename_;
     bool fileStatus_;
     int ncid_;
     int retval_;
     vector<InfoGrpVar> dataSetList_;
-    void err(int e);
 };
 
 

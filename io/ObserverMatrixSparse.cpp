@@ -50,7 +50,7 @@ void ObserverMatrixSparse::notice(const std::string& message, const MatrixSparse
 
         {
             FileNetcdf file(oss.str(), NC_NETCDF4);
-            file.write(*a, "a");
+            file.writeMatrixSparseCoo(*a, "a");
         }
 
         for (ii nz = 0; nz < a->nnz(); nz++)
@@ -78,7 +78,7 @@ void ObserverMatrixSparse::warning(const std::string& message, const MatrixSpars
         oss << setw(8) << setfill('0') << id << ".coo";
         FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.write(*a, "a");
+        file.writeMatrixSparseCoo(*a, "a");
     }
 }
 
@@ -96,6 +96,6 @@ void ObserverMatrixSparse::error(const std::string& message, const MatrixSparse*
         oss << setw(8) << setfill('0') << id << ".coo";
         FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.write(*a, "a");
+        file.writeMatrixSparseCoo(*a, "a");
     }
 }

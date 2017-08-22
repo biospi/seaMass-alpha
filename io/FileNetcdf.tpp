@@ -25,90 +25,181 @@
 
 #include "FileNetcdf.hpp"
 #include <sstream>
+#include <typeinfo>
 
 
 template<typename T>
-void FileNetcdf::read_VecNC(const string dataSet, vector<T> &vecData, int grpid)
+void FileNetcdf::readAttribute(vector<T>& data, const string& name, const string& dataset, int parentId)
 {
-    if(grpid == 0) grpid = ncid_;
+    if(parentId == 0)
+        parentId = ncid_;
 
     int varid;
-    int ndim;
-    vector<int> dimid;
-    vector<size_t> dimSize;
-    size_t N=1;
-    nc_type typId;
-
-    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-        err(retval_);
-
-    if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
-        err(retval_);
-
-    if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
-        err(retval_);
-
-    dimid.resize(ndim);
-    dimSize.resize(ndim);
-
-    if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-        err(retval_);
-
-    for(int i = 0; i < ndim; ++i)
+    if (dataset == "")
     {
-        if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+        varid = NC_GLOBAL;
+    }
+    else
+    {
+        if((retval_ = nc_inq_varid(parentId, dataset.c_str(), &varid)) != NC_NOERR)
             err(retval_);
     }
 
-    for(int i = 0; i < ndim; ++i)
-        N*=dimSize[i];
+    nc_type xtype;
+    size_t len;
+    if((retval_ = nc_inq_att(parentId, varid, name.c_str(), &xtype, &len)) != NC_NOERR)
+        err(retval_);
 
-    vecData.resize(N);
+    data.resize(len);
 
-    if (( retval_ = nc_get_var(grpid, varid, &vecData[0]) ))
+    if((retval_ =  nc_get_att(parentId, varid, name.c_str(), data.data())) != NC_NOERR)
         err(retval_);
 }
 
+
 template<typename T>
-void FileNetcdf::read_VecNC(const string dataSet, T *vecData, int grpid)
+void FileNetcdf::writeAttribute(const vector<T>& data, const string& attribute, const string& dataset,
+                                int parentId)
 {
-    if(grpid == 0) grpid = ncid_;
+    if(parentId == 0)
+        parentId = ncid_;
 
     int varid;
-    int ndim;
-    vector<int> dimid;
-    vector<size_t> dimSize;
-    size_t N=1;
-    nc_type typId;
-
-    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-        err(retval_);
-
-    if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
-        err(retval_);
-
-    if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
-        err(retval_);
-
-    dimid.resize(ndim);
-    dimSize.resize(ndim);
-
-    if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-        err(retval_);
-
-    for(int i = 0; i < ndim; ++i)
+    if (dataset == "")
     {
-        if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+        varid = NC_GLOBAL;
+    }
+    else
+    {
+        if((retval_ = nc_inq_varid(parentId, dataset.c_str(), &varid)) != NC_NOERR)
             err(retval_);
     }
 
-    for(int i = 0; i < ndim; ++i)
+    if((retval_ = nc_put_att(parentId, varid, attribute.c_str(), getType<T>(), data.size(), data.data())) != NC_NOERR)
+        err(retval_);
+}
+
+
+template<typename T>
+T FileNetcdf::readAttribute(const string& name, const string& dataset, int parentId)
+{
+    vector<T> data;
+    readAttribute(data, name, dataset, parentId);
+    return data[0];
+}
+
+
+template<typename T>
+void FileNetcdf::writeAttribute(T value, const string& attribute, const string& dataset, int parentId)
+{
+    vector<T> data(1);
+    data[0] = value;
+    writeAttribute(data, attribute, dataset, parentId);
+}
+
+
+template<typename T>
+void FileNetcdf::readVector(T* data, const string& dataset, int parentId)
+{
+    if(parentId == 0)
+        parentId = ncid_;
+
+    //size_t N=1;
+
+    int varId;
+    if ((retval_ = nc_inq_varid(parentId, dataset.c_str(), &varId)) != NC_NOERR)
+        err(retval_);
+
+    /*nc_type typeId;
+    if ((retval_ = nc_inq_vartype(parentId, varId, &typeId)) != NC_NOERR)
+        err(retval_);
+
+    int dimensions;
+    if ((retval_ = nc_inq_varndims(parentId, varId, &dimensions)) != NC_NOERR)
+        err(retval_);
+
+    vector<int> dimid(dimensions);
+    vector<size_t> dimSize(dimensions);
+
+    /*if((retval_ = nc_inq_vardimid(parentId, varId, &dimid[0]) ))
+        err(retval_);
+
+    for (int i = 0; i < dimensions; ++i)
+    {
+        if ((retval_ = nc_inq_dimlen(parentId, dimid[i], &dimSize[i]) ))
+            err(retval_);
+    }
+
+    for(int i = 0; i < dimensions; ++i)
         N*=dimSize[i];
 
-    vecData = new T[N];
+    data = new T[N];*/
 
-    if (( retval_ = nc_get_var(grpid, varid, &vecData[0]) ))
+    if ((retval_ = nc_get_var(parentId, varId, data)) != NC_NOERR)
         err(retval_);
+}
+
+
+template<typename T>
+void FileNetcdf::writeVector(const T* data, size_t length, const string& dataset,
+                            int parentId, size_t chunkExtent, int deflateLevel)
+{
+    if (parentId == 0)
+        parentId = ncid_;
+
+    // Set chunking, shuffle, and deflate.
+    int shuffle;
+    if (deflateLevel == 0)
+        shuffle = NC_NOSHUFFLE;
+    else
+        shuffle = NC_SHUFFLE;
+
+    // Define the dimensions.
+    int dimId;
+    if((retval_ = nc_def_dim(parentId, dataset.c_str(), NC_UNLIMITED, &dimId)))
+        err(retval_);
+
+    // Define the variable.
+    int varId;
+    if((retval_ = nc_def_var(parentId, dataset.c_str(), getType<T>(), 1, &dimId, &varId)))
+        err(retval_);
+
+    if((retval_ = nc_def_var_chunking(parentId, varId, NC_CHUNKED, &chunkExtent)))
+        err(retval_);
+    if((retval_ = nc_def_var_deflate(parentId, varId, shuffle, deflateLevel, deflateLevel)))
+        err(retval_);
+
+    T attVal[1] = {0};
+    if((retval_ = nc_put_att(parentId, varId, "_FillValue", getType<T>(), 1, attVal) ))
+        err(retval_);
+
+    if((retval_ = nc_enddef(parentId)))
+        err(retval_);
+
+    // No need to explicitly end define mode for netCDF-4 files. Write
+    // the data to the file.
+
+    size_t cIdx = 0;
+    if((retval_ = nc_put_vara(parentId, varId, &cIdx, &length, data)))
+        err(retval_);
+}
+
+
+template<typename T>
+void FileNetcdf::readVector(vector<T> &data, const string& dataset, int parentId)
+{
+    data.resize(readSize(dataset, parentId));
+
+    readVector(data.data(), dataset, parentId);
+}
+
+
+
+template<typename T>
+void FileNetcdf::writeVector(const vector<T>& data, const string& dataset,
+                            int parentId, size_t chunkExtent, int deflateLevel)
+{
+    writeVector(data.data(), data.size(), dataset, parentId, chunkExtent, deflateLevel);
 }
 
 
@@ -313,58 +404,11 @@ void FileNetcdf::read_MatNCT(const string dataSet, vector<vector<T> > &vm, int g
     }
 }
 
-template<typename T>
-vector<size_t> FileNetcdf::read_DimNC(const string dataSet, int grpid)
-{
-    if(grpid == 0) grpid = ncid_;
-
-    int varid;
-    int ndim;
-    vector<int> dimid;
-    vector<size_t> dimSize;
-    nc_type typId;
-
-    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-        err(retval_);
-
-    if((retval_ = nc_inq_vartype(grpid, varid, &typId) ))
-        err(retval_);
-
-    if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
-        err(retval_);
-
-    dimid.resize(ndim);
-    dimSize.resize(ndim);
-
-    if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
-        err(retval_);
-
-    for(int i = 0; i < ndim; ++i)
-    {
-        if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
-            err(retval_);
-    }
-
-    return dimSize;
-}
 
 
-template<typename T>
-void FileNetcdf::read_AttNC(const string attName, int varid, vector<T> &attVal, int grpid)
-{
-    if(grpid == 0) grpid = ncid_;
 
-    nc_type xtype;
-    size_t len;
 
-    if(( retval_ = nc_inq_att(grpid, varid, attName.c_str(), &xtype, &len) ))
-        err(retval_);
 
-    attVal.resize(len);
-
-    if(( retval_ =  nc_get_att(grpid, varid, attName.c_str(), &attVal[0]) ))
-        err(retval_);
-}
 
 
 template<typename T>
@@ -476,9 +520,9 @@ void FileNetcdf::read_HypMatNC(const string dataSet, VecMat<T> &vm,
 
 
 template<typename T>
-T FileNetcdf::search_Group(size_t level, int grpid)
+T FileNetcdf::searchGroup(size_t level, int parentId)
 {
-    if(grpid == 0) grpid = ncid_;
+    if(parentId == 0) parentId = ncid_;
 
     int nGrps;
     vector<int> ngrpids;
@@ -495,175 +539,29 @@ T FileNetcdf::search_Group(size_t level, int grpid)
     {
         size_t cidx=strGrpL;
         // How many Groups
-        if(( retval_ = nc_inq_grps(grpid, &nGrps, NULL) ))
+        if(( retval_ = nc_inq_grps(parentId, &nGrps, NULL) ))
             err(retval_);
 
         if(nGrps > 0 )
         {
             ngrpids.resize(nGrps);
-            if(( retval_ = nc_inq_grps(grpid, NULL, &ngrpids[0]) ))
+            if(( retval_ = nc_inq_grps(parentId, NULL, &ngrpids[0]) ))
                 err(retval_);
         }
 
-        if(( retval_ = nc_inq_grpname_len(grpid, &strGrpL)))
+        if(( retval_ = nc_inq_grpname_len(parentId, &strGrpL)))
             err(retval_);
         strGrp.resize(strGrpL);
-        if(( retval_ = nc_inq_grpname_full(grpid,NULL,&strGrp[0])))
+        if(( retval_ = nc_inq_grpname_full(parentId,NULL,&strGrp[0])))
             err(retval_);
 
         ds=strGrpL-cidx;
 
-        grpid = ngrpids[0];
+        parentId = ngrpids[0];
     }
 
     istringstream(strGrp.substr(strGrpL-ds+1,ds-1))>>val;
     return val;
-}
-
-
-template<typename T>
-int FileNetcdf::write_VecNC(const string dataSet, const vector<T> &vec, nc_type xtype,
-            int grpid, bool unlim,
-            size_t chunks, int deflate_level, int shuffle)
-{
-    if(grpid == 0) grpid = ncid_;
-
-    int varid;
-    int dimid;
-    int ndim = 1;
-    int deflate = 0;
-    size_t N;
-    //string dimName = "dim_" + dataSet;
-    if(unlim == false)
-    {
-        N = vec.size();
-        if(N < chunks) chunks = N;
-    }
-    else
-    {
-        N = NC_UNLIMITED;
-    }
-
-    // Set chunking, shuffle, and deflate.
-    shuffle = NC_SHUFFLE;
-    if(deflate_level > 0 && deflate_level < 10)
-        deflate = 1;
-
-    // Define the dimensions.
-    if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
-        err(retval_);
-
-    // Define the variable.
-    if((retval_ = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
-                             &dimid, &varid)))
-        err(retval_);
-
-    if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
-        err(retval_);
-    if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
-                                     deflate_level)))
-        err(retval_);
-
-    if(unlim == true)
-    {
-        T attVal[1] = {0};
-        if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-            err(retval_);
-    }
-
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
-
-    // No need to explicitly end define mode for netCDF-4 files. Write
-    // the data to the file.
-
-    if(unlim == true)
-    {
-        N=vec.size();
-        size_t cIdx=0;
-        if((retval_ = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
-            err(retval_);
-    }
-    else
-    {
-        if((retval_ = nc_put_var(grpid, varid, &vec[0])))
-            err(retval_);
-    }
-
-    return varid;
-}
-
-
-template<typename T>
-int FileNetcdf::write_VecNC(const string dataSet, const T *vec, size_t len, nc_type xtype,
-            int grpid, bool unlim,
-            size_t chunks, int deflate_level, int shuffle)
-{
-    if(grpid == 0) grpid = ncid_;
-
-    int varid;
-    int dimid;
-    int ndim = 1;
-    int deflate = 0;
-    size_t N;
-    //string dimName = "dim_" + dataSet;
-    if(unlim == false)
-    {
-        N = len;
-        if(N < chunks) chunks = N;
-    }
-    else
-    {
-        N = NC_UNLIMITED;
-    }
-
-    // Set chunking, shuffle, and deflate.
-    shuffle = NC_SHUFFLE;
-    if(deflate_level > 0 && deflate_level < 10)
-        deflate = 1;
-
-    // Define the dimensions.
-    if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
-        err(retval_);
-
-    // Define the variable.
-    if((retval_ = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
-                             &dimid, &varid)))
-        err(retval_);
-
-    if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
-        err(retval_);
-    if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
-                                     deflate_level)))
-        err(retval_);
-
-    if(unlim == true)
-    {
-        T attVal[1] = {0};
-        if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-            err(retval_);
-    }
-
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
-
-    // No need to explicitly end define mode for netCDF-4 files. Write
-    // the data to the file.
-
-    if(unlim == true)
-    {
-        N=len;
-        size_t cIdx=0;
-        if((retval_ = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
-            err(retval_);
-    }
-    else
-    {
-        if((retval_ = nc_put_var(grpid, varid, &vec[0])))
-            err(retval_);
-    }
-
-    return varid;
 }
 
 
@@ -860,32 +758,6 @@ int FileNetcdf::write_MatAxisNC(const string dataSet, const VecMat<T> &vm, nc_ty
        err(retval_);
 
     return varid;
-}
-
-
-template<typename T>
-void FileNetcdf::write_AttNC(const string dataSet, const string attName,
-                             const vector<T> &attVal, nc_type xtype, int grpid)
-{
-    if(grpid == 0) grpid = ncid_;
-
-    int varid;
-    size_t len;
-
-    if (dataSet == "")
-    {
-        varid = NC_GLOBAL;
-    }
-    else
-    {
-        if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
-            err(retval_);
-    }
-
-    len = attVal.size();
-
-    if((retval_ = nc_put_att(grpid, varid, attName.c_str(), xtype, len, &attVal[0]) ))
-        err(retval_);
 }
 
 
@@ -1152,6 +1024,65 @@ void FileNetcdf::write_PutHypMatNC(const string dataSet, const T *vm,
 
     if ((retval_ = nc_put_vara(grpid, varid, rcIdx, len, vm) ))
         err(retval_);
+}
+
+
+template<typename T>
+int FileNetcdf::getType() const
+{
+    ostringstream oss; oss << "BUG: Unknown typeid " << typeid(T).name();
+    throw runtime_error(oss.str());
+
+    return NC_NAT;
+}
+
+
+template<>
+inline int FileNetcdf::getType<double>() const
+{
+    return NC_DOUBLE;
+}
+
+
+template<>
+inline int FileNetcdf::getType<float>() const
+{
+    return NC_FLOAT;
+}
+
+
+template<>
+inline int FileNetcdf::getType<char>() const
+{
+    return NC_CHAR;
+}
+
+
+template<>
+inline int FileNetcdf::getType<short>() const
+{
+    return NC_SHORT;
+}
+
+
+template<>
+inline int FileNetcdf::getType<ii>() const
+{
+    if (sizeof(ii) == 4)
+    {
+        return NC_INT;
+    }
+    else
+    {
+        return NC_INT64;
+    }
+}
+
+
+template<>
+inline int FileNetcdf::getType<li>() const
+{
+    return NC_INT64;
 }
 
 

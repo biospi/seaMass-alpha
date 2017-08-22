@@ -30,8 +30,9 @@
 class BasisBsplineScantime : public BasisBspline
 {
 public:
-    BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-        const std::vector<fp>& exposures, char scale, bool transient);
+    BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes,
+                         const std::vector<double>& finishTimes, const std::vector<fp>& exposures, short scale,
+                         bool transient);
     virtual ~BasisBsplineScantime();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);

@@ -24,51 +24,45 @@
 #include <cstring>
 
 
-FileNetcdf::FileNetcdf(const string _fileName, int omode) : fileName_(_fileName)
+FileNetcdf::FileNetcdf() : fileStatus_(false)
 {
-    switch(omode)
-    {
-    case NC_NOWRITE:
-        if ((retval_ = nc_open(fileName_.c_str(), omode, &ncid_)))
-            err(retval_);
-        fileStatus_ = true;
-        break;
-    case NC_WRITE:
-        if ((retval_ = nc_open(fileName_.c_str(), omode, &ncid_)))
-            err(retval_);
-        fileStatus_ = true;
-        break;
-    case NC_NETCDF4:
-       if ((retval_ = nc_create(fileName_.c_str(), omode|NC_CLOBBER, &ncid_)))
-          err(retval_);
-       fileStatus_ = true;
-       break;
-    }
+};
+
+
+FileNetcdf::FileNetcdf(const string& filename, int omode) : filename_(filename), fileStatus_(false)
+{
+    open(filename, omode);
 }
 
-void FileNetcdf::open(const string _fileName, int omode)
+
+FileNetcdf::~FileNetcdf()
 {
-    if (fileStatus_ == false)
+    close();
+}
+
+
+void FileNetcdf::open(const string& filename, int omode)
+{
+    if (!fileStatus_)
     {
-        fileName_=_fileName;
+        filename_ = filename;
+
         switch(omode)
         {
         case NC_NOWRITE:
-            if ((retval_ = nc_open(fileName_.c_str(), omode, &ncid_)))
-                err(retval_);
-            fileStatus_ = true;
+            if ((retval_ = nc_open(filename_.c_str(), omode, &ncid_)) != NC_NOERR)
             break;
         case NC_WRITE:
-            if ((retval_ = nc_open(fileName_.c_str(), omode, &ncid_)))
+            if ((retval_ = nc_open(filename_.c_str(), omode, &ncid_)) != NC_NOERR)
                 err(retval_);
-            fileStatus_ = true;
             break;
         case NC_NETCDF4:
-            if ((retval_ = nc_create(fileName_.c_str(), omode|NC_CLOBBER, &ncid_)))
+            if ((retval_ = nc_create(filename_.c_str(), omode|NC_CLOBBER, &ncid_)) != NC_NOERR)
                 err(retval_);
-            fileStatus_ = true;
             break;
         }
+
+        fileStatus_ = true;
     }
     else
     {
@@ -76,12 +70,14 @@ void FileNetcdf::open(const string _fileName, int omode)
     }
 }
 
-void FileNetcdf::close(void)
+
+void FileNetcdf::close()
 {
-    if (fileStatus_ == true)
+    if (fileStatus_)
     {
-        if ((retval_ = nc_close(ncid_)))
+        if ((retval_ = nc_close(ncid_)) != NC_NOERR)
             err(retval_);
+
         fileStatus_ = false;
     }
     else
@@ -90,85 +86,94 @@ void FileNetcdf::close(void)
     }
 }
 
-FileNetcdf::~FileNetcdf()
-{
-    if(fileStatus_ == true)
-    {
-        if((retval_ = nc_close(ncid_)))
-            err(retval_);
-    }
-}
 
-int FileNetcdf::read_VarIDNC(const string dataSet, int grpid)
+bool FileNetcdf::exists(const string& variable, int parentId)
 {
-    if(grpid == 0) grpid = ncid_;
+    if (parentId == 0)
+        parentId = ncid_;
 
     int varid;
-
-    retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid);
-
-    if(retval_ != 0) varid = -1;
-
-    return varid;
+    return nc_inq_varid(parentId, variable.c_str(), &varid) == NC_NOERR;
 }
 
 
-vector<size_t> FileNetcdf::read_DimNC(const string dataSet, int grpid)
+void FileNetcdf::readExtent(vector<size_t>& extent, const string& name, int parentId)
 {
-    if(grpid == 0) grpid = ncid_;
+    if (parentId == 0)
+        parentId = ncid_;
 
     int varid;
     int ndim;
     vector<int> dimid;
-    vector<size_t> dimSize;
+    nc_type typId;
 
-    if((retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid) ))
+    if ((retval_ = nc_inq_varid(parentId, name.c_str(), &varid) ) != NC_NOERR)
         err(retval_);
 
-    if((retval_ = nc_inq_varndims(grpid,varid,&ndim) ))
+    if ((retval_ = nc_inq_vartype(parentId, varid, &typId)) != NC_NOERR)
+        err(retval_);
+
+    if ((retval_ = nc_inq_varndims(parentId,varid,&ndim)) != NC_NOERR)
         err(retval_);
 
     dimid.resize(ndim);
-    dimSize.resize(ndim);
+    extent.resize(ndim);
 
-    if((retval_ = nc_inq_vardimid(grpid, varid, &dimid[0]) ))
+    if ((retval_ = nc_inq_vardimid(parentId, varid, &dimid[0])) != NC_NOERR)
         err(retval_);
 
     for(int i = 0; i < ndim; ++i)
     {
-        if ((retval_ = nc_inq_dimlen(grpid, dimid[i], &dimSize[i]) ))
+        if ((retval_ = nc_inq_dimlen(parentId, dimid[i], &extent[i])) != NC_NOERR)
             err(retval_);
     }
-
-    return dimSize;
 }
 
-int FileNetcdf::create_Group(const string name, int grpid)
-{
-    if (grpid == 0) grpid = ncid_;
 
-    int varid;
-    if(( retval_ = nc_def_grp(grpid, name.c_str(), &varid) ))
+size_t FileNetcdf::readSize(const string& name, int parentId)
+{
+    vector<size_t> extent;
+    readExtent(extent, name, parentId);
+
+    size_t size = 1;
+    for(size_t i = 0; i < extent.size(); ++i)
+        size *= extent[i];
+
+    return size;
+}
+
+
+int FileNetcdf::createGroup(const string& name, int parentId)
+{
+    if (parentId == 0)
+        parentId = ncid_;
+
+    int groupId;
+    if((retval_ = nc_def_grp(parentId, name.c_str(), &groupId)) != NC_NOERR)
         err(retval_);
 
-    return varid;
+    return groupId;
 }
 
-int FileNetcdf::open_Group(const string name, int grpid)
+
+int FileNetcdf::openGroup(const string& name, int parentId)
 {
-    if (grpid == 0) grpid = ncid_;
+    if (parentId == 0)
+        parentId = ncid_;
 
-    int ncid;
-    retval_ = nc_inq_ncid(grpid, name.c_str(), &ncid);
+    int groupId;
+    retval_ = nc_inq_ncid(parentId, name.c_str(), &groupId);
 
-    if(retval_ != 0) ncid = -1;
+    if(retval_ != NC_NOERR)
+        groupId = -1;
 
-    return ncid;
+    return groupId;
 }
 
-int FileNetcdf::search_Group(const string dataSet, int grpid)
+
+int FileNetcdf::searchGroup(const string dataSet, int parentId)
 {
-    if(grpid == 0) grpid = ncid_;
+    if(parentId == 0) parentId = ncid_;
 
     int nGrps;
     vector<int> ngrpids;
@@ -179,35 +184,35 @@ int FileNetcdf::search_Group(const string dataSet, int grpid)
     int varid;
 
     // How many Groups
-    if(( retval_ = nc_inq_grps(grpid, &nGrps, NULL) ))
+    if(( retval_ = nc_inq_grps(parentId, &nGrps, NULL) ))
         err(retval_);
     if(nGrps > 0 )
     {
         ngrpids.resize(nGrps);
-        if(( retval_ = nc_inq_grps(grpid, NULL, &ngrpids[0]) ))
+        if(( retval_ = nc_inq_grps(parentId, NULL, &ngrpids[0]) ))
             err(retval_);
     }
 
-    if(( retval_ = nc_inq_grpname_len(grpid, &strGrpL)))
+    if(( retval_ = nc_inq_grpname_len(parentId, &strGrpL)))
         err(retval_);
     strGrp.resize(strGrpL);
-    if(( retval_ = nc_inq_grpname_full(grpid,NULL,&strGrp[0])))
+    if(( retval_ = nc_inq_grpname_full(parentId,NULL,&strGrp[0])))
         err(retval_);
 
     // Scan Groups
     for(int i = 0; i < nGrps; ++i)
     {
-        search_Group(dataSet, ngrpids[i]);
+        searchGroup(dataSet, ngrpids[i]);
     }
     // Scan Variables
-    if(( retval_ = nc_inq_varids(grpid, &nVars, NULL) ))
+    if(( retval_ = nc_inq_varids(parentId, &nVars, NULL) ))
         err(retval_);
     if(nVars > 0)
     {
-        retval_ = nc_inq_varid(grpid, dataSet.c_str(), &varid);
+        retval_ = nc_inq_varid(parentId, dataSet.c_str(), &varid);
         if(retval_ == NC_NOERR)
         {
-            this->dataSetList_.push_back(InfoGrpVar(grpid,varid,strGrp,dataSet));
+            this->dataSetList_.push_back(InfoGrpVar(parentId,varid,strGrp,dataSet));
             return 1;
         }
     }
@@ -215,14 +220,15 @@ int FileNetcdf::search_Group(const string dataSet, int grpid)
 }
 
 
-void FileNetcdf::read(Matrix& a, const string name, int grpid)
+void FileNetcdf::readMatrix(Matrix &a, const string& name, int grpid)
 {
-    vector<size_t> dims = read_DimNC(name, grpid);
+    vector<size_t> dims;
+    readExtent(dims, name, grpid);
     if (dims.size() == 1)
     {
         // HDF5 1D dataset is treated as a row vector
         vector<fp> v;
-        read_VecNC(name, v, grpid);
+        readVector(v, name, grpid);
         a.importFromArray(1, v.size(), v.data());
     }
     else
@@ -236,79 +242,112 @@ void FileNetcdf::read(Matrix& a, const string name, int grpid)
 }
 
 
-void FileNetcdf::write(const Matrix& a, const string name, int grpid)
+void FileNetcdf::writeMatrix(const Matrix& a, const string& name, int parentId)
 {
     if (a.m() == 1)
     {
         // HDF5 1D dataset is treated as a row vector
-        write_VecNC(name, a.vs(), a.n(), sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpid);
+        writeVector(a.vs(), a.n(), name, parentId);
     }
     else
     {
         VecMat<fp> vm(a.m(), a.n());
         memcpy(vm.v.data(), a.vs(), sizeof(fp) * vm.v.size());
-        write_MatNC(name, vm, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpid);
+        write_MatNC(name, vm, parentId);
     }
 }
 
 
-void FileNetcdf::read(MatrixSparse& a, const string name, int grpid)
+int FileNetcdf::readMatrixSparseCoo(MatrixSparse& a, const string& name, int parentId)
 {
-    int grpidMat = open_Group(name, grpid);
+    int matrixId = openGroup(name, parentId);
 
-    vector<ii> m(1);
-    read_AttNC("m", NC_GLOBAL, m, grpidMat);
+    ii m = readAttribute<ii>("m", "", matrixId);
+    ii n = readAttribute<ii>("n", "", matrixId);
 
-    vector<ii> n(1);
-    read_AttNC("n", NC_GLOBAL, n, grpidMat);
+    vector<ii> is;
+    readVector(is, "i", matrixId);
 
-    if (read_VarIDNC("v", grpidMat) != -1)
+    vector<ii> js;
+    readVector(js, "j", matrixId);
+
+    vector<fp> vs;
+    readVector(vs, "v", matrixId);
+
+    a.importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
+
+    return matrixId;
+}
+
+
+int FileNetcdf::writeMatrixSparseCoo(const MatrixSparse& a, const string& name, int parentId)
+{
+    int matrixId = createGroup(name, parentId);
+
+    writeAttribute(a.m(), "m", "", matrixId);
+    writeAttribute(a.n(), "n", "", matrixId);
+
+    vector<ii> is(a.nnz());
+    vector<ii> js(a.nnz());
+    vector<fp> vs(a.nnz());
+    if (a.nnz() > 0)
+        a.exportToCoo(is.data(), js.data(), vs.data());
+
+    writeVector(is, "i", matrixId);
+    writeVector(js, "j", matrixId);
+    writeVector(vs, "v", matrixId);
+
+    return matrixId;
+}
+
+
+int FileNetcdf::readMatrixSparseCsr(MatrixSparse& a, const string& name, int parentId)
+{
+    int matrixId = openGroup(name, parentId);
+
+    ii m = ii(readSize("ij", matrixId)) - 1;
+    ii n = readAttribute<ii>("n", "", matrixId);
+    ii nnz = ii(readSize("j", matrixId));
+
+    a.createCsr(m, n, nnz);
+
+    readVector(a.ijs(), "ij", matrixId);
+    readVector(a.js(), "j", matrixId);
+    readVector(a.vs(), "v", matrixId);
+
+    a.commitCsr(true);
+
+    return matrixId;
+}
+
+
+int FileNetcdf::writeMatrixSparseCsr(const MatrixSparse& a, const string& name, int parentId)
+{
+    int matrixId = createGroup(name, parentId);
+
+    writeAttribute(a.n(), "n", "", matrixId);
+
+    if (a.initCsr(a.nnz() > 0))
     {
-        vector<ii> rowind;
-        read_VecNC("i", rowind, grpidMat);
-
-        vector<ii> colind;
-        read_VecNC("j", colind, grpidMat);
-
-        vector<fp> acoo;
-        read_VecNC("v", acoo, grpidMat);
-
-        a.importFromCoo(m[0], n[0], acoo.size(), rowind.data(), colind.data(), acoo.data());
+        writeVector(a.ijs(), a.m() + 1, "ij", matrixId);
     }
     else
     {
-        a.init(m[0], n[0]);
+        vector<ii> ijs(a.m() + 1, 0);
+        writeVector(ijs, "ij", matrixId);
     }
-}
 
+    writeVector(a.js(), a.nnz(), "j", matrixId);
+    writeVector(a.vs(), a.nnz(), "v", matrixId);
 
-int FileNetcdf::write(const MatrixSparse& a, const string name, int grpid)
-{
-    int grpidMat = create_Group(name, grpid);
-
-    vector<ii> m(1); m[0] = a.m();
-    write_AttNC("", "m", m, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-
-    vector<ii> n(1); n[0] = a.n();
-    write_AttNC("", "n", n, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-
-    vector<ii> rowind(a.nnz());
-    vector<ii> colind(a.nnz());
-    vector<fp> acoo(a.nnz());
-    if (a.nnz() > 0)
-        a.exportToCoo(rowind.data(), colind.data(), acoo.data());
-
-    write_VecNC("i", rowind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat, true);
-    write_VecNC("j", colind, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat, true);
-    write_VecNC("v", acoo, sizeof(fp) == 4 ? NC_FLOAT : NC_DOUBLE, grpidMat, true);
-
-    return grpidMat;
+    return matrixId;
 }
 
 
 void FileNetcdf::err(int e)
 {
-    throw runtime_error("ERROR: '" + string(nc_strerror(e)) + "' processing " + fileName_);
+    throw runtime_error("ERROR: '" + string(nc_strerror(e)) + "' processing " + filename_);
 }
+
 
 

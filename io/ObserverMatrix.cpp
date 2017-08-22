@@ -49,7 +49,7 @@ void ObserverMatrix::notice(const std::string& message, const Matrix* a)
         oss << setw(8) << setfill('0') << id << ".coo";
         FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.write(*a, "a");
+        file.writeMatrix(*a, "a");
     }
 }
 
@@ -67,7 +67,7 @@ void ObserverMatrix::warning(const std::string& message, const Matrix* a)
         oss << setw(8) << setfill('0') << id << ".coo";
         FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.write(*a, "a");
+        file.writeMatrix(*a, "a");
     }
 }
 
@@ -85,6 +85,6 @@ void ObserverMatrix::error(const std::string& message, const Matrix* a)
         oss << setw(8) << setfill('0') << id << ".coo";
         FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.write(*a, "a");
+        file.writeMatrix(*a, "a");
     }
 }

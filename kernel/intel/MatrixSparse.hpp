@@ -38,7 +38,7 @@ public:
     MatrixSparse();
     ~MatrixSparse();
 
-    void empty();
+    void clear();
     void init(ii m, ii n);
     void swap(MatrixSparse& a);
 
@@ -49,13 +49,17 @@ public:
     ii nnz() const;
     ii nnzActual() const;
 
+    ii* ijs() const;
+    ii* js() const;
+    fp* vs() const;
+
 public:
     // these functions allocate memory
     void importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii *a_is, const ii *a_js, const fp *a_vs); // create from COO matrix
     void importFromMatrix(const Matrix &a); // create from dense matrix a
     void initDense(ii m, ii n, fp v); // create from dense matrix of constant value
     void concatenateRows(const std::vector<MatrixSparse> &xs); // the xs must be row vectors
-    void copySubset(const MatrixSparse& a, const MatrixSparse& b); // only non-zero elements of b are copied from a to this matrix
+    void copyAatB(const MatrixSparse &a, const MatrixSparse &b); // only non-zero elements of b are copied from a to this matrix
     ii pruneCells(const MatrixSparse &a, fp threshold = 0.0); // prune values under threshold
     ii pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bRows, fp threshold); // prune rows of this matrix when rows or columns of a are empty
 
@@ -98,7 +102,6 @@ public:
 
     static double sortElapsed_;
 
-public:
     bool createCsr(ii m, ii n, ii a_nnz);
     bool initCsr(bool notEmpty) const;
     void commitCsr(bool isSorted) const;
@@ -109,6 +112,7 @@ public:
 
     void sort() const;
 
+private:
     //! number of rows and columns
     //!
     ii m_;

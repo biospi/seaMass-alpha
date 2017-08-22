@@ -48,10 +48,12 @@ public:
 
     struct Output
     {
-        std::vector<char> scale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
-        double shrinkage;        // shrinkage used
-        double tolerance;        // tolerance used
+        std::vector<short> scale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
+        double lambda;
+        double lambdaGroup;
+        double tolerance;
         double peakFwhm;
+        std::string isotopesFilename;
         short chargeStates;
 
         std::vector<BasisBspline::GridInfo> gridInfos;
@@ -71,14 +73,14 @@ public:
 
     struct ControlPoints {
         std::vector<fp> coeffs;
-        std::vector<char> scale;
+        std::vector<short> scale;
         std::vector<ii> offset;
         std::vector<ii> extent;
     };
 
-    Seamass(Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
-            double peakFwhm, short chargeStates);
-    Seamass(Input& input, const Output& seed);
+    Seamass(Input& input, const std::string& isotopesFilename, const std::vector<short>& scale,
+            fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates);
+    Seamass(Input& input, const Output& output);
     virtual ~Seamass();
 
     bool step();
@@ -97,10 +99,12 @@ public:
     void getOutputControlPoints(ControlPoints& controlPoints, bool deconvolve) const;
 
 private:
-    void init(Input& input, const std::vector<char>& scales, short chargeStates, bool seed);
+    void init(Input& input, const std::string& isotopesFilename, const std::vector<short>& scales, short chargeStates,
+              bool seed);
 
-    char dimensions_;
+    short dimensions_;
     std::vector<Basis*> bases_;
+    Basis* outputBasis_;
     std::vector<MatrixSparse> b_;
 
     Optimizer* innerOptimizer_;
@@ -108,6 +112,7 @@ private:
 
     fp lambda_;
     fp lambdaStart_;
+    fp lambdaGroup_;
     bool taperShrinkage_;
     fp tolerance_;
     int iteration_;

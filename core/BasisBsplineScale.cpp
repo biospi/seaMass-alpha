@@ -29,11 +29,12 @@ using namespace kernel;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool transient, int order) :
+BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1,
+                  bool transient) :
         BasisBspline(bases,
                      static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
                      static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().colDimensions(),
-                     transient, parentIndex), dimension_(dimension)
+                     transient, parentIndex), dimension0_(dimension0), dimension1_(dimension1)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -44,27 +45,57 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
         info(oss.str());
     }
 
+    ii order = 3; // b-spline order
+    ii count, m, n, offset;
+
+    // todo: support stride for non-major dimension!!
     const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
     gridInfo() = parentGridInfo;
-    gridInfo().colScale[dimension_] = parentGridInfo.colScale[dimension_] - 1;
-    gridInfo().colOffset[dimension_] = parentGridInfo.colOffset[dimension_] / 2;
-    gridInfo().colExtent[dimension_] = (parentGridInfo.colOffset[dimension_] + parentGridInfo.colExtent[dimension_]) / 2 + 1 - gridInfo().colOffset[dimension_];
-    
+    if (dimension0_ == 0)
+    {
+        gridInfo().rowScale[dimension1_] = parentGridInfo.rowScale[dimension1_] - 1;
+        gridInfo().rowOffset[dimension1_] = parentGridInfo.rowOffset[dimension1_] / 2;
+        gridInfo().rowExtent[dimension1_] = (parentGridInfo.rowOffset[dimension1_] +
+            parentGridInfo.rowExtent[dimension1_]) / 2 + 1 - gridInfo().rowOffset[dimension1_];
+
+        count = 1;
+        for (ii i = 0; i < dimension1_; i++)
+            count *= parentGridInfo.rowExtent[i];
+
+        m = parentGridInfo.rowExtent[dimension1_];
+        n = gridInfo().rowExtent[dimension1_];
+
+        offset = order + ((parentGridInfo.rowOffset[dimension1_] + 1) % 2);
+    }
+    else
+    {
+        gridInfo().colScale[dimension1_] = parentGridInfo.colScale[dimension1_] - 1;
+        gridInfo().colOffset[dimension1_] = parentGridInfo.colOffset[dimension1_] / 2;
+        gridInfo().colExtent[dimension1_] = (parentGridInfo.colOffset[dimension1_] +
+            parentGridInfo.colExtent[dimension1_]) / 2 +1 - gridInfo().colOffset[dimension1_];
+
+        count = 1;
+        for (ii i = 0; i < dimension1_; i++)
+            count *= parentGridInfo.colExtent[i];
+
+        m = parentGridInfo.colExtent[dimension1_];
+        n = gridInfo().colExtent[dimension1_];
+
+        offset = order + ((parentGridInfo.colOffset[dimension1_] + 1) % 2);
+    }
+
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
         oss << getTimeStamp() << "     parent=" << getParentIndex();
         info(oss.str());
         ostringstream oss2;
-        oss2 << getTimeStamp() << "     dimension=" << int(dimension_);
+        oss2 << getTimeStamp() << "     dimension=" << dimension0_ << ":" << dimension1_;
         info(oss2.str());
         ostringstream oss3;
         oss3 << getTimeStamp() << "     " << gridInfo();
         info(oss3.str());
     }
-    
-    ii stride = 1;
-    for (ii j = 0; j < dimension_; j++) stride *= gridInfo().colExtent[j];
 
     // create our kernel
     ii nh = order + 2;
@@ -80,31 +111,76 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, char dimension, bool t
         hs[i] /= (fp) sum;
 
     // create A as a temporary COO matrix
-    ii m = parentGridInfo.colExtent[dimension_];
-    ii n = gridInfo().colExtent[dimension_];
     vector<ii> is;
     vector<ii> js;
     vector<fp> vs;
 
-    ii offset = order + ((parentGridInfo.colOffset[dimension_] + 1) % 2);
-    for (ii j = 0; j < n; j++)
+    for (ii l = 0; l < count; l++)
     {
-        for (ii k = 0; k < nh; k++)
+        for (ii j1 = 0; j1 < n; j1++)
         {
-            ii i = 2 * j + k - offset;
-            if (i < 0 || i >= m) continue;
+            for (ii k = 0; k < nh; k++)
+            {
+                ii i1 = 2 * j1 + k - offset;
+                if (i1 < 0 || i1 >= m) continue;
 
-            is.push_back(i);
-            js.push_back(j);
-            vs.push_back(hs[k]);
+                is.push_back(i1 + l*m);
+                js.push_back(j1 + l*n);
+                vs.push_back(hs[k]);
+            }
         }
     }
 
     // create A
-    aT_.importFromCoo(n, m, vs.size(), js.data(), is.data(), vs.data());
+    aT_.importFromCoo(count * n, count * m, vs.size(), js.data(), is.data(), vs.data());
 
-    if (dimension == 0)
+    if (dimension0 == 1)
+    {
         a_.transpose(aT_);
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Gt = m x n matrix where m are the coefficients and n are the groups (monoisotope centroid mass).
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        vector<ii> is;
+        vector<ii> js;
+        vector<fp> vs;
+
+        ii m = getGridInfo().colExtent[0] * getGridInfo().colExtent[1];
+        ii n = getGridInfo().colExtent[1] +  ii(round(log2(double(getGridInfo().colExtent[0])) *
+                                                              (1L << getGridInfo().colScale[1])));
+
+        vector<ii> gSizes(n, 0);
+        for (ii z = 0; z < gridInfo().colExtent[0]; z++)
+        {
+            auto g0 = ii(round(log2(double(z + 1)) * (1L << getGridInfo().colScale[1])));
+
+            for (ii x = 0; x < gridInfo().colExtent[1]; x++)
+            {
+                ii g = g0 + x;
+                gSizes[g]++;
+
+                double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
+                //cout << mass << endl;
+
+                is.push_back(x + z * gridInfo().colExtent[1]);
+                js.push_back(g);
+                vs.push_back(1.0);
+                //vs.push_back(1.0 / sqrt(sqrt(mass)));
+            }
+        }
+
+        /*for (ii nz = 0; nz < ii(vs.size()); nz++)
+        {
+            vs[nz] /= sqrt(fp(gSizes[js[nz]]));
+        }*/
+
+        gTs_.resize(1);
+        gs_.resize(1);
+
+        gTs_[0].importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
+        gs_[0].transpose(gTs_[0]);
+    }
 }
 
 
@@ -128,13 +204,13 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
         f.resize(1);
 
     // zero basis functions that are no longer needed
-    /*MatrixSparse t;
-    ii rowsPruned = t.pruneRows(aT_, x[0], dimension_ > 0, 0.75);
+    MatrixSparse t;
+    ii rowsPruned = t.pruneRows(aT_, x[0], dimension0_ == 0, 0.75);
     if (rowsPruned > 0)
     {
         aT_.swap(t);
 
-        if (dimension_ == 0)
+        if (dimension0_ == 1)
             a_.transpose(aT_);
 
         if (getDebugLevel() % 10 >= 3)
@@ -143,13 +219,13 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
             oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
             info(oss.str());
         }
-    }*/
+    }
 
     // synthesise
-    if (dimension_ == 0)
-        f[0].matmul(false, x[0], aT_, accumulate);
-    else
+    if (dimension0_ == 0)
         f[0].matmul(true, aT_, x[0], accumulate);
+    else
+        f[0].matmul(false, x[0], aT_, accumulate);
 
     if (getDebugLevel() % 10 >= 3)
     {
@@ -174,27 +250,28 @@ void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, const vector<MatrixSpa
 
     if (sqrA)
     {
-        if (dimension_ == 0)
-        {
-            MatrixSparse t;
-            t.sqr(a_);
-
-            xE[0].matmul(false, fE[0], t, false);
-        }
-        else
+        if (dimension0_ == 0)
         {
             MatrixSparse t;
             t.sqr(aT_);
 
             xE[0].matmul(false, t, fE[0], false);
         }
+        else
+        {
+            MatrixSparse t;
+            t.sqr(a_);
+
+            xE[0].matmul(false, fE[0], t, false);
+        }
+
     }
     else
     {
-        if (dimension_ == 0)
-            xE[0].matmul(false, fE[0], a_, false);
-        else
+        if (dimension0_ == 0)
             xE[0].matmul(false, aT_, fE[0], false);
+        else
+            xE[0].matmul(false, fE[0], a_, false);
     }
 
     if (getDebugLevel() % 10 >= 3)
@@ -205,4 +282,17 @@ void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, const vector<MatrixSpa
     }
 }
 
-
+const vector<MatrixSparse> * BasisBsplineScale::getColGroups(bool transpose) const
+{
+    if (dimension0_ == 1)
+    {
+        if (transpose)
+            return &gTs_;
+        else
+            return &gs_;
+    }
+    else
+    {
+        return 0;
+    }
+}

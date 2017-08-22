@@ -32,7 +32,7 @@ namespace xml = pugi;
 DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType) : fileOut_(0), spectrumIndex_(0), lastSpectrumIndex_(-1000), spectrumListIdx_(0)
 {
     if (filePathIn.empty())
-        throw runtime_error("BUG: mzMLb/mzMLv file cannot be written without an mzMLb/mzMLv to read from.");
+        throw runtime_error("BUG: mzMLb/mzMLv file cannot be written without an mzMLb/mzMLv to readMatrixSparse from.");
 
     ostringstream oss;
     if (getDebugLevel() % 10 >= 1)
@@ -44,11 +44,11 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
 
     // Load "mzML_spectrumIndex"
     vector<li> mzML_spectrumIndex;
-    fileIn_.read_VecNC("mzML_spectrumIndex", mzML_spectrumIndex);
+    fileIn_.readVector(mzML_spectrumIndex, "mzML_spectrumIndex", 0);
 
     // Load "mzML_chromatogramIndex"
     vector<li> mzML_chromatogramIndex;
-    fileIn_.read_VecNC("mzML_chromatogramIndex", mzML_chromatogramIndex);
+    fileIn_.readVector(mzML_chromatogramIndex, "mzML_chromatogramIndex", 0);
 
     // Load "mzML" but without spectra
     vector<char> mzML;
@@ -65,7 +65,8 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         mzML.insert(mzML.end(), buffer.begin(), buffer.end());
 
         offset = (size_t) mzML_chromatogramIndex.back();
-        vector<size_t> dims = fileIn_.read_DimNC("mzML");
+        vector<size_t> dims;
+        fileIn_.readExtent(dims, "mzML");
         extent = dims[0] - offset;
         fileIn_.read_HypVecNC("mzML", buffer, &offset, &extent);
         mzML.insert(mzML.end(), buffer.begin(), buffer.end());
@@ -354,10 +355,10 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         vector<InfoGrpVar> dataSet;
         vector<double> chroMz;
         vector<fp> chroBinCounts;
-        fileIn_.read_VecNC("mzML_spectrumIndex",specIdx_);
-        fileIn_.read_VecNC("chromatogram_MS_1000595_double",chroMz);
-        fileIn_.read_VecNC("chromatogram_MS_1000515_float",chroBinCounts);
-        fileIn_.search_Group("mzML");
+        fileIn_.readVector(specIdx_, "mzML_spectrumIndex", 0);
+        fileIn_.readVector(chroMz, "chromatogram_MS_1000595_double", 0);
+        fileIn_.readVector(chroBinCounts, "chromatogram_MS_1000515_float", 0);
+        fileIn_.searchGroup("mzML");
         dataSet = fileIn_.get_Info();
         size_t loc=0;
         size_t len=specIdx_[0];
@@ -365,8 +366,8 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
 
         fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".mzMLv" : ".mzMLb"), NC_NETCDF4);
 
-        fileOut_->write_VecNC("chromatogram_MS_1000595_double",chroMz,NC_DOUBLE);
-        fileOut_->write_VecNC("chromatogram_MS_1000515_float",chroBinCounts,NC_FLOAT);
+        fileOut_->writeVector(chroMz, "chromatogram_MS_1000595_double");
+        fileOut_->writeVector(chroBinCounts, "chromatogram_MS_1000515_float");
         fileOut_->write_DefHypVecNC<char>("mzML",NC_UBYTE);
         fileOut_->write_DefHypVecNC<double>("spectrum_MS_1000514_double",NC_DOUBLE);
         fileOut_->write_DefHypVecNC<float>("spectrum_MS_1000515_float",NC_FLOAT);
@@ -377,7 +378,7 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         fileOut_->write_CatHypVecNC("mzML_spectrumIndex", &newMzmlIndex_,1);
 
         string s = "mzMLb 0.5";
-        fileOut_->write_AttNC("mzML", "version", vector<char>(s.c_str(), s.c_str() + s.length() + 1), NC_CHAR);
+        fileOut_->writeAttribute(vector<char>(s.c_str(), s.c_str() + s.length() + 1), "mzML", "version");
 
         mzML.clear();
     }
@@ -444,7 +445,7 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
     }
     extent_ = spectrumIndex_ - offset;
 
-    // read mzs
+    // readMatrixSparse mzs
     if ((extent_ > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
@@ -944,14 +945,15 @@ void DatasetMzmlb::writeChromatogramXmlEnd()
     vector<li> newChromatogramIdx;
 
     // Read in xml that is in between the /spectrum and chromatogram tag.
-    fileIn_.read_VecNC("mzML_chromatogramIndex",chromatogramIdx);
+    fileIn_.readVector(chromatogramIdx, "mzML_chromatogramIndex", 0);
     size_t loc = specIdx_.back();
     size_t len = chromatogramIdx.front() - loc;
     fileIn_.read_HypVecNC("mzML", mzML, &loc, &len);
     fileOut_->write_CatHypVecNC("mzML",mzML);
 
     // Update New Chromatogram Index.
-    vector<size_t> lenTotal = fileOut_->read_DimNC("mzML");
+    vector<size_t> lenTotal;
+    fileOut_->readExtent(lenTotal, "mzML");
     newChromatogramIdx.push_back(lenTotal[0]);
 
     // Read in old Chromatogram xml block.
@@ -963,12 +965,12 @@ void DatasetMzmlb::writeChromatogramXmlEnd()
 
     // Update end of New Chromatogram Index.
     lenTotal.clear();
-    lenTotal = fileOut_->read_DimNC("mzML");
+    fileOut_->readExtent(lenTotal, "mzML");
     newChromatogramIdx.push_back(lenTotal[0]);
 
     // Write end of mxML xml file tags.
     lenTotal.clear();
-    lenTotal = fileIn_.read_DimNC("mzML");
+    fileIn_.readExtent(lenTotal, "mzML");
     loc = size_t(chromatogramIdx.back());
     len = lenTotal.front() - loc;
     mzML.clear();
@@ -976,5 +978,5 @@ void DatasetMzmlb::writeChromatogramXmlEnd()
     fileOut_->write_CatHypVecNC("mzML",mzML);
 
     // Write new Chromatogram Index...
-    fileOut_->write_VecNC("mzML_chromatogramIndex", newChromatogramIdx, NC_INT64);
+    fileOut_->writeVector(newChromatogramIdx, "mzML_chromatogramIndex");
 }

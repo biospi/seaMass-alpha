@@ -31,10 +31,13 @@ class OptimizerSrl : public Optimizer
 {
 public:
     OptimizerSrl(const std::vector<Basis*>& bases, const std::vector<MatrixSparse>& b,
-                 bool seed = true, fp pruneThreshold = fp(0.00000));
+                 bool seed = true, fp pruneThreshold = fp(0.00001)); // need pruneThreshold otherwise get underflow problems
     virtual ~OptimizerSrl();
 
     virtual void setLambda(fp lambda, fp lambdaGroup = fp(0.0));
+    virtual fp getLambda() const;
+    virtual fp getLambdaGroup() const;
+
     virtual ii getIteration() const;
     virtual const std::vector<Basis*>& getBases() const;
 

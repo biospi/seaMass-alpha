@@ -30,17 +30,24 @@
 class BasisBsplineScale : public BasisBspline
 { 
 public:
-    BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, char dimension, bool transient, int order = 3);
+    BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1,
+                      bool transient);
     virtual ~BasisBsplineScale();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
 
+    virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
+
 private:
     MatrixSparse aT_;
     MatrixSparse a_;
 
-    char dimension_;
+    short dimension0_;
+    short dimension1_;
+
+    std::vector<MatrixSparse> gTs_;
+    std::vector<MatrixSparse> gs_;
 };
 
 

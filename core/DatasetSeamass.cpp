@@ -53,40 +53,40 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
     if(finished_ == true)
         return false;
 
-    if (fileIn_->read_VarIDNC("counts") != -1)
-        fileIn_->read_VecNC("counts", input.counts);
+    if (fileIn_->exists("counts"))
+        fileIn_->readVector(input.counts, "counts");
     else
         throw runtime_error("ERROR: 'counts' dataset not found in smb file");
 
-    if (fileIn_->read_VarIDNC("binLocations") != -1)
+    if (fileIn_->exists("binLocations"))
     {
-        fileIn_->read_VecNC("binLocations", input.locations);
+        fileIn_->readVector(input.locations, "binLocations");
         input.type = Seamass::Input::Type::Binned;
     }
-    else if (fileIn_->read_VarIDNC("sampleLocations") != -1)
+    else if (fileIn_->exists("sampleLocations"))
     {
-        fileIn_->read_VecNC("sampleLocations", input.locations);
+        fileIn_->readVector(input.locations, "sampleLocations");
         input.type = Seamass::Input::Type::Sampled;
     }
-    else if (fileIn_->read_VarIDNC("centroidLocations") != -1)
+    else if (fileIn_->exists("centroidLocations"))
     {
-        fileIn_->read_VecNC("centroidLocations", input.locations);
+        fileIn_->readVector(input.locations, "centroidLocations");
         input.type = Seamass::Input::Type::Centroided;
     }
     else
         throw runtime_error("ERROR: one dataset called 'binLocations', 'sampleLocations' or 'centroidLocations' is needed in smb file");
 
-    if (fileIn_->read_VarIDNC("countsIndex") != -1)
-        fileIn_->read_VecNC("countsIndex", input.countsIndex);
+    if (fileIn_->exists("countsIndex"))
+        fileIn_->readVector(input.countsIndex, "countsIndex");
 
-    if (fileIn_->read_VarIDNC("startTimes") != -1)
-        fileIn_->read_VecNC("startTimes", input.startTimes);
+    if (fileIn_->exists("startTimes"))
+        fileIn_->readVector(input.startTimes, "startTimes");
 
-    if (fileIn_->read_VarIDNC("finishTimes") != -1)
-        fileIn_->read_VecNC("finishTimes", input.finishTimes);
+    if (fileIn_->exists("finishTimes"))
+        fileIn_->readVector(input.finishTimes, "finishTimes");
 
-    if (fileIn_->read_VarIDNC("exposures") != -1)
-        fileIn_->read_VecNC("exposures", input.exposures);
+    if (fileIn_->exists("exposures"))
+        fileIn_->readVector(input.exposures, "exposures");
 
     id = "";
 
@@ -97,32 +97,32 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
 {
     if (input.startTimes.size() > 0)
-        fileOut_->write_VecNC("startTimes", input.startTimes, NC_DOUBLE);
+        fileOut_->writeVector(input.startTimes, "startTimes");
 
     if (input.finishTimes.size() > 0)
-        fileOut_->write_VecNC("finishTimes", input.finishTimes, NC_DOUBLE);
+        fileOut_->writeVector(input.finishTimes, "finishTimes");
 
     if (input.exposures.size() > 0)
-        fileOut_->write_VecNC("exposures", input.exposures, sizeof(input.counts[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+        fileOut_->writeVector(input.exposures, "exposures");
 
     if (input.countsIndex.size() > 0)
-        fileOut_->write_VecNC("countsIndex", input.countsIndex, sizeof(input.countsIndex[0]) == 4 ? NC_INT : NC_INT64);
+        fileOut_->writeVector(input.countsIndex, "countsIndex");
 
     if (input.counts.size() > 0)
-        fileOut_->write_VecNC("counts", input.counts, sizeof(input.counts[0]) == 4 ? NC_FLOAT : NC_DOUBLE);
+        fileOut_->writeVector(input.counts, "counts");
 
     if (input.locations.size() > 0)
     {
         switch (input.type)
         {
             case Seamass::Input::Type::Binned:
-                fileOut_->write_VecNC("binLocations", input.locations, NC_DOUBLE);
+                fileOut_->writeVector(input.locations, "binLocations");
                 break;
             case Seamass::Input::Type::Sampled:
-                fileOut_->write_VecNC("sampleLocations", input.locations, NC_DOUBLE);
+                fileOut_->writeVector(input.locations, "sampleLocations");
                 break;
             case Seamass::Input::Type::Centroided:
-                fileOut_->write_VecNC("centroidLocations", input.locations, NC_DOUBLE);
+                fileOut_->writeVector(input.locations, "centroidLocations");
                 break;
             default:
                 throw runtime_error("BUG: input has no type");
@@ -138,32 +138,21 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
     if (!read(input, id))
         return false;
 
-    int grpid = fileIn_->open_Group("seamass");
+    int groupId = fileIn_->openGroup("seamass");
 
-    fileIn_->read_AttNC("scale", NC_GLOBAL, output.scale, grpid);
-
-    vector<double> shrinkage;
-    fileIn_->read_AttNC("shrinkage", NC_GLOBAL, shrinkage, grpid);
-    output.shrinkage = shrinkage[0];
-
-    vector<double> tolerance;
-    fileIn_->read_AttNC("tolerance", NC_GLOBAL, tolerance, grpid);
-    output.tolerance = tolerance[0];
-
-    vector<double> peakFwhm;
-    fileIn_->read_AttNC("peakFwhm", NC_GLOBAL, peakFwhm, grpid);
-    output.peakFwhm = peakFwhm[0];
-
-    vector<short> chargeStates;
-    fileIn_->read_AttNC("chargeStates", NC_GLOBAL, chargeStates, grpid);
-    output.chargeStates = chargeStates[0];
+    fileIn_->readAttribute(output.scale, "scale", "", groupId);
+    output.lambda = fileIn_->readAttribute<double>("lambda", "", groupId);
+    output.lambdaGroup = fileIn_->readAttribute<double>("lambdaGroup", "", groupId);
+    output.tolerance = fileIn_->readAttribute<double>("tolerance", "", groupId);
+    output.peakFwhm = fileIn_->readAttribute<double>("peakFwhm", "", groupId);
+    output.chargeStates = fileIn_->readAttribute<short>("chargeStates", "", groupId);
 
     {
         ii n = 0;
         for (;; n++)
         {
             ostringstream oss1; oss1 << "xs[" << n << "]";
-            if (fileIn_->open_Group(oss1.str(), grpid) == -1)
+            if (fileIn_->openGroup(oss1.str(), groupId) == -1)
                 break;
         }
 
@@ -171,7 +160,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         for (ii k = 0; k < n; k++)
         {
             ostringstream oss1; oss1 << "xs[" << k << "]";
-            fileIn_->read(output.xs[k], oss1.str(), grpid);
+            fileIn_->readMatrixSparseCsr(output.xs[k], oss1.str(), groupId);
         }
     }
 
@@ -180,7 +169,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         for (;; n++)
         {
             ostringstream oss1; oss1 << "l2s[" << n << "]";
-            if (fileIn_->open_Group(oss1.str(), grpid) == -1)
+            if (fileIn_->openGroup(oss1.str(), groupId) == -1)
                 break;
         }
 
@@ -188,7 +177,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         for (ii k = 0; k < n; k++)
         {
             ostringstream oss1; oss1 << "l2s[" << k << "]";
-            fileIn_->read(output.l2s[k], oss1.str(), grpid);
+            fileIn_->readMatrixSparseCsr(output.l2s[k], oss1.str(), groupId);
         }
     }
 
@@ -197,7 +186,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         for (;; n++)
         {
             ostringstream oss1; oss1 << "l1l2s[" << n << "]";
-            if (fileIn_->open_Group(oss1.str(), grpid) == -1)
+            if (fileIn_->openGroup(oss1.str(), groupId) == -1)
                 break;
         }
 
@@ -205,7 +194,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         for (ii k = 0; k < n; k++)
         {
             ostringstream oss1; oss1 << "l1l2s[" << k << "]";
-            fileIn_->read(output.l1l2s[k], oss1.str(), grpid);
+            fileIn_->readMatrixSparseCsr(output.l1l2s[k], oss1.str(), groupId);
         }
     }
 
@@ -259,7 +248,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         fileIn_->read_VecNC(oss1.str(), output.scales[d], grpid);
 
         ostringstream oss2; oss2 << "offsets[" << d << "]";
-        fileIn_->read_VecNC(oss2.str(), output.offsets[d], grpid);
+        fileIn_->readVector(oss2.str(), output.offsets[d], grpid);
     }*/
 
     id = "";
@@ -272,50 +261,41 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
 {
     write(input, id);
 
-    int grpid = fileOut_->create_Group("seamass");
+    int groupId = fileOut_->createGroup("seamass");
 
-    fileOut_->write_AttNC("", "scale", output.scale, NC_BYTE, grpid);
-
-    vector<double> shrinkage(1); shrinkage[0] = output.shrinkage;
-    fileOut_->write_AttNC("", "shrinkage", shrinkage, NC_DOUBLE, grpid);
-
-    vector<double> tolerance(1); tolerance[0] = output.tolerance;
-    fileOut_->write_AttNC("", "tolerance", tolerance, NC_DOUBLE, grpid);
-
-    vector<double> peakFwhm(1); peakFwhm[0] = output.peakFwhm;
-    fileOut_->write_AttNC("", "peakFwhm", peakFwhm, NC_DOUBLE, grpid);
-
-    vector<short> chargeStates(1); chargeStates[0] = output.chargeStates;
-    fileOut_->write_AttNC("", "chargeStates", chargeStates, NC_SHORT, grpid);
+    fileOut_->writeAttribute(output.scale, "scale", "", groupId);
+    fileOut_->writeAttribute(output.lambda, "lambda", "", groupId);
+    fileOut_->writeAttribute(output.lambdaGroup, "lambdaGroup", "", groupId);
+    fileOut_->writeAttribute(output.tolerance, "tolerance", "", groupId);
+    fileOut_->writeAttribute(output.peakFwhm, "peakFwhm", "", groupId);
+    fileOut_->writeAttribute(output.chargeStates, "chargeStates", "", groupId);
 
     for (ii k = 0; k < ii(output.xs.size()); k++)
     {
         ostringstream oss;
         oss << setw(4) << setfill('0') << k << " X";
-        int grpidMat = fileOut_->write(output.xs[k], oss.str(), grpid);
+        int matrixId = fileOut_->writeMatrixSparseCsr(output.xs[k], oss.str(), groupId);
 
-        fileOut_->write_AttNC("", "gridInfo.rowScale", output.gridInfos[k].rowScale, NC_BYTE, grpidMat);
-        fileOut_->write_AttNC("", "gridInfo.rowOffset", output.gridInfos[k].rowOffset, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        fileOut_->write_AttNC("", "gridInfo.rowExtent", output.gridInfos[k].rowExtent, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        fileOut_->write_AttNC("", "gridInfo.colScale", output.gridInfos[k].colScale, NC_BYTE, grpidMat);
-        fileOut_->write_AttNC("", "gridInfo.colOffset", output.gridInfos[k].colOffset, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        fileOut_->write_AttNC("", "gridInfo.colExtent", output.gridInfos[k].colExtent, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
-        //vector<ii> count(1); count[0] = output.gridInfos[k].count;
-        //fileOut_->write_AttNC("", "count", count, sizeof(ii) == 4 ? NC_INT : NC_INT64, grpidMat);
+        fileOut_->writeAttribute(output.gridInfos[k].rowScale, "gridInfo.rowScale", "", matrixId);
+        fileOut_->writeAttribute(output.gridInfos[k].rowOffset, "gridInfo.rowOffset", "", matrixId);
+        fileOut_->writeAttribute(output.gridInfos[k].rowExtent, "gridInfo.rowExtent", "", matrixId);
+        fileOut_->writeAttribute(output.gridInfos[k].colScale, "gridInfo.colScale", "", matrixId);
+        fileOut_->writeAttribute(output.gridInfos[k].colOffset, "gridInfo.colOffset", "", matrixId);
+        fileOut_->writeAttribute(output.gridInfos[k].colExtent, "gridInfo.colExtent", "", matrixId);
     }
 
     for (ii k = 0; k < ii(output.l2s.size()); k++)
     {
         ostringstream oss;
         oss << setw(4) << setfill('0') << k << " L2";
-        fileOut_->write(output.l2s[k], oss.str(), grpid);
+        fileOut_->writeMatrixSparseCsr(output.l2s[k], oss.str(), groupId);
     }
 
     for (ii k = 0; k < ii(output.l1l2s.size()); k++)
     {
         ostringstream oss;
         oss << setw(4) << setfill('0') << k << " L1L2";
-        fileOut_->write(output.l1l2s[k], oss.str(), grpid);
+        fileOut_->writeMatrixSparseCsr(output.l1l2s[k], oss.str(), groupId);
     }
 
     /*fileOut_->write_AttNC("", "baselineScale", output.baselineScale, NC_BYTE, grpid);

@@ -33,18 +33,18 @@ class BasisBspline : public Basis
 public:
     struct GridInfo
     {
-        char rowDimensions() const;
-        std::vector<char> rowScale; // dyadic scale for each dimension
-        std::vector<ii> rowOffset;  // coefficient offset for each dimension
-        std::vector<ii> rowExtent;  // number of coefficients for each dimension
+        short rowDimensions() const;
+        std::vector<short> rowScale; // dyadic scale for each dimension
+        std::vector<ii> rowOffset;   // coefficient offset for each dimension
+        std::vector<ii> rowExtent;   // number of coefficients for each dimension
 
-        char colDimensions() const;
-        std::vector<char> colScale; // dyadic scale for each dimension
-        std::vector<ii> colOffset;  // coefficient offset for each dimension
-        std::vector<ii> colExtent;  // number of coefficients for each dimension
+        short colDimensions() const;
+        std::vector<short> colScale; // dyadic scale for each dimension
+        std::vector<ii> colOffset;   // coefficient offset for each dimension
+        std::vector<ii> colExtent;   // number of coefficients for each dimension
 
         GridInfo() {};
-        GridInfo(char rowDimensions, char colDimensions);
+        GridInfo(short rowDimensions, short colDimensions);
         ~GridInfo();
 
         ii m() const;           // number of rows in resulting matrix
@@ -54,7 +54,7 @@ public:
         //void operator=(const GridInfo& gridInfo);
     };
 
-    BasisBspline(std::vector<Basis*>& bases, char rowDimensions, char colDimensions,
+    BasisBspline(std::vector<Basis*>& bases, short rowDimensions, short colDimensions,
                  bool transient, int parentIndex = -1);
     virtual ~BasisBspline();
 

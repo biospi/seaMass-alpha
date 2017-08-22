@@ -39,7 +39,7 @@ public:
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA) = 0;
 
     virtual void synthesizeGroups(std::vector<MatrixSparse> &g, const std::vector<MatrixSparse> &x, bool accumulate);
-    virtual std::vector<MatrixSparse> * getGroups(bool transpose) const;
+    virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
 
     int getIndex() const;
     int getParentIndex() const;

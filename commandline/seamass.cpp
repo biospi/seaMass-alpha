@@ -39,9 +39,11 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
+        string isotopesFilename;
         int scaleMz;
         int scaleSt;
-        int shrinkageExponent;
+        int lambdaExponent;
+        int lambdaGroupExponent;
         bool noTaperLambda;
         int toleranceExponent;
         double peakFwhm;
@@ -61,15 +63,23 @@ int main(int argc, const char * const * argv)
             ("help,h",
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
-             "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert from mzML/vendor format to mzMLb.")
+             "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
+             "from mzML/vendor format to mzMLb.")
+            ("isotopes_db,i", po::value<string>(&isotopesFilename),
+             "Isotope distribution database in smd format. Use genisodists to generate."
+             "from mzML/vendor format to mzMLb.")
             ("mz_scale,m", po::value<int>(&scaleMz),
              "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
              "Default is to autodetect.")
             ("st_scale,s", po::value<int>(&scaleSt),
              "output scantime resolution given as \"2^st_scale\"."
              "Default is to autodetect.")
-            ("lambda,l", po::value<int>(&shrinkageExponent)->default_value(0),
-             "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Use around 0.")
+            ("lambda,l", po::value<int>(&lambdaExponent)->default_value(0),
+             "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Needs to be same or less than group_lambda."
+             "Use around 0.")
+            ("group_lambda,g", po::value<int>(&lambdaGroupExponent)->default_value(0),
+             "Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\". "
+             "Ignored if no groups are specified in the input. Use around 0.")
             ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
              "Use this to stop tapering of lambda to 0 before finishing.")
             ("charge_states,c", po::value<short>(&chargeStates)->default_value(0),
@@ -117,17 +127,17 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
-        vector<char> scale(2);
+        vector<short> scale(2);
 
         if(vm.count("mz_scale"))
-            scale[0] = char(scaleMz);
+            scale[0] = short(scaleMz);
         else
-            scale[0] = numeric_limits<char>::max();
+            scale[0] = numeric_limits<short>::max();
 
         if(vm.count("st_scale"))
-            scale[1] = char(scaleSt);
+            scale[1] = short(scaleSt);
         else
-            scale[1] = numeric_limits<char>::max();
+            scale[1] = numeric_limits<short>::max();
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
         Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::InputOutput);
@@ -137,14 +147,16 @@ int main(int argc, const char * const * argv)
         Seamass::Input input;
         string id;
         fp tolerance = pow(2.0, fp(toleranceExponent));
-        fp shrinkage = pow(2.0, fp(shrinkageExponent));
+        fp lambda = pow(2.0, fp(lambdaExponent));
+        fp lambdaGroup = pow(2.0, fp(lambdaGroupExponent));
 
         while (dataset->read(input, id))
         {
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamassCore(input, scale, shrinkage, !noTaperLambda, tolerance, peakFwhm, chargeStates);
+            Seamass seamass(input, isotopesFilename, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
+                            peakFwhm, chargeStates);
 
             if (debugLevel / 10 >= 1)
             {
@@ -154,7 +166,7 @@ int main(int argc, const char * const * argv)
                 input2.finishTimes = input.finishTimes;
                 input2.exposures = input.exposures;
                 input2.type = input.type;
-                seamassCore.getInput(input2);
+                seamass.getInput(input2);
 
                 // write input in seaMass format
                 ostringstream oss; oss << fileStemOut << ".input";
@@ -168,37 +180,37 @@ int main(int argc, const char * const * argv)
                 {
                     /*{
                         Seamass::Output output;
-                        seamassCore.getOutput(output, false);
+                        seamass.getOutput(output, false);
 
                         // write intermediate output in seaMass format
-                        ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamassCore.getIteration();
+                        ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamass.getIteration();
                         DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
                         datasetOut.write(input, output, id);
                     }*/
                     {
                         Seamass::Output output;
-                        seamassCore.getOutput(output, true);
+                        seamass.getOutput(output, true);
 
                         // write intermediate output in seaMass format
-                        ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamassCore.getIteration();
+                        ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamass.getIteration();
                         DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
                         datasetOut.write(input, output, id);
                     }
                 }
             }
-            while (seamassCore.step());
+            while (seamass.step());
 
             // write output
             {
                 Seamass::Output output;
-                seamassCore.getOutput(output, false);
+                seamass.getOutput(output, false);
                 dataset->write(input, output, id);
             }
 
             if (debugLevel / 10 >= 1)
             {
                 Seamass::Output output;
-                seamassCore.getOutput(output, true);
+                seamass.getOutput(output, true);
 
                 ostringstream oss; oss << fileStemOut << ".synthesized";
                 DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);

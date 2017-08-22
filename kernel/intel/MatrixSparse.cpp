@@ -44,20 +44,20 @@ MatrixSparse::MatrixSparse() : m_(0), n_(0), mat_(0), ijs1_(0), isCsrOwned_(fals
 
 MatrixSparse::~MatrixSparse()
 {
-    empty();
+    clear();
 }
 
 
 void MatrixSparse::init(ii m, ii n)
 {
-    empty();
+    clear();
 
     m_ = m;
     n_ = n;
 }
 
 
-void MatrixSparse::empty()
+void MatrixSparse::clear()
 {
     if (mat_)
     {
@@ -129,6 +129,24 @@ ii MatrixSparse::nnzActual() const
     }
 
     return count;
+}
+
+
+ii* MatrixSparse::ijs() const
+{
+    return ijs_;
+}
+
+
+ii* MatrixSparse::js() const
+{
+    return js_;
+}
+
+
+fp* MatrixSparse::vs() const
+{
+    return vs_;
 }
 
 
@@ -234,7 +252,7 @@ void MatrixSparse::importFromCoo(ii a_m, ii a_n, ii a_nnz, const ii* a_is, const
 // todo: optimize
 void MatrixSparse::importFromMatrix(const Matrix &a)
 {
-    empty();
+    clear();
 
     vector<ii> is;
     vector<ii> js;
@@ -260,7 +278,7 @@ void MatrixSparse::importFromMatrix(const Matrix &a)
 // todo: optimize
 void MatrixSparse::initDense(ii m, ii n, fp v)
 {
-    empty();
+    clear();
 
     vector<ii> is;
     vector<ii> js;
@@ -351,12 +369,12 @@ void MatrixSparse::concatenateRows(const std::vector<MatrixSparse> &as)
 }
 
 
-void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
+void MatrixSparse::copyAatB(const MatrixSparse &a, const MatrixSparse &b)
 {
     if (getDebugLevel() % 10 >= 4)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "       copySubset(A" << a << " within B" << b << ") := ...";
+        oss << getTimeStamp() << "       copyAatB(A" << a << ", B" << b << ") := ...";
         info(oss.str());
     }
 
@@ -390,6 +408,10 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
                         {
                             vs_[nz] = a.vs_[a_nz];
                             found = true;
+                            break;
+                        }
+                        else if (b.js_[nz] < a.js_[a_nz])
+                        {
                             break;
                         }
                     }
@@ -727,7 +749,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
                 status = mkl_sparse_destroy(t);
                 assert(!status);
 
-                empty();
+                clear();
                 mat_ = y;
 
                 commitMkl(false);
@@ -908,6 +930,11 @@ void MatrixSparse::sqr(const MatrixSparse& a)
         assert(!status);
     }
 
+    /*for (ii nz = 0; nz < nnz(); nz++)
+    {
+        cout << nz << ":" << vs_[nz] << endl;
+    }*/
+
     if (initCsr(nnz() > 0))
     {
         vsSqr(nnz(), a.vs_, vs_);
@@ -915,6 +942,14 @@ void MatrixSparse::sqr(const MatrixSparse& a)
         assert(err == VML_STATUS_OK);
 
         commitCsr(a.isSorted_);
+    }
+
+    for (ii nz = 0; nz < nnz(); nz++)
+    {
+        if (vs_[nz] == 0.0)
+        {
+            cout << nz << ":" << vs_[nz] << endl;
+        }
     }
 
     if (getDebugLevel() % 10 >= 4)

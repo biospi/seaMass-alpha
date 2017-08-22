@@ -49,7 +49,7 @@ public:
     void conv1d(Matrix& h, Matrix& x);
     fp sum() const;
 
-public:
+private:
     ii m_; // rows
     ii n_; // columns
     fp* vs_; // data

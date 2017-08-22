@@ -85,23 +85,23 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                     {
                         // remove unneeded l1l2sPlusLambda
                         MatrixSparse l1l2PlusLambda;
-                        l1l2PlusLambda.copySubset(l1l2sPlusLambda_[l][k], xs_[l][k]);
+                        l1l2PlusLambda.copyAatB(l1l2sPlusLambda_[l][k], xs_[l][k]);
 
                         // normalise and prune xs
                         MatrixSparse x;
                         x.divNonzeros(xs_[l][k], l1l2PlusLambda);
-                        l1l2PlusLambda.empty();
+                        l1l2PlusLambda.clear();
                         x.mul((fp) (sumB / sumX));
                         xs_[l][k].pruneCells(x, pruneThreshold);
-                        x.empty();
+                        x.clear();
 
                         // remove unneeded l2s
                         MatrixSparse t;
-                        t.copySubset(l2s_[l][k], xs_[l][k]);
+                        t.copyAatB(l2s_[l][k], xs_[l][k]);
                         l2s_[l][k].swap(t);
 
                         // remove unneeded l1l2s
-                        t.copySubset(l1l2sPlusLambda_[l][k], xs_[l][k]);
+                        t.copyAatB(l1l2sPlusLambda_[l][k], xs_[l][k]);
                         l1l2sPlusLambda_[l][k].swap(t);
                     }
                 }
@@ -125,8 +125,10 @@ void OptimizerSrl::setLambda(fp lambda, fp lambdaGroup)
     {
         if (!bases_[l]->isTransient())
         {
+            fp lambdaDelta = lambda - lambda_;
+
             for (ii k = 0; k < ii(l1l2sPlusLambda_[l].size()); k++)
-                l1l2sPlusLambda_[l][k].addNonzeros(lambda - lambda_);
+                l1l2sPlusLambda_[l][k].addNonzeros(lambdaDelta);
         }
     }
 
@@ -135,6 +137,16 @@ void OptimizerSrl::setLambda(fp lambda, fp lambdaGroup)
     iteration_ = 0;
 }
 
+
+fp OptimizerSrl::getLambda() const
+{
+    return lambda_;
+}
+
+fp OptimizerSrl::getLambdaGroup() const
+{
+    return lambdaGroup_;
+}
 
 fp OptimizerSrl::step()
 {
@@ -160,14 +172,19 @@ fp OptimizerSrl::step()
     {
         for (ii k = 0; k < ii(f_fE.size()); k++)
         {
-            // need to improve copySubset to improve this silliness
+            // need to improve copyAatB to improve this silliness
             MatrixSparse t;
-            t.copySubset(f_fE[k], b_[k]);
+            t.copyAatB(f_fE[k], b_[k]);
             f_fE[k].pruneCells(t);
-            t.copySubset(b_[k], f_fE[k]);
+            t.copyAatB(b_[k], f_fE[k]);
 
             f_fE[k].divNonzeros(t, f_fE[k]);
-         }
+
+            //t.copyAatB(b_[k], f_fE[k]);
+            //f_fE[k].divNonzeros(t, f_fE[k]);
+
+            // TODO: check if replacing zeros with ones makes a difference
+        }
 
         if (getDebugLevel() % 10 >= 3)
         {
@@ -187,7 +204,7 @@ fp OptimizerSrl::step()
         analyze(xEs_ys, f_fE, false);
 
         for (ii k = 0; k < ii(f_fE.size()); k++)
-            f_fE[k].empty();
+            f_fE[k].clear();
     }
     double analysisDuration = getElapsedTime() - analysisStart;
 
@@ -210,8 +227,13 @@ fp OptimizerSrl::step()
                         info(oss.str());
                     }
 
-                    vector<MatrixSparse>* g = bases_[l]->getGroups(false);
-                    vector<MatrixSparse>* gT = bases_[l]->getGroups(true);
+                    const vector<MatrixSparse>* g = 0;
+                    for (ii p = l; !g; p = bases_[p]->getParentIndex())
+                        g = bases_[p]->getColGroups(false);
+
+                    const vector<MatrixSparse>* gT = 0;
+                    for (ii p = l; !gT; p = bases_[p]->getParentIndex())
+                        gT = bases_[p]->getColGroups(true);
 
                     // group and individual shrinkage
                     for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
@@ -222,8 +244,8 @@ fp OptimizerSrl::step()
                         MatrixSparse y;
                         y.matmul(false, t, (*gT)[k], false);
                         t.matmul(false, y, (*g)[k], false);
-                        y.copySubset(t, xs_[l][k]);
-                        t.empty();
+                        y.copyAatB(t, xs_[l][k]);
+                        t.clear();
                         y.sqrt(y);
 
                         // y = x * groupNorm(x)^-1)
@@ -335,15 +357,15 @@ fp OptimizerSrl::step()
                 for (ii k = 0; k < ii(xs_[l].size()); k++)
                 {
                     xs_[l][k].pruneCells(xEs_ys[l][k], pruneThreshold_);
-                    xEs_ys[l][k].empty();
+                    xEs_ys[l][k].clear();
 
                     // prune l1l2s
                     MatrixSparse t;
-                    t.copySubset(l1l2sPlusLambda_[l][k], xs_[l][k]);
+                    t.copyAatB(l1l2sPlusLambda_[l][k], xs_[l][k]);
                     l1l2sPlusLambda_[l][k].swap(t);
 
                     // prune l2s
-                    t.copySubset(l2s_[l][k], xs_[l][k]);
+                    t.copyAatB(l2s_[l][k], xs_[l][k]);
                     l2s_[l][k].swap(t);
                 }
 
@@ -448,7 +470,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
         for (ii k = 0; k < ii(xEs[0].size()); k++)
         {
             xEs[0][k].swap(t[k]);
-            /*xEs[0][k].copySubset(t[k]);
+            /*xEs[0][k].copyAatB(t[k]);
             if (t[k].nnz() != xEs[0][k].nnz())
             {
                 cout << "input  0[" << k << "]: " << t[k] << endl;
@@ -473,7 +495,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
             for (ii k = 0; k < ii(xEs[l].size()); k++)
             {
                 xEs[l][k].swap(t[k]);
-                /*xEs[l][k].copySubset(t[k]);
+                /*xEs[l][k].copyAatB(t[k]);
                 if (t[k].nnz() != xEs[l][k].nnz())
                 {
                     cout << "input  " << l << "[" << k << "]: " << t[k] << endl;
@@ -498,11 +520,15 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
                 {
-                    if (xEs[l][k].nnz() > xs_[l][k].nnz())
+                    //if (xEs[l][k].nnz() > xs_[l][k].nnz())
                     {
+
                         MatrixSparse t;
-                        t.copySubset(xEs[l][k], xs_[l][k]);
+                        t.copyAatB(xEs[l][k], xs_[l][k]);
                         xEs[l][k].swap(t);
+
+                        //if (iteration_ == 36)
+                        //    exit(0);
                     }
                 }
             }
@@ -518,7 +544,7 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
                 {
                     MatrixSparse t;
-                    t.copySubset(xEs[l][k], l2s_[l][k]);
+                    t.copyAatB(xEs[l][k], l2s_[l][k]);
 
                     xEs[l][k].divNonzeros(t, l2s_[l][k]);
                 }

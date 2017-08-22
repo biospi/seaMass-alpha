@@ -11,6 +11,17 @@ target_link_libraries (asrl LINK_PUBLIC
         ${Boost_LIBRARIES}
         )
 
+add_executable(genisodists
+        genisodists.cpp
+        )
+target_include_directories(genisodists PUBLIC
+        ${Boost_INCLUDE_DIRS}
+        )
+target_link_libraries (genisodists LINK_PUBLIC
+        seamass_core
+        ${Boost_LIBRARIES}
+        )
+
 add_executable(mzmlb2smb
         mzmlb2smb.cpp
         )

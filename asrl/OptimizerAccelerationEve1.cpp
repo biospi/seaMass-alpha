@@ -58,6 +58,17 @@ void OptimizerAccelerationEve1::setLambda(fp lambda, fp lambdaGroup)
 }
 
 
+fp OptimizerAccelerationEve1::getLambda() const
+{
+    return optimizer_->getLambda();
+}
+
+fp OptimizerAccelerationEve1::getLambdaGroup() const
+{
+    return optimizer_->getLambdaGroup();
+}
+
+
 fp OptimizerAccelerationEve1::step()
 {
     if (getDebugLevel() % 10 >= 3)
@@ -102,7 +113,7 @@ fp OptimizerAccelerationEve1::step()
                         }
                         // can now calcaulte first gradient vector 'u0s'
                         MatrixSparse t;
-                        t.copySubset(y0s_[l][k], xs()[l][k]);
+                        t.copyAatB(y0s_[l][k], xs()[l][k]);
 
                         u0s_[l][k].divNonzeros(xs()[l][k], t);
                         // no extrapolation this iteration, just save 'xs'
@@ -138,10 +149,10 @@ fp OptimizerAccelerationEve1::step()
 
                         // update to new gradient vector 'u0s'
                         MatrixSparse t;
-                        t.copySubset(y0s_[l][k], xs()[l][k]);
+                        t.copyAatB(y0s_[l][k], xs()[l][k]);
                         u0s_[l][k].divNonzeros(xs()[l][k], t);
 
-                        t.copySubset(cLogU0, xs()[l][k]);
+                        t.copyAatB(cLogU0, xs()[l][k]);
 
                         // using new gradient vector 'u0s'
                         MatrixSparse c1LogU;
@@ -174,7 +185,7 @@ fp OptimizerAccelerationEve1::step()
                         y0s_[l][k].copy(xs()[l][k]);
 
                         MatrixSparse t;
-                        t.copySubset(x0s_[l][k], xs()[l][k]);
+                        t.copyAatB(x0s_[l][k], xs()[l][k]);
 
                         y0s_[l][k].divNonzeros(y0s_[l][k], t);
                         y0s_[l][k].pow(y0s_[l][k], aThresh);

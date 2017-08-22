@@ -104,7 +104,7 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
-        // read input file
+        // readMatrixSparse input file
         if (debugLevel % 10 >= 1)
             cout << getTimeStamp() << "Reading " << filePath << " ..." << endl;
 
@@ -113,15 +113,15 @@ int main(int argc, const char * const * argv)
         Asrl::Input input;
 
         input.aT.resize(1);
-        fileIn.read(input.aT[0], "At");
+        fileIn.readMatrixSparseCoo(input.aT[0], "At");
 
         input.bT.resize(1);
-        fileIn.read(input.bT[0], "Bt");
+        fileIn.readMatrixSparseCoo(input.bT[0], "Bt");
 
         try
         {
             input.xT.resize(1);
-            fileIn.read(input.xT[0], "Xt");
+            fileIn.readMatrixSparseCoo(input.xT[0], "Xt");
         }
         catch(runtime_error& e)
         {
@@ -131,7 +131,7 @@ int main(int argc, const char * const * argv)
         try
         {
             input.gT.resize(1);
-            fileIn.read(input.gT[0], "Gt");
+            fileIn.readMatrixSparseCoo(input.gT[0], "Gt");
         }
         catch(runtime_error& e)
         {
@@ -162,10 +162,10 @@ int main(int argc, const char * const * argv)
                     cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
 
                 FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
-                fileOut.write(output.xT[0], "Xt");
-                fileOut.write(output.xTaT[0], "XtAt");
+                fileOut.writeMatrixSparseCoo(output.xT[0], "Xt");
+                fileOut.writeMatrix(output.xTaT[0], "XtAt");
                 if (output.xTgT.size() > 0)
-                    fileOut.write(output.xTgT[0], "XtGt");
+                    fileOut.writeMatrixSparseCoo(output.xTgT[0], "XtGt");
             }
         }
         while (asrl.step());
@@ -180,10 +180,10 @@ int main(int argc, const char * const * argv)
             cout << getTimeStamp() << "  Writing " << fileNameOut << " ..." << endl;
 
         FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
-        fileOut.write(output.xT[0], "Xt");
-        fileOut.write(output.xTaT[0], "XtAt");
+        fileOut.writeMatrixSparseCoo(output.xT[0], "Xt");
+        fileOut.writeMatrix(output.xTaT[0], "XtAt");
         if (output.xTgT.size() > 0)
-            fileOut.write(output.xTgT[0], "XtGt");
+            fileOut.writeMatrixSparseCoo(output.xTgT[0], "XtGt");
 
         cout << endl;
     }

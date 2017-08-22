@@ -46,6 +46,9 @@ public:
     virtual ~OptimizerAccelerationEve1();
     
     virtual void setLambda(fp lambda, fp lambdaGroup = fp(0.0));
+    virtual fp getLambda() const;
+    virtual fp getLambdaGroup() const;
+
     virtual const std::vector<Basis*>& getBases() const;
     virtual ii getIteration() const;
 

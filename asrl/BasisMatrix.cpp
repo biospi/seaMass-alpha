@@ -122,7 +122,7 @@ void BasisMatrix::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &
 }
 
 
-vector<MatrixSparse> * BasisMatrix::getGroups(bool transpose) const
+const vector<MatrixSparse> * BasisMatrix::getGroups(bool transpose) const
 {
     if (transpose)
         return gT_;

@@ -45,52 +45,55 @@ void Seamass::notice()
 }
 
 
-Seamass::Seamass(Input& input, const std::vector<char>& scale, fp lambda, bool taperShrinkage, fp tolerance,
-                 double peakFwhm, short chargeStates) : innerOptimizer_(0), lambda_(lambda), lambdaStart_(lambda),
-                                                        taperShrinkage_(taperShrinkage), tolerance_(tolerance),
-                                                        peakFwhm_(peakFwhm), chargeStates_(chargeStates), iteration_(0)
+Seamass::Seamass(Input& input, const string& isotopesFilename, const std::vector<short>& scale,
+                 fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
+        innerOptimizer_(0), lambda_(lambda), lambdaGroup_(lambdaGroup), lambdaStart_(lambda),
+        taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
+        iteration_(0)
 {
-    init(input, scale, chargeStates, true);
-    optimizer_->setLambda(fp(lambda_));
+    init(input, isotopesFilename, scale, chargeStates, true);
+    optimizer_->setLambda(lambda_, lambdaGroup_);
 }
 
 
-Seamass::Seamass(Input& input, const Output& seed) : innerOptimizer_(0), lambda_(seed.shrinkage), lambdaStart_(seed.shrinkage), tolerance_(seed.tolerance), peakFwhm_(seed.peakFwhm), iteration_(0)
+Seamass::Seamass(Input& input, const Output& output) :
+        innerOptimizer_(0), lambda_(output.lambda), lambdaGroup_(output.lambdaGroup), lambdaStart_(output.lambda),
+        tolerance_(output.tolerance), peakFwhm_(output.peakFwhm), iteration_(0)
 {
-    init(input, seed.scale, seed.chargeStates, false);
+    init(input, output.isotopesFilename, output.scale, output.chargeStates, false);
 
     // import seed
-    optimizer_->xs().resize(seed.xs.size());
+    optimizer_->xs().resize(output.xs.size());
     for (ii k = 0; k < ii(optimizer_->xs().size()); k++)
     {
         if (!bases_[k]->isTransient())
         {
             optimizer_->xs()[k].resize(1);
-            optimizer_->xs()[k][0].copy(seed.xs[k]);
+            optimizer_->xs()[k][0].copy(output.xs[k]);
         }
    }
 
-    optimizer_->l2s().resize(seed.l2s.size());
+    optimizer_->l2s().resize(output.l2s.size());
     for (ii k = 0; k < ii(optimizer_->l2s().size()); k++)
     {
         if (!bases_[k]->isTransient())
         {
             optimizer_->l2s()[k].resize(1);
-            optimizer_->l2s()[k][0].copy(seed.l2s[k]);
+            optimizer_->l2s()[k][0].copy(output.l2s[k]);
         }
     }
 
-    optimizer_->l1l2s().resize(seed.l1l2s.size());
+    optimizer_->l1l2s().resize(output.l1l2s.size());
     for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
     {
         if (!bases_[k]->isTransient())
         {
             optimizer_->l1l2s()[k].resize(1);
-            optimizer_->l1l2s()[k][0].copy(seed.l1l2s[k]);
+            optimizer_->l1l2s()[k][0].copy(output.l1l2s[k]);
         }
     }
 
-    optimizer_->setLambda(fp(lambda_));
+    optimizer_->setLambda(lambda_, lambdaGroup_);
 }
 
 
@@ -105,7 +108,8 @@ Seamass::~Seamass()
 }
 
 
-void Seamass::init(Input& input, const std::vector<char>& scales, short chargeStates, bool seed)
+void Seamass::init(Input& input, const string& isotopesFilename, const std::vector<short>& scales,
+                   short chargeStates, bool seed)
 {
     // INIT BASIS FUNCTIONS
     // Create our tree of bases
@@ -120,90 +124,39 @@ void Seamass::init(Input& input, const std::vector<char>& scales, short chargeSt
     {
         dimensions_ = 1;
 
-        BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex,
-                                                    input.locations, scales[0], chargeStates, false);
-
         //if (peakFwhm_ > 0.0)
-        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, false);
+        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
 
+        outputBasis_ = new BasisBsplineMz(bases_, b_, isotopesFilename, input.counts, input.countsIndex,
+                                          input.locations, scales[0], chargeStates, false);
 
-        /*for (ii i = 0; static_cast<BasisBspline*>(
-                               bases_.back())->getGridInfo().colScale[0] > basisMz->getBGridInfo().colScale[0] - 5; i++)
-        {
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, false);
-        }*/
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] >= scales[0] - 3; i++)
+            new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 1, false);
 
-
-        /*
-         *         Basis* previousBasis = new BasisBsplineCharge(bases_, bases_.back()->getIndex(), false);
-
-         for (ii i = 0; static_cast<BasisBspline*>(
-                               bases_.back())->getGridInfo().scale[0] > basisMz->getBGridInfo().scale[0] - 5; i++)
-        {
-            if (i > 0)
-               previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, false);
-
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] >= 4)
-                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
-        }*/
     }
     else
     {
         dimensions_ = 2;
 
-        BasisBsplineMz* basisMz = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex,
-                                                     input.locations, scales[0], chargeStates, true);
-
-        Basis* previousBasis = new BasisBsplineCharge(bases_, bases_.back()->getIndex(), false);
-
-        for (ii i = 0; static_cast<BasisBspline*>(
-                               bases_.back())->getGridInfo().colScale[0] > basisMz->getBGridInfo().colScale[0] - 5; i++)
-        {
-            if (i > 0)
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, false);
-
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().colExtent[1] >= 4)
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
-        }
-
         //if (peakFwhm_ > 0.0)
         //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+        
+        new BasisBsplineMz(bases_, b_, isotopesFilename, input.counts, input.countsIndex, input.locations,
+                           scales[0], chargeStates, true);
 
-        /*Basis* previousBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
-                                                        input.finishTimes, input.exposures, scales[1], false);
+        outputBasis_ = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
+                                                input.finishTimes, input.exposures, scales[1], false);
 
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().scale[0] > 10; i++)
+        Basis* previousBasis = outputBasis_;
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
         {
             if (i > 0)
-            {
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, false);
-            }
-            
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().extent[1] > 4)
-            {
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, false);
-            }
-        }*/
-    }
+                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, false);
 
-    // INIT B
-    /*if (input.countsIndex.size() == 0)
-    {
-        Matrix b;
-        b.importFromArray(1, input.counts.size(), input.counts.data());
-        b_[0].importFromMatrix(b);
-    }
-    else
-    {
-        b_.resize(input.countsIndex.size() - 1);
-        for (ii i = 0; i < input.countsIndex.size() - 1; i++)
-        {
-            Matrix b;
-            b.importFromArray(1, input.countsIndex[i + 1] - input.countsIndex[i],
-                                  &input.counts.data()[input.countsIndex[i]]);
-            b_[i].importFromMatrix(b);
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, false);
         }
-    }*/
+    }
 
     // INIT OPTIMISER
     innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
@@ -275,7 +228,7 @@ bool Seamass::step()
         {
             if (getDebugLevel() % 10 == 0) cout << "o" << flush;
             lambda_ *= (lambda_ > 0.0625 ? 0.5 : 0.0);
-            optimizer_->setLambda(fp(lambda_));
+            optimizer_->setLambda(lambda_, lambdaGroup_);
         }
     }
     else
@@ -315,7 +268,7 @@ void Seamass::getOutput(Output& output, bool synthesize) const
     const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
     output.scale = meshInfo.colScale;
 
-    output.shrinkage = lambdaStart_;
+    output.lambda = lambdaStart_;
     output.tolerance = tolerance_;
     output.peakFwhm = peakFwhm_;
     output.chargeStates = chargeStates_;
@@ -340,11 +293,14 @@ void Seamass::getOutput(Output& output, bool synthesize) const
         for (ii k = 0; k < ii(optimizer_->l2s().size()); k++)
                 output.l2s[k].copy(optimizer_->l2s()[k][0]);
 
-        optimizer_->setLambda(0.0);
         output.l1l2s.resize(optimizer_->l1l2s().size());
         for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
-                output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
-        optimizer_->setLambda(lambda_);
+        {
+            output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
+
+            if (!bases_[k]->isTransient())
+                output.l1l2s[k].addNonzeros(-optimizer_->getLambda());
+        }
     }
     else
     {
@@ -358,12 +314,15 @@ void Seamass::getOutput(Output& output, bool synthesize) const
             if (!bases_[k]->isTransient())
                 output.l2s[k].copy(optimizer_->l2s()[k][0]);
 
-        optimizer_->setLambda(0.0);
         output.l1l2s.resize(optimizer_->l1l2s().size());
         for (ii k = 0; k < ii(optimizer_->l1l2s().size()); k++)
+        {
             if (!bases_[k]->isTransient())
+            {
                 output.l1l2s[k].copy(optimizer_->l1l2s()[k][0]);
-        optimizer_->setLambda(lambda_);
+                output.l1l2s[k].addNonzeros(-optimizer_->getLambda());
+            }
+        }
     }
 
     /*output.baselineScale.resize(dimensions_);
@@ -500,12 +459,12 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
     {
         for (ii nz = 0; nz < c[0].nnz(); nz++)
         {
-            double mz0 = pow(2.0, (meshInfo.colOffset[0] + c[0].js_[nz] - 0.5) / double(1L << meshInfo.colScale[0])) +
+            double mz0 = pow(2.0, (meshInfo.colOffset[0] + c[0].js()[nz] - 0.5) / double(1L << meshInfo.colScale[0])) +
                          BasisBsplineMz::PROTON_MASS;
-            double mz1 = pow(2.0, (meshInfo.colOffset[0] + c[0].js_[nz] + 0.5) / double(1L << meshInfo.colScale[0])) +
+            double mz1 = pow(2.0, (meshInfo.colOffset[0] + c[0].js()[nz] + 0.5) / double(1L << meshInfo.colScale[0])) +
                          BasisBsplineMz::PROTON_MASS;
 
-            c[0].vs_[nz] /= mz1 - mz0;
+            c[0].vs()[nz] /= mz1 - mz0;
         }
     }
 
