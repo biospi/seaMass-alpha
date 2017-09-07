@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <ippcore.h>
 #include <ipps.h>
+
 #if defined(_OPENMP)
   #include <omp.h>
 #endif
@@ -143,19 +144,36 @@ void MatrixSparse::copy(const MatrixSparse& a)
 
     assert(this != &a);
 
+    ii *xs = static_cast<ii*>(mkl_malloc(sizeof(ii)*(a.m_+1),64));
+    ii *ys = static_cast<ii*>(mkl_malloc(sizeof(ii)*a.nnz(),64));
+    float *xf = static_cast<float*>(mkl_malloc(sizeof(float)*a.nnz(),64));
+    //float *yf = static_cast<float*>(mkl_malloc(sizeof(float)*a.nnz(),64));
+
     if (createCsr(a.m(), a.n(), a.nnz()))
     {
         IppStatus status = ippsCopy_32s(a.ijs_, ijs_, a.m_ + 1);
         assert(!status);
 
+        IppStatus rstat;
+        rstat = vector_copy(a.ijs_, xs, a.m_+1);
+
         status = ippsCopy_32s(a.js_, js_, a.nnz());
         assert(!status);
+
+        rstat = vector_copy(a.js_, ys, a.nnz());
 
         status = ippsCopy_32f(a.vs_, vs_, a.nnz());
         assert(!status);
 
+        rstat = vector_copy(a.vs_, xf, a.nnz());
+
         commitCsr(a.isSorted_);
     }
+
+    mkl_free(xf);
+
+    mkl_free(xs);
+    mkl_free(ys);
 
     if (getDebugLevel() % 10 >= 4)
     {

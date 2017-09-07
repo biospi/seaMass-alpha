@@ -25,8 +25,8 @@
 #include <iomanip>
 #include <sstream>
 #include <cassert>
-#include <ippcore.h>
-#include <ipps.h>
+#include <climits>
+
 using namespace std;
 using namespace kernel;
 
@@ -182,4 +182,44 @@ ostream& operator<<(ostream& os, const Matrix& a)
     }
 
     return  os;
+}
+
+template<>
+IppStatus vector_copy<float>(float* pVx, float* pVy, MKL_INT len)
+{
+    cblas_scopy(len, pVx, 1, pVy, 1);
+    return ippStsNoErr;
+}
+
+template<>
+IppStatus vector_copy<double>(double* pVx, double* pVy, MKL_INT len)
+{
+    cblas_dcopy(len, pVx, 1, pVy, 1);
+    return ippStsNoErr;
+}
+
+template<>
+IppStatus vector_copy<int>(int* pVx, int* pVy, MKL_INT len)
+{
+    IppStatus status;
+    int loop = len/INT_MAX;
+    int max_size=INT_MAX;
+    int rem = len%INT_MAX;
+    //int loop = len/5;
+    //int max_size=5;
+    //int rem = len%5;
+    int *px=pVx;
+    int *py=pVy;
+
+    for(int i = 0; i < loop; ++i)
+    {
+        status = ippsCopy_32s(px,py,max_size);
+        assert(!status);
+        px+=max_size;
+        py+=max_size;
+    }
+
+    status = ippsCopy_32s(px,py,rem);
+
+    return status;
 }

@@ -27,7 +27,8 @@
 #include "types.hpp"
 #include "../SubjectMatrix.hpp"
 #include <iostream>
-
+#include <ippcore.h>
+#include <ipps.h>
 
 class Matrix : public SubjectMatrix
 {
@@ -57,6 +58,14 @@ private:
 
 std::ostream& operator<<(std::ostream& os, const Matrix& mat);
 
+template<typename T>
+IppStatus vector_copy(T* pVx, T* pVy, MKL_INT len)
+{
+    std::cout<<"Error "<<std::endl;
+    std::cout<<"Unsurported Data Type: "<<std::endl;
+
+    return ippStsNullPtrErr;
+};
 
 #endif
 
