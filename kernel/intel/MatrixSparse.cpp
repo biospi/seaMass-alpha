@@ -30,7 +30,6 @@
 #include <algorithm>
 #include <ippcore.h>
 #include <ipps.h>
-
 #if defined(_OPENMP)
   #include <omp.h>
 #endif
@@ -144,36 +143,22 @@ void MatrixSparse::copy(const MatrixSparse& a)
 
     assert(this != &a);
 
-    ii *xs = static_cast<ii*>(mkl_malloc(sizeof(ii)*(a.m_+1),64));
-    ii *ys = static_cast<ii*>(mkl_malloc(sizeof(ii)*a.nnz(),64));
-    float *xf = static_cast<float*>(mkl_malloc(sizeof(float)*a.nnz(),64));
-    //float *yf = static_cast<float*>(mkl_malloc(sizeof(float)*a.nnz(),64));
-
     if (createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, a.m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, a.m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, a.m_ + 1);
         assert(!status);
 
-        IppStatus rstat;
-        rstat = vector_copy(a.ijs_, xs, a.m_+1);
-
-        status = ippsCopy_32s(a.js_, js_, a.nnz());
+        //status = ippsCopy_32s(a.js_, js_, a.nnz());
+        status = vectorCopy(a.js_, js_, a.nnz());
         assert(!status);
 
-        rstat = vector_copy(a.js_, ys, a.nnz());
-
-        status = ippsCopy_32f(a.vs_, vs_, a.nnz());
+        //status = ippsCopy_32f(a.vs_, vs_, a.nnz());
+        status = vectorCopy(a.vs_, vs_, a.nnz());
         assert(!status);
-
-        rstat = vector_copy(a.vs_, xf, a.nnz());
 
         commitCsr(a.isSorted_);
     }
-
-    mkl_free(xf);
-
-    mkl_free(xs);
-    mkl_free(ys);
 
     if (getDebugLevel() % 10 >= 4)
     {
@@ -332,7 +317,8 @@ void MatrixSparse::concatenateRows(const std::vector<MatrixSparse> &as)
             {
                 if (as[i].ijs1_)
                 {
-                    IppStatus status = ippsCopy_32s(as[i].js_, &js_[ijs_[i]], as[i].nnz());
+                    //IppStatus status = ippsCopy_32s(as[i].js_, &js_[ijs_[i]], as[i].nnz());
+                    IppStatus status = vectorCopy(as[i].js_, &js_[ijs_[i]], as[i].nnz());
                     assert(!status);
                 }
              }
@@ -342,7 +328,8 @@ void MatrixSparse::concatenateRows(const std::vector<MatrixSparse> &as)
             {
                 if (as[i].ijs1_)
                 {
-                    IppStatus status = ippsCopy_32f(as[i].vs_, &vs_[ijs_[i]], as[i].nnz());
+                    //IppStatus status = ippsCopy_32f(as[i].vs_, &vs_[ijs_[i]], as[i].nnz());
+                    IppStatus status = vectorCopy(as[i].vs_, &vs_[ijs_[i]], as[i].nnz());
                     assert(!status);
                 }
             }
@@ -388,10 +375,12 @@ void MatrixSparse::copySubset(const MatrixSparse &a, const MatrixSparse &b)
         a.sort();
         b.sort();
 
-        IppStatus status = ippsCopy_32s(b.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(b.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(b.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(b.js_, js_, nnz());
+        //status = ippsCopy_32s(b.js_, js_, nnz());
+        status = vectorCopy(b.js_, js_, nnz());
         assert(!status);
 
         for (ii i = 0; i < m_; i++)
@@ -554,7 +543,8 @@ ii MatrixSparse::pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bR
                 {
                     if (ijs1_[i] - ijs_[i] > 0)
                     {
-                        IppStatus status = ippsCopy_32s(&a.js_[a.ijs_[i]], &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                        //IppStatus status = ippsCopy_32s(&a.js_[a.ijs_[i]], &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                        IppStatus status = vectorCopy(&a.js_[a.ijs_[i]], &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
                         assert(!status);
                     }
                 }
@@ -564,7 +554,8 @@ ii MatrixSparse::pruneRows(const MatrixSparse &a, const MatrixSparse &b, bool bR
                 {
                     if (ijs1_[i] - ijs_[i] > 0)
                     {
-                        IppStatus status = ippsCopy_32f(&a.vs_[a.ijs_[i]], &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                        //IppStatus status = ippsCopy_32f(&a.vs_[a.ijs_[i]], &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                        IppStatus status = vectorCopy(&a.vs_[a.ijs_[i]], &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
                         assert(!status);
                     }
                 }
@@ -834,10 +825,12 @@ void MatrixSparse::mul(const MatrixSparse& a, const MatrixSparse& b)
 
     if (this != &a && this != &b && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, nnz());
+        //status = ippsCopy_32s(a.js_, js_, nnz());
+        status = vectorCopy(a.js_, js_, nnz());
         assert(!status);
     }
 
@@ -882,10 +875,12 @@ void MatrixSparse::sqr(const MatrixSparse& a)
 
     if (this != &a && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, nnz());
+        //status = ippsCopy_32s(a.js_, js_, nnz());
+        status = vectorCopy(a.js_, js_, nnz());
         assert(!status);
     }
 
@@ -918,10 +913,12 @@ void MatrixSparse::sqrt(const MatrixSparse& a)
 
     if (this != &a && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, nnz());
+        //status = ippsCopy_32s(a.js_, js_, nnz());
+        status = vectorCopy(a.js_, js_, nnz());
         assert(!status);
     }
 
@@ -954,10 +951,12 @@ void MatrixSparse::pow(const MatrixSparse& a, fp power)
 
     if (this != &a && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        //status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        status = vectorCopy(a.js_, js_, ijs1_[m_ - 1]);
         assert(!status);
     }
 
@@ -992,10 +991,12 @@ void MatrixSparse::censorLeft(const MatrixSparse& a, fp threshold)
 
     if (this != &a && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, nnz());
+        //status = ippsCopy_32s(a.js_, js_, nnz());
+        status = vectorCopy(a.js_, js_, nnz());
         assert(!status);
     }
 
@@ -1053,10 +1054,12 @@ void MatrixSparse::addNonzeros(const MatrixSparse& a, const MatrixSparse& b)
 
     if (this != &a && this != &b && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        //status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        status = vectorCopy(a.js_, js_, ijs1_[m_ - 1]);
         assert(!status);
     }
 
@@ -1101,10 +1104,12 @@ void MatrixSparse::lnNonzeros(const MatrixSparse& a)
 
     if (this != &a && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        //status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        status = vectorCopy(a.js_, js_, ijs1_[m_ - 1]);
         assert(!status);
     }
 
@@ -1142,10 +1147,12 @@ void MatrixSparse::divNonzeros(const MatrixSparse& a, const MatrixSparse& b)
 
     if (this != &a && this != &b && createCsr(a.m(), a.n(), a.nnz()))
     {
-        IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        //IppStatus status = ippsCopy_32s(a.ijs_, ijs_, m_ + 1);
+        IppStatus status = vectorCopy(a.ijs_, ijs_, m_ + 1);
         assert(!status);
 
-        status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        //status = ippsCopy_32s(a.js_, js_, ijs1_[m_ - 1]);
+        status = vectorCopy(a.js_, js_, ijs1_[m_ - 1]);
         assert(!status);
     }
 
@@ -1457,11 +1464,13 @@ void MatrixSparse::sort() const
                             assert(err == VML_STATUS_OK);
                             mkl_free(idxs);
 
-                            status = ippsCopy_32s(newJs, &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                            //status = ippsCopy_32s(newJs, &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                            status = vectorCopy(newJs, &js_[ijs_[i]], ijs1_[i] - ijs_[i]);
                             assert(!status);
                             mkl_free(newJs);
 
-                            status = ippsCopy_32f(newVs, &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                            //status = ippsCopy_32f(newVs, &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
+                            status = vectorCopy(newVs, &vs_[ijs_[i]], ijs1_[i] - ijs_[i]);
                             assert(!status);
                             mkl_free(newVs);
                         }

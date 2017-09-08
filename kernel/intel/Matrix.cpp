@@ -26,7 +26,6 @@
 #include <sstream>
 #include <cassert>
 #include <climits>
-
 using namespace std;
 using namespace kernel;
 
@@ -71,14 +70,16 @@ void Matrix::importFromArray(ii m, ii n, const fp *vs)
     init(m, n);
 
     for (ii i = 0; i < m_; i++)
-        ippsCopy_32f(&vs[i * n_], &vs_[i * n_], n_);
+        vectorCopy(&vs[i * n_], &vs_[i * n_], n_);
+        //ippsCopy_32f(&vs[i * n_], &vs_[i * n_], n_);
 }
 
 
 void Matrix::exportToArray(fp *vs) const
 {
     for (ii i = 0; i < m_; i++)
-        ippsCopy_32f(&vs_[i * n_], &vs[i * n_], n_);
+        vectorCopy(&vs_[i * n_], &vs[i * n_], n_);
+        //ippsCopy_32f(&vs_[i * n_], &vs[i * n_], n_);
 }
 
 
@@ -185,30 +186,27 @@ ostream& operator<<(ostream& os, const Matrix& a)
 }
 
 template<>
-IppStatus vector_copy<float>(float* pVx, float* pVy, MKL_INT len)
+IppStatus vectorCopy<float>(const float* pVx, float* pVy, MKL_INT len)
 {
     cblas_scopy(len, pVx, 1, pVy, 1);
     return ippStsNoErr;
 }
 
 template<>
-IppStatus vector_copy<double>(double* pVx, double* pVy, MKL_INT len)
+IppStatus vectorCopy<double>(const double* pVx, double* pVy, MKL_INT len)
 {
     cblas_dcopy(len, pVx, 1, pVy, 1);
     return ippStsNoErr;
 }
 
 template<>
-IppStatus vector_copy<int>(int* pVx, int* pVy, MKL_INT len)
+IppStatus vectorCopy<int>(const int* pVx, int* pVy, MKL_INT len)
 {
     IppStatus status;
     int loop = len/INT_MAX;
     int max_size=INT_MAX;
     int rem = len%INT_MAX;
-    //int loop = len/5;
-    //int max_size=5;
-    //int rem = len%5;
-    int *px=pVx;
+    int const *px=pVx;
     int *py=pVy;
 
     for(int i = 0; i < loop; ++i)
