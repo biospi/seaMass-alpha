@@ -453,7 +453,7 @@ void FileNetcdf::read_HypMatNC(const string dataSet, VecMat<T> &vm,
         N *=len[i];
     }
 
-    vm.set(uli(len[0]), uli(len[1]));
+    vm.set(li(len[0]), li(len[1]));
 
 
     if(typeid(vector<float>) == typeid(vm.v))
@@ -491,7 +491,7 @@ T FileNetcdf::search_Group(size_t level, int grpid)
     T val;
     size_t ds=0;
 
-    for(uli i = 0; i <= level; ++i)
+    for(li i = 0; i <= level; ++i)
     {
         size_t cidx=strGrpL;
         // How many Groups
@@ -680,7 +680,7 @@ int FileNetcdf::write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type x
     int ndim = 2;
     int deflate = 0;
     size_t N[2];
-    uli buffN[2];
+    li buffN[2];
 
     // Set chunking, shuffle, and deflate.
     shuffle = NC_SHUFFLE;
@@ -775,7 +775,7 @@ int FileNetcdf::write_MatAxisNC(const string dataSet, const VecMat<T> &vm, nc_ty
     int vecDim=1;
     int deflate = 0;
     size_t N[2];
-    uli buffN[2];
+    li buffN[2];
 
     string dimName1;
     string dimName2;

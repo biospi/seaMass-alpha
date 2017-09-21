@@ -27,7 +27,7 @@
 template<typename T>
 Peak<T>::Peak(double _mz, double _rt,T _pkcnt,
 		pair<double,double> _mzW,pair<double,double> _rtW,
-		double _t, lli _mz_idx, lli _rt_idx) :
+		double _t, li _mz_idx, li _rt_idx) :
 		mz(_mz), rt(_rt), pkcnt(_pkcnt), mzW(_mzW),rtW(_rtW),t(_t),
 		mz_idx(_mz_idx),rt_idx(_rt_idx){}
 
@@ -44,7 +44,7 @@ void PeakData<T>::addPeak(double _mz, double _rt,
 		pair<double,double> _mzW,
 		pair<double,double> _rtW,
 		double _t,
-		lli _mz_idx, lli _rt_idx)
+		li _mz_idx, li _rt_idx)
 {
 	peakData.push_back(typename Peak<T>::Peak(_mz,_rt, _pkcnt, _mzW, _rtW, _t, _mz_idx, _rt_idx));
 }
@@ -57,7 +57,7 @@ void PeakData<T>::addPeakArray(pdata* peakArray)
 }
 
 template<typename T>
-void PeakData<T>::updateFalseData(lli fPeaks, lli fWidths)
+void PeakData<T>::updateFalseData(li fPeaks, li fWidths)
 {
 	this->falsePeak+=fPeaks;
 	this->falseWidth+=fWidths;
@@ -74,7 +74,7 @@ template<typename T>
 vector<double> PeakData<T>::getMZ(void)
 {
 	vector<double> val(peakData.size(),0.0);
-	for(lli i = 0; i < peakData.size(); ++i)
+	for(li i = 0; i < peakData.size(); ++i)
 		val[i]=peakData[i].mz;
 	return val;
 }
@@ -83,7 +83,7 @@ template<typename T>
 vector<double> PeakData<T>::getRT(void)
 {
 	vector<double> val(peakData.size(),0.0);
-	for(lli i = 0; i < peakData.size(); ++i)
+	for(li i = 0; i < peakData.size(); ++i)
 		val[i]=peakData[i].rt;
 	return val;
 }
@@ -92,7 +92,7 @@ template<typename T>
 vector<T> PeakData<T>::getPKcount(void)
 {
 	vector<T> val(peakData.size(),0.0);
-	for(lli i = 0; i < peakData.size(); ++i)
+	for(li i = 0; i < peakData.size(); ++i)
 		val[i]=peakData[i].pkcnt;
 	return val;
 }
@@ -102,8 +102,8 @@ vector<double> PeakData<T>::getMZwidth(void)
 {
 	pair<double,double> width(0.0,0.0);
 	vector<double> val(peakData.size()*2,0.0);
-	lli idx=0;
-	for(lli i = 0; i < peakData.size(); ++i)
+	li idx=0;
+	for(li i = 0; i < peakData.size(); ++i)
 	{
 		width=peakData[i].mzW;
 		val[idx]=width.first;
@@ -119,8 +119,8 @@ vector<double> PeakData<T>::getRTwidth(void)
 {
 	pair<double,double> width(0.0,0.0);
 	vector<double> val(peakData.size()*2,0.0);
-	lli idx=0;
-	for(lli i = 0; i < peakData.size(); ++i)
+	li idx=0;
+	for(li i = 0; i < peakData.size(); ++i)
 	{
 		width=peakData[i].rtW;
 		val[idx]=width.first;
@@ -135,25 +135,25 @@ template<typename T>
 vector<double> PeakData<T>::getT(void)
 {
 	vector<double> val(peakData.size(),0.0);
-	for(lli i = 0; i < peakData.size(); ++i)
+	for(li i = 0; i < peakData.size(); ++i)
 		val[i]=peakData[i].t;
 	return val;
 }
 
 template<typename T>
-vector<lli> PeakData<T>::getMZIdx(void)
+vector<li> PeakData<T>::getMZIdx(void)
 {
-	vector<lli> val(peakData.size(),0.0);
-	for(lli i = 0; i < peakData.size(); ++i)
+	vector<li> val(peakData.size(),0.0);
+	for(li i = 0; i < peakData.size(); ++i)
 		val[i]=peakData[i].mz_idx;
 	return val;
 }
 
 template<typename T>
-vector<lli> PeakData<T>::getRTIdx(void)
+vector<li> PeakData<T>::getRTIdx(void)
 {
-	vector<lli> val(peakData.size(),0.0);
-	for(lli i = 0; i < peakData.size(); ++i)
+	vector<li> val(peakData.size(),0.0);
+	for(li i = 0; i < peakData.size(); ++i)
 		val[i]=peakData[i].rt_idx;
 	return val;
 }
@@ -182,8 +182,8 @@ void PeakData<T>::getPeakMat(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, ve
 	for(size_t i = 0;i < maxRT ; ++i)
 		if(mzbuff[i].size() > maxMZ) maxMZ = mzbuff[i].size();
 
-	mz.set(uli(maxRT),uli(maxMZ));
-	pk.set(uli(maxRT),uli(maxMZ));
+	mz.set(li(maxRT),li(maxMZ));
+	pk.set(li(maxRT),li(maxMZ));
 
 	for(size_t i = 0; i < maxRT; ++i)
 	{
@@ -220,8 +220,8 @@ void PeakData<T>::getPeakMatT(VecMat<double> &mz, VecMat<T> &pk, size_t maxRT, v
 	for(size_t i = 0; i < maxRT; ++i)
 		if(mzbuff[i].size() > maxMZ) maxMZ = mzbuff[i].size();
 
-	mz.set(uli(maxMZ),uli(maxRT));
-	pk.set(uli(maxMZ),uli(maxRT));
+	mz.set(li(maxMZ),li(maxRT));
+	pk.set(li(maxMZ),li(maxRT));
 
 	for(size_t i = 0; i < maxRT; ++i)
 	{
@@ -245,7 +245,7 @@ void PeakData<T>::dumpPeakData(string filename, nc_type data_type_id)
 
 	vector<T> tbuff;
 	vector<double> dbuff;
-	vector<lli> ibuff;
+	vector<li> ibuff;
 
 	dbuff=this->getMZ();
 	smpDataFile.write_VecNC("Peak_mz",dbuff,NC_DOUBLE);
@@ -303,13 +303,13 @@ void PeakData<T>::writePeakWidth(string filename, nc_type data_type_id)
 }
 
 template<typename T>
-lli PeakData<T>::getFalsePeaks(void)
+li PeakData<T>::getFalsePeaks(void)
 {
 	return falsePeak;
 }
 
 template<typename T>
-lli PeakData<T>::getFalseWidths(void)
+li PeakData<T>::getFalseWidths(void)
 {
 	return falseWidth;
 }

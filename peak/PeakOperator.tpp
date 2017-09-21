@@ -29,7 +29,7 @@
 #include <iostream>
 
 template<typename T, typename R>
-void MathOp<T,R>::calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
+void MathOp<T,R>::calMidPoint(li rtIdx, li mzIdx, T** alpha,
 		const vector<double> &mza, double &mz1, double &a1)
 {
 	mz1=0.5*(mza[mzIdx]+mza[mzIdx+1]);
@@ -63,7 +63,7 @@ double MathOp<T,R>::calX(double t, double x0, double x1, double x2)
 }
 
 template<typename T, typename R>
-vector<T> MathOp<T,R>::cal3rdMidPoint(lli row, lli col, T **P)
+vector<T> MathOp<T,R>::cal3rdMidPoint(li row, li col, T **P)
 {
 	vector<T> ry(4,0.0);
 	T p0=P[row][col-1];
@@ -98,12 +98,12 @@ T MathOp<T,R>::calPeakCount(vector<T> &ry, double t)
 }
 
 template<typename T, typename R>
-void MathOp<T,R>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2mz,
+void MathOp<T,R>::calPeakWidth(li rtIdx,li mzIdx, T** alpha, const vector<double> d2mz,
 		double &mzlhs, double &mzrhs)
 {
-	lli n=d2mz.size();
-	lli lhsIdx=mzIdx+1;
-	lli rhsIdx=mzIdx+1;
+	li n=d2mz.size();
+	li lhsIdx=mzIdx+1;
+	li rhsIdx=mzIdx+1;
 
 	do
 	{
@@ -155,8 +155,8 @@ void MathOp<T,R>::calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, const vector<doub
 template<typename T, typename R>
 void MathOp<T,R>::calPeakMZ(
 		DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
-		lli i, lli j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,
-		double &t0, lli &falsePeak)
+		li i, li j, double &mzPeak, T &countMax, double &mzlhs, double &mzrhs,
+		double &t0, li &falsePeak)
 {
 	if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) )
 	{
@@ -217,16 +217,16 @@ void Centroid1D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 	DataAxis<T,R> const *dbs=bsData[1];
 	DataAxis<T,R> const *d2bs=bsData[2];
 
-	uli dims[2];
+	li dims[2];
 	bs->alpha->getDims(dims);
-	lli i = 0;
-	lli col = dims[1];
+	li i = 0;
+	li col = dims[1];
 
-	lli falsePeak=0;
-	lli falseWidth=0;
+	li falsePeak=0;
+	li falseWidth=0;
 
 	// Find Peaks and exact MZ values.
-	for(lli j = 2; j < col-2; ++j)
+	for(li j = 2; j < col-2; ++j)
 	{
 		if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) &&
 			bs->alpha->m[i][j] > threshold)
@@ -269,20 +269,20 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 	DataAxis<T,R> const *dbs=bsData[1];
 	DataAxis<T,R> const *d2bs=bsData[2];
 
-	uli dims[2];
+	li dims[2];
 	bs->alpha->getDims(dims);
-	lli row = dims[0];
-	lli col = dims[1];
+	li row = dims[0];
+	li col = dims[1];
 
-	lli falsePeak=0;
-	lli falseWidth=0;
+	li falsePeak=0;
+	li falseWidth=0;
 	// Find Peaks and exact MZ values.
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
 
 	//#pragma omp parallel for reduction(+:falsePeak,falseWidth)
-	for(lli i = 0; i < row; ++i)
+	for(li i = 0; i < row; ++i)
 	{
-		for(lli j = 2; j < col-2; ++j)
+		for(li j = 2; j < col-2; ++j)
 		{
 			if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i][j+1] < 0) &&
 				bs->alpha->m[i][j] > threshold)
@@ -375,14 +375,14 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 	DataAxis<T,R> const *dvbs=bsData[3];
 	//DataAxis<T,R> const *dv2bs=bsData[4];
 
-	uli dims[2];
+	li dims[2];
 	bs->alpha->getDims(dims);
-	lli row = dims[0];
-	lli col = dims[1];
+	li row = dims[0];
+	li col = dims[1];
 
-	lli falsePeak=0;
-	lli falseWidth=0;
-	lli falseInnerPeak=0;
+	li falsePeak=0;
+	li falseWidth=0;
+	li falseInnerPeak=0;
 	// Find Peaks and exact MZ values.
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
 
@@ -398,17 +398,17 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 		vector<int> offset(2,0);
 
 		csPat.getDims(dims);
-		lli pr = dims[0];
-		lli pc = dims[1];
+		li pr = dims[0];
+		li pc = dims[1];
 
 		run = 0;
 		//#pragma omp for reduction(+:falsePeak,falseWidth,falseInnerPeak) schedule(dynamic)
-		for(lli i = 2; i < row-3; ++i)
+		for(li i = 2; i < row-3; ++i)
 		{
 			if(thrdid == 0)
 				cout<<"\r"<<"Processing Scan: "<<row-5<<"/"<<run<<flush;
 
-			for(lli j = 3; j < col-4; ++j)
+			for(li j = 3; j < col-4; ++j)
 			{
 				if( (dhbs->alpha->m[i][j] > 0) && (dhbs->alpha->m[i][j+1] < 0) &&
 					(dvbs->alpha->m[i][j] > 0) && (dvbs->alpha->m[i+1][j] < 0) &&
@@ -519,17 +519,17 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 }
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void ExtractPeak<pPeak,pData,T,R>::mulVecMat(const VecMat<T> &cs, const VecMat<T> &bp, VecMat<T> &pcs, lli i, lli j)
+void ExtractPeak<pPeak,pData,T,R>::mulVecMat(const VecMat<T> &cs, const VecMat<T> &bp, VecMat<T> &pcs, li i, li j)
 {
 	// (0,0) at patch
-	lli rdx=i-2;
-	lli cdx=j-3;
+	li rdx=i-2;
+	li cdx=j-3;
 
-	lli cols = 7;
-	lli rows = 5;
+	li cols = 7;
+	li rows = 5;
 
 	/*
-	uli dim[2];
+	li dim[2];
 	cout<<"CS Peak at ("<<i<<","<<j<<")"<<endl;
 	cout<<"CS Patch from ("<<rdx<<","<<cdx<<")"<<endl;
 	for(int i=rdx; i < rdx+rows; ++i){
@@ -560,8 +560,8 @@ void ExtractPeak<pPeak,pData,T,R>::mulVecMat(const VecMat<T> &cs, const VecMat<T
 	}
 	*/
 
-	lli rpcs=0;
-	lli cpcs=0;
+	li rpcs=0;
+	li cpcs=0;
 	for(int n = 0; n < cols; ++n)
 	{
 		rpcs=0;
@@ -594,13 +594,13 @@ void ExtractPeak<pPeak,pData,T,R>::mulVecMat(const VecMat<T> &cs, const VecMat<T
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
 int ExtractPeak<pPeak,pData,T,R>::calInnerPeakMZ(
 		DataAxis<T,R> const *bs,DataAxis<T,R> const *dhbs,
-		lli i, lli j, double &mzPeak, T &countMax,
-		double &t0, lli &falsePeak)
+		li i, li j, double &mzPeak, T &countMax,
+		double &t0, li &falsePeak)
 {
 	if((dhbs->alpha->m[i][j] > 0) && (dhbs->alpha->m[i][j+1] < 0) )
 	{
-		lli u=i;
-		lli v=j;
+		li u=i;
+		li v=j;
 		double pa1=0.0;
 		double pmz1=0.0;
 		MathOp<T,R>::calMidPoint(u,v,dhbs->alpha->m,dhbs->mz,pmz1,pa1);
@@ -646,8 +646,8 @@ int ExtractPeak<pPeak,pData,T,R>::calInnerPeakMZ(
 	}
 	else if((dhbs->alpha->m[i][j-1] > 0) && (dhbs->alpha->m[i][j] < 0) )
 	{
-		lli u=i;
-		lli v=j-1;
+		li u=i;
+		li v=j-1;
 		double pa1=0.0;
 		double pmz1=0.0;
 		MathOp<T,R>::calMidPoint(u,v,dhbs->alpha->m,dhbs->mz,pmz1,pa1);
@@ -760,7 +760,7 @@ typename ExtractPeak<pPeak,pData,T,R>::DataPoint ExtractPeak<pPeak,pData,T,R>::b
 }
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void ExtractPeak<pPeak,pData,T,R>::calMidPointRT(lli rtIdx, lli mzIdx, T** alpha,
+void ExtractPeak<pPeak,pData,T,R>::calMidPointRT(li rtIdx, li mzIdx, T** alpha,
 		const vector<double> &rta, double &rt1, double &a1)
 {
 	rt1=0.5*(rta[rtIdx]+rta[rtIdx+1]);
@@ -768,7 +768,7 @@ void ExtractPeak<pPeak,pData,T,R>::calMidPointRT(lli rtIdx, lli mzIdx, T** alpha
 }
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-vector<T> ExtractPeak<pPeak,pData,T,R>::cal3rdMidPointRT(lli row, lli col, T **P)
+vector<T> ExtractPeak<pPeak,pData,T,R>::cal3rdMidPointRT(li row, li col, T **P)
 {
 	vector<T> ry(4,0.0);
 	T p0=P[row-1][col];
@@ -791,12 +791,12 @@ vector<T> ExtractPeak<pPeak,pData,T,R>::cal3rdMidPointRT(lli row, lli col, T **P
 }
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void ExtractPeak<pPeak,pData,T,R>::calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> drrt,
+void ExtractPeak<pPeak,pData,T,R>::calPeakWidthRT(li rtIdx,li mzIdx, T** alpha, const vector<double> drrt,
 		double &rtlhs, double &rtrhs)
 {
-	lli n=drrt.size();
-	lli lhsIdx=rtIdx;   // Above and to the left scan.
-	lli rhsIdx=rtIdx+1; // Below and to the right scan.
+	li n=drrt.size();
+	li lhsIdx=rtIdx;   // Above and to the left scan.
+	li rhsIdx=rtIdx+1; // Below and to the right scan.
 
 	do
 	{
@@ -838,8 +838,8 @@ void ExtractPeak<pPeak,pData,T,R>::calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
 void ExtractPeak<pPeak,pData,T,R>::calPeakRT(
 		DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
-		lli i, lli j, double &mzPeak, T &countMax, double &rtlhs, double &rtrhs,
-		double &t0, lli &falsePeak)
+		li i, li j, double &mzPeak, T &countMax, double &rtlhs, double &rtrhs,
+		double &t0, li &falsePeak)
 {
 	if((dbs->alpha->m[i][j] > 0) && (dbs->alpha->m[i+1][j] < 0) )
 	{
@@ -891,12 +891,12 @@ void ExtractPeak<pPeak,pData,T,R>::calPeakRT(
 }
 
 template<template<class> class pPeak, template<class,class> class pData, typename T, typename R>
-void ExtractPeak<pPeak,pData,T,R>::calPeakLenRT(lli rtIdx,lli mzIdx, T** alpha,
+void ExtractPeak<pPeak,pData,T,R>::calPeakLenRT(li rtIdx,li mzIdx, T** alpha,
 		const vector<double> d2rt, double &rtlhs, double &rtrhs)
 {
-	lli n=d2rt.size()-1;
-	lli lhsIdx=rtIdx-1;
-	lli rhsIdx=rtIdx+1;
+	li n=d2rt.size()-1;
+	li lhsIdx=rtIdx-1;
+	li rhsIdx=rtIdx+1;
 	do
 	{
 		--lhsIdx;

@@ -330,14 +330,14 @@ int main(int argc, char **argv)
 	//---------------------------------------------------------------------
 	if(process == CENT1DIM)
 	{
-		vector<uli> dims(2,0);
+		vector<li> dims(2,0);
 		vector<size_t> hypIdx(2);
 		vector<size_t> rdLen(2);
 
 		rdLen[0]=1;
 		rdLen[1]=dataMatLen[1];
-		dims[0]=uli(rdLen[0]);
-		dims[1]=uli(rdLen[1]);
+		dims[0]=li(rdLen[0]);
+		dims[1]=li(rdLen[1]);
 		hypIdx[1]=0; // = Always read from first Column;
 
 		PeakData<> totalPeaks;
@@ -412,7 +412,7 @@ int main(int argc, char **argv)
 	}
 	else if(process == CENT2DIM)
 	{
-		uli dims[2];
+		li dims[2];
 		VecMat<float> rawCoeff;
 		smoDF.read_MatNC(dataSetList[0].varName,rawCoeff,dataSetList[0].grpid);
 		rawCoeff.getDims(dims);
@@ -438,7 +438,7 @@ int main(int argc, char **argv)
 	}
 	else if(process == PEAKPICK)
 	{
-		uli dims[2];
+		li dims[2];
 		VecMat<float> rawCoeff;
 		smoDF.read_MatNC(dataSetList[0].varName,rawCoeff,dataSetList[0].grpid);
 		rawCoeff.getDims(dims);
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
 				"spectrum_MS_1000515_row","spectrum_MS_1000515_col",NC_FLOAT);
 
 		// Write ragged unlimited matrix scan by scan
-		uli centrc[2];
+		li centrc[2];
 		mzPeak.getDims(centrc);
 		for(size_t rt_idx = 0, ms1 = 0; rt_idx < rdims[0]; ++rt_idx)
 		{

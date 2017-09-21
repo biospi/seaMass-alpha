@@ -49,7 +49,8 @@ int main(int argc, const char * const * argv)
         int debugLevel;
         bool peakWidth;
         double threshold;
-        ii samplingRate;
+        //ii samplingRate;
+        int samplingRate;
         bool reconstruct;
         bool centroid;
         bool deconvolve;
@@ -155,10 +156,10 @@ int main(int argc, const char * const * argv)
                 VecMat<float> pkPeak;
                 vector<size_t> mzpkVecSize;
 
-                uli dims[2];
+                li dims[2];
                 double mzRes;
                 double rtRes;
-                vector<ii> offset=contpts.offset;
+                vector<int> offset(begin(contpts.offset),end(contpts.offset));
                 mzRes=double(contpts.scale[0]);
                 if (contpts.scale.size() > 1)
                     rtRes=double(contpts.scale[1]);
@@ -191,7 +192,7 @@ int main(int argc, const char * const * argv)
                 vector<li>().swap(input.countsIndex);
                 input.countsIndex.push_back(0);
 
-                uli peakDims[2];
+                li peakDims[2];
                 mzPeak.getDims(peakDims);
                 for (ii i = 0; i < mzpkVecSize.size(); i++)
                 {

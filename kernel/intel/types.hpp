@@ -24,7 +24,7 @@
 #define SEAMASS_KERNEL_INTEL_TYPES_HPP
 
 
-//#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
+#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
 #include <mkl.h>
 #include <mkl_spblas.h>
 

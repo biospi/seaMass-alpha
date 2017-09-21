@@ -44,7 +44,7 @@ template
 >
 struct SMData1D : public DataAxis<T,R>, public MathOp<T>
 {
-	SMData1D(uli dims[], int offset[], double mz_res, R rt,
+	SMData1D(li dims[], int offset[], double mz_res, R rt,
 			vector<T> &vec);
 	~SMData1D(){delete this->alpha;};
 };
@@ -59,7 +59,7 @@ template
 struct SMData2D : public DataAxis<T,R>, public MathOp<T>
 {
 	SMData2D(vector<R> &_rt, vector<double> &_mz, vector<T> &vec);
-	SMData2D(uli dims[], int offset[], double mz_res, double rt_res,
+	SMData2D(li dims[], int offset[], double mz_res, double rt_res,
 			vector<T> &vec);
 	~SMData2D(){delete this->alpha;};
 };

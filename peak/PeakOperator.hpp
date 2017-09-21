@@ -29,17 +29,17 @@ template<typename T, typename R>
 class MathOp
 {
 protected:
-	void calMidPoint(lli rtIdx, lli mzIdx, T** alpha,
+	void calMidPoint(li rtIdx, li mzIdx, T** alpha,
 					const vector<double> &mza, double &mz1, double &a1);
 	double calT(const double y0, const double y1, const double y2);
 	double calX(double t, double x0, double x1, double x2);
-	vector<T> cal3rdMidPoint(lli rtIdx, lli mzIdx, T **P);
+	vector<T> cal3rdMidPoint(li rtIdx, li mzIdx, T **P);
 	T calPeakCount(vector<T> &ry, double t);
-	void calPeakWidth(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2mz,
+	void calPeakWidth(li rtIdx,li mzIdx, T** alpha, const vector<double> d2mz,
 					double &mzlhs, double &mzrhs);
 	void calPeakMZ(DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
-					lli i, lli j, double &mzPeak, T &countMax,
-					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak);
+					li i, li j, double &mzPeak, T &countMax,
+					double &mzlhs, double &mzrhs, double &t0, li &falsePeak);
 	~MathOp(){};
 };
 
@@ -99,22 +99,22 @@ private:
 		T pk;      // z
 		double t0;
 	};
-	void mulVecMat(const VecMat<T> &cs, const VecMat<T> &bp, VecMat<T> &pcs, lli i, lli j);
+	void mulVecMat(const VecMat<T> &cs, const VecMat<T> &bp, VecMat<T> &pcs, li i, li j);
 	int calInnerPeakMZ(DataAxis<T,R> const *bs,DataAxis<T,R> const *dhbs,
-					lli i, lli j, double &mzPeak, T &countMax,
-					double &t0, lli &falsePeak);
+					li i, li j, double &mzPeak, T &countMax,
+					double &t0, li &falsePeak);
 	void bezierP(vector<DataPoint> const &spt, vector<DataPoint> &p);
 	void bezierT(vector<DataPoint> &p);
 	DataPoint bezierO3(vector<DataPoint> &p);
-	void calMidPointRT(lli rtIdx, lli mzIdx, T** alpha,
+	void calMidPointRT(li rtIdx, li mzIdx, T** alpha,
 					const vector<double> &rta, double &rt1, double &a1);
-	vector<T> cal3rdMidPointRT(lli rtIdx, lli mzIdx, T **P);
-	void calPeakWidthRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> drt,
+	vector<T> cal3rdMidPointRT(li rtIdx, li mzIdx, T **P);
+	void calPeakWidthRT(li rtIdx,li mzIdx, T** alpha, const vector<double> drt,
 					double &rtlhs, double &rtrhs);
 	void calPeakRT(DataAxis<T,R> const *bs,DataAxis<T,R> const *dbs,DataAxis<T,R> const *d2bs,
-					lli i, lli j, double &mzPeak, T &countMax,
-					double &mzlhs, double &mzrhs, double &t0, lli &falsePeak);
-	void calPeakLenRT(lli rtIdx,lli mzIdx, T** alpha, const vector<double> d2rt,
+					li i, li j, double &mzPeak, T &countMax,
+					double &mzlhs, double &mzrhs, double &t0, li &falsePeak);
+	void calPeakLenRT(li rtIdx,li mzIdx, T** alpha, const vector<double> d2rt,
 					double &rtlhs, double &rtrhs);
 };
 

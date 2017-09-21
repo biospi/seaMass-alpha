@@ -1443,18 +1443,21 @@ void MatrixSparse::sort() const
                     {
                         if (ijs1_[i] > ijs_[i])
                         {
-                            ii bufSize;
-                            IppStatus status = ippsSortRadixIndexGetBufferSize(ijs1_[i] - ijs_[i], ipp32s, &bufSize);
+                            IppSizeL bufSize;
+                            int len = int(ijs1_[i] - ijs_[i]);
+                            //IppStatus status = ippsSortRadixIndexGetBufferSize(ijs1_[i] - ijs_[i], ipp32s, &bufSize);
+                            IppStatus status = ippsSortRadixIndexGetBufferSize_L(len, ipp64s, &bufSize);
                             assert(!status);
 
                             Ipp8u* buffer = static_cast<Ipp8u*>(mkl_malloc(sizeof(Ipp8u) * bufSize, 64));
 
                             ii* idxs = static_cast<ii*>(mkl_malloc(sizeof(ii) * (ijs1_[i] - ijs_[i]), 64));
-                            status = ippsSortRadixIndexAscend_32s(&js_[ijs_[i]], sizeof(ii), idxs, ijs1_[i] - ijs_[i], buffer);
+                            //status = ippsSortRadixIndexAscend_32s(&js_[ijs_[i]], sizeof(ii), idxs, ijs1_[i] - ijs_[i], buffer);
+                            status = ippsSortRadixIndexAscend_64s_L(&js_[ijs_[i]], sizeof(ii), idxs, ijs1_[i] - ijs_[i], buffer);
                             assert(!status);
                             mkl_free(buffer);
 
-                            ii* newJs = static_cast<ii*>(mkl_malloc(sizeof(fp) * (ijs1_[i] - ijs_[i]), 64));
+                            ii* newJs = static_cast<ii*>(mkl_malloc(sizeof(ii) * (ijs1_[i] - ijs_[i]), 64));
                             for (ii nz = 0; nz < ijs1_[i] - ijs_[i]; nz++)
                                 newJs[nz] = js_[ijs_[i] + idxs[nz]];
 

@@ -97,6 +97,7 @@ void Matrix::conv1d(Matrix& h, Matrix& a)
 
     init(1, a.n_ - h.n_ + 1);
 
+    /*
     int status;
     VSLConvTaskPtr task;
     vslsConvNewTask1D(&task, VSL_CONV_MODE_DIRECT, h.n_, a.n_, n_);
@@ -113,6 +114,7 @@ void Matrix::conv1d(Matrix& h, Matrix& a)
         oss << getTimeStamp() << "       ... X" << *this;
         info(oss.str(), this);
     }
+    */
 }
 
 
@@ -186,6 +188,20 @@ ostream& operator<<(ostream& os, const Matrix& a)
 }
 
 template<>
+IppStatus vectorCopy<ii>(const ii* pVx, ii* pVy, ii len)
+{
+    ii const* ptrx = pVx;
+    ii* ptry = pVy;
+
+    for(int i = 0; i < len; ++i, ++ptrx, ++ptry)
+    {
+        *ptry = *ptrx;
+    }
+
+    return ippStsNoErr;
+}
+
+template<>
 IppStatus vectorCopy<float>(const float* pVx, float* pVy, MKL_INT len)
 {
     cblas_scopy(len, pVx, 1, pVy, 1);
@@ -199,6 +215,7 @@ IppStatus vectorCopy<double>(const double* pVx, double* pVy, MKL_INT len)
     return ippStsNoErr;
 }
 
+/*
 template<>
 IppStatus vectorCopy<int>(const int* pVx, int* pVy, MKL_INT len)
 {
@@ -221,3 +238,5 @@ IppStatus vectorCopy<int>(const int* pVx, int* pVy, MKL_INT len)
 
     return status;
 }
+*/
+

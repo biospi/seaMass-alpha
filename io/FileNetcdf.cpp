@@ -229,7 +229,7 @@ void FileNetcdf::read(Matrix& a, const string name, int grpid)
     {
         VecMat<fp> vm;
         read_MatNC(name, vm, grpid);
-        uli dims[2];
+        li dims[2];
         vm.getDims(dims);
         a.importFromArray(dims[0], dims[1], vm.v.data());
     }

@@ -59,7 +59,7 @@ private:
 std::ostream& operator<<(std::ostream& os, const Matrix& mat);
 
 template<typename T>
-IppStatus vectorCopy(const T *pVx, T *pVy, MKL_INT len)
+IppStatus vectorCopy(const T *pVx, T *pVy, ii len)
 {
     std::cout<<"Error: Wrong VectorCopy Template used !!!"<<std::endl;
     std::cout<<"Unsupported Data Type, illformed output."<<std::endl;
@@ -68,13 +68,18 @@ IppStatus vectorCopy(const T *pVx, T *pVy, MKL_INT len)
 };
 
 template<>
-IppStatus vectorCopy<float>(const float* pVx, float* pVy, MKL_INT len);
+IppStatus vectorCopy<float>(const float* pVx, float* pVy, ii len);
 
 template<>
-IppStatus vectorCopy<double>(const double* pVx, double* pVy, MKL_INT len);
+IppStatus vectorCopy<double>(const double* pVx, double* pVy, ii len);
+
+/*
+template<>
+IppStatus vectorCopy<int>(const int* pVx, int* pVy, ii len);
+*/
 
 template<>
-IppStatus vectorCopy<int>(const int* pVx, int* pVy, MKL_INT len);
+IppStatus vectorCopy<ii>(const ii* pVx, ii* pVy, ii len);
 
 #endif
 

@@ -83,12 +83,12 @@ void genMZAxis(vector<double> &mz,Seamass::ControlPoints &cpts, int n, int res)
     //double dmz=1.0/(res -1);
     double dmz=1.0/(res);
     double ppbmz = 1.0033548378 / (pow(2.0, cpts.scale[0]) * 60.0);
-    for (lli i = 0; i < mz.size(); ++i) {
+    for (li i = 0; i < mz.size(); ++i) {
         mz[i] = (offset + i*dmz) * ppbmz;
     }
     */
     double dmz=1.0/(res);
-    for (lli i = 0; i < mz.size(); ++i)
+    for (li i = 0; i < mz.size(); ++i)
     {
         mz[i] = pow(2.0, (offset + i*dmz) / double(1L << cpts.scale[0])) + BasisBsplineMz::PROTON_MASS;
     }

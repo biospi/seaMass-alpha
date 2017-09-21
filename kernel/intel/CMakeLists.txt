@@ -1,4 +1,4 @@
-#set(USE_MKL_64BIT_LIB On)
+set(USE_MKL_64BIT_LIB On)
 find_package(Intel REQUIRED)
 
 add_library(seamass_kernel
