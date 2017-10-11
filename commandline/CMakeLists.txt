@@ -45,6 +45,17 @@ target_link_libraries (seamass-restore LINK_PUBLIC
         ${Boost_LIBRARIES}
         )
 
+add_executable(smb-split
+	smb-split.cpp
+	)
+target_include_directories(smb-split PUBLIC
+	${Boost_INCLUDE_DIRS}
+	)
+target_link_libraries (smb-split LINK_PUBLIC
+	seamass_core
+	${Boost_LIBRARIES}
+	)
+
 add_executable(smb2mzmlb
         smb2mzmlb.cpp
         )
