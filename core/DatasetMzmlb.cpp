@@ -29,7 +29,7 @@ using namespace kernel;
 namespace xml = pugi;
 
 
-DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType) : fileOut_(0), spectrumIndex_(0), lastSpectrumIndex_(-1000), spectrumListIdx_(0)
+DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType) : fileOut_(0), spectrumIndex_(0), lastSpectrumIndex_(-1000), spectrumListIdx_(0)
 {
     if (filePathIn.empty())
         throw runtime_error("BUG: mzMLb/mzMLv file cannot be written without an mzMLb/mzMLv to readMatrixSparse from.");
@@ -378,7 +378,7 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         fileOut_->write_CatHypVecNC("mzML_spectrumIndex", &newMzmlIndex_,1);
 
         string s = "mzMLb 0.5";
-        fileOut_->writeAttribute(vector<char>(s.c_str(), s.c_str() + s.length() + 1), "mzML", "version");
+        fileOut_->writeAttribute(s, "version", "mzML");
 
         mzML.clear();
     }
@@ -932,6 +932,7 @@ void DatasetMzmlb::writeXmlSpectrum(li offset_, vector<double> &mzs_,
         fileOut_->write_CatHypVecNC("spectrum_MS_1000515_float",intensities_);
         fileOut_->write_CatHypVecNC("mzML_spectrumIndex", &newMzmlIndex_,1);
     }
+
     if(offset_ >= metadata_.size() - 1)
     {
         writeChromatogramXmlEnd();

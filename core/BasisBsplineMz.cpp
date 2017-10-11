@@ -362,7 +362,9 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
                 is.push_back(x + z * gridInfo().colExtent[1]);
                 js.push_back(g);
                 vs.push_back(1.0);
-                //vs.push_back(1.0 / sqrt(sqrt(mass)));
+                //vs.push_back(1.0 / sqrt(mass); // this does not work
+                //vs.push_back(1.0 / pow(300.0*mass, 1.0/4.0));
+                //vs.push_back(1.0 / pow(6.0*mass, 1.0/3.0)); //vs.push_back(1.0 / sqrt(pow(6.0*mass, 2.0/3.0)));
             }
         }
 

@@ -31,7 +31,7 @@
 class DatasetSeamass: public Dataset
 {
 public:
-    DatasetSeamass(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+    DatasetSeamass(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
     virtual ~DatasetSeamass();
 
     virtual bool read(Seamass::Input &input, std::string &id);

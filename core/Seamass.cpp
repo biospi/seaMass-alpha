@@ -47,20 +47,22 @@ void Seamass::notice()
 
 Seamass::Seamass(Input& input, const string& isotopesFilename, const std::vector<short>& scale,
                  fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
-        innerOptimizer_(0), lambda_(lambda), lambdaGroup_(lambdaGroup), lambdaStart_(lambda),
+        innerOptimizer_(0), isotopesFilename_(isotopesFilename), scale_(scale), lambda_(lambda),
+        lambdaGroup_(lambdaGroup), lambdaStart_(lambda), lambdaGroupStart_(lambdaGroup),
         taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
         iteration_(0)
 {
-    init(input, isotopesFilename, scale, chargeStates, true);
+    init(input, true);
     optimizer_->setLambda(lambda_, lambdaGroup_);
 }
 
 
 Seamass::Seamass(Input& input, const Output& output) :
-        innerOptimizer_(0), lambda_(output.lambda), lambdaGroup_(output.lambdaGroup), lambdaStart_(output.lambda),
-        tolerance_(output.tolerance), peakFwhm_(output.peakFwhm), iteration_(0)
+        innerOptimizer_(0), isotopesFilename_(output.isotopesFilename), scale_(output.scale), lambda_(output.lambda),
+        lambdaGroup_(output.lambdaGroup), lambdaStart_(output.lambda), lambdaGroupStart_(output.lambdaGroup),
+        tolerance_(output.tolerance), peakFwhm_(output.peakFwhm), chargeStates_(output.chargeStates), iteration_(0)
 {
-    init(input, output.isotopesFilename, output.scale, output.chargeStates, false);
+    init(input, false);
 
     // import seed
     optimizer_->xs().resize(output.xs.size());
@@ -108,8 +110,7 @@ Seamass::~Seamass()
 }
 
 
-void Seamass::init(Input& input, const string& isotopesFilename, const std::vector<short>& scales,
-                   short chargeStates, bool seed)
+void Seamass::init(Input& input, bool seed)
 {
     // INIT BASIS FUNCTIONS
     // Create our tree of bases
@@ -122,17 +123,23 @@ void Seamass::init(Input& input, const string& isotopesFilename, const std::vect
 
     if (input.countsIndex.size() <= 2)
     {
-        dimensions_ = 1;
+        /*dimensions_ = 1;
 
         //if (peakFwhm_ > 0.0)
         //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
 
-        outputBasis_ = new BasisBsplineMz(bases_, b_, isotopesFilename, input.counts, input.countsIndex,
-                                          input.locations, scales[0], chargeStates, false);
+        outputBasis_ = new BasisBsplineMz(bases_, b_, isotopesFilename_, input.counts, input.countsIndex,
+                                          input.locations, scale_[0], chargeStates_, false);
 
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] >= scales[0] - 3; i++)
-            new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 1, false);
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 5; i++)
+            new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 1, true, false);
 
+        new BasisBsplineScale(bases_, outputBasis_->getIndex(), 1, 1, false, true);
+
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 5; i++)
+            new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, 1, false,
+                                  static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 6);
+*/
     }
     else
     {
@@ -140,21 +147,21 @@ void Seamass::init(Input& input, const string& isotopesFilename, const std::vect
 
         //if (peakFwhm_ > 0.0)
         //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
-        
-        new BasisBsplineMz(bases_, b_, isotopesFilename, input.counts, input.countsIndex, input.locations,
-                           scales[0], chargeStates, true);
+
+        new BasisBsplineMz(bases_, b_, isotopesFilename_, input.counts, input.countsIndex, input.locations,
+                           scale_[0], chargeStates_, true);
 
         outputBasis_ = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
-                                                input.finishTimes, input.exposures, scales[1], false);
+                                                input.finishTimes, input.exposures, scale_[1], false);
 
         Basis* previousBasis = outputBasis_;
         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
         {
             if (i > 0)
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, false);
+                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, true, false);
 
             while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, false);
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, true, false);
         }
     }
 
@@ -265,13 +272,13 @@ void Seamass::getOutput(Output& output, bool synthesize) const
 
     output = Output();
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
-    output.scale = meshInfo.colScale;
-
+    output.scale = scale_;
     output.lambda = lambdaStart_;
+    output.lambdaGroup = lambdaGroupStart_;
     output.tolerance = tolerance_;
     output.peakFwhm = peakFwhm_;
     output.chargeStates = chargeStates_;
+    output.isotopesFilename = isotopesFilename_;
 
     output.gridInfos.resize(bases_.size());
     for (ii k = 0; k < ii(bases_.size()); k++)
@@ -410,7 +417,7 @@ void Seamass::getInput(Input &input, bool reconstruct) const
 }
 
 
-void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvolve) const
+void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -420,12 +427,12 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvol
     }
 
     const BasisBspline::GridInfo& meshInfo =
-            static_cast<BasisBspline*>(bases_[dimensions_ - (peakFwhm_ > 0.0 && deconvolve ? 0 : 1)])->getGridInfo();
+            static_cast<BasisBspline*>(bases_[dimensions_])->getGridInfo();
 
     vector<MatrixSparse> c(1);
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesize(c, cs, dimensions_ - (peakFwhm_ > 0.0 && deconvolve ? 0 : 1));
+        optimizer_->synthesize(c, cs, dimensions_);
     }
 
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
@@ -437,8 +444,10 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints, bool deconvol
 }
 
 
-void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve, bool density) const
+void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool density) const
 {
+    // todo: move this code to Basis class
+
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
@@ -446,16 +455,53 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[peakFwhm_ > 0.0 && deconvolve ? 1 : 0])->getGridInfo();
+    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[1])->getGridInfo();
+    controlPoints.scale.resize(1);
+    controlPoints.scale[0] = meshInfo.colScale[1];
+
+    controlPoints.offset.resize(1);
+    controlPoints.offset[0] = meshInfo.colOffset[1];
+
+    controlPoints.extent.resize(2);
+    controlPoints.extent[0] = meshInfo.colExtent[1];
+    controlPoints.extent[1] = meshInfo.rowExtent[0];
 
     vector<MatrixSparse> c(1);
     {
         vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesize(c, cs, peakFwhm_ > 0.0 && deconvolve ? 1 : 0);
+        optimizer_->synthesize(c, cs, 1);
     }
 
+    cout << meshInfo << endl;
+    cout << meshInfo.rowExtent[0] << endl;
+    cout << meshInfo.colExtent[0] << endl;
+    cout << meshInfo.colExtent[1] << endl;
+
+    // sum across charge states
+    vector<fp>(controlPoints.extent[0] * controlPoints.extent[1], 0.0f).swap(controlPoints.coeffs);
+    {
+        vector<fp> t(meshInfo.size());
+        c[0].exportToDense(t.data());
+
+        for (ii r0 = 0; r0 < meshInfo.rowExtent[0]; r0++)
+        {
+            for (ii c0 = 0; c0 < meshInfo.colExtent[0]; c0++)
+            {
+                for (ii c1 = 0; c1 < meshInfo.colExtent[1]; c1++)
+                {
+                    controlPoints.coeffs[r0 * meshInfo.colExtent[1] + c1] +=
+                            t[r0 * meshInfo.colExtent[0] * meshInfo.colExtent[1] + c0 * meshInfo.colExtent[1] + c1];
+                }
+            }
+        }
+    }
+
+    cout << controlPoints.coeffs.size() << endl;
+
+
+
     // temporary hack (integrate instead)
-    if (density)
+    /*if (density)
     {
         for (ii nz = 0; nz < c[0].nnz(); nz++)
         {
@@ -466,31 +512,22 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
 
             c[0].vs()[nz] /= mz1 - mz0;
         }
-    }
+    }*/
 
-    // sum across charge states
-    vector<fp>(meshInfo.colExtent[0], 0.0f).swap(controlPoints.coeffs);
-    {
-        vector<fp> t(meshInfo.size());
-        c[0].exportToDense(t.data());
 
-        for (ii y = 0; y < meshInfo.colExtent[1]; y++)
-        {
-            for (ii x = 0; x < meshInfo.colExtent[0]; x++)
-                controlPoints.coeffs[x] += t[x + y * meshInfo.colExtent[0]];
-        }
-    }
+
 
     //vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
     //c[0].exportToDense(controlPoints.coeffs.data());
 
-    controlPoints.scale.resize(1);
-    controlPoints.scale[0] = meshInfo.colScale[0];
 
-    controlPoints.offset.resize(1);
-    controlPoints.offset[0] = meshInfo.colOffset[0];
 
-    controlPoints.extent.resize(1);
-    controlPoints.extent[0] = meshInfo.colExtent[0];
-    //controlPoints.extent.push_back(meshInfo.count);
+    /*struct ControlPoints {
+        std::vector<fp> coeffs;
+        std::vector<short> scale;
+        std::vector<ii> offset;
+        std::vector<ii> extent;
+    };*/
+
+
 }

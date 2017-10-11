@@ -26,7 +26,7 @@
 using namespace kernel;
 
 
-DatasetSeamass::DatasetSeamass(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType) : fileIn_(0), fileOut_(0), finished_(false)
+DatasetSeamass::DatasetSeamass(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType) : fileIn_(0), fileOut_(0), finished_(false)
 {
     if (!filePathIn.empty())
         fileIn_ = new FileNetcdf(filePathIn);
@@ -146,12 +146,13 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
     output.tolerance = fileIn_->readAttribute<double>("tolerance", "", groupId);
     output.peakFwhm = fileIn_->readAttribute<double>("peakFwhm", "", groupId);
     output.chargeStates = fileIn_->readAttribute<short>("chargeStates", "", groupId);
+    fileIn_->readAttribute(output.isotopesFilename, "isotopesFilename", "", groupId);
 
     {
         ii n = 0;
         for (;; n++)
         {
-            ostringstream oss1; oss1 << "xs[" << n << "]";
+            ostringstream oss1; oss1 << setw(4) << setfill('0') << n << " X";
             if (fileIn_->openGroup(oss1.str(), groupId) == -1)
                 break;
         }
@@ -159,7 +160,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         output.xs.resize(n);
         for (ii k = 0; k < n; k++)
         {
-            ostringstream oss1; oss1 << "xs[" << k << "]";
+            ostringstream oss1; oss1 << setw(4) << setfill('0') << k << " X";
             fileIn_->readMatrixSparseCsr(output.xs[k], oss1.str(), groupId);
         }
     }
@@ -168,7 +169,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         ii n = 0;
         for (;; n++)
         {
-            ostringstream oss1; oss1 << "l2s[" << n << "]";
+            ostringstream oss1; oss1 << setw(4) << setfill('0') << n << " L2";
             if (fileIn_->openGroup(oss1.str(), groupId) == -1)
                 break;
         }
@@ -176,7 +177,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         output.l2s.resize(n);
         for (ii k = 0; k < n; k++)
         {
-            ostringstream oss1; oss1 << "l2s[" << k << "]";
+            ostringstream oss1; oss1 << setw(4) << setfill('0') << k << " L2";
             fileIn_->readMatrixSparseCsr(output.l2s[k], oss1.str(), groupId);
         }
     }
@@ -185,7 +186,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         ii n = 0;
         for (;; n++)
         {
-            ostringstream oss1; oss1 << "l1l2s[" << n << "]";
+            ostringstream oss1; oss1 << setw(4) << setfill('0') << n << " L1L2";
             if (fileIn_->openGroup(oss1.str(), groupId) == -1)
                 break;
         }
@@ -193,7 +194,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         output.l1l2s.resize(n);
         for (ii k = 0; k < n; k++)
         {
-            ostringstream oss1; oss1 << "l1l2s[" << k << "]";
+            ostringstream oss1; oss1 << setw(4) << setfill('0') << k << " L1L2";
             fileIn_->readMatrixSparseCsr(output.l1l2s[k], oss1.str(), groupId);
         }
     }
@@ -269,6 +270,7 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
     fileOut_->writeAttribute(output.tolerance, "tolerance", "", groupId);
     fileOut_->writeAttribute(output.peakFwhm, "peakFwhm", "", groupId);
     fileOut_->writeAttribute(output.chargeStates, "chargeStates", "", groupId);
+    fileOut_->writeAttribute(output.isotopesFilename, "isotopesFilename", "", groupId);
 
     for (ii k = 0; k < ii(output.xs.size()); k++)
     {

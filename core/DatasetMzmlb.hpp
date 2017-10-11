@@ -53,7 +53,7 @@ public:
         size_t intensitiesOffset;
     };
 
-    DatasetMzmlb(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+    DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
     virtual ~DatasetMzmlb();
 
     virtual bool read(Seamass::Input &input, std::string &id);

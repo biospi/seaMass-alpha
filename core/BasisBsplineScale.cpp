@@ -29,7 +29,7 @@ using namespace kernel;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1,
+BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1, bool group,
                   bool transient) :
         BasisBspline(bases,
                      static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
@@ -134,13 +134,15 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, shor
     // create A
     aT_.importFromCoo(count * n, count * m, vs.size(), js.data(), is.data(), vs.data());
 
-    if (dimension0 == 1)
-    {
+    if (dimension0)
         a_.transpose(aT_);
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Gt = m x n matrix where m are the coefficients and n are the groups (monoisotope centroid mass).
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    if (dimension0 == 1 && group)
+    {
+        a_.transpose(aT_);
 
         vector<ii> is;
         vector<ii> js;
@@ -166,7 +168,9 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, shor
                 is.push_back(x + z * gridInfo().colExtent[1]);
                 js.push_back(g);
                 vs.push_back(1.0);
-                //vs.push_back(1.0 / sqrt(sqrt(mass)));
+                //vs.push_back(1.0 / sqrt(mass); // this does not work
+                //vs.push_back(1.0 / pow(300.0*mass, 1.0/4.0));
+                //vs.push_back(1.0 / pow(6.0*mass, 1.0/3.0)); //vs.push_back(1.0 / sqrt(pow(6.0*mass, 2.0/3.0)));
             }
         }
 

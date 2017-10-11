@@ -51,6 +51,7 @@ void FileNetcdf::open(const string& filename, int omode)
         {
         case NC_NOWRITE:
             if ((retval_ = nc_open(filename_.c_str(), omode, &ncid_)) != NC_NOERR)
+                err(retval_);
             break;
         case NC_WRITE:
             if ((retval_ = nc_open(filename_.c_str(), omode, &ncid_)) != NC_NOERR)
@@ -128,6 +129,55 @@ void FileNetcdf::readExtent(vector<size_t>& extent, const string& name, int pare
             err(retval_);
     }
 }
+
+void FileNetcdf::readAttribute(string& data, const string& name, const string& dataset, int parentId)
+{
+    if(parentId == 0)
+        parentId = ncid_;
+
+    int varid;
+    if (dataset == "")
+    {
+        varid = NC_GLOBAL;
+    }
+    else
+    {
+        if((retval_ = nc_inq_varid(parentId, dataset.c_str(), &varid)) != NC_NOERR)
+            err(retval_);
+    }
+
+    nc_type xtype;
+    size_t len;
+    if((retval_ = nc_inq_att(parentId, varid, name.c_str(), &xtype, &len)) != NC_NOERR)
+        err(retval_);
+
+    data.resize(len);
+
+    if((retval_ =  nc_get_att_text(parentId, varid, name.c_str(), &data[0])) != NC_NOERR)
+        err(retval_);
+}
+
+
+void FileNetcdf::writeAttribute(const string& data, const string& attribute, const string& dataset, int parentId)
+{
+    if(parentId == 0)
+        parentId = ncid_;
+
+    int varid;
+    if (dataset == "")
+    {
+        varid = NC_GLOBAL;
+    }
+    else
+    {
+        if((retval_ = nc_inq_varid(parentId, dataset.c_str(), &varid)) != NC_NOERR)
+            err(retval_);
+    }
+
+    if((retval_ = nc_put_att_text(parentId, varid, attribute.c_str(), data.size(), data.data())) != NC_NOERR)
+        err(retval_);
+}
+
 
 
 size_t FileNetcdf::readSize(const string& name, int parentId)

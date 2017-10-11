@@ -50,9 +50,7 @@ int main(int argc, const char * const * argv)
         bool peakWidth;
         double threshold;
         ii samplingRate;
-        bool reconstruct;
         bool centroid;
-        bool deconvolve;
 
         // *******************************************************************
 
@@ -71,10 +69,6 @@ int main(int argc, const char * const * argv)
              "Input file in mzMLv or smv format produced by 'seamass'.")
             ("sampling_rate,s",po::value<int>(&samplingRate)->default_value(6),
              "Number of data points to generate per unit b-spline. Default=6")
-            ("deconvolve,v", po::bool_switch(&deconvolve)->default_value(false),
-             "Output deconvolved peaks.")
-            ("reconstruct,r", po::bool_switch(&reconstruct)->default_value(false),
-             "Reconstruct using original m/z locations (ignores sample_rate, deconvolve, centroid).")
             ("centroid,c", po::bool_switch(&centroid)->default_value(false),
              "Output centroided data.")
             ("centroid_threshold,t", po::value<double>(&threshold)->default_value(1000.0),
@@ -139,15 +133,10 @@ int main(int argc, const char * const * argv)
             // load back into Seamass
             Seamass seamassCore(input, output);
 
-            if (reconstruct)
-            {
-                seamassCore.getInput(input, true);
-                input.type = Seamass::Input::Type::Binned;
-            }
-            else if (centroid)
+            if (centroid)
             {
                 Seamass::ControlPoints contpts;
-                seamassCore.getOutputControlPoints1d(contpts, deconvolve, false);
+                seamassCore.getOutputControlPoints1d(contpts, false);
 
                 // Now preform 1D Centroid
                 cout << "Performing 1D centoiding of scans"<<endl;
@@ -215,7 +204,7 @@ int main(int argc, const char * const * argv)
                 cout << "Performing high resolution output of seaMass." << endl;
 
                 Seamass::ControlPoints contpts;
-                seamassCore.getOutputControlPoints1d(contpts, deconvolve, true);
+                seamassCore.getOutputControlPoints1d(contpts, true);
 
                 vector<double>().swap(input.locations);
                 vector<fp>().swap(input.counts);

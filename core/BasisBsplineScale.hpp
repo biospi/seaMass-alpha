@@ -30,7 +30,7 @@
 class BasisBsplineScale : public BasisBspline
 { 
 public:
-    BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1,
+    BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1, bool group,
                       bool transient);
     virtual ~BasisBsplineScale();
 

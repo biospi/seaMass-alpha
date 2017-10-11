@@ -100,20 +100,24 @@ int main(int argc, const char * const * argv)
         if (equivalent(fileNameOut, filePathIn))
             throw runtime_error("ERROR: Make sure the input mzMLb file is not in the working directory.");
 
-        DatasetMzmlb datasetMzmlb(filePathIn, fileNameOut.replace_extension("").string(), Dataset::WriteType::Input);
+        string eek = fileNameOut.replace_extension("").string();
+        DatasetMzmlb datasetMzmlb(filePathIn, eek, Dataset::WriteType::Input);
 
         Seamass::Input input;
         string id;
         int injected = 0;
         while(datasetMzmlb.read(input, id))
         {
-            DatasetSeamass* datasetSeamass = 0;
+            DatasetSeamass* datasetSeamass;
             string smbPathFile = smbPathStem.string() + "." + id + ".smb";
             try
             {
                 datasetSeamass = new DatasetSeamass(smbPathFile, "");
             }
-            catch (runtime_error r) {}
+            catch (runtime_error r)
+            {
+                datasetSeamass = 0;
+            }
 
             // replace input with smb file input if available
             if (datasetSeamass)

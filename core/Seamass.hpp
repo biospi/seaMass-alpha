@@ -93,14 +93,13 @@ public:
     void getOutput(Output& output, bool synthesize) const;
 
     // get restored 1D control points (i.e. per spectra) derived from seaMass output
-    void getOutputControlPoints1d(ControlPoints& controlPoints, bool deconvolve, bool density) const;
+    void getOutputControlPoints1d(ControlPoints& controlPoints, bool density) const;
 
     // get restored control points with dimension depending on input (i.e. 1D or 2D)
-    void getOutputControlPoints(ControlPoints& controlPoints, bool deconvolve) const;
+    void getOutputControlPoints(ControlPoints& controlPoints) const;
 
 private:
-    void init(Input& input, const std::string& isotopesFilename, const std::vector<short>& scales, short chargeStates,
-              bool seed);
+    void init(Input& input, bool seed);
 
     short dimensions_;
     std::vector<Basis*> bases_;
@@ -110,9 +109,12 @@ private:
     Optimizer* innerOptimizer_;
     Optimizer* optimizer_;
 
+    const std::vector<short>& scale_;
+    const std::string& isotopesFilename_;
     fp lambda_;
     fp lambdaStart_;
     fp lambdaGroup_;
+    fp lambdaGroupStart_;
     bool taperShrinkage_;
     fp tolerance_;
     int iteration_;

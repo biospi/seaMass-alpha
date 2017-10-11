@@ -71,6 +71,9 @@ public:
     void writeAttribute(const vector<T> &data, const string& attribute, const string& dataset,
                         int parentId = 0);
 
+    void readAttribute(string& data, const string& name, const string& dataset, int parentId = 0);
+    void writeAttribute(const string& data, const string& attribute, const string& dataset, int parentId = 0);
+
     template<typename T>
     T readAttribute(const string& name, const string& dataset, int parentId = 0);
     template<typename T>
