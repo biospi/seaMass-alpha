@@ -359,13 +359,14 @@ int FileNetcdf::readMatrixSparseCsr(MatrixSparse& a, const string& name, int par
     ii n = readAttribute<ii>("n", "", matrixId);
     ii nnz = ii(readSize("j", matrixId));
 
-    a.createCsr(m, n, nnz);
+    if (a.createCsr(m, n, nnz))
+    {
+        readVector(a.ijs(), "ij", matrixId);
+        readVector(a.js(), "j", matrixId);
+        readVector(a.vs(), "v", matrixId);
 
-    readVector(a.ijs(), "ij", matrixId);
-    readVector(a.js(), "j", matrixId);
-    readVector(a.vs(), "v", matrixId);
-
-    a.commitCsr(true);
+        a.commitCsr(true);
+    }
 
     return matrixId;
 }

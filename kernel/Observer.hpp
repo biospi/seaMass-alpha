@@ -26,6 +26,7 @@
 
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 
 class Observer
