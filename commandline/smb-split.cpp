@@ -80,10 +80,10 @@ int main(int argc, const char * const * argv)
         //boost::filesystem::path smbPathStem = boost::filesystem::path(filePath).stem();
         //cout << smbPathStem.string()<<endl;
         boost::filesystem::path fileIn(filePath);
-        cout << fileIn.string()<<endl;
-        cout << fileIn.filename().string()<<endl;
-        cout << fileIn.stem().string()<<endl;
-        cout << fileIn.extension().string()<<endl;
+        //cout << fileIn.string()<<endl;
+        //cout << fileIn.filename().string()<<endl;
+        //cout << fileIn.stem().string()<<endl;
+        //cout << fileIn.extension().string()<<endl;
 
 
         vector<li> csIndex;
