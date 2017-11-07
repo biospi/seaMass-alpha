@@ -97,8 +97,9 @@ int main(int argc, const char * const * argv)
         boost::filesystem::path smbPathStem = boost::filesystem::path(dirPathIn) / boost::filesystem::path(filePathIn).stem();
 
         boost::filesystem::path fileNameOut = boost::filesystem::path(filePathIn).filename();
-        if (equivalent(fileNameOut, filePathIn))
-            throw runtime_error("ERROR: Make sure the input mzMLb file is not in the working directory.");
+        // Need to fix this it seems that boost filesystem doesnt like some special charactors! .e.g. () {} %
+        //if (equivalent(fileNameOut, filePathIn))
+        //    throw runtime_error("ERROR: Make sure the input mzMLb file is not in the working directory.");
 
         string eek = fileNameOut.replace_extension("").string();
         DatasetMzmlb datasetMzmlb(filePathIn, eek, Dataset::WriteType::Input);
