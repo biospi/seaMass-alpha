@@ -80,17 +80,26 @@ int main(int argc, const char * const * argv)
         //boost::filesystem::path smbPathStem = boost::filesystem::path(filePath).stem();
         //cout << smbPathStem.string()<<endl;
         boost::filesystem::path fileIn(filePath);
-        //cout << fileIn.string()<<endl;
-        //cout << fileIn.filename().string()<<endl;
-        //cout << fileIn.stem().string()<<endl;
-        //cout << fileIn.extension().string()<<endl;
+        cout << fileIn.string()<<endl;
+        cout << fileIn.filename().string()<<endl;
+        cout << fileIn.stem().string()<<endl;
+        cout << fileIn.extension().string()<<endl;
 
+
+
+
+        boost::filesystem::create_directories(fileIn.stem());
+        boost::filesystem::path pathOut;
+        pathOut = fileIn.stem() / fileIn.stem();
+
+        cout<<"file path out:"<<pathOut.string()<<endl;
 
         vector<li> csIndex;
         vector<li> mzIndex;
         vector<double> rtTimes;
 
-        FileNetcdf fileSmbIn(fileIn.filename().string());
+        //FileNetcdf fileSmbIn(fileIn.filename().string());
+        FileNetcdf fileSmbIn(fileIn.string());
         fileSmbIn.read_VecNC("startTimes",rtTimes);
         fileSmbIn.read_VecNC("countsIndex",csIndex);
 
@@ -118,7 +127,8 @@ int main(int argc, const char * const * argv)
         int idx = 0;
         for(int i = 0 ; i < tiles; ++i)
         {
-            string fileOut = fileIn.stem().string()+"."+to_string(i)+".smb";
+            //string fileOut = fileIn.stem().string()+"."+to_string(i)+".smb";
+            string fileOut = pathOut.string()+"."+to_string(i)+".smb";
             cout<<"Generating file: "<<fileOut<<endl;
             FileNetcdf fileSmbOut(fileOut,NC_NETCDF4);
 
@@ -184,7 +194,7 @@ int main(int argc, const char * const * argv)
 
             fileSmbOut.write_VecNC("binLocations",binLocations,NC_DOUBLE);
             fileSmbOut.write_VecNC("counts",counts,NC_FLOAT);
-            fileSmbOut.write_VecNC("countsIndex",countsIndex,NC_UINT);
+            fileSmbOut.write_VecNC("countsIndex",countsIndex,NC_INT64);
             fileSmbOut.write_VecNC("exposures",exposures,NC_FLOAT);
             fileSmbOut.write_VecNC("finishTimes",finishTimes,NC_DOUBLE);
             fileSmbOut.write_VecNC("startTimes",startTimes,NC_DOUBLE);
