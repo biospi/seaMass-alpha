@@ -22,8 +22,9 @@
 
 #include "../io/FileNetcdf.hpp"
 #include <kernel.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/program_options.hpp>
+#include "smb-split.hpp"
+
 using namespace std;
 using namespace kernel;
 namespace po = boost::program_options;
@@ -35,9 +36,8 @@ int main(int argc, const char * const * argv)
     try
 #endif
     {
-        string filePath;
+        string fileDirPath;
         int sections;
-        int tiles;
 
         po::options_description general(
             "Usage\n"
@@ -49,8 +49,8 @@ int main(int argc, const char * const * argv)
 
         general.add_options()
             ("help,h", "Produce help message")
-            ("file,f", po::value<string>(&filePath),
-             "Input file in smb format. Use mzmlb2smb to convert from mzMLb.")
+            ("file,f", po::value<string>(&fileDirPath),
+             "Input file in smb format or directory containing smb files. Use mzmlb2smb to convert from mzMLb.")
             ("tiles,s", po::value<int>(&sections)->default_value(6),
              "The number of sections the RT will be split into. This will generate (2*N-1) Tiles inorder to cover the RT range.")
         ;
@@ -79,129 +79,34 @@ int main(int argc, const char * const * argv)
 
         //boost::filesystem::path smbPathStem = boost::filesystem::path(filePath).stem();
         //cout << smbPathStem.string()<<endl;
-        boost::filesystem::path fileIn(filePath);
-        cout << fileIn.string()<<endl;
-        cout << fileIn.filename().string()<<endl;
-        cout << fileIn.stem().string()<<endl;
-        cout << fileIn.extension().string()<<endl;
+        boost::filesystem::path fileIn(fileDirPath);
+        //cout << fileIn.string()<<endl;
+        //cout << fileIn.filename().string()<<endl;
+        //cout << fileIn.stem().string()<<endl;
+        //cout << fileIn.extension().string()<<endl;
 
 
-
-
-        boost::filesystem::create_directories(fileIn.stem());
-        boost::filesystem::path pathOut;
-        pathOut = fileIn.stem() / fileIn.stem();
-
-        cout<<"file path out:"<<pathOut.string()<<endl;
-
-        vector<li> csIndex;
-        vector<li> mzIndex;
-        vector<double> rtTimes;
-
-        //FileNetcdf fileSmbIn(fileIn.filename().string());
-        FileNetcdf fileSmbIn(fileIn.string());
-        fileSmbIn.read_VecNC("startTimes",rtTimes);
-        fileSmbIn.read_VecNC("countsIndex",csIndex);
-
-        for(li i=0; i < csIndex.size(); ++i)
+        if (boost::filesystem::is_regular_file(fileDirPath))
         {
-            mzIndex.push_back(csIndex[i]+i);
+            cout<<"processing File: "<<fileIn.filename()<<endl;
+            createSmbTiles(sections, fileIn);
         }
-
-
-        size_t N = rtTimes.size();
-        size_t dN = size_t(ceil(double(N)/double(sections)));
-        //size_t dN = (N/tiles)+1;
-
-        tiles = 2*sections-1;
-
-        vector<double> binLocations;
-        vector<fp> counts;
-        vector<li> countsIndex;
-        vector<fp>  exposures;
-        vector<double> finishTimes;
-        vector<double> startTimes;
-
-        bool overlap = false;
-        //for(int i = 0 ; i < sections ; ++i)
-        int idx = 0;
-        for(int i = 0 ; i < tiles; ++i)
+        else if (boost::filesystem::is_directory(fileDirPath))
         {
-            //string fileOut = fileIn.stem().string()+"."+to_string(i)+".smb";
-            string fileOut = pathOut.string()+"."+to_string(i)+".smb";
-            cout<<"Generating file: "<<fileOut<<endl;
-            FileNetcdf fileSmbOut(fileOut,NC_NETCDF4);
-
-            binLocations.clear();
-            counts.clear();
-            countsIndex.clear();
-            exposures.clear();
-            finishTimes.clear();
-            startTimes.clear();
-
-            size_t beginIdx, endIdx;
-            size_t csBeginIdx, csLen;
-            size_t mzBeginIdx, mzLen;
-            size_t len;
-            size_t lenP1;
-
-            if (overlap)
+            for (boost::filesystem::directory_entry &file : boost::filesystem::directory_iterator(fileDirPath))
             {
-                beginIdx = dN * idx + dN/2;
-                //if (i == sections - 1)
-                //{
-                //    endIdx = N;
-                //    len = N - beginIdx;
-                //}
-                //else
-                //{
-                endIdx = beginIdx + dN;
-                len = dN;
-                //}
-                lenP1 = len + 1;
-                ++idx;
-                overlap = false;
-            }
-            else
-            {
-                beginIdx = dN*idx;
-                if ( i == tiles - 1)
+                cout<<"Checking directory for smb"<<endl;
+                if (file.path().extension().string() == ".smb")
                 {
-                    endIdx   = N;
-                    len = N-beginIdx;
+                    cout<<"processing File: "<<file.path()<<endl;
+                    createSmbTiles(sections,file.path());
                 }
                 else
                 {
-                    //endIdx   = dN*idx+dN;
-                    endIdx   = beginIdx + dN;
-                    len = dN;
+                    cout<<"Not a smb file: "<<file.path()<<endl;
                 }
-                lenP1=len+1;
-                overlap = true;
             }
-
-            csBeginIdx = size_t(csIndex[beginIdx]);
-            csLen      = size_t(csIndex[endIdx]) - csBeginIdx;
-            mzBeginIdx = size_t(mzIndex[beginIdx]);
-            mzLen      = size_t(mzIndex[endIdx]) - mzBeginIdx;
-
-            fileSmbIn.read_HypVecNC("startTimes",startTimes,&beginIdx,&len);
-            fileSmbIn.read_HypVecNC("finishTimes",finishTimes,&beginIdx,&len);
-            fileSmbIn.read_HypVecNC("exposures",exposures,&beginIdx,&len);
-            fileSmbIn.read_HypVecNC("countsIndex",countsIndex,&beginIdx,&lenP1);
-            fileSmbIn.read_HypVecNC("counts",counts,&csBeginIdx,&csLen);
-            fileSmbIn.read_HypVecNC("binLocations",binLocations,&mzBeginIdx,&mzLen);
-
-            fileSmbOut.write_VecNC("binLocations",binLocations,NC_DOUBLE);
-            fileSmbOut.write_VecNC("counts",counts,NC_FLOAT);
-            fileSmbOut.write_VecNC("countsIndex",countsIndex,NC_INT64);
-            fileSmbOut.write_VecNC("exposures",exposures,NC_FLOAT);
-            fileSmbOut.write_VecNC("finishTimes",finishTimes,NC_DOUBLE);
-            fileSmbOut.write_VecNC("startTimes",startTimes,NC_DOUBLE);
-
-            fileSmbOut.close();
         }
-
     }
 #ifdef NDEBUG
     catch(exception& e)
@@ -212,4 +117,121 @@ int main(int argc, const char * const * argv)
 #endif
 
     return 0;
+}
+
+void createSmbTiles(int sections, const boost::filesystem::path &fileIn)
+{
+    create_directories(fileIn.stem());
+    boost::filesystem::path pathOut;
+    pathOut = fileIn.stem() / fileIn.stem();
+
+    cout<<"Output file path: "<<pathOut.string()<<endl;
+
+    vector<li> csIndex;
+    vector<li> mzIndex;
+    vector<double> rtTimes;
+
+    //FileNetcdf fileSmbIn(fileIn.filename().string());
+    FileNetcdf fileSmbIn(fileIn.string());
+    fileSmbIn.read_VecNC("startTimes",rtTimes);
+    fileSmbIn.read_VecNC("countsIndex",csIndex);
+
+    for(li i=0; i < csIndex.size(); ++i)
+    {
+        mzIndex.push_back(csIndex[i]+i);
+    }
+
+
+    size_t N = rtTimes.size();
+    auto dN = size_t(ceil(double(N)/double(sections)));
+    //size_t dN = (N/tiles)+1;
+
+    int tiles = 2*sections-1;
+
+    vector<double> binLocations;
+    vector<fp> counts;
+    vector<li> countsIndex;
+    vector<fp>  exposures;
+    vector<double> finishTimes;
+    vector<double> startTimes;
+
+    bool overlap = false;
+    //for(int i = 0 ; i < sections ; ++i)
+    int idx = 0;
+    for(int i = 0 ; i < tiles; ++i)
+    {
+        //string fileOut = fileIn.stem().string()+"."+to_string(i)+".smb";
+        string fileOut = pathOut.string()+"."+to_string(i)+".smb";
+        cout<<"Generating file: "<<fileOut<<endl;
+        FileNetcdf fileSmbOut(fileOut,NC_NETCDF4);
+
+        binLocations.clear();
+        counts.clear();
+        countsIndex.clear();
+        exposures.clear();
+        finishTimes.clear();
+        startTimes.clear();
+
+        size_t beginIdx, endIdx;
+        size_t csBeginIdx, csLen;
+        size_t mzBeginIdx, mzLen;
+        size_t len;
+        size_t lenP1;
+
+        if (overlap)
+        {
+            beginIdx = dN * idx + dN/2;
+            //if (i == sections - 1)
+            //{
+            //    endIdx = N;
+            //    len = N - beginIdx;
+            //}
+            //else
+            //{
+            endIdx = beginIdx + dN;
+            len = dN;
+            //}
+            lenP1 = len + 1;
+            ++idx;
+            overlap = false;
+        }
+        else
+        {
+            beginIdx = dN*idx;
+            if ( i == tiles - 1)
+            {
+                endIdx   = N;
+                len = N-beginIdx;
+            }
+            else
+            {
+                //endIdx   = dN*idx+dN;
+                endIdx   = beginIdx + dN;
+                len = dN;
+            }
+            lenP1=len+1;
+            overlap = true;
+        }
+
+        csBeginIdx = size_t(csIndex[beginIdx]);
+        csLen      = size_t(csIndex[endIdx]) - csBeginIdx;
+        mzBeginIdx = size_t(mzIndex[beginIdx]);
+        mzLen      = size_t(mzIndex[endIdx]) - mzBeginIdx;
+
+        fileSmbIn.read_HypVecNC("startTimes",startTimes,&beginIdx,&len);
+        fileSmbIn.read_HypVecNC("finishTimes",finishTimes,&beginIdx,&len);
+        fileSmbIn.read_HypVecNC("exposures",exposures,&beginIdx,&len);
+        fileSmbIn.read_HypVecNC("countsIndex",countsIndex,&beginIdx,&lenP1);
+        fileSmbIn.read_HypVecNC("counts",counts,&csBeginIdx,&csLen);
+        fileSmbIn.read_HypVecNC("binLocations",binLocations,&mzBeginIdx,&mzLen);
+
+        fileSmbOut.write_VecNC("binLocations",binLocations,NC_DOUBLE);
+        fileSmbOut.write_VecNC("counts",counts,NC_FLOAT);
+        fileSmbOut.write_VecNC("countsIndex",countsIndex,NC_INT64);
+        fileSmbOut.write_VecNC("exposures",exposures,NC_FLOAT);
+        fileSmbOut.write_VecNC("finishTimes",finishTimes,NC_DOUBLE);
+        fileSmbOut.write_VecNC("startTimes",startTimes,NC_DOUBLE);
+
+        fileSmbOut.close();
+    }
 }

@@ -46,6 +46,7 @@ target_link_libraries (seamass-restore LINK_PUBLIC
         )
 
 add_executable(smb-split
+	smb-split.hpp
 	smb-split.cpp
 	)
 target_include_directories(smb-split PUBLIC
