@@ -172,7 +172,8 @@ void createSmbTiles(int sections, const boost::filesystem::path &fileIn)
         finishTimes.clear();
         startTimes.clear();
 
-        size_t beginIdx, endIdx;
+        size_t beginIdx;
+        size_t endIdx;
         size_t csBeginIdx, csLen;
         size_t mzBeginIdx, mzLen;
         size_t len;
@@ -224,6 +225,10 @@ void createSmbTiles(int sections, const boost::filesystem::path &fileIn)
         fileSmbIn.read_HypVecNC("countsIndex",countsIndex,&beginIdx,&lenP1);
         fileSmbIn.read_HypVecNC("counts",counts,&csBeginIdx,&csLen);
         fileSmbIn.read_HypVecNC("binLocations",binLocations,&mzBeginIdx,&mzLen);
+
+        li indexOffset=countsIndex.front();
+        for (li i = 0; i < countsIndex.size(); ++i)
+            countsIndex[i]=countsIndex[i]-indexOffset;
 
         fileSmbOut.write_VecNC("binLocations",binLocations,NC_DOUBLE);
         fileSmbOut.write_VecNC("counts",counts,NC_FLOAT);
