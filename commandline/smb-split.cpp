@@ -24,6 +24,7 @@
 #include <kernel.hpp>
 #include <boost/program_options.hpp>
 #include "smb-split.hpp"
+#include <algorithm>
 
 using namespace std;
 using namespace kernel;
@@ -38,6 +39,7 @@ int main(int argc, const char * const * argv)
     {
         string fileDirPath;
         int sections;
+        bool restore;
 
         po::options_description general(
             "Usage\n"
@@ -52,7 +54,10 @@ int main(int argc, const char * const * argv)
             ("file,f", po::value<string>(&fileDirPath),
              "Input file in smb format or directory containing smb files. Use mzmlb2smb to convert from mzMLb.")
             ("tiles,s", po::value<int>(&sections)->default_value(6),
-             "The number of sections the RT will be split into. This will generate (2*N-1) Tiles inorder to cover the RT range.")
+             "The number of sections the RT will be split into. This will generate (2*N-1) Tiles in order to cover the RT range.")
+            ("restore,r", po::bool_switch(&restore)->default_value(false),
+             "Restore split smb files into single file. The --file, -f, switch must be set and be a valid directory containing smb files."
+             "Convert smv files to smb using seamass-restore.")
         ;
 
         po::options_description desc;
@@ -85,13 +90,18 @@ int main(int argc, const char * const * argv)
         //cout << fileIn.stem().string()<<endl;
         //cout << fileIn.extension().string()<<endl;
 
+        if (restore == true && !boost::filesystem::is_directory(fileDirPath))
+        {
+            cout<<"Error: Invalid directory given for smb restore."<<endl;
+            exit(1);
+        }
 
         if (boost::filesystem::is_regular_file(fileDirPath))
         {
             cout<<"processing File: "<<fileIn.filename()<<endl;
             createSmbTiles(sections, fileIn);
         }
-        else if (boost::filesystem::is_directory(fileDirPath))
+        else if (restore == false && boost::filesystem::is_directory(fileDirPath))
         {
             for (boost::filesystem::directory_entry &file : boost::filesystem::directory_iterator(fileDirPath))
             {
@@ -105,6 +115,52 @@ int main(int argc, const char * const * argv)
                 {
                     cout<<"Not a smb file: "<<file.path()<<endl;
                 }
+            }
+        }
+        else if (restore == true && boost::filesystem::is_directory(fileDirPath))
+        {
+            FileNetcdf fileSmbTile;
+            vector<SmbTile> smbTileList;
+            cout<<"Restoring Split smb file into single file"<<endl;
+            for (boost::filesystem::directory_entry &file : boost::filesystem::directory_iterator(fileDirPath))
+            {
+                cout<<"Checking directory for smb"<<endl;
+                if (file.path().extension().string() == ".smb")
+                {
+                    vector<double> rtTimes;
+                    cout<<"processing File: "<<file.path().filename()<<endl;
+                    fileSmbTile.open(file.path().string());
+                    fileSmbTile.read_VecNC("startTimes",rtTimes);
+
+                    SmbTile newData = {file.path(), rtTimes, int(smbTileList.size())};
+                    smbTileList.push_back(newData);
+
+                    fileSmbTile.close();
+
+                    cout<<smbTileList.back().fileName.stem().string();
+                    cout<<"\n\t rt Begin: "<<smbTileList.back().startTime.front()<<"\trt End: "<<smbTileList.back().startTime.back();
+                    cout<<"\t ID: "<<smbTileList.back().id<<endl;
+
+                    smbTileList.back().id=getSmbIndex<int>(smbTileList.back().fileName.stem().string());
+                    cout<<"\t rt Begin: "<<smbTileList.back().startTime.front()<<"\trt End: "<<smbTileList.back().startTime.back();
+                    cout<<"\t ID: "<<smbTileList.back().id<<endl<<endl;
+                }
+                else
+                {
+                    cout<<"Not a smb file: "<<file.path()<<endl;
+                }
+            }
+
+            sort(smbTileList.begin(),smbTileList.end(),
+                 [](const SmbTile &x, const SmbTile &y)->bool
+                 {
+                     return x.id < y.id;
+                 }
+            );
+            for (SmbTile i: smbTileList)
+            {
+                cout<<"Name of tile smbFile: "<<i.fileName.filename().string();
+                cout<<"    rt Begin: " <<i.startTime.front()<<"\trt End: "<<i.startTime.back()<<"    Size: "<<i.startTime.size()<<endl;
             }
         }
     }
@@ -152,8 +208,8 @@ void createSmbTiles(int sections, const boost::filesystem::path &fileIn)
     vector<fp> counts;
     vector<li> countsIndex;
     vector<fp>  exposures;
-    vector<double> finishTimes;
     vector<double> startTimes;
+    vector<double> finishTimes;
 
     bool overlap = false;
     //for(int i = 0 ; i < sections ; ++i)
@@ -169,8 +225,8 @@ void createSmbTiles(int sections, const boost::filesystem::path &fileIn)
         counts.clear();
         countsIndex.clear();
         exposures.clear();
-        finishTimes.clear();
         startTimes.clear();
+        finishTimes.clear();
 
         size_t beginIdx;
         size_t endIdx;

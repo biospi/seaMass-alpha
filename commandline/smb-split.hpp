@@ -26,4 +26,25 @@
 
 void createSmbTiles(int sections, const boost::filesystem::path &fileIn);
 
+struct SmbTile
+{
+    boost::filesystem::path fileName;
+    vector<double> startTime;
+    int id;
+};
+
+template<typename T>
+T getSmbIndex(string fileIdx);
+
+template<typename T>
+T getSmbIndex(string fileIdx)
+{
+    T index;
+    size_t idx=fileIdx.find_last_of(".");
+
+    istringstream(fileIdx.substr(idx+1))>>index;
+
+    return index;
+};
+
 #endif //SEAMASS_SMB_SPLIT_HPP
