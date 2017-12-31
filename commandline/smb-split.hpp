@@ -28,9 +28,26 @@ void createSmbTiles(int sections, const boost::filesystem::path &fileIn);
 
 struct SmbTile
 {
+    SmbTile(boost::filesystem::path _file, vector<double> _vec, vector<li> cs):fileName(_file),
+        startTime(_vec),countsIndex(cs),id(0),begIdx(0),endIdx(0),offset(0) {};
+
     boost::filesystem::path fileName;
     vector<double> startTime;
+    vector<li> countsIndex;
+    vector<fp> exposures;
+    vector<double> finishTimes;
     int id;
+    li begIdx;
+    li endIdx;
+    li len;
+    li csBeg;
+    li csEnd;
+    li csLen;
+    li csIdxLen;
+    li mzBeg;
+    li mzEnd;
+    li mzLen;
+    li offset;
 };
 
 template<typename T>

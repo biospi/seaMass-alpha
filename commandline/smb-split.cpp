@@ -128,22 +128,18 @@ int main(int argc, const char * const * argv)
                 if (file.path().extension().string() == ".smb")
                 {
                     vector<double> rtTimes;
+                    vector<li> csIdx;
                     cout<<"processing File: "<<file.path().filename()<<endl;
                     fileSmbTile.open(file.path().string());
                     fileSmbTile.read_VecNC("startTimes",rtTimes);
+                    fileSmbTile.read_VecNC("countsIndex",csIdx);
 
-                    SmbTile newData = {file.path(), rtTimes, int(smbTileList.size())};
+                    //SmbTile newData = {file.path(), rtTimes, csIdx, int(smbTileList.size()),0,0,0};
+                    SmbTile newData(file.path(), rtTimes,csIdx);
                     smbTileList.push_back(newData);
 
-                    fileSmbTile.close();
-
-                    cout<<smbTileList.back().fileName.stem().string();
-                    cout<<"\n\t rt Begin: "<<smbTileList.back().startTime.front()<<"\trt End: "<<smbTileList.back().startTime.back();
-                    cout<<"\t ID: "<<smbTileList.back().id<<endl;
-
                     smbTileList.back().id=getSmbIndex<int>(smbTileList.back().fileName.stem().string());
-                    cout<<"\t rt Begin: "<<smbTileList.back().startTime.front()<<"\trt End: "<<smbTileList.back().startTime.back();
-                    cout<<"\t ID: "<<smbTileList.back().id<<endl<<endl;
+                    fileSmbTile.close();
                 }
                 else
                 {
@@ -157,11 +153,169 @@ int main(int argc, const char * const * argv)
                      return x.id < y.id;
                  }
             );
+
             for (SmbTile i: smbTileList)
             {
                 cout<<"Name of tile smbFile: "<<i.fileName.filename().string();
                 cout<<"    rt Begin: " <<i.startTime.front()<<"\trt End: "<<i.startTime.back()<<"    Size: "<<i.startTime.size()<<endl;
             }
+
+            li drt = smbTileList.front().startTime.size()/4;
+
+            li offsetTile=0;
+
+            smbTileList.front().begIdx=0;
+            smbTileList.front().endIdx=drt*3;
+            smbTileList.front().len=smbTileList.front().endIdx - smbTileList.front().begIdx+1;
+            smbTileList.front().offset=smbTileList.front().countsIndex.front();
+            offsetTile=smbTileList.front().offset;
+
+            smbTileList.front().csBeg=smbTileList.front().countsIndex[smbTileList.front().begIdx];
+            smbTileList.front().csEnd=smbTileList.front().countsIndex[smbTileList.front().endIdx+1];
+            smbTileList.front().csLen=smbTileList.front().csEnd - smbTileList.front().csBeg;
+            smbTileList.front().csIdxLen=smbTileList.front().len;
+            smbTileList.front().mzBeg=smbTileList.front().csBeg + smbTileList.front().begIdx;
+            smbTileList.front().mzEnd=smbTileList.front().csEnd + smbTileList.front().endIdx;
+            smbTileList.front().mzLen=smbTileList.front().mzEnd - smbTileList.front().mzBeg+1;
+
+            for (li i = 1; i < smbTileList.size() - 1; ++i)
+            {
+                ptrdiff_t posIdx = distance(smbTileList[i].startTime.begin(),
+                                            find(smbTileList[i].startTime.begin(),
+                                                 smbTileList[i].startTime.end(),
+                                                 smbTileList[i-1].startTime[smbTileList[i-1].endIdx]));
+
+                ptrdiff_t offsetIdx = distance(smbTileList[i-1].startTime.begin(),
+                                            find(smbTileList[i-1].startTime.begin(),
+                                                 smbTileList[i-1].startTime.end(),
+                                                 smbTileList[i].startTime.front()));
+
+                smbTileList[i].begIdx=posIdx+1;
+                smbTileList[i].endIdx=drt*3;
+                smbTileList[i].len=smbTileList[i].endIdx - smbTileList[i].begIdx+1;
+                //smbTileList[i].offset=smbTileList[i-1].countsIndex[offsetIdx];
+                offsetTile += smbTileList[i-1].countsIndex[offsetIdx];
+                smbTileList[i].offset=offsetTile;
+
+                smbTileList[i].csBeg=smbTileList[i].countsIndex[smbTileList[i].begIdx];
+                smbTileList[i].csEnd=smbTileList[i].countsIndex[smbTileList[i].endIdx+1];
+                smbTileList[i].csLen=smbTileList[i].csEnd - smbTileList[i].csBeg;
+                smbTileList[i].csIdxLen=smbTileList[i].len;
+                smbTileList[i].mzBeg=smbTileList[i].csBeg + smbTileList[i].begIdx;
+                smbTileList[i].mzEnd=smbTileList[i].csEnd + smbTileList[i].endIdx;
+                smbTileList[i].mzLen=smbTileList[i].mzEnd - smbTileList[i].mzBeg+1;
+            }
+
+            smbTileList.back().begIdx=distance(smbTileList.back().startTime.begin(),
+                                          find(smbTileList.back().startTime.begin(),
+                                               smbTileList.back().startTime.end(),
+                                               smbTileList[smbTileList.size()-2].startTime[smbTileList[smbTileList.size()-2].endIdx]))+1;
+
+            smbTileList.back().endIdx=smbTileList.back().startTime.size()-1;
+            smbTileList.back().len=smbTileList.back().endIdx - smbTileList.back().begIdx+1;
+
+            smbTileList.back().csBeg=smbTileList.back().countsIndex[smbTileList.back().begIdx];
+            smbTileList.back().csEnd=smbTileList.back().countsIndex[smbTileList.back().endIdx+1];
+            smbTileList.back().csLen=smbTileList.back().csEnd - smbTileList.back().csBeg;
+            smbTileList.back().csIdxLen=smbTileList.back().len+1;
+            smbTileList.back().mzBeg=smbTileList.back().csBeg + smbTileList.back().begIdx;
+            smbTileList.back().mzEnd=smbTileList.back().csEnd + smbTileList.back().endIdx;
+            smbTileList.back().mzLen=smbTileList.back().mzEnd - smbTileList.back().mzBeg+1;
+
+            //smbTileList.back().offset=smbTileList[smbTileList.size()-2].countsIndex[distance(smbTileList[smbTileList.size()-2].startTime.begin(),
+            //                             find(smbTileList[smbTileList.size()-2].startTime.begin(),
+            //                                 smbTileList[smbTileList.size()-2].startTime.end(),
+            //                                 smbTileList.back().startTime.front()))];
+            offsetTile += smbTileList[smbTileList.size()-2].countsIndex[distance(smbTileList[smbTileList.size()-2].startTime.begin(),
+                                          find(smbTileList[smbTileList.size()-2].startTime.begin(),
+                                               smbTileList[smbTileList.size()-2].startTime.end(),
+                                               smbTileList.back().startTime.front()))];
+            smbTileList.back().offset = offsetTile;
+
+            cout<<"Boundaries for Subsection tiles:"<<endl;
+            for (SmbTile i: smbTileList)
+            {
+                cout<<"BegIdx: "<<i.begIdx<<"    Val: "<<i.startTime[i.begIdx]<<"\tEndIdx: "<<i.endIdx<<"    Val: "<<i.startTime[i.endIdx];
+                cout<<"    offset: "<<i.offset<<endl;
+            }
+
+            // Begin output of Tiles into one file.
+            vector<double> binLocations;
+            vector<fp> counts;
+            vector<li> countsIndex;
+            vector<fp>  exposures;
+            vector<double> startTimes;
+            vector<double> finishTimes;
+
+            string fileNameOut = smbTileList.front().fileName.stem().string().substr(0,
+                smbTileList.front().fileName.stem().string().find_last_of(".")) + ".smb";
+
+            for (li i = 0; i < smbTileList.size(); ++i)
+            {
+                vector<double> _binLocations;
+                vector<fp> _counts;
+                vector<li> _countsIndex;
+                vector<fp>  _exposures;
+                vector<double> _startTimes;
+                vector<double> _finishTimes;
+
+                FileNetcdf smbTileIn(smbTileList[i].fileName.string());
+                SmbTile *ptr = &smbTileList[i];
+
+                //cout<<"Injecting File "<<i+1<<"/"<<smbTileList.size()<<": "<<smbTileList[i].fileName.string()<<"\r";
+                cout<<"Injecting File "<<i+1<<"/"<<smbTileList.size()<<": "<<smbTileList[i].fileName.string()<<endl;
+
+                size_t begptr = size_t(smbTileList[i].begIdx);
+                size_t lenptr = size_t(smbTileList[i].len);
+                smbTileIn.read_HypVecNC("startTimes", _startTimes, &begptr, &lenptr);
+                smbTileIn.read_HypVecNC("finishTimes", _finishTimes, &begptr, &lenptr);
+                smbTileIn.read_HypVecNC("exposures", _exposures, &begptr, &lenptr);
+                begptr = size_t(smbTileList[i].begIdx);
+                lenptr = size_t(smbTileList[i].csIdxLen);
+                smbTileIn.read_HypVecNC("countsIndex", _countsIndex, &begptr, &lenptr);
+                begptr = size_t(smbTileList[i].csBeg);
+                lenptr = size_t(smbTileList[i].csLen);
+                smbTileIn.read_HypVecNC("counts", _counts, &begptr, &lenptr);
+                begptr = size_t(smbTileList[i].mzBeg);
+                lenptr = size_t(smbTileList[i].mzLen);
+                smbTileIn.read_HypVecNC("binLocations", _binLocations, &begptr, &lenptr);
+
+                smbTileIn.close();
+
+                for (li x = 0; x < _countsIndex.size(); ++x)
+                {
+                    li offSet = smbTileList[i].offset;
+                    _countsIndex[x] = _countsIndex[x]  + offSet;
+                }
+
+                /*
+                li offSet=smbTileList[i].offset;
+                transform(_countsIndex.begin(),_countsIndex.end(),_countsIndex.begin(),
+                    [offSet](li x) -> li {return offSet + x; });
+                */
+
+                binLocations.insert(binLocations.end(),_binLocations.begin(),_binLocations.end());
+                counts.insert(counts.end(),_counts.begin(),_counts.end());
+                countsIndex.insert(countsIndex.end(),_countsIndex.begin(),_countsIndex.end());
+                exposures.insert(exposures.end(),_exposures.begin(),_exposures.end());
+                startTimes.insert(startTimes.end(),_startTimes.begin(),_startTimes.end());
+                finishTimes.insert(finishTimes.end(),_finishTimes.begin(),_finishTimes.end());
+
+            }
+
+
+            cout<<"\nWirting out file: "<<fileNameOut<<endl;
+
+            FileNetcdf fileSmbOut(fileNameOut,NC_NETCDF4);
+
+            fileSmbOut.write_VecNC("binLocations",binLocations,NC_DOUBLE);
+            fileSmbOut.write_VecNC("counts",counts,NC_FLOAT);
+            fileSmbOut.write_VecNC("countsIndex",countsIndex,NC_INT64);
+            fileSmbOut.write_VecNC("exposures",exposures,NC_FLOAT);
+            fileSmbOut.write_VecNC("finishTimes",finishTimes,NC_DOUBLE);
+            fileSmbOut.write_VecNC("startTimes",startTimes,NC_DOUBLE);
+
+            fileSmbOut.close();
         }
     }
 #ifdef NDEBUG
