@@ -352,21 +352,43 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         if(mzML.size() > 0) vector<char>().swap(mzML);
         idxDataArrayOffSet_=0;
         vector<InfoGrpVar> dataSet;
-        vector<double> chroMz;
-        vector<fp> chroBinCounts;
+        //vector<double> chroMz;
+        //vector<fp> chroBinCounts;
         fileIn_.read_VecNC("mzML_spectrumIndex",specIdx_);
-        fileIn_.read_VecNC("chromatogram_MS_1000595_double",chroMz);
-        fileIn_.read_VecNC("chromatogram_MS_1000515_float",chroBinCounts);
         fileIn_.search_Group("mzML");
+        fileIn_.search_Group("chromatogram_MS_1000595_float");
+        fileIn_.search_Group("chromatogram_MS_1000595_double");
         dataSet = fileIn_.get_Info();
+
+
         size_t loc=0;
         size_t len=specIdx_[0];
         fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
 
         fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".mzMLv" : ".mzMLb"), NC_NETCDF4);
 
-        fileOut_->write_VecNC("chromatogram_MS_1000595_double",chroMz,NC_DOUBLE);
-        fileOut_->write_VecNC("chromatogram_MS_1000515_float",chroBinCounts,NC_FLOAT);
+        //fileOut_->write_VecNC("chromatogram_MS_1000595_double",chroMz,NC_DOUBLE);
+        //fileOut_->write_VecNC("chromatogram_MS_1000515_float",chroBinCounts,NC_FLOAT);
+
+        if (dataSet.back().varName == "chromatogram_MS_1000595_double")
+        {
+            vector<double> chroMz;
+            vector<fp> chroBinCounts;
+            fileIn_.read_VecNC("chromatogram_MS_1000595_double", chroMz);
+            fileIn_.read_VecNC("chromatogram_MS_1000515_float", chroBinCounts);
+            fileOut_->write_VecNC("chromatogram_MS_1000595_double", chroMz, NC_DOUBLE);
+            fileOut_->write_VecNC("chromatogram_MS_1000515_float", chroBinCounts, NC_FLOAT);
+        }
+        else if (dataSet.back().varName == "chromatogram_MS_1000595_float")
+        {
+            vector<fp> chroMz;
+            vector<fp> chroBinCounts;
+            fileIn_.read_VecNC("chromatogram_MS_1000595_float", chroMz);
+            fileIn_.read_VecNC("chromatogram_MS_1000515_float", chroBinCounts);
+            fileOut_->write_VecNC("chromatogram_MS_1000595_float", chroMz, NC_FLOAT);
+            fileOut_->write_VecNC("chromatogram_MS_1000515_float", chroBinCounts, NC_FLOAT);
+        }
+
         fileOut_->write_DefHypVecNC<char>("mzML",NC_UBYTE);
         fileOut_->write_DefHypVecNC<double>("spectrum_MS_1000514_double",NC_DOUBLE);
         fileOut_->write_DefHypVecNC<float>("spectrum_MS_1000515_float",NC_FLOAT);
