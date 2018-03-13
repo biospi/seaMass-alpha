@@ -279,7 +279,7 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 	// Find Peaks and exact MZ values.
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
 
-	//#pragma omp parallel for reduction(+:falsePeak,falseWidth)
+	#pragma omp parallel for reduction(+:falsePeak,falseWidth)
 	for(lli i = 0; i < row; ++i)
 	{
 		for(lli j = 2; j < col-2; ++j)
@@ -298,7 +298,7 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 				{
 					if(mzlhs >= 0 && mzrhs >= 0 && countMax >= threshold)
 					{
-						//#pragma omp critical(peak)
+						#pragma omp critical(peak)
 						{
 							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
 								make_pair(bs->rt[i],bs->rt[i]),t0,j,i);

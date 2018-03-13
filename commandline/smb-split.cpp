@@ -160,6 +160,40 @@ int main(int argc, const char * const * argv)
                 cout<<"    rt Begin: " <<i.startTime.front()<<"\trt End: "<<i.startTime.back()<<"    Size: "<<i.startTime.size()<<endl;
             }
 
+
+            // Find out what mode data is in, re-sampled or centroid mode
+            bool centroidMode;
+            fileSmbTile.open(smbTileList.front().fileName.string());
+            fileSmbTile.search_Group("binLocations");
+            fileSmbTile.search_Group("centroidLocations");
+            vector<InfoGrpVar> dataSetInfo = fileSmbTile.get_Info();
+            fileSmbTile.close();
+
+            if (dataSetInfo.size() == 1)
+            {
+                if (dataSetInfo.front().varName == "centroidLocations")
+                {
+                    cout<<"Processing Centroid mode data..."<<endl;
+                    centroidMode = true;
+                }
+                else if (dataSetInfo.front().varName == "binLocations")
+                {
+                    cout<<"Processing Profile re-sampled mode data..."<<endl;
+                    centroidMode = false;
+                }
+                else
+                {
+                    cout<<"Error: Unsupported Input mode data format..."<<endl;
+                    exit(1);
+                }
+            }
+            else
+            {
+                cout<<"Error: Invalid Input data files."<<endl;
+                cout<<"       Input Data files need to be in either profile or centroid mode format."<<endl;
+                exit(1);
+            }
+
             li drt = smbTileList.front().startTime.size()/4;
 
             li offsetTile=0;
@@ -174,9 +208,19 @@ int main(int argc, const char * const * argv)
             smbTileList.front().csEnd=smbTileList.front().countsIndex[smbTileList.front().endIdx+1];
             smbTileList.front().csLen=smbTileList.front().csEnd - smbTileList.front().csBeg;
             smbTileList.front().csIdxLen=smbTileList.front().len;
-            smbTileList.front().mzBeg=smbTileList.front().csBeg + smbTileList.front().begIdx;
-            smbTileList.front().mzEnd=smbTileList.front().csEnd + smbTileList.front().endIdx;
-            smbTileList.front().mzLen=smbTileList.front().mzEnd - smbTileList.front().mzBeg+1;
+            if (centroidMode == true)
+            {
+                smbTileList.front().mzBeg=smbTileList.front().countsIndex[smbTileList.front().begIdx];
+                smbTileList.front().mzEnd=smbTileList.front().countsIndex[smbTileList.front().endIdx+1];
+                smbTileList.front().mzLen=smbTileList.front().csEnd - smbTileList.front().csBeg;
+            }
+            else
+            {
+                smbTileList.front().mzBeg=smbTileList.front().csBeg + smbTileList.front().begIdx;
+                smbTileList.front().mzEnd=smbTileList.front().csEnd + smbTileList.front().endIdx;
+                smbTileList.front().mzLen=smbTileList.front().mzEnd - smbTileList.front().mzBeg+1;
+            }
+
 
             for (li i = 1; i < smbTileList.size() - 1; ++i)
             {
@@ -201,9 +245,18 @@ int main(int argc, const char * const * argv)
                 smbTileList[i].csEnd=smbTileList[i].countsIndex[smbTileList[i].endIdx+1];
                 smbTileList[i].csLen=smbTileList[i].csEnd - smbTileList[i].csBeg;
                 smbTileList[i].csIdxLen=smbTileList[i].len;
-                smbTileList[i].mzBeg=smbTileList[i].csBeg + smbTileList[i].begIdx;
-                smbTileList[i].mzEnd=smbTileList[i].csEnd + smbTileList[i].endIdx;
-                smbTileList[i].mzLen=smbTileList[i].mzEnd - smbTileList[i].mzBeg+1;
+                if (centroidMode == true)
+                {
+                    smbTileList[i].mzBeg=smbTileList[i].countsIndex[smbTileList[i].begIdx];
+                    smbTileList[i].mzEnd=smbTileList[i].countsIndex[smbTileList[i].endIdx+1];
+                    smbTileList[i].mzLen=smbTileList[i].csEnd - smbTileList[i].csBeg;
+                }
+                else
+                {
+                    smbTileList[i].mzBeg=smbTileList[i].csBeg + smbTileList[i].begIdx;
+                    smbTileList[i].mzEnd=smbTileList[i].csEnd + smbTileList[i].endIdx;
+                    smbTileList[i].mzLen=smbTileList[i].mzEnd - smbTileList[i].mzBeg+1;
+                }
             }
 
             smbTileList.back().begIdx=distance(smbTileList.back().startTime.begin(),
@@ -218,9 +271,18 @@ int main(int argc, const char * const * argv)
             smbTileList.back().csEnd=smbTileList.back().countsIndex[smbTileList.back().endIdx+1];
             smbTileList.back().csLen=smbTileList.back().csEnd - smbTileList.back().csBeg;
             smbTileList.back().csIdxLen=smbTileList.back().len+1;
-            smbTileList.back().mzBeg=smbTileList.back().csBeg + smbTileList.back().begIdx;
-            smbTileList.back().mzEnd=smbTileList.back().csEnd + smbTileList.back().endIdx;
-            smbTileList.back().mzLen=smbTileList.back().mzEnd - smbTileList.back().mzBeg+1;
+            if (centroidMode == true)
+            {
+                smbTileList.back().mzBeg=smbTileList.back().countsIndex[smbTileList.back().begIdx];
+                smbTileList.back().mzEnd=smbTileList.back().countsIndex[smbTileList.back().endIdx+1];
+                smbTileList.back().mzLen=smbTileList.back().csEnd - smbTileList.back().csBeg;
+            }
+            else
+            {
+                smbTileList.back().mzBeg=smbTileList.back().csBeg + smbTileList.back().begIdx;
+                smbTileList.back().mzEnd=smbTileList.back().csEnd + smbTileList.back().endIdx;
+                smbTileList.back().mzLen=smbTileList.back().mzEnd - smbTileList.back().mzBeg+1;
+            }
 
             //smbTileList.back().offset=smbTileList[smbTileList.size()-2].countsIndex[distance(smbTileList[smbTileList.size()-2].startTime.begin(),
             //                             find(smbTileList[smbTileList.size()-2].startTime.begin(),
@@ -278,7 +340,14 @@ int main(int argc, const char * const * argv)
                 smbTileIn.read_HypVecNC("counts", _counts, &begptr, &lenptr);
                 begptr = size_t(smbTileList[i].mzBeg);
                 lenptr = size_t(smbTileList[i].mzLen);
-                smbTileIn.read_HypVecNC("binLocations", _binLocations, &begptr, &lenptr);
+                if (centroidMode == true)
+                {
+                    smbTileIn.read_HypVecNC("centroidLocations", _binLocations, &begptr,&lenptr);
+                }
+                else
+                {
+                    smbTileIn.read_HypVecNC("binLocations", _binLocations, &begptr,&lenptr);
+                }
 
                 smbTileIn.close();
 
@@ -308,7 +377,15 @@ int main(int argc, const char * const * argv)
 
             FileNetcdf fileSmbOut(fileNameOut,NC_NETCDF4);
 
-            fileSmbOut.write_VecNC("binLocations",binLocations,NC_DOUBLE);
+
+            if (centroidMode == true)
+            {
+                fileSmbOut.write_VecNC("centroidLocations",binLocations,NC_DOUBLE);
+            }
+            else
+            {
+                fileSmbOut.write_VecNC("binLocations",binLocations,NC_DOUBLE);
+            }
             fileSmbOut.write_VecNC("counts",counts,NC_FLOAT);
             fileSmbOut.write_VecNC("countsIndex",countsIndex,NC_INT64);
             fileSmbOut.write_VecNC("exposures",exposures,NC_FLOAT);
