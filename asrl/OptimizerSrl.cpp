@@ -170,7 +170,20 @@ fp OptimizerSrl::step()
         {
             // any zeros in f_fE are due to underflow. We need to do this to avoid divide by zero error
             f_fE[k].censorLeft(f_fE[k], numeric_limits<fp>::min());
-            f_fE[k].div2Dense(b_[k]);
+
+            // hack for hanqing
+            fp* vs = new fp[f_fE[k].m() * f_fE[k].n()];
+            f_fE[k].exportToDense(vs);
+
+            for (ii i = 0; i < f_fE[k].m(); i++)
+                for (ii j = 0; j < f_fE[k].n(); j++)
+                    vs[i + j * f_fE[k].m()] = b_[0].vs()[i + j * f_fE[k].m()] / vs[i + j * f_fE[k].m()];
+
+            Matrix t2;
+            t2.importFromArray(f_fE[k].m(), f_fE[k].n(), vs);
+
+            f_fE[k].importFromMatrix(t2);
+            delete[] vs;
 
             MatrixSparse t;
             t.pruneCells(f_fE[k]);

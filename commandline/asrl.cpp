@@ -117,6 +117,7 @@ int main(int argc, const char * const * argv)
 
         input.bT.resize(1);
         fileIn.read(input.bT[0], "Bt");
+        //for (li i = 0; i < input.bT[0].size(); i++) input.bT[0].vs()[i]++;
 
         try
         {
