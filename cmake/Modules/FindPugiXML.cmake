@@ -5,15 +5,31 @@
 # PUGIXML_INCLUDE_DIR - header location
 # PUGIXML_LIBRARIES - library to link against
 # PUGIXML_FOUND - true if pugixml was found.
+#
+# If PugiXML is located in another location the following Environment variable:
+# export PUGIXML_ROOT_PATH=/location/of/pugiXML
 
-find_path (PugiXML_INCLUDE_DIR NAMES pugixml.hpp PATHS
-    ${PugiXML_DIR}/../../../include
-    /usr/local/include/pugixml-1.8
-)
-find_library (PugiXML_LIBRARY NAMES pugixml PATHS
-    ${PugiXML_DIR}/../..
-    /usr/local/lib/pugixml-1.8
-)
+if(DEFINED ENV{PUGIXML_ROOT_PATH})
+    set(PUGIXML_ROOT_PATH "$ENV{PUGIXML_ROOT_PATH}" CACHE PATH "Where the PugiXML is stored")
+    message("PugiXML defined at ${PUGIXML_ROOT_PATH}")
+    find_path (PugiXML_INCLUDE_DIR NAMES pugixml.hpp PATHS
+        ${PUGIXML_ROOT_PATH}/include
+    )
+    find_library (PugiXML_LIBRARY NAMES pugixml PATHS
+        ${PUGIXML_ROOT_PATH}/lib
+    )
+else()
+    message("PugiXML Normal Search")
+    find_path (PugiXML_INCLUDE_DIR NAMES pugixml.hpp PATHS
+        ${PugiXML_DIR}/../../../include
+        /usr/local/include/pugixml-1.8
+    )
+    find_library (PugiXML_LIBRARY NAMES pugixml PATHS
+        ${PugiXML_DIR}/../..
+        /usr/local/lib/pugixml-1.8
+    )
+endif()
+
 
 # Support the REQUIRED and QUIET arguments, and set PUGIXML_FOUND if found.
 include (FindPackageHandleStandardArgs)
