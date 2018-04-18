@@ -46,9 +46,23 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
     vector<li> mzML_spectrumIndex;
     fileIn_.read_VecNC("mzML_spectrumIndex", mzML_spectrumIndex);
 
-    // Load "mzML_chromatogramIndex"
+    // Check and Load "mzML_chromatogramIndex"
     vector<li> mzML_chromatogramIndex;
-    fileIn_.read_VecNC("mzML_chromatogramIndex", mzML_chromatogramIndex);
+    vector<InfoGrpVar> chromatogramInfo;
+    fileIn_.search_Group("mzML_chromatogramIndex");
+    chromatogramInfo = fileIn_.get_Info();
+
+    if (chromatogramInfo.empty() == false)
+    {
+        if (chromatogramInfo.back().varName == "mzML_chromatogramIndex")
+        {
+            fileIn_.read_VecNC("mzML_chromatogramIndex", mzML_chromatogramIndex);
+        }
+    }
+    else
+    {
+        cout<<"No Chromatogram Data in mzMLb file"<<endl;
+    }
 
     // Load "mzML" but without spectra
     vector<char> mzML;
@@ -59,16 +73,27 @@ DatasetMzmlb::DatasetMzmlb(const std::string filePathIn, const std::string fileP
         fileIn_.read_HypVecNC("mzML", buffer, &offset, &extent);
         mzML.insert(mzML.end(), buffer.begin(), buffer.end());
 
-        offset = (size_t) mzML_spectrumIndex.back();
-        extent = mzML_chromatogramIndex.front() - offset;
-        fileIn_.read_HypVecNC("mzML", buffer, &offset, &extent);
-        mzML.insert(mzML.end(), buffer.begin(), buffer.end());
+        if (mzML_chromatogramIndex.empty() == false)
+        {
+            offset = (size_t) mzML_spectrumIndex.back();
+            extent = mzML_chromatogramIndex.front() - offset;
+            fileIn_.read_HypVecNC("mzML", buffer, &offset, &extent);
+            mzML.insert(mzML.end(), buffer.begin(), buffer.end());
 
-        offset = (size_t) mzML_chromatogramIndex.back();
-        vector<size_t> dims = fileIn_.read_DimNC("mzML");
-        extent = dims[0] - offset;
-        fileIn_.read_HypVecNC("mzML", buffer, &offset, &extent);
-        mzML.insert(mzML.end(), buffer.begin(), buffer.end());
+            offset = (size_t) mzML_chromatogramIndex.back();
+            vector<size_t> dims = fileIn_.read_DimNC("mzML");
+            extent = dims[0] - offset;
+            fileIn_.read_HypVecNC("mzML", buffer, &offset, &extent);
+            mzML.insert(mzML.end(), buffer.begin(), buffer.end());
+        }
+        else
+        {
+            offset = (size_t) mzML_spectrumIndex.back();
+            vector<size_t> dims = fileIn_.read_DimNC("mzML");
+            extent = dims[0] - offset;
+            fileIn_.read_HypVecNC("mzML", buffer, &offset, &extent);
+            mzML.insert(mzML.end(), buffer.begin(), buffer.end());
+        }
     }
 
     // parse
