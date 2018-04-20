@@ -417,7 +417,7 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool deconv
         double mz1 = pow(2.0, (meshInfo.offset[0] + c[0].js_[nz] + 0.5) / double(1L << meshInfo.scale[0])) +
                 BasisBsplineMz::PROTON_MASS;
 
-        c[0].vs_[nz] /= mz1 - mz0;
+        //c[0].vs_[nz] /= mz1 - mz0;
     }
 
     vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
