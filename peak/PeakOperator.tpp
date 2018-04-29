@@ -300,6 +300,7 @@ void Centroid2D<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T 
 					{
 						#pragma omp critical(peak)
 						{
+                            calPeakVolume(countMax,mzlhs,mzrhs);
 							peak->addPeak(mzPeak,bs->rt[i],countMax,make_pair(mzlhs,mzrhs),
 								make_pair(bs->rt[i],bs->rt[i]),t0,j,i);
 						}
@@ -936,5 +937,28 @@ void ExtractPeak<pPeak,pData,T,R>::calPeakLenRT(lli rtIdx,lli mzIdx, T** alpha,
 	}
 	*/
 }
+
+
+template <typename T>
+void calPeakVolume(T &pkCount, double mzlhs, double mzrhs)
+{
+    // 2*sqrt(2*ln(2)) = 2.354820045030949
+    // 2*sqrt(2*ln(10)) = 4.291932052578694
+    // 2*pi = 6.283185307179586 = pi2
+    // FWHM = (2*sqrt(2*ln(2)))*sigma = k*sigma -> sigma = FWHM/k
+    // FWTM = (2*sqrt(2*ln(10)))*sigma = k*sigma -> sigma = FWTM/k
+    // V = 2*pi*I*sigma^2
+    // V = 2*pi*I*(FWHM/k)^2 = 2*pi*I*c*c
+
+    T I = pkCount;
+    double pi2 = 6.283185307179586;
+    double k = 2.354820045030949;
+    //double k = 4.291932052578694;
+    double fwtm = mzrhs - mzlhs;
+    double c = fwtm / k;
+
+    pkCount=pi2*I*c*c;
+}
+
 
 #endif /* SMPEAK_PEAKOPERATOR_TPP_ */

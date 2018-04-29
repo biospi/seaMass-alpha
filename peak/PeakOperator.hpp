@@ -118,6 +118,10 @@ private:
 					double &rtlhs, double &rtrhs);
 };
 
+template<typename T>
+void calPeakVolume(T &pkCount, double mzlhs, double mzrhs);
+
+
 #include "PeakOperator.tpp"
 
 #endif /* SMPEAK_PEAKOPERATOR_HPP_ */
