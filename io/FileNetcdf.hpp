@@ -102,6 +102,8 @@ public:
             size_t chunks = 1048576, int deflate_level = 4,
             int shuffle = NC_SHUFFLE);
     template<typename T>
+    void update_VecNC(int dataSet_id, size_t pos, const T *vec, size_t len, int grpid = 0);
+    template<typename T>
     int write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type xtype,
             int grpid = 0, const string rowY="", const string colX="",
             size_t chunk = 1048576, int deflate_level = 4,
@@ -154,7 +156,7 @@ public:
     void write(const MatrixSparse& a, const string name, int grpid = 0);
 
     vector<InfoGrpVar> get_Info(void) {return dataSetList_;};
-private:
+public:
     string fileName_;
     bool fileStatus_;
     int ncid_;

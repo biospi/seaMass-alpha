@@ -668,6 +668,15 @@ int FileNetcdf::write_VecNC(const string dataSet, const T *vec, size_t len, nc_t
 
 
 template<typename T>
+void FileNetcdf::update_VecNC(int dataSet_id, size_t pos, const T *vec, size_t len, int grpid)
+{
+    if(grpid == 0) grpid = ncid_;
+
+    nc_put_vara(grpid, dataSet_id, &pos, &len, vec);
+}
+
+
+template<typename T>
 int FileNetcdf::write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type xtype,
             int grpid, const string rowY, const string colX,
             size_t chunk, int deflate_level, int shuffle)
