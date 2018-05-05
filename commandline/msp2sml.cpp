@@ -107,7 +107,7 @@ int main(int argc, const char * const * argv)
 
         ostringstream oss; oss << "mzScale=" << mzScale;
         int spectraGroup_id = sml.create_Group(oss.str());
-        int spectraGroup_i_id = sml.write_VecNC("rowIndex", &zero, 1, NC_LONG, spectraGroup_id, true);
+        int spectraGroup_i_id = sml.write_VecNC("spectrumIndex", &zero, 1, NC_LONG, spectraGroup_id, true);
         int spectraGroup_j_id = sml.write_VecNC("binLocations", vector<ii>(), NC_LONG, spectraGroup_id, true);
         int spectraGroup_v_id = sml.write_VecNC("binIntensities", vector<float>(), NC_FLOAT, spectraGroup_id, true);
 
@@ -121,8 +121,8 @@ int main(int argc, const char * const * argv)
         li nchar = 0;
 
         // output spectrum
-        Matrix x;
-        x.init(1, n);
+        float* vs = new float[n];
+        ii* js = new ii[n];
 
         Bspline bspline(3, 65536); // bspline basis function lookup table
         for(std::string line; std::getline(msp, line); )
@@ -172,7 +172,7 @@ int main(int argc, const char * const * argv)
                 }
             }
 
-            for (ii i = 0; i < x.size(); i++) x.vs()[i] = 0.0f;
+             for (ii j = 0; j < n; j++) vs[j] = 0.0f;
 
             // read peaks
             for(std::string line; std::getline(msp, line); )
@@ -207,15 +207,27 @@ int main(int argc, const char * const * argv)
                 fp b5 = 4.0;
 
                 ii ibin = ii(bin);
-                if(ibin-2 >= 0 && ibin-2 < n) x.vs()[ibin-2] += fp(bspline.ibasis(b1) - bspline.ibasis(b0));
-                if(ibin-1 >= 0 && ibin-1 < n) x.vs()[ibin-1] += fp(bspline.ibasis(b2) - bspline.ibasis(b1));
-                if(ibin   >= 0 && ibin   < n) x.vs()[ibin  ] += fp(bspline.ibasis(b3) - bspline.ibasis(b2));
-                if(ibin+1 >= 0 && ibin+1 < n) x.vs()[ibin+1] += fp(bspline.ibasis(b4) - bspline.ibasis(b3));
-                if(ibin+2 >= 0 && ibin+2 < n) x.vs()[ibin+2] += fp(bspline.ibasis(b5) - bspline.ibasis(b4));
+                if(ibin-2 >= 0 && ibin-2 < n) vs[ibin-2] += intensity * fp(bspline.ibasis(b1) - bspline.ibasis(b0));
+                if(ibin-1 >= 0 && ibin-1 < n) vs[ibin-1] += intensity * fp(bspline.ibasis(b2) - bspline.ibasis(b1));
+                if(ibin   >= 0 && ibin   < n) vs[ibin  ] += intensity * fp(bspline.ibasis(b3) - bspline.ibasis(b2));
+                if(ibin+1 >= 0 && ibin+1 < n) vs[ibin+1] += intensity * fp(bspline.ibasis(b4) - bspline.ibasis(b3));
+                if(ibin+2 >= 0 && ibin+2 < n) vs[ibin+2] += intensity * fp(bspline.ibasis(b5) - bspline.ibasis(b4));
             }
 
-            MatrixSparse y;
-            y.importFromMatrix(x);
+            // make sparse
+            ii spectrum_nnz = 0;
+            ii jOut = 0;
+            for(ii jIn = 0; jIn < n; jIn++)
+            {
+                if(vs[jIn] > 0.0f)
+                {
+                    vs[jOut] = vs[jIn];
+                    js[jOut] = jIn;
+                    
+                    spectrum_nnz++;
+                    jOut++;
+                }
+            }
 
             string peptideID = name + ":" + mods;
             const char* peptideID_cstr = peptideID.c_str();
@@ -225,17 +237,24 @@ int main(int argc, const char * const * argv)
 
             sml.update_VecNC(parentMz_id, m, &parentMZ, 1);
             sml.update_VecNC(collisionEnergy_id, m, &collisionEnergy, 1);
-            sml.update_VecNC(spectraGroup_j_id, nnz, y.js_, y.nnz(), spectraGroup_id);
-            sml.update_VecNC(spectraGroup_v_id, nnz, y.vs_, y.nnz(), spectraGroup_id);
+            sml.update_VecNC(spectraGroup_j_id, nnz, js, spectrum_nnz, spectraGroup_id);
+            sml.update_VecNC(spectraGroup_v_id, nnz, vs, spectrum_nnz, spectraGroup_id);
 
-            nnz += y.nnz();
+            nnz += spectrum_nnz;
             m++;
 
             sml.update_VecNC(peptideIdIndex_id, m, &nchar, 1);
             sml.update_VecNC(spectraGroup_i_id, m, &nnz, 1, spectraGroup_id);
 
-            cout << m << "   " << peptideID << "   " << peptideID.size() << "   " << parentMZ << ":" << collisionEnergy << endl;
+            //cout << m << "   " << peptideID << "   " << peptideID.size() << "   " << parentMZ << ":" << collisionEnergy << endl;
+
+            if (m % 10000 == 0) cout << m << " library spectra processed" << endl;
         }
+
+        cout << m << " library spectra processed" << endl;
+
+        delete[] vs;
+        delete[] js;
     }
 #ifdef NDEBUG
     catch(exception& e)
