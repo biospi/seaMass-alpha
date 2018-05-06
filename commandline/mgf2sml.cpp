@@ -53,24 +53,24 @@ int main(int argc, const char * const * argv)
         // *******************************************************************
 
         po::options_description general(
-            "Usage\n"
-            "-----\n"
-            "msp2sml [OPTIONS...] [MSP FILE]\n"
-            "msp2sml <-m mz_scale> <file>"
+                "Usage\n"
+                        "-----\n"
+                        "mgf2sml [OPTIONS...] [mgf FILE]\n"
+                        "mgf2sml <-m mz_scale> <file>"
         );
 
         general.add_options()
-            ("help,h",
-             "Produce this help message")
-            ("file,f", po::value<string>(&filePathIn),
-             "Input spectral library file in NIST msp or MassIVE sptxt format.")
-            ("mz_scale,m", po::value<int>(&mzScale)->default_value(10),
-             "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". ")
-            ("mz_min,0", po::value<double>(&mzMin)->default_value(50.0),
-             "Minimum product ion mz. ")
-            ("mz_max,1", po::value<double>(&mzMax)->default_value(3000.0),
-             "Maximum product ion mz. ")
-        ;
+                ("help,h",
+                 "Produce this help message")
+                ("file,f", po::value<string>(&filePathIn),
+                 "Input spectral library file in Mascot mgf format.")
+                ("mz_scale,m", po::value<int>(&mzScale)->default_value(10),
+                 "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". ")
+                ("mz_min,0", po::value<double>(&mzMin)->default_value(50.0),
+                 "Minimum product ion mz. ")
+                ("mz_max,1", po::value<double>(&mzMax)->default_value(3000.0),
+                 "Maximum product ion mz. ")
+                ;
 
         po::options_description desc;
         desc.add(general);
@@ -83,7 +83,7 @@ int main(int argc, const char * const * argv)
         po::notify(vm);
 
         cout << endl;
-        cout << "msp2sml : Copyright (C) 2018 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "mgf2sml : Copyright (C) 2018 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
@@ -103,7 +103,7 @@ int main(int argc, const char * const * argv)
         int peptideIdIndex_id = sml.write_VecNC("peptideIdIndex", &zero, 1, NC_LONG, 0, true);
         int peptideIds_id = sml.write_VecNC("peptideIds", vector<char>(), NC_CHAR, 0, true);
         int charge_id = sml.write_VecNC("charge", vector<char>(), NC_BYTE, 0, true);
-        int peptideMz_id = sml.write_VecNC("peptideMz", vector<double>(), NC_DOUBLE, 0, true);
+        int precursorMz_id = sml.write_VecNC("precursorMz", vector<double>(), NC_DOUBLE, 0, true);
         int collisionEnergy_id = sml.write_VecNC("collisionEnergy", vector<float>(), NC_FLOAT, 0, true);
 
         ostringstream oss; oss << "mzScale=" << mzScale;
@@ -114,7 +114,7 @@ int main(int argc, const char * const * argv)
 
         typedef boost::tokenizer< boost::escaped_list_separator<char> > so_tokenizer;
 
-        ifstream msp(filePathIn, ios_base::in);
+        ifstream mgf(filePathIn, ios_base::in);
         ii m = 0;
         ii offset = ii(floor(log2(mzMin - PROTON_MASS) * (1L << mzScale))) - 1;
         ii n = (ii(ceil(log2(mzMax - PROTON_MASS) * (1L << mzScale))) + 1) - offset + 1;
@@ -126,75 +126,70 @@ int main(int argc, const char * const * argv)
         ii* js = new ii[n];
 
         Bspline bspline(3, 65536); // bspline basis function lookup table
-        for(std::string line; std::getline(msp, line); )
+        for(string line; getline(mgf, line); )
         {
             boost::trim(line);
             if (line.size() == 0 || line[0] == '#')
                 continue;
 
-            if(line.compare(0, 5, "Name:") != 0)
-                throw runtime_error("ERROR: MSP file malformed");
+            if(line.compare(0, 10, "BEGIN IONS") != 0)
+                throw runtime_error("ERROR: MGF file malformed");
 
-            string name = line.substr(5);
-            boost::trim(name);
-
-            // metadata
-            string mods;
+             // metadata
+            string peptideId;
             fp collisionEnergy = 0.0;
-            double parentMZ = 0.0;
-            int nPeaks;
+            double precursorMZ = 0.0;
+            char charge = 0;
 
             // read header block
-            for(std::string line; std::getline(msp, line); )
+            for(; getline(mgf, line); )
             {
-                if(line.compare(0, 8, "Comment:") == 0)
-                {
-                    line = line.substr(8);
-                    boost::trim(line);
+                boost::trim(line);
+                if (line.size() == 0 || line[0] == '#')
+                    continue;
 
-                    so_tokenizer tok(line, boost::escaped_list_separator<char>("", " \t", "\"\'"));
-                    for(so_tokenizer::iterator toki = tok.begin(); toki != tok.end(); ++toki)
-                    {
-                        if(toki->compare(0, 5, "Mods=") == 0)
-                        {
-                            mods = toki->substr(5);
-                        }
-                        else if(toki->compare(0, 4, "HCD=") == 0)
-                        {
-                            string s = toki->substr(4);
-                            collisionEnergy = atof(s.c_str());
-                        }
-                        else if(toki->compare(0, 7, "Parent=") == 0)
-                        {
-                            string s = toki->substr(7);
-                            parentMZ = atof(s.c_str());
-                        }
-                    }
+                if(line.find_first_of("=") == string::npos)
+                    break;
+
+                if(line.compare(0, 4, "SEQ=") == 0)
+                {
+                    peptideId = line.substr(4);
+                    boost::trim(peptideId);
                 }
 
-                if(line.compare(0, 10, "Num peaks:") == 0)
+                if(line.compare(0, 7, "CHARGE=") == 0)
                 {
-                    line = line.substr(10);
-                    nPeaks = atoi(line.c_str());
-                    break;
+                    line = line.substr(7);
+                    charge = atoi(line.c_str());
+                }
+
+                if(line.compare(0, 8, "PEPMASS=") == 0)
+                {
+                    line = line.substr(8);
+                    precursorMZ = atof(line.c_str());
+                }
+
+                if(line.compare(0, 17, "COLLISION_ENERGY=") == 0)
+                {
+                    line = line.substr(17);
+                    collisionEnergy = atof(line.c_str());
                 }
             }
 
-             for (ii j = 0; j < n; j++) vs[j] = 0.0f;
-
             // read peaks
-            for(std::string line; std::getline(msp, line); )
+            for (ii j = 0; j < n; j++) vs[j] = 0.0f;
+            do
             {
                 boost::trim(line);
-                if (line.size() == 0)
+                if (line.size() == 0 || line[0] == '#')
+                    continue;
+
+                if(line.compare(0, 8, "END IONS") == 0)
                     break;
 
                 so_tokenizer tok(line, boost::escaped_list_separator<char>("", " \t", "\"\'"));
 
                 so_tokenizer::iterator toki = tok.begin();
-                if (toki == tok.end())
-                    break;
-
                 double mz = atof(toki->c_str());
                 ++toki;
                 double intensity = atof(toki->c_str());
@@ -215,6 +210,7 @@ int main(int argc, const char * const * argv)
                 if(ibin+1 >= 0 && ibin+1 < n) vs[ibin+1] += intensity * fp(bspline.ibasis(b4) - bspline.ibasis(b3));
                 if(ibin+2 >= 0 && ibin+2 < n) vs[ibin+2] += intensity * fp(bspline.ibasis(b5) - bspline.ibasis(b4));
             }
+            while(getline(mgf, line));
 
             // make sparse
             ii spectrum_nnz = 0;
@@ -231,21 +227,12 @@ int main(int argc, const char * const * argv)
                 }
             }
 
-            size_t slashpos = name.find_first_of("/");
-            string peptideSeq = name.substr(0, slashpos);
-            string extra = name.substr(slashpos + 1, name.size() - slashpos - 1);
-            size_t underscorepos = extra.find_first_of("_");
-            if (underscorepos != string::npos)
-                 extra = extra.substr(0, underscorepos);
-            char charge = char(atoi(extra.c_str()));
-
-            string peptideId = peptideSeq + ":" + mods;
             const char* peptideID_cstr = peptideId.c_str();
             sml.update_VecNC(peptideIds_id, nchar, peptideID_cstr, peptideId.size());
 
             nchar += peptideId.size();
 
-            sml.update_VecNC(peptideMz_id, m, &parentMZ, 1);
+            sml.update_VecNC(precursorMz_id, m, &precursorMZ, 1);
             sml.update_VecNC(charge_id, m, &charge, 1);
             sml.update_VecNC(collisionEnergy_id, m, &collisionEnergy, 1);
             sml.update_VecNC(spectraGroup_j_id, nnz, js, spectrum_nnz, spectraGroup_id);
@@ -257,7 +244,7 @@ int main(int argc, const char * const * argv)
             sml.update_VecNC(peptideIdIndex_id, m, &nchar, 1);
             sml.update_VecNC(spectraGroup_i_id, m, &nnz, 1, spectraGroup_id);
 
-            //cout << m << "   " << peptideID << "   " << peptideID.size() << "   " << parentMZ << ":" << collisionEnergy << endl;
+            //cout << m << "   " << peptideId << "   " << precursorMZ << ":" << collisionEnergy << endl;
 
             if (m % 10000 == 0) cout << m << " library spectra processed" << endl;
         }
