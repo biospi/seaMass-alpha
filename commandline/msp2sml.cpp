@@ -48,7 +48,7 @@ int main(int argc, const char * const * argv)
         int mzScale;
         double mzMin;
         double mzMax;
-        int debugLevel;
+        float energy = -1.0;
 
         // *******************************************************************
 
@@ -70,6 +70,8 @@ int main(int argc, const char * const * argv)
              "Minimum product ion mz. ")
             ("mz_max,1", po::value<double>(&mzMax)->default_value(3000.0),
              "Maximum product ion mz. ")
+            ("energy,e", po::value<float>(&energy),
+             "Override HCD collision energy written to sml.")
         ;
 
         po::options_description desc;
@@ -87,7 +89,6 @@ int main(int argc, const char * const * argv)
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
-        initKernel(debugLevel);
 
         if(vm.count("help") || !vm.count("file"))
         {
@@ -140,7 +141,7 @@ int main(int argc, const char * const * argv)
 
             // metadata
             string mods;
-            fp collisionEnergy = 0.0;
+            float collisionEnergy = -1.0f;
             double parentMZ = 0.0;
             int nPeaks;
 
@@ -159,15 +160,22 @@ int main(int argc, const char * const * argv)
                         {
                             mods = toki->substr(5);
                         }
-                        else if(toki->compare(0, 4, "HCD=") == 0)
-                        {
-                            string s = toki->substr(4);
-                            collisionEnergy = atof(s.c_str());
-                        }
                         else if(toki->compare(0, 7, "Parent=") == 0)
                         {
                             string s = toki->substr(7);
                             parentMZ = atof(s.c_str());
+                        }
+                        else if(energy < 0.0)
+                        {
+                            if(toki->compare(0, 4, "HCD=") == 0)
+                            {
+                                string s = toki->substr(4);
+                                collisionEnergy = atof(s.c_str());
+                            }
+                        }
+                        else
+                        {
+                            collisionEnergy = energy;
                         }
                     }
                 }
@@ -180,9 +188,11 @@ int main(int argc, const char * const * argv)
                 }
             }
 
-             for (ii j = 0; j < n; j++) vs[j] = 0.0f;
+            if(energy < 0.0 && collisionEnergy < 0.0)
+                throw runtime_error("ERROR: MSP does not contain collision energies. You must supply msp2sml with the '--energy' argument.");
 
             // read peaks
+            for (ii j = 0; j < n; j++) vs[j] = 0.0f;
             for(std::string line; std::getline(msp, line); )
             {
                 boost::trim(line);

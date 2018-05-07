@@ -48,7 +48,7 @@ int main(int argc, const char * const * argv)
         int mzScale;
         double mzMin;
         double mzMax;
-        int debugLevel;
+        float energy = -1.0;
 
         // *******************************************************************
 
@@ -70,6 +70,8 @@ int main(int argc, const char * const * argv)
                  "Minimum product ion mz. ")
                 ("mz_max,1", po::value<double>(&mzMax)->default_value(3000.0),
                  "Maximum product ion mz. ")
+                ("energy,e", po::value<float>(&energy),
+                 "Override HCD collision energy written to sml.")
                 ;
 
         po::options_description desc;
@@ -87,7 +89,6 @@ int main(int argc, const char * const * argv)
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
-        initKernel(debugLevel);
 
         if(vm.count("help") || !vm.count("file"))
         {
@@ -137,7 +138,7 @@ int main(int argc, const char * const * argv)
 
              // metadata
             string peptideId;
-            fp collisionEnergy = 0.0;
+            float collisionEnergy = -1.0;
             double precursorMZ = 0.0;
             char charge = 0;
 
@@ -156,25 +157,32 @@ int main(int argc, const char * const * argv)
                     peptideId = line.substr(4);
                     boost::trim(peptideId);
                 }
-
-                if(line.compare(0, 7, "CHARGE=") == 0)
+                else if(line.compare(0, 7, "CHARGE=") == 0)
                 {
                     line = line.substr(7);
                     charge = atoi(line.c_str());
                 }
-
-                if(line.compare(0, 8, "PEPMASS=") == 0)
+                else if(line.compare(0, 8, "PEPMASS=") == 0)
                 {
                     line = line.substr(8);
                     precursorMZ = atof(line.c_str());
                 }
-
-                if(line.compare(0, 17, "COLLISION_ENERGY=") == 0)
+                else if(energy < 0.0)
                 {
-                    line = line.substr(17);
-                    collisionEnergy = atof(line.c_str());
+                    if(line.compare(0, 17, "COLLISION_ENERGY=") == 0)
+                    {
+                        line = line.substr(17);
+                        collisionEnergy = atof(line.c_str());
+                    }
+                }
+                else
+                {
+                    collisionEnergy = energy;
                 }
             }
+
+            if(energy < 0.0 && collisionEnergy < 0.0)
+                throw runtime_error("ERROR: MGF does not contain collision energies. You must supply mfg2sml with the '--energy' argument.");
 
             // read peaks
             for (ii j = 0; j < n; j++) vs[j] = 0.0f;
