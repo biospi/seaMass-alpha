@@ -234,7 +234,7 @@ int main(int argc, const char * const * argv)
                 if(vs[jIn] > 0.0f)
                 {
                     vs[jOut] = vs[jIn];
-                    js[jOut] = jIn;
+                    js[jOut] = jIn + offset;
 
                     spectrum_nnz++;
                     jOut++;
