@@ -355,13 +355,13 @@ int FileNetcdf::readMatrixSparseCsr(MatrixSparse& a, const string& name, int par
 {
     int matrixId = openGroup(name, parentId);
 
-    ii m = ii(readSize("ij", matrixId)) - 1;
+    ii m = ii(readSize("ii", matrixId)) - 1;
     ii n = readAttribute<ii>("n", "", matrixId);
     ii nnz = ii(readSize("j", matrixId));
 
     if (a.createCsr(m, n, nnz))
     {
-        readVector(a.ijs(), "ij", matrixId);
+        readVector(a.ijs(), "ii", matrixId);
         readVector(a.js(), "j", matrixId);
         readVector(a.vs(), "v", matrixId);
 
@@ -380,12 +380,12 @@ int FileNetcdf::writeMatrixSparseCsr(const MatrixSparse& a, const string& name, 
 
     if (a.initCsr(a.nnz() > 0))
     {
-        writeVector(a.ijs(), a.m() + 1, "ij", matrixId);
+        writeVector(a.ijs(), a.m() + 1, "ii", matrixId);
     }
     else
     {
         vector<ii> ijs(a.m() + 1, 0);
-        writeVector(ijs, "ij", matrixId);
+        writeVector(ijs, "ii", matrixId);
     }
 
     writeVector(a.js(), a.nnz(), "j", matrixId);
