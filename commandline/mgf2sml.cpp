@@ -103,9 +103,12 @@ int main(int argc, const char * const * argv)
         li zero = 0;
         int peptideIdIndex_id = sml.write_VecNC("peptideIdIndex", &zero, 1, NC_LONG, 0, true);
         int peptideIds_id = sml.write_VecNC("peptideIds", vector<char>(), NC_CHAR, 0, true);
+        int titleIndex_id = sml.write_VecNC("titleIndex", &zero, 1, NC_LONG, 0, true);
+        int titles_id = sml.write_VecNC("titles", vector<char>(), NC_CHAR, 0, true);
         int charge_id = sml.write_VecNC("charge", vector<char>(), NC_BYTE, 0, true);
         int precursorMz_id = sml.write_VecNC("precursorMz", vector<double>(), NC_DOUBLE, 0, true);
         int collisionEnergy_id = sml.write_VecNC("collisionEnergy", vector<float>(), NC_FLOAT, 0, true);
+        int startTime_id = sml.write_VecNC("startTime", vector<float>(), NC_FLOAT, 0, true);
 
         ostringstream oss; oss << "mzScale=" << mzScale;
         int spectraGroup_id = sml.create_Group(oss.str());
@@ -120,7 +123,8 @@ int main(int argc, const char * const * argv)
         ii offset = ii(floor(log2(mzMin - PROTON_MASS) * (1L << mzScale))) - 1;
         ii n = (ii(ceil(log2(mzMax - PROTON_MASS) * (1L << mzScale))) + 1) - offset + 1;
         li nnz = 0;
-        li nchar = 0;
+        li nPeptideIdChar = 0;
+        li nTitleChar = 0;
 
         // output spectrum
         float* vs = new float[n];
@@ -138,7 +142,9 @@ int main(int argc, const char * const * argv)
 
              // metadata
             string peptideId;
+            string title;
             float collisionEnergy = -1.0;
+            float startTime = -1.0;
             double precursorMZ = 0.0;
             char charge = 0;
 
@@ -156,6 +162,16 @@ int main(int argc, const char * const * argv)
                 {
                     peptideId = line.substr(4);
                     boost::trim(peptideId);
+                }
+                else if(line.compare(0, 6, "TITLE=") == 0)
+                {
+                    title = line.substr(6);
+                    boost::trim(title);
+                }
+                else if(line.compare(0, 12, "RTINSECONDS=") == 0)
+                {
+                    line = line.substr(12);
+                    startTime = atof(line.c_str());
                 }
                 else if(line.compare(0, 7, "CHARGE=") == 0)
                 {
@@ -236,20 +252,26 @@ int main(int argc, const char * const * argv)
             }
 
             const char* peptideID_cstr = peptideId.c_str();
-            sml.update_VecNC(peptideIds_id, nchar, peptideID_cstr, peptideId.size());
+            sml.update_VecNC(peptideIds_id, nPeptideIdChar, peptideID_cstr, peptideId.size());
 
-            nchar += peptideId.size();
+            nPeptideIdChar += peptideId.size();
+
+            const char* title_cstr = title.c_str();
+            sml.update_VecNC(titles_id, nTitleChar, title_cstr, title.size());
+            nTitleChar += title.size();
 
             sml.update_VecNC(precursorMz_id, m, &precursorMZ, 1);
             sml.update_VecNC(charge_id, m, &charge, 1);
             sml.update_VecNC(collisionEnergy_id, m, &collisionEnergy, 1);
+            sml.update_VecNC(startTime_id, m, &startTime, 1);
             sml.update_VecNC(spectraGroup_j_id, nnz, js, spectrum_nnz, spectraGroup_id);
             sml.update_VecNC(spectraGroup_v_id, nnz, vs, spectrum_nnz, spectraGroup_id);
 
             nnz += spectrum_nnz;
             m++;
 
-            sml.update_VecNC(peptideIdIndex_id, m, &nchar, 1);
+            sml.update_VecNC(peptideIdIndex_id, m, &nPeptideIdChar, 1);
+            sml.update_VecNC(titleIndex_id, m, &nTitleChar, 1);
             sml.update_VecNC(spectraGroup_i_id, m, &nnz, 1, spectraGroup_id);
 
             //cout << m << "   " << peptideId << "   " << precursorMZ << ":" << collisionEnergy << endl;
