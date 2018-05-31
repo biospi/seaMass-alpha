@@ -566,6 +566,161 @@ T FileNetcdf::searchGroup(size_t level, int parentId)
 
 
 template<typename T>
+int FileNetcdf::write_VecNC(const string dataSet, const vector<T> &vec, nc_type xtype,
+            int grpid, bool unlim,
+            size_t chunks, int deflate_level, int shuffle)
+{
+    if(grpid == 0) grpid = ncid_;
+
+    int varid;
+    int dimid;
+    int ndim = 1;
+    int deflate = 0;
+    size_t N;
+    //string dimName = "dim_" + dataSet;
+    if(unlim == false)
+    {
+        N = vec.size();
+        if(N < chunks) chunks = N;
+    }
+    else
+    {
+        N = NC_UNLIMITED;
+    }
+
+    // Set chunking, shuffle, and deflate.
+    shuffle = NC_SHUFFLE;
+    if(deflate_level > 0 && deflate_level < 10)
+        deflate = 1;
+
+    // Define the dimensions.
+    if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
+        err(retval_);
+
+    // Define the variable.
+    if((retval_ = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+                             &dimid, &varid)))
+        err(retval_);
+
+    if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+        err(retval_);
+    if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+                                     deflate_level)))
+        err(retval_);
+
+    if(unlim == true)
+    {
+        T attVal[1] = {0};
+        if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+            err(retval_);
+    }
+
+    if((retval_ = nc_enddef(grpid)))
+        err(retval_);
+
+    // No need to explicitly end define mode for netCDF-4 files. Write
+    // the data to the file.
+
+    if(unlim == true)
+    {
+        N=vec.size();
+        size_t cIdx=0;
+        if((retval_ = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
+            err(retval_);
+    }
+    else
+    {
+        if((retval_ = nc_put_var(grpid, varid, &vec[0])))
+            err(retval_);
+    }
+
+    return varid;
+}
+
+
+template<typename T>
+int FileNetcdf::write_VecNC(const string dataSet, const T *vec, size_t len, nc_type xtype,
+            int grpid, bool unlim,
+            size_t chunks, int deflate_level, int shuffle)
+{
+    if(grpid == 0) grpid = ncid_;
+
+    int varid;
+    int dimid;
+    int ndim = 1;
+    int deflate = 0;
+    size_t N;
+    //string dimName = "dim_" + dataSet;
+    if(unlim == false)
+    {
+        N = len;
+        if(N < chunks) chunks = N;
+    }
+    else
+    {
+        N = NC_UNLIMITED;
+    }
+
+    // Set chunking, shuffle, and deflate.
+    shuffle = NC_SHUFFLE;
+    if(deflate_level > 0 && deflate_level < 10)
+        deflate = 1;
+
+    // Define the dimensions.
+    if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
+        err(retval_);
+
+    // Define the variable.
+    if((retval_ = nc_def_var(grpid, dataSet.c_str(), xtype, ndim,
+                             &dimid, &varid)))
+        err(retval_);
+
+    if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+        err(retval_);
+    if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+                                     deflate_level)))
+        err(retval_);
+
+    if(unlim == true)
+    {
+        T attVal[1] = {0};
+        if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+            err(retval_);
+    }
+
+    if((retval_ = nc_enddef(grpid)))
+        err(retval_);
+
+    // No need to explicitly end define mode for netCDF-4 files. Write
+    // the data to the file.
+
+    if(unlim == true)
+    {
+        N=len;
+        size_t cIdx=0;
+        if((retval_ = nc_put_vara(grpid, varid,&cIdx, &N, &vec[0])))
+            err(retval_);
+    }
+    else
+    {
+        if((retval_ = nc_put_var(grpid, varid, &vec[0])))
+            err(retval_);
+    }
+
+    return varid;
+}
+
+
+template<typename T>
+void FileNetcdf::update_VecNC(int dataSet_id, size_t pos, const T *vec, size_t len, int grpid)
+{
+    if(grpid == 0) grpid = ncid_;
+
+    nc_put_vara(grpid, dataSet_id, &pos, &len, vec);
+}
+
+
+template<typename T>
 int FileNetcdf::write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type xtype,
             int grpid, const string rowY, const string colX,
             size_t chunk, int deflate_level, int shuffle)

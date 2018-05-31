@@ -27,8 +27,8 @@
 #include <Matrix.hpp>
 #include <MatrixSparse.hpp>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
 #include <netcdf.h>
@@ -129,8 +129,18 @@ public:
     void read_HypMatNC(const string dataSet, VecMat<T> &vm,
             size_t *rcIdx, size_t *len, int grpid = 0);
 
-
-
+    template<typename T>
+    int write_VecNC(const string dataSet, const vector<T> &vec, nc_type xtype,
+                    int grpid = 0, bool unlim = false,
+                    size_t chunks = 1048576, int deflate_level = 4,
+                    int shuffle = NC_SHUFFLE);
+    template<typename T>
+    int write_VecNC(const string dataSet, const T *vec, size_t len, nc_type xtype,
+                    int grpid = 0, bool unlim = false,
+                    size_t chunks = 1048576, int deflate_level = 4,
+                    int shuffle = NC_SHUFFLE);
+    template<typename T>
+    void update_VecNC(int dataSet_id, size_t pos, const T *vec, size_t len, int grpid = 0);
 
     template<typename T>
     int write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type xtype,
@@ -184,6 +194,7 @@ private:
     void err(int e);
 
     string filename_;
+
     bool fileStatus_;
     int ncid_;
     int retval_;
