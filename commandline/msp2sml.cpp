@@ -186,6 +186,12 @@ int main(int argc, const char * const * argv)
                     nPeaks = atoi(line.c_str());
                     break;
                 }
+                else if(line.compare(0, 9, "NumPeaks:") == 0)
+                {
+                    line = line.substr(9);
+                    nPeaks = atoi(line.c_str());
+                    break;
+                }
             }
 
             if(energy < 0.0 && collisionEnergy < 0.0)
