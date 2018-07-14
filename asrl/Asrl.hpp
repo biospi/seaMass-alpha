@@ -46,7 +46,7 @@ public:
     struct Output
     {
         std::vector<MatrixSparse> xT;  // from Ax = b
-        std::vector<Matrix> xTaT;       // transpose of Ax
+        std::vector<MatrixSparse> xTaT;       // transpose of Ax
         std::vector<MatrixSparse> xTgT; // transpose of Gx
     };
 

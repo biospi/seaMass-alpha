@@ -181,10 +181,7 @@ void Asrl::getOutput(Output& output) const
     }
     output.xTaT.resize(f.size());
     for (ii i = 0; i < ii(output.xTaT.size()); i++)
-    {
-        output.xTaT[i].init(f[i].m(), f[i].n());
-        f[i].exportToDense(output.xTaT[i].vs());
-    }
+        output.xTaT[i].copy(f[i]);
 
     if (lambdaGroupStart_ > 0.0)
         bases_[0]->synthesizeGroups(output.xTgT, optimizer_->xs()[0], false);

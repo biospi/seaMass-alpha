@@ -163,7 +163,7 @@ int main(int argc, const char * const * argv)
 
                 FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
                 fileOut.writeMatrixSparseCsr(output.xT[0], "Xt");
-                fileOut.writeMatrix(output.xTaT[0], "XtAt");
+                fileOut.writeMatrixSparseCsr(output.xTaT[0], "XtAt");
                 if (output.xTgT.size() > 0)
                     fileOut.writeMatrixSparseCsr(output.xTgT[0], "XtGt");
             }
@@ -181,7 +181,7 @@ int main(int argc, const char * const * argv)
 
         FileNetcdf fileOut(fileNameOut, NC_NETCDF4);
         fileOut.writeMatrixSparseCsr(output.xT[0], "Xt");
-        fileOut.writeMatrix(output.xTaT[0], "XtAt");
+        fileOut.writeMatrixSparseCsr(output.xTaT[0], "XtAt");
         if (output.xTgT.size() > 0)
             fileOut.writeMatrixSparseCsr(output.xTgT[0], "XtGt");
 
