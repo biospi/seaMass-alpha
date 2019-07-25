@@ -19,27 +19,16 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#include <vector>
-#include <iostream>
 #include <string>
+#include <iostream>
 #include <kernel.hpp>
 #include "../io/FileNetcdf.hpp"
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-//#include <boost/gil/gil_all.hpp>// This seems to be boost version dependent, v1.63
-//#include <boost/gil.hpp>// This seems to be boost version dependent, v1.68
-//#include <boost/gil/extension/io/jpeg.hpp>
-//#include <boost/gil/extension/io/tiff.hpp>
-
-#include <boost/mpl/vector.hpp>
-//#include <boost/gil/extension/dynamic_image/any_image.hpp>
-//#include <boost/gil/extension/io/jpeg_dynamic_io.hpp>
-#include <boost/gil/extension/dynamic_image/dynamic_image_all.hpp>
+#include <tiffio.h>
 
 using namespace std;
 namespace po = boost::program_options;
-//using namespace boost::gil;
-
 
 int main(int argc, const char* argv[])
 {
@@ -89,37 +78,92 @@ int main(int argc, const char* argv[])
             return 0;
         }
 
+        // libtiff variables
+        uint32 width, height;
+        short bitPerSample;
+        tsize_t scanLength;
 
-        // Load TIFF image using Boost GIL
-        // any_image<> imgTiff;
+        li scanPos = 0;
 
-        using namespace boost::gil;
+        cout<<"Loading TIFF file: "<< fileName;
 
-        typedef boost::mpl::vector<gray8_image_t, rgb8_image_t, gray16_image_t, rgb16_image_t> my_images_t;
+        // Open Tiff file for reading
+        //TIFF*imgTiff = TIFFOpen(fileName.c_str(),"r");
+        TIFF*imgTiff = TIFFOpen("test.tiff","r");
+        if (!imgTiff) {
+            cerr << "Failed to open image" << endl;
+            exit(1);
+        }
 
-        any_image<my_images_t> dynamic_img;
-        jpeg_read_image("test.jpg",dynamic_img);
+        // Read dimensions of image
+        if (TIFFGetField(imgTiff,TIFFTAG_IMAGEWIDTH,&width) != 1) {
+            cerr << "Failed to read width" << endl;
+            exit(1);
+        }
+        if (TIFFGetField(imgTiff,TIFFTAG_IMAGELENGTH, &height) != 1) {
+            cerr << "Failed to read height" << endl;
+            exit(1);
+        }
+        if (TIFFGetField(imgTiff,TIFFTAG_BITSPERSAMPLE, &bitPerSample) != 1) {
+            cerr << "Failed to read the number of bits per sample" << endl;
+            exit(1);
+        }
+        scanLength = TIFFScanlineSize(imgTiff);
 
-        // Save the image upside down, preserving its native color space and channel depth
-        jpeg_write_view("out-dynamic_image.jpg",flipped_up_down_view(const_view(dynamic_img)));
-
-
-
+        cout << "Image dimensions (width x height): " << width << "x" << height << endl;
+        cout << "Number of bits per sample: " << bitPerSample << endl;
+        cout << "Line buffer length (bytes): " << scanLength << endl;
 
         // output SML
-        cout<<"File name in: "<< fileName;
         string fileOut = boost::filesystem::path(fileName).stem().replace_extension("sml").string();
         FileNetcdf sml(fileOut, NC_NETCDF4);
 
         li zero;
         ostringstream oss; oss << "mzScale=" << reScale;
         int imageGroup_id = sml.createGroup(oss.str());
-        int imageGroup_i_id = sml.write_VecNC("spectrumIndex", &zero, 1, NC_LONG, imageGroup_id, true);
-        int imageGroup_j_id = sml.write_VecNC("binLocations", vector<long int>(), NC_LONG, imageGroup_id, true);
-        int imageGroup_v_id = sml.write_VecNC("binIntensities", vector<float>(), NC_FLOAT, imageGroup_id, true);
+        int imageGroup_SpecIdx_id = sml.write_VecNC("spectrumIndex", &zero, 1, NC_LONG, imageGroup_id, true);
+        int imageGroup_BinLoc_id = sml.write_VecNC("binLocations", vector<long int>(), NC_LONG, imageGroup_id, true);
+        int imageGroup_BinInten_id = sml.write_VecNC("binIntensities", vector<float>(), NC_FLOAT, imageGroup_id, true);
+        sml.update_VecNC(imageGroup_SpecIdx_id, 0, &scanPos, 1, imageGroup_id);
 
+        // Make space for image in memory
+        //float** singleScan = (float**)malloc(sizeof (float*)*height);
+        float* scanSingle = new float[width];
+        ii* scanIdx = new ii[width];
 
+        for (uint32 i = 0; i < height; ++i) {
+            // Read image data allocating space for each line as we get it
+            TIFFReadScanline(imgTiff,scanSingle,i);
 
+            cout<<"Scanline("<<i<<"): "<<scanSingle[0]<<", "<<scanSingle[1]<<", "<<scanSingle[2]
+                <<", "<<scanSingle[3]<<", "<<scanSingle[4]<<", ... "<<scanSingle[width-1]<<endl;
+
+            // make sparse
+            ii scan_n = 0;
+            ii jOut = 0;
+            for(ii jIn = 0; jIn < width; jIn++)
+            {
+                if(scanSingle[jIn] > 0.0f)
+                {
+                    scanSingle[jOut] = scanSingle[jIn];
+                    scanIdx[jOut] = jIn;
+
+                    scan_n++;
+                    jOut++;
+                }
+            }
+
+            sml.update_VecNC(imageGroup_BinLoc_id, scanPos, scanIdx, scan_n, imageGroup_id);
+            sml.update_VecNC(imageGroup_BinInten_id, scanPos, scanSingle, scan_n, imageGroup_id);
+
+            scanPos += scan_n;
+
+            sml.update_VecNC(imageGroup_SpecIdx_id, i+1, &scanPos, 1, imageGroup_id);
+        }
+
+        TIFFClose(imgTiff);
+
+        delete[] scanSingle;
     }
 #ifdef NDEBUG
     catch(exception& e)

@@ -1,4 +1,9 @@
 find_package(Boost 1.54 COMPONENTS program_options filesystem system REQUIRED)
+find_package(TIFF REQUIRED)
+
+message(TIFF_FOUND: ${TIFF_FOUND})
+message(TIFF Library: ${TIFF_LIBRARY})
+message(TIFF Include: ${TIFF_INCLUDE_DIR})
 
 add_executable(asrl
         asrl.cpp
@@ -49,10 +54,12 @@ add_executable(image2sml
 		)
 target_include_directories(image2sml PUBLIC
 		${Boost_INCLUDE_DIRS}
+		${TIFF_INCLUDE_DIR}
 		)
 target_link_libraries (image2sml LINK_PUBLIC
 		seamass_io
 		${Boost_LIBRARIES}
+		${TIFF_LIBRARY}
 		)
 
 add_executable(mzmlb2smb
