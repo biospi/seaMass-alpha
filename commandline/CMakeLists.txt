@@ -34,13 +34,24 @@ target_link_libraries (msp2sml LINK_PUBLIC
 		)
 
 add_executable(mgf2sml
-		mgf2sml.cpp
-		)
+	mgf2sml.cpp
+	)
 target_include_directories(mgf2sml PUBLIC
+	${Boost_INCLUDE_DIRS}
+	)
+target_link_libraries (mgf2sml LINK_PUBLIC
+	seamass_core
+	${Boost_LIBRARIES}
+	)
+
+add_executable(image2sml
+		image2sml.cpp
+		)
+target_include_directories(image2sml PUBLIC
 		${Boost_INCLUDE_DIRS}
 		)
-target_link_libraries (mgf2sml LINK_PUBLIC
-		seamass_core
+target_link_libraries (image2sml LINK_PUBLIC
+		seamass_io
 		${Boost_LIBRARIES}
 		)
 
