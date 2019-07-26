@@ -129,14 +129,15 @@ int main(int argc, const char* argv[])
         // Make space for image in memory
         //float** singleScan = (float**)malloc(sizeof (float*)*height);
         float* scanSingle = new float[width];
-        ii* scanIdx = new ii[width];
+        ii* pixelIdx = new ii[width];
 
         for (uint32 i = 0; i < height; ++i) {
             // Read image data allocating space for each line as we get it
+            cout<<"Processing image scan: "<<height<<"/"<<i<<"\r";
             TIFFReadScanline(imgTiff,scanSingle,i);
 
-            cout<<"Scanline("<<i<<"): "<<scanSingle[0]<<", "<<scanSingle[1]<<", "<<scanSingle[2]
-                <<", "<<scanSingle[3]<<", "<<scanSingle[4]<<", ... "<<scanSingle[width-1]<<endl;
+            //cout<<"Scanline("<<i<<"): "<<scanSingle[0]<<", "<<scanSingle[1]<<", "<<scanSingle[2]
+            //    <<", "<<scanSingle[3]<<", "<<scanSingle[4]<<", ... "<<scanSingle[width-1]<<endl;
 
             // make sparse
             ii scan_n = 0;
@@ -146,14 +147,14 @@ int main(int argc, const char* argv[])
                 if(scanSingle[jIn] > 0.0f)
                 {
                     scanSingle[jOut] = scanSingle[jIn];
-                    scanIdx[jOut] = jIn;
+                    pixelIdx[jOut] = jIn;
 
                     scan_n++;
                     jOut++;
                 }
             }
 
-            sml.update_VecNC(imageGroup_BinLoc_id, scanPos, scanIdx, scan_n, imageGroup_id);
+            sml.update_VecNC(imageGroup_BinLoc_id, scanPos, pixelIdx, scan_n, imageGroup_id);
             sml.update_VecNC(imageGroup_BinInten_id, scanPos, scanSingle, scan_n, imageGroup_id);
 
             scanPos += scan_n;
@@ -164,6 +165,7 @@ int main(int argc, const char* argv[])
         TIFFClose(imgTiff);
 
         delete[] scanSingle;
+        delete[] pixelIdx;
     }
 #ifdef NDEBUG
     catch(exception& e)
