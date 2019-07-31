@@ -85,11 +85,11 @@ int main(int argc, const char* argv[])
 
         li scanPos = 0;
 
-        cout<<"Loading TIFF file: "<< fileName;
+        cout<<"Loading TIFF file: "<< fileName<<endl;
 
         // Open Tiff file for reading
-        //TIFF*imgTiff = TIFFOpen(fileName.c_str(),"r");
-        TIFF*imgTiff = TIFFOpen("test.tiff","r");
+        TIFF*imgTiff = TIFFOpen(fileName.c_str(),"r");
+        //TIFF*imgTiff = TIFFOpen("test.tiff","r");
         if (!imgTiff) {
             cerr << "Failed to open image" << endl;
             exit(1);
@@ -128,13 +128,14 @@ int main(int argc, const char* argv[])
 
         // Make space for image in memory
         //float** singleScan = (float**)malloc(sizeof (float*)*height);
-        float* scanSingle = new float[width];
+        //float* scanSingle = new float[width];
+        vector<float> scanSingle(width);
         ii* pixelIdx = new ii[width];
 
         for (uint32 i = 0; i < height; ++i) {
             // Read image data allocating space for each line as we get it
             cout<<"Processing image scan: "<<height<<"/"<<i<<"\r";
-            TIFFReadScanline(imgTiff,scanSingle,i);
+            TIFFReadScanline(imgTiff,scanSingle.data(),i);
 
             //cout<<"Scanline("<<i<<"): "<<scanSingle[0]<<", "<<scanSingle[1]<<", "<<scanSingle[2]
             //    <<", "<<scanSingle[3]<<", "<<scanSingle[4]<<", ... "<<scanSingle[width-1]<<endl;
@@ -155,7 +156,7 @@ int main(int argc, const char* argv[])
             }
 
             sml.update_VecNC(imageGroup_BinLoc_id, scanPos, pixelIdx, scan_n, imageGroup_id);
-            sml.update_VecNC(imageGroup_BinInten_id, scanPos, scanSingle, scan_n, imageGroup_id);
+            sml.update_VecNC(imageGroup_BinInten_id, scanPos, scanSingle.data(), scan_n, imageGroup_id);
 
             scanPos += scan_n;
 
@@ -164,8 +165,9 @@ int main(int argc, const char* argv[])
 
         TIFFClose(imgTiff);
 
-        delete[] scanSingle;
+        //delete[] scanSingle;
         delete[] pixelIdx;
+        cout<<endl;
     }
 #ifdef NDEBUG
     catch(exception& e)
