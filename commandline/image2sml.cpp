@@ -129,13 +129,18 @@ int main(int argc, const char* argv[])
         // Make space for image in memory
         //float** singleScan = (float**)malloc(sizeof (float*)*height);
         //float* scanSingle = new float[width];
-        vector<float> scanSingle(width);
+        float* scanSingle = (float*)_TIFFmalloc(TIFFScanlineSize(imgTiff));
+        //vector<float> scanSingle(width);
         ii* pixelIdx = new ii[width];
 
         for (uint32 i = 0; i < height; ++i) {
             // Read image data allocating space for each line as we get it
             cout<<"Processing image scan: "<<height<<"/"<<i<<"\r";
-            TIFFReadScanline(imgTiff,scanSingle.data(),i);
+            //TIFFReadScanline(imgTiff,scanSingle.data(),i);
+            TIFFReadScanline(imgTiff,scanSingle,i);
+
+            cout<<"Scanline("<<i<<"): "<<scanSingle[0]<<", "<<scanSingle[1]<<", "<<scanSingle[2]
+                <<", "<<scanSingle[3]<<", "<<scanSingle[4]<<", ... "<<scanSingle[width-1]<<endl;
 
             //cout<<"Scanline("<<i<<"): "<<scanSingle[0]<<", "<<scanSingle[1]<<", "<<scanSingle[2]
             //    <<", "<<scanSingle[3]<<", "<<scanSingle[4]<<", ... "<<scanSingle[width-1]<<endl;
@@ -143,6 +148,7 @@ int main(int argc, const char* argv[])
             // make sparse
             ii scan_n = 0;
             ii jOut = 0;
+
             for(ii jIn = 0; jIn < width; jIn++)
             {
                 if(scanSingle[jIn] > 0.0f)
@@ -155,13 +161,16 @@ int main(int argc, const char* argv[])
                 }
             }
 
+
             sml.update_VecNC(imageGroup_BinLoc_id, scanPos, pixelIdx, scan_n, imageGroup_id);
-            sml.update_VecNC(imageGroup_BinInten_id, scanPos, scanSingle.data(), scan_n, imageGroup_id);
+            //sml.update_VecNC(imageGroup_BinInten_id, scanPos, scanSingle.data(), scan_n, imageGroup_id);
+            sml.update_VecNC(imageGroup_BinInten_id, scanPos, scanSingle, scan_n, imageGroup_id);
 
             scanPos += scan_n;
 
             sml.update_VecNC(imageGroup_SpecIdx_id, i+1, &scanPos, 1, imageGroup_id);
         }
+        _TIFFfree(scanSingle);
 
         TIFFClose(imgTiff);
 
