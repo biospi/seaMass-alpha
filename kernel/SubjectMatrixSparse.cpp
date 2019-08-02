@@ -65,6 +65,8 @@ void SubjectMatrixSparse::warning(const string &message, const MatrixSparse* a) 
 
     for (int i = 0; i < int(observers_.size()); i++)
         observers_[i]->warning(message, a);
+    
+    setDebugLevel(debugLevel);
 }
 
 

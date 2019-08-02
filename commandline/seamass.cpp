@@ -39,15 +39,16 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
-        string isotopesFilename;
-        int scaleMz;
-        int scaleSt;
+        string libPathIn;
+        int scaleX;
+        int scaleY;
+        int scaleZ;
         int lambdaExponent;
         int lambdaGroupExponent;
         bool noTaperLambda;
         int toleranceExponent;
-        double peakFwhm;
         short chargeStates;
+        double peakFwhm;
         int debugLevel;
 
         // *******************************************************************
@@ -55,41 +56,38 @@ int main(int argc, const char * const * argv)
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "seamass [OPTIONS...] [MZMLB FILE]\n"
-            "seamass <-m mz_scale> <-s st_scale> <-l lambda> <-t tol> <file>"
+            "seamass [OPTIONS...] [INPUT FILE]\n"
+            "seamass <-l lambda> <file>"
         );
 
         general.add_options()
             ("help,h",
              "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
-             "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
-             "from mzML/vendor format to mzMLb.")
-            ("isotopes_db,i", po::value<string>(&isotopesFilename),
-             "Isotope distribution database in smd format. Use genisodists to generate."
-             "from mzML/vendor format to mzMLb.")
-            ("mz_scale,m", po::value<int>(&scaleMz),
-             "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
-             "Default is to autodetect.")
-            ("st_scale,s", po::value<int>(&scaleSt),
-             "output scantime resolution given as \"2^st_scale\"."
-             "Default is to autodetect.")
+             "Input file in sml format.")
+            ("lib,l", po::value<string>(&libPathIn)->default_value(""),
+             "OPTIONAL: Spectral library in sml format to use for library deconvolution and identification. ")
             ("lambda,l", po::value<int>(&lambdaExponent)->default_value(0),
-             "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Needs to be same or less than group_lambda."
-             "Use around 0.")
+             "OPTIONAL: Amount of denoising given as \"L1 lambda = 2^shrinkage\", default 0.")
             ("group_lambda,g", po::value<int>(&lambdaGroupExponent)->default_value(0),
-             "Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\". "
-             "Ignored if no groups are specified in the input. Use around 0.")
-            ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
+             "OPTIONAL: Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\", default 0. "
+             "Ignored if no groups are specified in the spectral library file.")
+            ("OPTIONAL: no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
              "Use this to stop tapering of lambda to 0 before finishing.")
-            ("charge_states,c", po::value<short>(&chargeStates)->default_value(0),
-             "Highest charge state to deconvolute. Default is no charge state deconvolution.")
-            ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
-             "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+            ("x", po::value<int>(&scaleX),
+             "OPTIONAL: Output resolution for the x dimension (i.e. m/z for LC-MS data).")
+            ("y", po::value<int>(&scaleY),
+             "OPTIONAL: Output resolution for the y dimension (i.e. scantime for LC-MS data).")
+            ("z", po::value<int>(&scaleZ),
+             "OPTIONAL: Output resolution for the z dimension.")
+            ("charges,c", po::value<short>(&chargeStates)->default_value(0),
+             "OPTIONAL: Highest charge state to deconvolute. Default is no deconvolution.")
             ("fwhm,w", po::value<double>(&peakFwhm)->default_value(0.0),
-             "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+             "OPTIONAL: FWHM for deconcolution of peak spread. Default is no deconvolution.")
+            ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
+             "OPTIONAL: Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
-             "Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
+             "OPTIONAL: Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
              "4 to output all maths, +10 to write intermediate results to disk.")
         ;
 
@@ -127,19 +125,24 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
-        vector<short> scale(2);
+        vector<short> scale(3);
 
-        if(vm.count("mz_scale"))
-            scale[0] = short(scaleMz);
+        if(vm.count("x"))
+            scale[0] = short(scaleX);
         else
             scale[0] = numeric_limits<short>::max();
 
-        if(vm.count("st_scale"))
-            scale[1] = short(scaleSt);
+        if(vm.count("y"))
+            scale[1] = short(scaleY);
         else
             scale[1] = numeric_limits<short>::max();
 
-        string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
+        if(vm.count("z"))
+            scale[2] = short(scaleZ);
+        else
+            scale[2] = numeric_limits<short>::max();
+        
+       string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
         Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::InputOutput);
         if (!dataset)
             throw runtime_error("ERROR: Input file is missing or incorrect");
@@ -155,12 +158,12 @@ int main(int argc, const char * const * argv)
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamass(input, isotopesFilename, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
+            Seamass seamass(input, libPathIn, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
                             peakFwhm, chargeStates);
 
             if (debugLevel / 10 >= 1)
             {
-                Seamass::Input input2;
+                /*Seamass::Input input2;
                 input2.countsIndex = input.countsIndex;
                 input2.startTimes = input.startTimes;
                 input2.finishTimes = input.finishTimes;
@@ -171,31 +174,20 @@ int main(int argc, const char * const * argv)
                 // write input in seaMass format
                 ostringstream oss; oss << fileStemOut << ".input";
                 DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::Input);
-                datasetOut.write(input2, id);
+                datasetOut.write(input2, id);*/
             }
 
             do
             {
                 if (debugLevel / 10 >= 2)
                 {
-                    /*{
-                        Seamass::Output output;
-                        seamass.getOutput(output, false);
+                    Seamass::Output output;
+                    seamass.getOutput(output, true);
 
-                        // write intermediate output in seaMass format
-                        ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamass.getIteration();
-                        DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                        datasetOut.write(input, output, id);
-                    }*/
-                    {
-                        Seamass::Output output;
-                        seamass.getOutput(output, true);
-
-                        // write intermediate output in seaMass format
-                        ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamass.getIteration();
-                        DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                        datasetOut.write(input, output, id);
-                    }
+                    // write intermediate output in seaMass format
+                    ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamass.getIteration();
+                    DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                    datasetOut.write(input, output, id);
                 }
             }
             while (seamass.step());

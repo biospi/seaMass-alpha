@@ -52,41 +52,9 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 
     if(finished_ == true)
         return false;
-
-    if (fileIn_->exists("counts"))
-        fileIn_->readVector(input.counts, "counts");
-    else
-        throw runtime_error("ERROR: 'counts' dataset not found in smb file");
-
-    if (fileIn_->exists("binLocations"))
-    {
-        fileIn_->readVector(input.locations, "binLocations");
-        input.type = Seamass::Input::Type::Binned;
-    }
-    else if (fileIn_->exists("sampleLocations"))
-    {
-        fileIn_->readVector(input.locations, "sampleLocations");
-        input.type = Seamass::Input::Type::Sampled;
-    }
-    else if (fileIn_->exists("centroidLocations"))
-    {
-        fileIn_->readVector(input.locations, "centroidLocations");
-        input.type = Seamass::Input::Type::Centroided;
-    }
-    else
-        throw runtime_error("ERROR: one dataset called 'binLocations', 'sampleLocations' or 'centroidLocations' is needed in smb file");
-
-    if (fileIn_->exists("countsIndex"))
-        fileIn_->readVector(input.countsIndex, "countsIndex");
-
-    if (fileIn_->exists("startTimes"))
-        fileIn_->readVector(input.startTimes, "startTimes");
-
-    if (fileIn_->exists("finishTimes"))
-        fileIn_->readVector(input.finishTimes, "finishTimes");
-
-    if (fileIn_->exists("exposures"))
-        fileIn_->readVector(input.exposures, "exposures");
+    
+    // THIS IS ALL HARDCODED TO IMAGE2SML OUTPUT ATM
+    fileIn_->readMatrixSparseCsr(input.b, "xScale=0");
 
     id = "";
 
@@ -96,7 +64,7 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 
 void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
 {
-    if (input.startTimes.size() > 0)
+    /*if (input.startTimes.size() > 0)
         fileOut_->writeVector(input.startTimes, "startTimes");
 
     if (input.finishTimes.size() > 0)
@@ -127,7 +95,7 @@ void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
             default:
                 throw runtime_error("BUG: input has no type");
         }
-    }
+    }*/
 }
 
 

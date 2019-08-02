@@ -37,7 +37,7 @@ using namespace std;
 using namespace kernel;
 
 
-MatrixSparse::MatrixSparse() : m_(0), n_(0), mat_(0), ijs1_(0), isCsrOwned_(false), isSorted_(true)
+MatrixSparse::MatrixSparse() : m_(0), n_(0), ijs1_(0), isCsrOwned_(false), mat_(0), isSorted_(true)
 {
 }
 
@@ -782,7 +782,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        oss;
+        //oss;
         info(oss.str(), this);
     }
 }
@@ -829,7 +829,7 @@ void MatrixSparse::matmulDense(bool transposeA, const MatrixSparse &a, const Mat
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this << " (DENSE)";
-        oss;
+        //oss;
         info(oss.str(), this);
     }
 }

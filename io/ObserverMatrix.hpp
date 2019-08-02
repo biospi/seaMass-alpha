@@ -41,6 +41,11 @@ public:
     virtual void notice(const std::string& message, const Matrix* a);
     virtual void warning(const std::string& message, const Matrix* a);
     virtual void error(const std::string& message, const Matrix* a);
+
+private:
+    using Observer::info;
+    using Observer::warning;
+    using Observer::error;
 };
 
 

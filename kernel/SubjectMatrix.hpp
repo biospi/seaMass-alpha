@@ -42,9 +42,13 @@ public:
     ~SubjectMatrix();
 
 protected:
-    virtual void info(const std::string &message, const Matrix *a = 0) const;
-    virtual void warning(const std::string &message, const Matrix* a = 0) const;
-    virtual void error(const std::string &message, const Matrix* a = 0) const;
+    using Subject::info;
+    using Subject::warning;
+    using Subject::error;
+    
+   virtual void info(const std::string &message, const Matrix *a) const;
+    virtual void warning(const std::string &message, const Matrix* a) const;
+    virtual void error(const std::string &message, const Matrix* a) const;
 
 private:
     static std::vector<ObserverMatrix*> observers_;

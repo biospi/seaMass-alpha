@@ -356,7 +356,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
                 ii g = g0 + x;
                 gSizes[g]++;
 
-                double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
+                //double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
                 //cout << mass << endl;
 
                 is.push_back(x + z * gridInfo().colExtent[1]);

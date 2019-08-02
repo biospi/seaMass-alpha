@@ -233,8 +233,8 @@ int main(int argc, char **argv)
         //-------------------------------------------
         // XML scan and readMatrixSparse Start Time and ms-level.
         //-------------------------------------------
-        size_t xmlSize=sizeof(char)*mzMLbuff.size();
-        xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLbuff[0],xmlSize);
+        //size_t xmlSize=sizeof(char)*mzMLbuff.size();
+        //xml::xml_parse_result result = docmzML.load_buffer_inplace(&mzMLbuff[0],xmlSize);
 
         tools = docmzML.select_nodes("mzML/run/spectrumList/spectrum/precursorList/precursor/selectedIonList/selectedIon/cvParam[@accession='MS:1000744']");
 

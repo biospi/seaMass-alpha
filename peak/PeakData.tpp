@@ -46,7 +46,7 @@ void PeakData<T>::addPeak(double _mz, double _rt,
         double _t,
         lli _mz_idx, lli _rt_idx)
 {
-    peakData.push_back(typename Peak<T>::Peak(_mz,_rt, _pkcnt, _mzW, _rtW, _t, _mz_idx, _rt_idx));
+    //peakData.push_back(typename Peak<T>::Peak(_mz,_rt, _pkcnt, _mzW, _rtW, _t, _mz_idx, _rt_idx));
 }
 
 

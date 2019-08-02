@@ -163,9 +163,9 @@ int main(int argc, const char * const * argv)
 
                 for (size_t i = 0; i < A.rt.size(); ++i)
                 {
-                    A.rt[i] = input.startTimes[i];
-                    dhA.rt[i] = input.startTimes[i];
-                    d2hA.rt[i] = input.startTimes[i];
+                    //A.rt[i] = input.startTimes[i];
+                    //dhA.rt[i] = input.startTimes[i];
+                    //d2hA.rt[i] = input.startTimes[i];
                 }
 
                 BsplineData<> bsData(A,dhA,d2hA);
@@ -174,11 +174,11 @@ int main(int argc, const char * const * argv)
                 centriodPeak.execute();
                 centriodPeak.peak->getPeakMat(mzPeak, pkPeak, contpts.extent[1], mzpkVecSize);
 
-                input.type = Seamass::Input::Type::Centroided;
+                /*input.type = Seamass::Input::Type::Centroided;
                 vector<double>().swap(input.locations);
                 vector<fp>().swap(input.counts);
                 vector<li>().swap(input.countsIndex);
-                input.countsIndex.push_back(0);
+                input.countsIndex.push_back(0);*/
 
                 uli peakDims[2];
                 mzPeak.getDims(peakDims);
@@ -186,13 +186,13 @@ int main(int argc, const char * const * argv)
                 {
                     if (mzpkVecSize[i] > 0)
                     {
-                        li idxOffset=li(i*peakDims[1]);
-                        input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
-                                               mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
-                        input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
-                                            pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+                        //li idxOffset=li(i*peakDims[1]);
+                        //input.locations.insert(input.locations.end(), mzPeak.v.begin()+idxOffset,
+                        //                       mzPeak.v.begin()+idxOffset+mzpkVecSize[i]);
+                        //input.counts.insert(input.counts.end(), pkPeak.v.begin()+idxOffset,
+                        //                    pkPeak.v.begin()+idxOffset+mzpkVecSize[i]);
                     }
-                    input.countsIndex.push_back(input.counts.size());
+                    //input.countsIndex.push_back(input.counts.size());
                 }
                 if (peakWidth == true)
                 {
@@ -206,10 +206,10 @@ int main(int argc, const char * const * argv)
                 Seamass::ControlPoints contpts;
                 seamassCore.getOutputControlPoints1d(contpts, true);
 
-                vector<double>().swap(input.locations);
-                vector<fp>().swap(input.counts);
-                vector<li>().swap(input.countsIndex);
-                input.countsIndex.push_back(0);
+                //vector<double>().swap(input.locations);
+                //vector<fp>().swap(input.counts);
+                //vector<li>().swap(input.countsIndex);
+                //input.countsIndex.push_back(0);
 
                 int csCol=contpts.extent[0];
                 int csRow=contpts.extent[1];
@@ -222,9 +222,9 @@ int main(int argc, const char * const * argv)
                                   0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
                                   -0.5, 0.1666667};
 
-                float *M = alcMat(M, k, k);
-                float *T = alcMat(T, m, k);
-                float *TM = alcMat(TM,m,k);
+                float *M = 0;// alcMat(M, k, k);
+                float *T = 0;// alcMat(T, m, k);
+                float *TM = 0;// alcMat(TM,m,k);
 
                 float dt = 1 / (float(m));
                 vector<float> t(m);
@@ -246,10 +246,10 @@ int main(int argc, const char * const * argv)
 
                 matDmul(T,M,TM,m,k,k);
 
-                input.counts.reserve(m*n*csRow);
-                vector<double>().swap(input.locations);
+                //input.counts.reserve(m*n*csRow);
+                //vector<double>().swap(input.locations);
 
-                input.type = Seamass::Input::Type::Sampled;
+                //input.type = Seamass::Input::Type::Sampled;
 
                 //ii cptr=0;
                 for(int idx = 0; idx < csRow; ++idx)
@@ -265,8 +265,8 @@ int main(int argc, const char * const * argv)
                      * P=TM*C
                      */
 
-                    float *C = alcMat(C, k, n);
-                    float *P = alcMat(P, m, n);
+                    float *C = 0;//alcMat(C, k, n);
+                    float *P = 0;//alcMat(P, m, n);
                     vector<double> mz;
 
                     ii crow,ccol,csize;
@@ -304,7 +304,7 @@ int main(int argc, const char * const * argv)
 
                     genMZAxis(mz,contpts,m*n,samplingRate-1);
 
-                    input.locations.insert(input.locations.end(), mz.begin(), mz.end());
+                    /*input.locations.insert(input.locations.end(), mz.begin(), mz.end());
                     for (int j = 0; j < n; ++j)
                     {
                         for (int i = 0; i < m; ++i)
@@ -312,7 +312,7 @@ int main(int argc, const char * const * argv)
                             input.counts.push_back(P[j+i*n]);
                         }
                     }
-                    input.countsIndex.push_back(input.locations.size());
+                    input.countsIndex.push_back(input.locations.size());*/
 
                     delMat(C);
                     delMat(P);

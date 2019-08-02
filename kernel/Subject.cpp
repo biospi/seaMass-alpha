@@ -59,7 +59,7 @@ void Subject::info(const string &message) const
     setDebugLevel(0);
 
     for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->notice(message);
+        observers_[i]->info(message);
 
     setDebugLevel(debugLevel);
 }

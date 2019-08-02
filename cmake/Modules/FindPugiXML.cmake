@@ -20,13 +20,16 @@ if(DEFINED ENV{PUGIXML_ROOT_PATH})
     )
 else()
     message("PugiXML Normal Search")
+    file(GLOB PugiXML_INCLUDE_SEARCH_PATH "/usr/local/include/pugixml-*")
     find_path (PugiXML_INCLUDE_DIR NAMES pugixml.hpp PATHS
         ${PugiXML_DIR}/../../../include
-        /usr/local/include/pugixml-1.8
+        ${PugiXML_INCLUDE_SEARCH_PATH}
     )
+    file(GLOB PugiXML_LIB_SEARCH_PATH "/usr/local/lib/pugixml-*")
     find_library (PugiXML_LIBRARY NAMES pugixml PATHS
         ${PugiXML_DIR}/../..
         /usr/local/lib/pugixml-1.8
+        ${PugiXML_LIB_SEARCH_PATH}
     )
 endif()
 

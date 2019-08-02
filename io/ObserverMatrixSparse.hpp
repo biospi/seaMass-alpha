@@ -37,6 +37,10 @@ class ObserverMatrixSparse : public Observer
 public:
     ObserverMatrixSparse();
     virtual ~ObserverMatrixSparse();
+    
+    using Observer::info;
+    using Observer::warning;
+    using Observer::error;
 
     virtual void notice(const std::string& message, const MatrixSparse* a = 0);
     virtual void warning(const std::string& message, const MatrixSparse* a = 0);

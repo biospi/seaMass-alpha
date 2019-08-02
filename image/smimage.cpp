@@ -33,7 +33,7 @@ namespace po = boost::program_options;
 int main(int argc, char** argv){
 
     string smbFileName, channel;
-    int mz_res=0;
+    //int mz_res=0;
     pair<double,double> mzInputRange;
     pair<double,double> rtInputRange;
     pair<ui,ui> xyview;
@@ -319,11 +319,11 @@ int main(int argc, char** argv){
     {
         size_t idx = 0;
         double scaleRT = 1.0;
-        double drt = fabs(raw.rt[idx + 1] - raw.rt[idx]);
+        //double drt = fabs(raw.rt[idx + 1] - raw.rt[idx]);
         double yn = (raw.rt[idx] - imgBox.rt[0]) / imgBox.drt;
-        double yp = (raw.rt[idx + 1] - imgBox.rt[0]) / imgBox.drt;
+        //double yp = (raw.rt[idx + 1] - imgBox.rt[0]) / imgBox.drt;
         lli rowN = lli(floor(yn));
-        lli rowP = lli(floor(yp));
+        //lli rowP = lli(floor(yp));
         if (raw.rti[idx] >= 0) scanMZ(raw, imgBox, raw.rti[idx], rowN, scaleRT);
     }
 

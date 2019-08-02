@@ -18,12 +18,9 @@ add_library(seamass_core
         Seamass.cpp
         Seamass.hpp
         Dataset.cpp
-        DatasetMzmlb.hpp
         DatasetSeamass.hpp
         Dataset.cpp
-        DatasetMzmlb.cpp
         DatasetSeamass.cpp
-        DatasetMzmlb.tpp
         )
 target_include_directories(seamass_core PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}

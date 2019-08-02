@@ -387,7 +387,7 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 	cout<<"Extract Peaks from Mass Spec Data"<<endl;
 
 	//int nthrd=omp_get_num_threads();
-    int nthrd=1;
+    //int nthrd=1;
 	int run;
 	//#pragma omp parallel
 	{
@@ -417,9 +417,9 @@ void ExtractPeak<pPeak,pData,T,R>::calculate(pPeak<T> *peak, pData<R,T> *data, T
 					vector<DataPoint> spt(pr); // Surface Points
 					vector<DataPoint> p(4); // Surface Points
 
-					double rtPeak=-1.0;
-					T countMaxRT=-1.0;
-					double t0rt=-1.0;
+					//double rtPeak=-1.0;
+					//T countMaxRT=-1.0;
+					//double t0rt=-1.0;
 					double rtrhs = -1.0;
 					double rtlhs = -1.0;
 					double mzrhs = -1.0;
@@ -526,7 +526,7 @@ void ExtractPeak<pPeak,pData,T,R>::mulVecMat(const VecMat<T> &cs, const VecMat<T
 	lli cdx=j-3;
 
 	lli cols = 7;
-	lli rows = 5;
+	//lli rows = 5;
 
 	/*
 	uli dim[2];

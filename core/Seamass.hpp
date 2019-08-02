@@ -37,13 +37,10 @@ public:
     static void notice();
 
     struct Input {
-        enum class Type { Binned, Sampled, Centroided } type;
-        std::vector<fp> counts;
-        std::vector<li> countsIndex;
-        std::vector<double> locations;
-        std::vector<double> startTimes;
-        std::vector<double> finishTimes;
-        std::vector<fp> exposures;
+        MatrixSparse b;
+        //std::vector<double> startTimes;
+        //std::vector<double> finishTimes;
+        //std::vector<fp> exposures;
     };
 
     struct Output
@@ -103,7 +100,7 @@ private:
 
     short dimensions_;
     std::vector<Basis*> bases_;
-    Basis* outputBasis_;
+    //Basis* outputBasis_;
     std::vector<MatrixSparse> b_;
 
     Optimizer* innerOptimizer_;

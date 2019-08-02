@@ -47,10 +47,10 @@ void Seamass::notice()
 
 Seamass::Seamass(Input& input, const string& isotopesFilename, const std::vector<short>& scale,
                  fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
-        innerOptimizer_(0), isotopesFilename_(isotopesFilename), scale_(scale), lambda_(lambda),
-        lambdaGroup_(lambdaGroup), lambdaStart_(lambda), lambdaGroupStart_(lambdaGroup),
-        taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
-        iteration_(0)
+        innerOptimizer_(0), scale_(scale), isotopesFilename_(isotopesFilename), lambda_(lambda),
+        lambdaStart_(lambda), lambdaGroup_(lambdaGroup), lambdaGroupStart_(lambdaGroup),
+        taperShrinkage_(taperShrinkage), tolerance_(tolerance),
+        iteration_(0), peakFwhm_(peakFwhm), chargeStates_(chargeStates)
 {
     init(input, true);
     optimizer_->setLambda(lambda_, lambdaGroup_);
@@ -58,9 +58,9 @@ Seamass::Seamass(Input& input, const string& isotopesFilename, const std::vector
 
 
 Seamass::Seamass(Input& input, const Output& output) :
-        innerOptimizer_(0), isotopesFilename_(output.isotopesFilename), scale_(output.scale), lambda_(output.lambda),
-        lambdaGroup_(output.lambdaGroup), lambdaStart_(output.lambda), lambdaGroupStart_(output.lambdaGroup),
-        tolerance_(output.tolerance), peakFwhm_(output.peakFwhm), chargeStates_(output.chargeStates), iteration_(0)
+        innerOptimizer_(0), scale_(output.scale), isotopesFilename_(output.isotopesFilename), lambda_(output.lambda),
+        lambdaStart_(output.lambda), lambdaGroup_(output.lambdaGroup), lambdaGroupStart_(output.lambdaGroup),
+        tolerance_(output.tolerance), iteration_(0), peakFwhm_(output.peakFwhm), chargeStates_(output.chargeStates)
 {
     init(input, false);
 
@@ -121,7 +121,7 @@ void Seamass::init(Input& input, bool seed)
         info(oss.str());
     }
 
-    if (input.countsIndex.size() <= 2)
+    /*if (input.countsIndex.size() <= 2)
     {
         dimensions_ = 1;
 
@@ -156,7 +156,7 @@ void Seamass::init(Input& input, bool seed)
             while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, true, false);
         }
-    }
+    }*/
 
     // INIT OPTIMISER
     innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
@@ -376,7 +376,7 @@ void Seamass::getInput(Input &input, bool reconstruct) const
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
+    /*const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
     vector<fp>(meshInfo.size()).swap(input.counts);
 
     if (reconstruct)
@@ -406,7 +406,7 @@ void Seamass::getInput(Input &input, bool reconstruct) const
                         BasisBsplineMz::PROTON_MASS;
             input.locations[i * (meshInfo.n() + 1) + j] = mz;
         }
-    }
+    }*/
 }
 
 

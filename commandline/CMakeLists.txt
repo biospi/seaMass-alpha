@@ -1,10 +1,6 @@
 find_package(Boost 1.54 COMPONENTS program_options filesystem system REQUIRED)
 find_package(TIFF REQUIRED)
 
-message(TIFF_FOUND: ${TIFF_FOUND})
-message(TIFF Library: ${TIFF_LIBRARY})
-message(TIFF Include: ${TIFF_INCLUDE_DIR})
-
 add_executable(asrl
         asrl.cpp
         )
@@ -49,29 +45,18 @@ target_link_libraries (mgf2sml LINK_PUBLIC
 	${Boost_LIBRARIES}
 	)
 
-add_executable(image2sml
-		image2sml.cpp
+add_executable(tiff2sml
+		tiff2sml.cpp
 		)
-target_include_directories(image2sml PUBLIC
+target_include_directories(tiff2sml PUBLIC
 		${Boost_INCLUDE_DIRS}
 		${TIFF_INCLUDE_DIR}
 		)
-target_link_libraries (image2sml LINK_PUBLIC
+target_link_libraries (tiff2sml LINK_PUBLIC
 		seamass_io
 		${Boost_LIBRARIES}
 		${TIFF_LIBRARY}
 		)
-
-add_executable(mzmlb2smb
-        mzmlb2smb.cpp
-        )
-target_include_directories(mzmlb2smb PUBLIC
-        ${Boost_INCLUDE_DIRS}
-        )
-target_link_libraries (mzmlb2smb LINK_PUBLIC
-        seamass_core
-        ${Boost_LIBRARIES}
-        )
 
 add_executable(seamass
         seamass.cpp
@@ -96,17 +81,6 @@ target_link_libraries (seamass-restore LINK_PUBLIC
         ${Boost_LIBRARIES}
         )
 
-add_executable(smb2mzmlb
-        smb2mzmlb.cpp
-        )
-target_include_directories(smb2mzmlb PUBLIC
-        ${Boost_INCLUDE_DIRS}
-        )
-target_link_libraries(smb2mzmlb LINK_PUBLIC
-        seamass_core
-        ${Boost_LIBRARIES}
-        )
-
-install(TARGETS mzmlb2smb seamass seamass-restore smb2mzmlb
+install(TARGETS seamass seamass-restore 
         RUNTIME DESTINATION bin
         )

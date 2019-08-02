@@ -20,7 +20,6 @@
 //
 
 #include "Dataset.hpp"
-#include "DatasetMzmlb.hpp"
 #include "DatasetSeamass.hpp"
 using namespace std;
 
@@ -32,13 +31,9 @@ Dataset* FileFactory::createFileObj(const std::string filePathIn, const std::str
     {
         string ext = filePathIn.substr(pos);
 
-        if(ext == ".smb" || ext == ".smv")
+        if(ext == ".sml" || ext == ".smv")
         {
             return new DatasetSeamass(filePathIn, filePathStemOut, writeType);
-        }
-        else if(ext == ".mzMLb" || ext == ".mzMLv")
-        {
-            return new DatasetMzmlb(filePathIn, filePathStemOut, writeType);
         }
     }
 
