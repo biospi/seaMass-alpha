@@ -56,6 +56,7 @@ public:
 
     void open(const string& filename, int omode = NC_NOWRITE);
     void close(void);
+    const string& getFileName();
 
     bool exists(const string& variable, int parentId = 0);
 

@@ -41,7 +41,7 @@ Dataset* FileFactory::createFileObj(const std::string filePathIn, const std::str
         {
             return new DatasetMzmlb(filePathIn, filePathStemOut, writeType);
         }
-        else if(ext == ".tiff" || ext == ".tiff")
+        else if(ext == ".tif" || ext == ".tiff")
         {
             return new DatasetTiff(filePathIn, filePathStemOut, writeType);
         }

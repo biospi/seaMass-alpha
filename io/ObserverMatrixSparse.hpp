@@ -38,9 +38,13 @@ public:
     ObserverMatrixSparse();
     virtual ~ObserverMatrixSparse();
 
-    virtual void notice(const std::string& message, const MatrixSparse* a = 0);
-    virtual void warning(const std::string& message, const MatrixSparse* a = 0);
-    virtual void error(const std::string& message, const MatrixSparse* a = 0);
+    using Observer::info;
+    using Observer::warning;
+    using Observer::error;
+    
+    virtual void info(const std::string& message, const MatrixSparse* a);
+    virtual void warning(const std::string& message, const MatrixSparse* a);
+    virtual void error(const std::string& message, const MatrixSparse* a);
 };
 
 

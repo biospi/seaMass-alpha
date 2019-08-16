@@ -38,7 +38,11 @@ public:
     ObserverMatrix();
     virtual ~ObserverMatrix();
 
-    virtual void notice(const std::string& message, const Matrix* a);
+    using Observer::info;
+    using Observer::warning;
+    using Observer::error;
+    
+    virtual void info(const std::string& message, const Matrix* a);
     virtual void warning(const std::string& message, const Matrix* a);
     virtual void error(const std::string& message, const Matrix* a);
 };

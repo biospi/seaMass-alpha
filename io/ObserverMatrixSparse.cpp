@@ -36,66 +36,57 @@ ObserverMatrixSparse::~ObserverMatrixSparse()
 }
 
 
-void ObserverMatrixSparse::notice(const std::string& message, const MatrixSparse* a)
+void ObserverMatrixSparse::info(const std::string& message, const MatrixSparse* a)
 {
-    if (a)
+    istringstream iss(message);
+    char leftBracket;
+    int id;
+    iss >> leftBracket >> id;
+
+    ostringstream oss;
+    oss << setw(8) << setfill('0') << id << ".coo";
+
     {
-        istringstream iss(message);
-        char leftBracket;
-        int id;
-        iss >> leftBracket >> id;
-
-        ostringstream oss;
-        oss << setw(8) << setfill('0') << id << ".coo";
-
-        {
-            FileNetcdf file(oss.str(), NC_NETCDF4);
-            file.writeMatrixSparseCoo(*a, "a");
-        }
-
-        for (ii nz = 0; nz < a->nnz(); nz++)
-        {
-            if (isinf(a->vs_[nz]))
-                throw runtime_error("BUG: Infinity found!");
-
-            if (a->vs_[nz] != a->vs_[nz])
-                throw runtime_error("BUG: NAN found!");
-        }
+        FileNetcdf file(oss.str(), NC_NETCDF4);
+        file.writeMatrixSparseCoo(*a, "a");
     }
-}
+
+    for (ii nz = 0; nz < a->nnz(); nz++)
+    {
+        if (isinf(a->vs_[nz]))
+            throw runtime_error("BUG: Infinity found!");
+
+        if (a->vs_[nz] != a->vs_[nz])
+            throw runtime_error("BUG: NAN found!");
+    }
+ }
 
 
 void ObserverMatrixSparse::warning(const std::string& message, const MatrixSparse* a)
 {
-    if (a)
-    {
-        istringstream iss(message);
-        char leftBracket;
-        int id;
-        iss >> leftBracket >> id;
+    istringstream iss(message);
+    char leftBracket;
+    int id;
+    iss >> leftBracket >> id;
 
-        ostringstream oss;
-        oss << setw(8) << setfill('0') << id << ".coo";
-        FileNetcdf file(oss.str(), NC_NETCDF4);
+    ostringstream oss;
+    oss << setw(8) << setfill('0') << id << ".coo";
+    FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.writeMatrixSparseCoo(*a, "a");
-    }
+    file.writeMatrixSparseCoo(*a, "a");
 }
 
 
 void ObserverMatrixSparse::error(const std::string& message, const MatrixSparse* a)
 {
-    if (a)
-    {
-        istringstream iss(message);
-        char leftBracket;
-        int id;
-        iss >> leftBracket >> id;
+    istringstream iss(message);
+    char leftBracket;
+    int id;
+    iss >> leftBracket >> id;
 
-        ostringstream oss;
-        oss << setw(8) << setfill('0') << id << ".coo";
-        FileNetcdf file(oss.str(), NC_NETCDF4);
+    ostringstream oss;
+    oss << setw(8) << setfill('0') << id << ".coo";
+    FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.writeMatrixSparseCoo(*a, "a");
-    }
-}
+    file.writeMatrixSparseCoo(*a, "a");
+ }

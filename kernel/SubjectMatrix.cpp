@@ -48,7 +48,7 @@ void SubjectMatrix::info(const string &message, const Matrix *a) const
     setDebugLevel(0);
 
     for (int i = 0; i < int(observers_.size()); i++)
-        observers_[i]->notice(message, a);
+        observers_[i]->info(message, a);
 
     setDebugLevel(debugLevel);
 

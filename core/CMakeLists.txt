@@ -25,6 +25,7 @@ add_library(seamass_core
         Dataset.cpp
         DatasetMzmlb.hpp
         DatasetSeamass.hpp
+        DatasetTiff.hpp
         Dataset.cpp
         DatasetMzmlb.cpp
         DatasetSeamass.cpp

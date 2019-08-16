@@ -46,12 +46,14 @@ DatasetSeamass::~DatasetSeamass()
 }
 
 
-bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
+bool DatasetSeamass::read(std::string& filePathSml, std::string &id)
 {
-    input = Seamass::Input();
-
     if(finished_ == true)
         return false;
+    
+   // Ranjeet todo: write into SML file rather than into Seamass::Input
+   /*input = Seamass::Input();
+
 
     if (fileIn_->exists("counts"))
         fileIn_->readVector(input.counts, "counts");
@@ -86,7 +88,7 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
         fileIn_->readVector(input.finishTimes, "finishTimes");
 
     if (fileIn_->exists("exposures"))
-        fileIn_->readVector(input.exposures, "exposures");
+        fileIn_->readVector(input.exposures, "exposures");*/
 
     id = "";
 
@@ -94,9 +96,10 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 }
 
 
-void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
+void DatasetSeamass::write(const std::string& filePathSml, const std::string &id)
 {
-    if (input.startTimes.size() > 0)
+    // Ranjeet todo: read from SML file rather than from Seamass::Input
+    /*if (input.startTimes.size() > 0)
         fileOut_->writeVector(input.startTimes, "startTimes");
 
     if (input.finishTimes.size() > 0)
@@ -127,15 +130,15 @@ void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
             default:
                 throw runtime_error("BUG: input has no type");
         }
-    }
+    }*/
 }
 
 
-bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::string &id)
+bool DatasetSeamass::read(std::string& filePathSml, Seamass::Output &output, std::string &id)
 {
     output = Seamass::Output();
 
-    if (!read(input, id))
+    if (!read(filePathSml, id))
         return false;
 
     int groupId = fileIn_->openGroup("seamass");
@@ -146,7 +149,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
     output.tolerance = fileIn_->readAttribute<double>("tolerance", "", groupId);
     output.peakFwhm = fileIn_->readAttribute<double>("peakFwhm", "", groupId);
     output.chargeStates = fileIn_->readAttribute<short>("chargeStates", "", groupId);
-    fileIn_->readAttribute(output.isotopesFilename, "isotopesFilename", "", groupId);
+    fileIn_->readAttribute(output.filePathLib, "filePathLib", "", groupId);
 
     {
         ii n = 0;
@@ -258,9 +261,9 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
 }
 
 
-void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id)
+void DatasetSeamass::write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id)
 {
-    write(input, id);
+    write(filePathSml, id);
 
     int groupId = fileOut_->createGroup("seamass");
 
@@ -270,7 +273,7 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
     fileOut_->writeAttribute(output.tolerance, "tolerance", "", groupId);
     fileOut_->writeAttribute(output.peakFwhm, "peakFwhm", "", groupId);
     fileOut_->writeAttribute(output.chargeStates, "chargeStates", "", groupId);
-    fileOut_->writeAttribute(output.isotopesFilename, "isotopesFilename", "", groupId);
+    fileOut_->writeAttribute(output.filePathLib, "filePathLib", "", groupId);
 
     for (ii k = 0; k < ii(output.xs.size()); k++)
     {

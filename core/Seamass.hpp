@@ -36,16 +36,6 @@ class Seamass : public Subject
 public:
     static void notice();
 
-    struct Input {
-        enum class Type { Binned, Sampled, Centroided } type;
-        std::vector<fp> counts;
-        std::vector<li> countsIndex;
-        std::vector<double> locations;
-        std::vector<double> startTimes;
-        std::vector<double> finishTimes;
-        std::vector<fp> exposures;
-    };
-
     struct Output
     {
         std::vector<short> scale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
@@ -53,7 +43,7 @@ public:
         double lambdaGroup;
         double tolerance;
         double peakFwhm;
-        std::string isotopesFilename;
+        std::string filePathLib;
         short chargeStates;
 
         std::vector<BasisBspline::GridInfo> gridInfos;
@@ -78,16 +68,16 @@ public:
         std::vector<ii> extent;
     };
 
-    Seamass(Input& input, const std::string& isotopesFilename, const std::vector<short>& scale,
+    Seamass(const std::string& filePathIn, const std::string& filePathLib, const std::vector<short>& scale,
             fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates);
-    Seamass(Input& input, const Output& output);
+    Seamass(const std::string& filePathIn, const Output& output);
     virtual ~Seamass();
 
     bool step();
     ii getIteration() const;
 
     // get seaMass convolved input or restored output
-    void getInput(Input &input, bool reconstruct = false) const;
+    void getInput(const std::string& filePathIn, bool reconstruct = false) const;
 
     // get seaMass output (for smv file)
     void getOutput(Output& output, bool synthesize) const;
@@ -99,18 +89,18 @@ public:
     void getOutputControlPoints(ControlPoints& controlPoints) const;
 
 private:
-    void init(Input& input, bool seed);
+    void init(const std::string& filePathIn, bool seed);
 
     short dimensions_;
     std::vector<Basis*> bases_;
-    Basis* outputBasis_;
+    //Basis* outputBasis_;
     std::vector<MatrixSparse> b_;
 
     Optimizer* innerOptimizer_;
     Optimizer* optimizer_;
 
     const std::vector<short>& scale_;
-    const std::string& isotopesFilename_;
+    const std::string& filePathLib_;
     fp lambda_;
     fp lambdaStart_;
     fp lambdaGroup_;

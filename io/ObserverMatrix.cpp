@@ -36,55 +36,46 @@ ObserverMatrix::~ObserverMatrix()
 }
 
 
-void ObserverMatrix::notice(const std::string& message, const Matrix* a)
+void ObserverMatrix::info(const std::string& message, const Matrix* a)
 {
-    if (a)
-    {
-        istringstream iss(message);
-        char leftBracket;
-        int id;
-        iss >> leftBracket >> id;
+    istringstream iss(message);
+    char leftBracket;
+    int id;
+    iss >> leftBracket >> id;
 
-        ostringstream oss;
-        oss << setw(8) << setfill('0') << id << ".coo";
-        FileNetcdf file(oss.str(), NC_NETCDF4);
+    ostringstream oss;
+    oss << setw(8) << setfill('0') << id << ".coo";
+    FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.writeMatrix(*a, "a");
-    }
-}
+    file.writeMatrix(*a, "a");
+ }
 
 
 void ObserverMatrix::warning(const std::string& message, const Matrix* a)
 {
-    if (a)
-    {
-        istringstream iss(message);
-        char leftBracket;
-        int id;
-        iss >> leftBracket >> id;
+    istringstream iss(message);
+    char leftBracket;
+    int id;
+    iss >> leftBracket >> id;
 
-        ostringstream oss;
-        oss << setw(8) << setfill('0') << id << ".coo";
-        FileNetcdf file(oss.str(), NC_NETCDF4);
+    ostringstream oss;
+    oss << setw(8) << setfill('0') << id << ".coo";
+    FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.writeMatrix(*a, "a");
-    }
+    file.writeMatrix(*a, "a");
 }
 
 
 void ObserverMatrix::error(const std::string& message, const Matrix* a)
 {
-    if (a)
-    {
-        istringstream iss(message);
-        char leftBracket;
-        int id;
-        iss >> leftBracket >> id;
+    istringstream iss(message);
+    char leftBracket;
+    int id;
+    iss >> leftBracket >> id;
 
-        ostringstream oss;
-        oss << setw(8) << setfill('0') << id << ".coo";
-        FileNetcdf file(oss.str(), NC_NETCDF4);
+    ostringstream oss;
+    oss << setw(8) << setfill('0') << id << ".coo";
+    FileNetcdf file(oss.str(), NC_NETCDF4);
 
-        file.writeMatrix(*a, "a");
-    }
+    file.writeMatrix(*a, "a");
 }

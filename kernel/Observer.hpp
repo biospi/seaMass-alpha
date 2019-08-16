@@ -35,7 +35,7 @@ public:
     Observer();
     virtual ~Observer();
 
-    virtual void notice(const std::string& message);
+    virtual void info(const std::string& message);
     virtual void warning(const std::string& message);
     virtual void error(const std::string& message);
 };

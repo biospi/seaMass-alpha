@@ -56,11 +56,11 @@ public:
     DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
     virtual ~DatasetMzmlb();
 
-    virtual bool read(Seamass::Input &input, std::string &id);
-    virtual void write(const Seamass::Input &input, const std::string &id);
+    virtual bool read(std::string& filePathSml, std::string &id);
+    virtual void write(const std::string& filePathSml, const std::string &id);
 
-    virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id);
-    virtual void write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id);
+    virtual bool read(std::string& filePathSml, Seamass::Output &output, std::string &id);
+    virtual void write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id);
 
 private:
     static bool startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
@@ -73,7 +73,7 @@ private:
     vector<SpectrumMetadata> metadata_; // this will be sorted for 'next()'
     li spectrumIndex_;
     li lastSpectrumIndex_;
-    li extent_;
+    //li extent_;
 
     // Ranjeet's writing stuff
     size_t idxDataArrayOffSet_;

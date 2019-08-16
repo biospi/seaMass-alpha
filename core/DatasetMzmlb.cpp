@@ -306,8 +306,8 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
     }
 
     // check if spectra within each 'config' have different 'id', if so then DDA else assume DIA
-    bool dia = true;
-    bool done = false;
+    //bool dia = true;
+    //bool done = false;
     li offset = 0;
     for (ii i = 1; i <= (ii)metadata_.size(); i++)
     {
@@ -417,7 +417,7 @@ DatasetMzmlb::~DatasetMzmlb()
 }
 
 
-bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
+bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
 {
     // display total progress update
     if(spectrumIndex_ / 1000 > lastSpectrumIndex_ / 1000 || spectrumIndex_ >= metadata_.size())
@@ -441,11 +441,12 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
 
         lastSpectrumIndex_ = spectrumIndex_;
     }
-
-    out = Seamass::Input();
-
+    
     // return if we are finished
     if (spectrumIndex_ >= metadata_.size()) return false;
+
+    // Ranjeet todo: write into SML file rather than into Seamass::Input
+    /*out = Seamass::Input();
 
     // determine next set of spectra
     id = metadata_[spectrumIndex_].id;
@@ -673,16 +674,18 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
             }
         }
     }
-    out.countsIndex.back() = (li)out.counts.size();
+    out.countsIndex.back() = (li)out.counts.size();*/
 
     return true;
 }
 
 
-void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
+void DatasetMzmlb::write(const std::string& filePathSml, const std::string &id)
 {
+    // Ranjeet todo: read from SML file rather than from Seamass::Input
+    /*
+     
     ///////// NOTE: 'id' IS CURRENTLY IGNORED, ASSUMES YOU ARE WRITING WHAT YOU'VE JUST READ ////////////
-
     li n = input.countsIndex.size() == 0 ? 1 : input.countsIndex.size() - 1;
 
     if ((n > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
@@ -724,17 +727,17 @@ void DatasetMzmlb::write(const Seamass::Input &input, const std::string &id)
         }
 
         writeXmlSpectrum(i + offset, mzs, intensities, isCentroided);
-    }
+    }*/
 }
 
 
-bool DatasetMzmlb::read(Seamass::Input &input, Seamass::Output &output, std::string &id)
+bool DatasetMzmlb::read(std::string& filePathSml, Seamass::Output &output, std::string &id)
 {
     throw runtime_error("BUG: not yet implemented!");
 }
 
 
-void DatasetMzmlb::write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id)
+void DatasetMzmlb::write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id)
 {
     throw runtime_error("BUG: not yet implemented!");
 }
@@ -915,7 +918,7 @@ void DatasetMzmlb::writeXmlSpectrum(li offset_, vector<double> &mzs_,
         fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
 
         size_t xmlSize = sizeof(char) * mzML.size();
-        xml::xml_parse_result result = mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
+        mzmlXmlScan.load_buffer_inplace(&mzML[0],xmlSize);
 
         size_t arrayLen = mzs_.size();
         if (isCentroided_ == true)

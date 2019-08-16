@@ -36,7 +36,7 @@ class MatrixSparse : public SubjectMatrixSparse
 {
 public:
     MatrixSparse();
-    ~MatrixSparse();
+    virtual ~MatrixSparse();
 
     void clear();
     void init(ii m, ii n);

@@ -33,11 +33,11 @@ public:
 
     enum class WriteType { InputOutput, Input };
 
-    virtual bool read(Seamass::Input &input, std::string &id) = 0;
-    virtual void write(const Seamass::Input &input, const std::string &id) = 0;
+    virtual bool read(std::string& smlFilename, std::string &id) = 0;
+    virtual void write(const std::string& smlFilename, const std::string &id) = 0;
 
-    virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id) = 0;
-    virtual void write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id) = 0;
+    virtual bool read(std::string& smlFilename, Seamass::Output &output, std::string &id) = 0;
+    virtual void write(const std::string& smlFilename, const Seamass::Output &output, const std::string &id) = 0;
 };
 
 

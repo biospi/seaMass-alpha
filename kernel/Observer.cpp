@@ -35,7 +35,7 @@ Observer::~Observer()
 }
 
 
-void Observer::notice(const std::string& message)
+void Observer::info(const std::string& message)
 {
     cout << message << endl;
 }

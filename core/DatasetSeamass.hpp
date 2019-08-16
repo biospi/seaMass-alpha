@@ -34,11 +34,11 @@ public:
     DatasetSeamass(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
     virtual ~DatasetSeamass();
 
-    virtual bool read(Seamass::Input &input, std::string &id);
-    virtual void write(const Seamass::Input &input, const std::string &id);
+    virtual bool read(std::string& filePathSml, std::string &id);
+    virtual void write(const std::string& filePathSml, const std::string &id);
 
-    virtual bool read(Seamass::Input &input, Seamass::Output &output, std::string &id);
-    virtual void write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id);
+    virtual bool read(std::string& filePathSml, Seamass::Output &output, std::string &id);
+    virtual void write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id);
 
 private:
     FileNetcdf* fileIn_;

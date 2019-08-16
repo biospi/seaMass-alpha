@@ -88,7 +88,7 @@ void Matrix::conv1d(Matrix& h, Matrix& a)
     {
         ostringstream oss;
         oss << getTimeStamp() << "       conv1d(H" << h << ", A" << a << ") := ...";
-        info(oss.str());
+        SubjectMatrix::info(oss.str());
     }
 
     assert(h.m_ == 1);
@@ -121,7 +121,7 @@ fp Matrix::sum() const
     {
         ostringstream oss;
         oss << getTimeStamp() << "       sum(X" << *this << ") := ...";
-        info(oss.str());
+        SubjectMatrix::info(oss.str());
     }
 
 

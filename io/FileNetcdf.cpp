@@ -72,6 +72,11 @@ void FileNetcdf::open(const string& filename, int omode)
 }
 
 
+const string& FileNetcdf::getFileName() {
+    return filename_;
+}
+
+
 void FileNetcdf::close()
 {
     if (fileStatus_)

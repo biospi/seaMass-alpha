@@ -39,7 +39,7 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
-        string isotopesFilename;
+        string filePathLib;
         int scaleMz;
         int scaleSt;
         int lambdaExponent;
@@ -65,8 +65,8 @@ int main(int argc, const char * const * argv)
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
              "from mzML/vendor format to mzMLb.")
-            ("isotopes_db,i", po::value<string>(&isotopesFilename),
-             "Isotope distribution database in smd format. Use genisodists to generate."
+            ("lib", po::value<string>(&filePathLib),
+             "Spectral library in sml format."
              "from mzML/vendor format to mzMLb.")
             ("mz_scale,m", po::value<int>(&scaleMz),
              "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
@@ -87,7 +87,7 @@ int main(int argc, const char * const * argv)
             ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
              "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("fwhm,w", po::value<double>(&peakFwhm)->default_value(0.0),
-             "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+             "Peak FWHM.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
              "Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
              "4 to output all maths, +10 to write intermediate results to disk.")
@@ -144,26 +144,25 @@ int main(int argc, const char * const * argv)
         if (!dataset)
             throw runtime_error("ERROR: Input file is missing or incorrect");
 
-        Seamass::Input input;
         string id;
         fp tolerance = pow(2.0, fp(toleranceExponent));
         fp lambda = pow(2.0, fp(lambdaExponent));
         fp lambdaGroup = pow(2.0, fp(lambdaGroupExponent));
 
-        while (dataset->read(input, id))
+        while (dataset->read(filePathIn, id))
         {
             // Temp test tiff test...
-            dataset->write(input,id);
+            dataset->write(filePathIn, id);
 
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamass(input, isotopesFilename, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
+            Seamass seamass(filePathIn, filePathLib, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
                             peakFwhm, chargeStates);
 
             if (debugLevel / 10 >= 1)
             {
-                Seamass::Input input2;
+                /*Seamass::Input input2;
                 input2.countsIndex = input.countsIndex;
                 input2.startTimes = input.startTimes;
                 input2.finishTimes = input.finishTimes;
@@ -174,7 +173,7 @@ int main(int argc, const char * const * argv)
                 // write input in seaMass format
                 ostringstream oss; oss << fileStemOut << ".input";
                 DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::Input);
-                datasetOut.write(input2, id);
+                datasetOut.write(input2, id);*/
             }
 
             do
@@ -197,7 +196,7 @@ int main(int argc, const char * const * argv)
                         // write intermediate output in seaMass format
                         ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamass.getIteration();
                         DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                        datasetOut.write(input, output, id);
+                        datasetOut.write(filePathIn, output, id);
                     }
                 }
             }
@@ -207,7 +206,7 @@ int main(int argc, const char * const * argv)
             {
                 Seamass::Output output;
                 seamass.getOutput(output, false);
-                dataset->write(input, output, id);
+                dataset->write(filePathIn, output, id);
             }
 
             if (debugLevel / 10 >= 1)
@@ -217,7 +216,7 @@ int main(int argc, const char * const * argv)
 
                 ostringstream oss; oss << fileStemOut << ".synthesized";
                 DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                datasetOut.write(input, output, id);
+                datasetOut.write(filePathIn, output, id);
             }
 
             if (debugLevel % 10 == 0)

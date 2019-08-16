@@ -34,18 +34,17 @@ DatasetTiff::DatasetTiff(const std::string& filePathIn, const std::string& fileP
 
     if (!filePathIn.empty())
     {
-        cout << "Reading " << filePathIn << "..." << endl;
         fileIn_ = TIFFOpen(filePathIn.c_str(), "r");
         if (!fileIn_) throw runtime_error("");
     }
 
-    if (filePathStemOut.empty())
+    if (!filePathStemOut.empty())
     {
-        string fileNameOut = boost::filesystem::path(filePathIn).stem().replace_extension("sml").string();
-        fileOut_ = new FileNetcdf(filePathStemOut, NC_NETCDF4);
+        filePathSml_ = filePathStemOut + ".sml";
+        string filePathOut = filePathIn + ".seamass.tiff";
+        fileOut_ = TIFFOpen(filePathOut.c_str(), "w");
+        if (!fileOut_) throw runtime_error("");
     }
-    else
-        fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".sml" : ".smv"), NC_NETCDF4);
 }
 
 
@@ -55,16 +54,19 @@ DatasetTiff::~DatasetTiff()
         TIFFClose(fileIn_);
 
     if (fileOut_)
-        delete fileOut_;
+        TIFFClose(fileOut_);
 }
 
 
-bool DatasetTiff::read(Seamass::Input &input, std::string &id)
+bool DatasetTiff::read(std::string& filePathSml, std::string &id)
 {
-    input = Seamass::Input();
-
     if(finished_ == true)
         return false;
+    
+    filePathSml = filePathSml_;
+
+    // Ranjeet todo: write into SML file rather than into Seamass::Input
+    /*input = Seamass::Input();
 
     uint32 width, height;
     int16 bps, spp;
@@ -112,15 +114,16 @@ bool DatasetTiff::read(Seamass::Input &input, std::string &id)
         if ((i+1) % 100 == 0 || i+1 == m) cout << i+1 << "/" << m << " scanlines processed" << endl;
     }
 
-    _TIFFfree(scanSingle);
+    _TIFFfree(scanSingle);*/
 
     return finished_ = true;
 }
 
 
-void DatasetTiff::write(const Seamass::Input &input, const std::string &id)
+void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 {
-
+    // Ranjeet todo: read from SML file rather than from Seamass::Input, writing to TIFF in fileOut_
+    /*
     ii n = width;
     int matrixId = fileOut_->createGroup("xScale=0");
     fileOut_->writeAttribute(n, "n", "", matrixId);
@@ -129,16 +132,15 @@ void DatasetTiff::write(const Seamass::Input &input, const std::string &id)
 
     int ijsId = fileOut_->write_VecNC("ijs",input.countsIndex, NC_LONG, matrixId, true);
     int jsId = fileOut_->write_VecNC("js", pixelIdx, NC_LONG, matrixId, true);
-    int vsId = fileOut_->write_VecNC("vs", input.counts, NC_FLOAT, matrixId, true);
-
+    int vsId = fileOut_->write_VecNC("vs", input.counts, NC_FLOAT, matrixId, true);*/
 }
 
 
-bool DatasetTiff::read(Seamass::Input &input, Seamass::Output &output, std::string &id)
+bool DatasetTiff::read(std::string& filePathSml, Seamass::Output &output, std::string &id)
 {
     output = Seamass::Output();
 
-    if (!read(input, id))
+    if (!read(filePathSml, id))
         return false;
 
     id = "";
@@ -147,13 +149,10 @@ bool DatasetTiff::read(Seamass::Input &input, Seamass::Output &output, std::stri
 }
 
 
-void DatasetTiff::write(const Seamass::Input &input, const Seamass::Output &output, const std::string &id)
+void DatasetTiff::write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id)
 {
-    write(input, id);
-
-    // Write new Tiff data file after seamass processed...
-
-}
+    // Ranjeet todo: write seamass output to TIFF in fileOut_
+ }
 
 
 

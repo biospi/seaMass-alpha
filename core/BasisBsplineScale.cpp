@@ -41,7 +41,6 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, shor
         ostringstream oss;
         oss << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale";
         if (isTransient()) oss << " (transient)";
-        oss;
         info(oss.str());
     }
 
@@ -162,7 +161,7 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, shor
                 ii g = g0 + x;
                 gSizes[g]++;
 
-                double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
+                //double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
                 //cout << mass << endl;
 
                 is.push_back(x + z * gridInfo().colExtent[1]);
