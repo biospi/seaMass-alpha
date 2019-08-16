@@ -152,6 +152,9 @@ int main(int argc, const char * const * argv)
 
         while (dataset->read(input, id))
         {
+            // Temp test tiff test...
+            dataset->write(input,id);
+
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 

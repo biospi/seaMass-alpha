@@ -36,7 +36,7 @@ DatasetTiff::DatasetTiff(const std::string& filePathIn, const std::string& fileP
     {
         cout << "Reading " << filePathIn << "..." << endl;
         fileIn_ = TIFFOpen(filePathIn.c_str(), "r");
-        if (fileIn_) throw runtime_error("");
+        if (!fileIn_) throw runtime_error("");
     }
 
     if (filePathStemOut.empty())
@@ -45,7 +45,7 @@ DatasetTiff::DatasetTiff(const std::string& filePathIn, const std::string& fileP
         fileOut_ = new FileNetcdf(filePathStemOut, NC_NETCDF4);
     }
     else
-        fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".smv" : ".sml"), NC_NETCDF4);
+        fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".sml" : ".smv"), NC_NETCDF4);
 }
 
 
@@ -121,8 +121,9 @@ bool DatasetTiff::read(Seamass::Input &input, std::string &id)
 void DatasetTiff::write(const Seamass::Input &input, const std::string &id)
 {
 
+    ii n = width;
     int matrixId = fileOut_->createGroup("xScale=0");
-    fileOut_->writeAttribute(width, "n", "", matrixId);
+    fileOut_->writeAttribute(n, "n", "", matrixId);
 
     vector<long int> pixelIdx(input.locations.begin(),input.locations.end());
 
