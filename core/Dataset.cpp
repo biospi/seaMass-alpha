@@ -22,6 +22,7 @@
 #include "Dataset.hpp"
 #include "DatasetMzmlb.hpp"
 #include "DatasetSeamass.hpp"
+#include "DatasetTiff.hpp"
 using namespace std;
 
 
@@ -39,6 +40,10 @@ Dataset* FileFactory::createFileObj(const std::string filePathIn, const std::str
         else if(ext == ".mzMLb" || ext == ".mzMLv")
         {
             return new DatasetMzmlb(filePathIn, filePathStemOut, writeType);
+        }
+        else if(ext == ".tiff" || ext == ".tiff")
+        {
+            return new DatasetTiff(filePathIn, filePathStemOut, writeType);
         }
     }
 

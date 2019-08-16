@@ -1,4 +1,9 @@
 find_package(PugiXML REQUIRED)
+find_package(TIFF REQUIRED)
+
+message(TIFF_FOUND: ${TIFF_FOUND})
+message(TIFF Library: ${TIFF_LIBRARY})
+message(TIFF Include: ${TIFF_INCLUDE_DIR})
 
 add_library(seamass_core
         Bspline.hpp
@@ -24,12 +29,15 @@ add_library(seamass_core
         DatasetMzmlb.cpp
         DatasetSeamass.cpp
         DatasetMzmlb.tpp
+		DatasetTiff.cpp
         )
 target_include_directories(seamass_core PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${PugiXML_INCLUDE_DIR}
-        )
+		${TIFF_INCLUDE_DIR}
+	)
 target_link_libraries(seamass_core
         seamass_asrl
         ${PugiXML_LIBRARIES}
-        )
+		${TIFF_LIBRARY}
+	)

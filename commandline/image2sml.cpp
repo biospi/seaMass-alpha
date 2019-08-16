@@ -25,6 +25,7 @@
 #include "../io/FileNetcdf.hpp"
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include "../io/FileNetcdf.hpp"
 #include <tiffio.h>
 
 using namespace std;

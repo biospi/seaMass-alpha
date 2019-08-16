@@ -50,13 +50,26 @@ target_link_libraries (mgf2sml LINK_PUBLIC
 	)
 
 add_executable(image2sml
-		image2sml.cpp
-		)
+	image2sml.cpp
+	)
 target_include_directories(image2sml PUBLIC
+	${Boost_INCLUDE_DIRS}
+	${TIFF_INCLUDE_DIR}
+	)
+target_link_libraries (image2sml LINK_PUBLIC
+	seamass_io
+	${Boost_LIBRARIES}
+	${TIFF_LIBRARY}
+	)
+
+add_executable(tiff2sml
+		tiff2sml.cpp
+		)
+target_include_directories(tiff2sml PUBLIC
 		${Boost_INCLUDE_DIRS}
 		${TIFF_INCLUDE_DIR}
 		)
-target_link_libraries (image2sml LINK_PUBLIC
+target_link_libraries (tiff2sml LINK_PUBLIC
 		seamass_io
 		${Boost_LIBRARIES}
 		${TIFF_LIBRARY}
