@@ -114,7 +114,11 @@ Seamass::~Seamass()
 
 void Seamass::init(const std::string& filePathIn, bool seed)
 {
-    cout << "  TODO: LOAD FROM " << filePathIn << " AND RUN SEAMASS ..." << endl;
+    // LOAD B FROM SML
+    FileNetcdf fileSml(filePathIn);
+    b_.resize(1);
+    fileSml.readMatrixSparseCsr(b_[0], "xScale=0");
+    cout << "read in " << filePathIn << ", image is " << b_[0].m() << " rows by " << b_[0].n() << " columns" << endl;
  
     // INIT BASIS FUNCTIONS
     // Create our tree of bases
@@ -124,43 +128,43 @@ void Seamass::init(const std::string& filePathIn, bool seed)
         oss << getTimeStamp() << "  Initialising overcomplete tree of basis functions ...";
         info(oss.str());
     }
-
-    if (input.countsIndex.size() <= 2)
-    {
-        dimensions_ = 1;
-
-        //if (peakFwhm_ > 0.0)
-        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
-
-        outputBasis_ = new BasisBsplineMz(bases_, b_, libraryFilename_, input.counts, input.countsIndex,
-                                          input.locations, scale_[0], chargeStates_, false);
-
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
-            new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 1, true, false);
-    }
-    else
-    {
-        dimensions_ = 2;
-
-        //if (peakFwhm_ > 0.0)
-        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
-
-        new BasisBsplineMz(bases_, b_, isotopesFilename_, input.counts, input.countsIndex, input.locations,
-                           scale_[0], chargeStates_, true);
-
-        outputBasis_ = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
-                                                input.finishTimes, input.exposures, scale_[1], false);
-
-        Basis* previousBasis = outputBasis_;
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
-        {
-            if (i > 0)
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, true, false);
-
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, true, false);
-        }
-    }
+     
+     if (b_[0].n() == 1)
+     {
+         dimensions_ = 1;
+     
+         //if (peakFwhm_ > 0.0)
+         //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+         
+         outputBasis_ = new BasisBsplineMz(bases_, b_, libraryFilename_, input.counts, input.countsIndex,
+                                           input.locations, scale_[0], chargeStates_, false);
+         
+         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
+             new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 1, true, false);
+     }
+     else
+     {
+     dimensions_ = 2;
+     
+     //if (peakFwhm_ > 0.0)
+     //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+     
+     new BasisBsplineMz(bases_, b_, isotopesFilename_, input.counts, input.countsIndex, input.locations,
+     scale_[0], chargeStates_, true);
+     
+     outputBasis_ = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
+     input.finishTimes, input.exposures, scale_[1], false);
+     
+     Basis* previousBasis = outputBasis_;
+     for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
+     {
+     if (i > 0)
+     previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, true, false);
+     
+     while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
+     new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, true, false);
+     }
+     }
 
     // INIT OPTIMISER
     innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);

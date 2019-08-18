@@ -321,13 +321,13 @@ int FileNetcdf::readMatrixSparseCoo(MatrixSparse& a, const string& name, int par
     ii n = readAttribute<ii>("n", "", matrixId);
 
     vector<ii> is;
-    readVector(is, "i", matrixId);
+    readVector(is, "is", matrixId);
 
     vector<ii> js;
-    readVector(js, "j", matrixId);
+    readVector(js, "js", matrixId);
 
     vector<fp> vs;
-    readVector(vs, "v", matrixId);
+    readVector(vs, "vs", matrixId);
 
     a.importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
 
@@ -348,9 +348,9 @@ int FileNetcdf::writeMatrixSparseCoo(const MatrixSparse& a, const string& name, 
     if (a.nnz() > 0)
         a.exportToCoo(is.data(), js.data(), vs.data());
 
-    writeVector(is, "i", matrixId);
-    writeVector(js, "j", matrixId);
-    writeVector(vs, "v", matrixId);
+    writeVector(is, "is", matrixId);
+    writeVector(js, "js", matrixId);
+    writeVector(vs, "vs", matrixId);
 
     return matrixId;
 }
@@ -360,15 +360,15 @@ int FileNetcdf::readMatrixSparseCsr(MatrixSparse& a, const string& name, int par
 {
     int matrixId = openGroup(name, parentId);
 
-    ii m = ii(readSize("ii", matrixId)) - 1;
+    ii m = ii(readSize("ijs", matrixId)) - 1;
     ii n = readAttribute<ii>("n", "", matrixId);
-    ii nnz = ii(readSize("j", matrixId));
+    ii nnz = ii(readSize("js", matrixId));
 
     if (a.createCsr(m, n, nnz))
     {
-        readVector(a.ijs(), "ii", matrixId);
-        readVector(a.js(), "j", matrixId);
-        readVector(a.vs(), "v", matrixId);
+        readVector(a.ijs(), "ijs", matrixId);
+        readVector(a.js(), "js", matrixId);
+        readVector(a.vs(), "vs", matrixId);
 
         a.commitCsr(true);
     }
@@ -385,16 +385,16 @@ int FileNetcdf::writeMatrixSparseCsr(const MatrixSparse& a, const string& name, 
 
     if (a.initCsr(a.nnz() > 0))
     {
-        writeVector(a.ijs(), a.m() + 1, "ii", matrixId);
+        writeVector(a.ijs(), a.m() + 1, "ijs", matrixId);
     }
     else
     {
         vector<ii> ijs(a.m() + 1, 0);
-        writeVector(ijs, "ii", matrixId);
+        writeVector(ijs, "ijs", matrixId);
     }
 
-    writeVector(a.js(), a.nnz(), "j", matrixId);
-    writeVector(a.vs(), a.nnz(), "v", matrixId);
+    writeVector(a.js(), a.nnz(), "js", matrixId);
+    writeVector(a.vs(), a.nnz(), "vs", matrixId);
 
     return matrixId;
 }

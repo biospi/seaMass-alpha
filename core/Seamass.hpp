@@ -93,7 +93,7 @@ private:
 
     short dimensions_;
     std::vector<Basis*> bases_;
-    //Basis* outputBasis_;
+    Basis* outputBasis_;
     std::vector<MatrixSparse> b_;
 
     Optimizer* innerOptimizer_;

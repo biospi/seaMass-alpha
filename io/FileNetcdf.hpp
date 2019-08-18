@@ -98,7 +98,7 @@ public:
     int readMatrixSparseCoo(MatrixSparse &a, const string& name, int parentId = 0);
     int writeMatrixSparseCoo(const MatrixSparse &a, const string& name, int parentId = 0);
 
-    int readMatrixSparseCsr(MatrixSparse &a, const string& dataset, int parentId = 0);
+    int readMatrixSparseCsr(MatrixSparse &a, const string& name, int parentId = 0);
     int writeMatrixSparseCsr(const MatrixSparse &a, const string& name, int parentId = 0);
 
 

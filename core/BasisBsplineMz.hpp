@@ -32,9 +32,7 @@ class BasisBsplineMz : public BasisBspline
 public:
     static double PROTON_MASS;
 
-    BasisBsplineMz(std::vector<Basis*>& bases, std::vector<MatrixSparse>& b, const std::string& isotopesFilename,
-                   const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
-                   const std::vector<double>& binEdges, short scale, short chargeStates, bool transient);
+    BasisBsplineMz(std::vector<Basis*>& bases, std::vector<MatrixSparse>& b, bool transient);
 
     virtual ~BasisBsplineMz();
 
@@ -47,8 +45,7 @@ public:
 
 private:
     GridInfo bGridInfo_;
-    bool chargeDeconvolution_;
-
+ 
     MatrixSparse aT_;
     MatrixSparse a_;
 

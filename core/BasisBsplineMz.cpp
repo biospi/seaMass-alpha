@@ -47,10 +47,8 @@ void convolution(vector<double>& x, const vector<double>& a, const vector<double
 }
 
 
-BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>& b, const string& isotopesFilename,
-                               const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
-                               const std::vector<double>& binEdges, short scale, short chargeStates, bool transient) :
-        BasisBspline(bases, 1, 2, transient), bGridInfo_(1, 1), chargeDeconvolution_(chargeStates > 0), gTs_(1), gs_(1)
+BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>& b, bool transient) :
+        BasisBspline(bases, 1, 2, transient), bGridInfo_(1, 1), gTs_(1), gs_(1)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -65,165 +63,18 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         info(oss.str());
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // blur the input data by the B-spline kernel and place in 'b'
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    bGridInfo_.rowScale[0] = 0;
+    bGridInfo_.rowOffset[0] = 0;
+    bGridInfo_.rowExtent[0] = b[0].m();
+    bGridInfo_.colScale[0] = 0;
+    bGridInfo_.colOffset[0] = 0;
+    bGridInfo_.colExtent[0] = b[0].n();
 
-    // bspline basis function lookup table
-    Bspline bspline(3, 65536);
+    if (getDebugLevel() % 10 >= 2)
     {
-        std::vector<li> binCountsIndex;
-        std::vector<li> binEdgesIndex;
-        if (binCountsIndex_.size() > 0)
-        {
-            binCountsIndex = binCountsIndex_;
-            binEdgesIndex = binCountsIndex_;
-            for (ii i = 0; i < ii(binEdgesIndex.size()); i++) binEdgesIndex[i] += i;
-        }
-        else
-        {
-            binCountsIndex.push_back(0);
-            binCountsIndex.push_back(binCounts.size());
-            binEdgesIndex.push_back(0);
-            binEdgesIndex.push_back(binEdges.size());
-        }
-
-        // find min and max m/z across spectra, m for each A
-        double mz0 = numeric_limits<double>::max();
-        double mz1 = 0.0;
-        double xDiff = 0.0;
-        li n = 0;
-        for (ii k = 0; k < ii(binEdgesIndex.size()) - 1; k++)
-        {
-            mz0 = binEdges[binEdgesIndex[k]] < mz0 ? binEdges[binEdgesIndex[k]] : mz0;
-            mz1 = binEdges[binEdgesIndex[k + 1] - 1] > mz1 ? binEdges[binEdgesIndex[k + 1] - 1] : mz1;
-
-            // find mean difference in index between edges, ignoring first, last and zeros
-            for (ii i = 1; i < binCountsIndex[k + 1] - binCountsIndex[k] - 1; i++)
-            {
-                if (binCounts[binCountsIndex[k] + i] != 0)
-                {
-                    li ei = binEdgesIndex[k] + i;
-                    xDiff += log2(binEdges[ei + 1] - PROTON_MASS) - log2(binEdges[ei] - PROTON_MASS);
-                    n++;
-                }
-            }
-        }
-        xDiff /= double(n);
-
-        ii scaleAuto = ii(ceil(log2(1.0 / xDiff))) + 1;
-        if (scale == numeric_limits<short>::max())
-        {
-            scale = scaleAuto;
-
-            if (getDebugLevel() % 10 >= 1)
-            {
-                ostringstream oss;
-                oss << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << int(scale);
-                info(oss.str());
-            }
-        }
-
-        double scale2 = pow(2.0, scale);
-        bGridInfo_.rowScale[0] = numeric_limits<short>::min();
-        bGridInfo_.rowOffset[0] = 0;
-        bGridInfo_.rowExtent[0] = ii(binCountsIndex.size()) - 1;
-        bGridInfo_.colScale[0] = scale;
-        bGridInfo_.colOffset[0] = ii(floor(log2(mz0 - PROTON_MASS) * scale2));
-        bGridInfo_.colExtent[0] = (ii(ceil(log2(mz1 - PROTON_MASS) * scale2))) - bGridInfo_.colOffset[0] + 1;
-
-        if (getDebugLevel() % 10 >= 2)
-        {
-            ostringstream oss;
-            oss << getTimeStamp() << "     range=" << fixed << setprecision(3) << mz0 << ":" << mz1 << "Th";
-            info(oss.str());
-            ostringstream oss2;
-            oss2 << getTimeStamp() << "     charge_deconvolution=" << chargeDeconvolution_;
-            info(oss2.str());
-            ostringstream oss3;
-            oss3 << getTimeStamp() << "     charge_states=" << chargeStates;
-            info(oss3.str());
-            ostringstream oss4;
-            oss4 << getTimeStamp() << "     b_" << bGridInfo_;
-            info(oss4.str());
-        }
-
-        vector<MatrixSparse> bs(bGridInfo_.rowExtent[0]);
-        for (ii k = 0; k < bGridInfo_.rowExtent[0]; k++)
-        {
-            vector<ii> rowind;
-            vector<ii> colind;
-            vector<fp> acoo;
-
-            // create transformation matrix
-            for (ii i = 0; i < binEdgesIndex[k + 1] - binEdgesIndex[k] - 1; i++)
-            {
-                auto startNz = ii(acoo.size());
-                double rowSum = 0.0;
-
-                if (binCounts[binCountsIndex[k] + i] >= 0.0)
-                {
-                    li ei = binEdgesIndex[k] + i;
-                    double xfMin = log2(binEdges[ei] - PROTON_MASS) * scale2;
-                    double xfMax = log2(binEdges[ei + 1] - PROTON_MASS) * scale2;
-
-                    auto xMin = ii(floor(xfMin)) - 2;
-                    auto xMax = ii(ceil(xfMax)) + 2;
-
-                    // work out basis coefficients
-                    for (ii x = xMin; x <= xMax; x++)
-                    {
-                        double bfMin = x - 1.5;
-                        double bfMax = x + 2.5;
-
-                        // intersection of bin and basis, between 0.0 and 4.0
-                        double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
-                        double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
-
-                        // basis coefficient b is _integral_ of area under b-spline basis
-                        auto bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
-
-                        ii j = x - bGridInfo_.colOffset[0];
-                        if (j >= 0 && j < bGridInfo_.colExtent[0] && bc > 0.0)
-                        {
-                            rowSum += bc;
-                            acoo.push_back(bc);
-                            rowind.push_back(i);
-                            colind.push_back(j);
-                       }
-                    }
-                }
-
-                // normalise column
-                if (rowSum > 0.0)
-                {
-                    for (ii nz = startNz; nz < ii(acoo.size()); nz++)
-                        acoo[nz] /= rowSum;
-                }
-            }
-
-            // create b
-            MatrixSparse a;
-            a.importFromCoo(ii(binCountsIndex[k + 1] - binCountsIndex[k]), bGridInfo_.n(), acoo.size(),
-                            rowind.data(), colind.data(), acoo.data());
-
-            Matrix t;
-            t.importFromArray(1, ii(binCountsIndex[k + 1] - binCountsIndex[k]), &binCounts.data()[binCountsIndex[k]]);
-            MatrixSparse t2, t3;
-            t2.importFromMatrix(t);
-            t3.matmul(false, t2, a, false);
-            bs[k].pruneCells(t3);
-        }
-
-        b.resize(1);
-        b[0].concatenateRows(bs);
-
-        if (scaleAuto != scale && getDebugLevel() % 10 >= 2)
-        {
-            ostringstream oss;
-            oss << "WARNING: mz_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";
-            warning(oss.str());
-        }
+        ostringstream oss4;
+        oss4 << getTimeStamp() << "     b_" << bGridInfo_;
+        info(oss4.str());
     }
 
     if (getDebugLevel() % 10 >= 2)
@@ -237,7 +88,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
     // Load 'A'
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (getDebugLevel() % 10 >= 2)
+    /*if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
         oss << getTimeStamp() << "    Loading " << isotopesFilename << "...";
@@ -332,13 +183,13 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
         ostringstream oss;
         oss << getTimeStamp() << "     a_" << gridInfo();
         info(oss.str());
-    }
+    }*/
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Gt = m x n matrix where m are the coefficients and n are the groups (monoisotope centroid mass).
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    {
+    /*{
         vector<ii> is;
         vector<ii> js;
         vector<fp> vs;
@@ -368,14 +219,14 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
             }
         }
 
-        /*for (ii nz = 0; nz < ii(vs.size()); nz++)
-        {
-            vs[nz] /= sqrt(fp(gSizes[js[nz]]));
-        }*/
+        //for (ii nz = 0; nz < ii(vs.size()); nz++)
+        //{
+        //    vs[nz] /= sqrt(fp(gSizes[js[nz]]));
+        //}
 
         gTs_[0].importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
         gs_[0].transpose(gTs_[0]);
-    }
+    }*/
 }
 
 
