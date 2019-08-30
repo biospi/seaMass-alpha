@@ -164,12 +164,12 @@ void Seamass::init(const std::string& filePathIn, bool seed)
      while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
      new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, true, false);
      }
-     }
+     }*/
 
     // INIT OPTIMISER
-    innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
-    optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
-    //optimizer_ = new OptimizerSrl(bases_, b_, seed);*/
+    //innerOptimizer_ = new OptimizerSrl(bases_, b_, seed);
+    //optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
+    //optimizer_ = new OptimizerSrl(bases_, b_, seed);
 }
 
 
@@ -429,85 +429,29 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo =
+    /*const BasisBspline::GridInfo& meshInfo =
             static_cast<BasisBspline*>(bases_[dimensions_])->getGridInfo();
 
     vector<MatrixSparse> c(1);
     {
         vector<vector<MatrixSparse> > cs;
         optimizer_->synthesize(c, cs, dimensions_);
-    }
+    }*/
 
-    vector<fp>(meshInfo.size()).swap(controlPoints.coeffs);
-    c[0].exportToDense(controlPoints.coeffs.data());
+    vector<fp>(b_[0].size()).swap(controlPoints.coeffs);
+    b_[0].exportToDense(controlPoints.coeffs.data());
 
-    controlPoints.scale = meshInfo.colScale;
-    controlPoints.offset = meshInfo.colOffset;
-    controlPoints.extent = meshInfo.colExtent;
-}
-
-
-void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool density) const
-{
-    // todo: move this code to Basis class
-
-    if (getDebugLevel() % 10 >= 1)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "  Deriving 1D control points ...";
-        info(oss.str());
-    }
-
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[1])->getGridInfo();
-    controlPoints.scale.resize(1);
-    controlPoints.scale[0] = meshInfo.colScale[1];
-
-    controlPoints.offset.resize(1);
-    controlPoints.offset[0] = meshInfo.colOffset[1];
-
+    //controlPoints.scale = meshInfo.colScale;
+    //controlPoints.offset = meshInfo.colOffset;
+    //controlPoints.extent = meshInfo.colExtent;
+    
+    controlPoints.scale.resize(2);
+    controlPoints.scale[0] = 0;
+    controlPoints.scale[1] = 0;
+    controlPoints.offset.resize(2);
+    controlPoints.offset[0] = 0;
+    controlPoints.offset[1] = 0;
     controlPoints.extent.resize(2);
-    controlPoints.extent[0] = meshInfo.colExtent[1]
-                              + ii(log2(double(meshInfo.colExtent[0])) * double(1L << controlPoints.scale[0]));
-    controlPoints.extent[1] = meshInfo.rowExtent[0];
-
-    vector<MatrixSparse> c(1);
-    {
-        vector<vector<MatrixSparse> > cs;
-        optimizer_->synthesize(c, cs, 1);
-    }
-
-    // sum across charge states
-    vector<fp>(controlPoints.extent[0] * controlPoints.extent[1], 0.0f).swap(controlPoints.coeffs);
-    {
-        vector<fp> t(meshInfo.size());
-        c[0].exportToDense(t.data());
-
-        for (ii i = 0; i < meshInfo.rowExtent[0]; i++)
-        {
-            for (ii j = 0; j < meshInfo.colExtent[1]; j++)
-            {
-                for (ii z = 0; z < meshInfo.colExtent[0]; z++)
-                {
-                    controlPoints.coeffs[i * controlPoints.extent[0] +
-                            ii(log2(double(z+1)) * double(1L << controlPoints.scale[0])) + j] +=
-                            t[i * meshInfo.colExtent[0] * meshInfo.colExtent[1] + z * meshInfo.colExtent[1] + j];
-                }
-            }
-        }
-    }
-
-    // temporary hack (integrate instead)
-    if (density)
-    {
-        for (ii x = 0; x < controlPoints.extent[0]; x++)
-        {
-            double mz0 = pow(2.0, (controlPoints.offset[0] + x - 0.5) / double(1L << controlPoints.scale[0])) +
-                         BasisBsplineMz::PROTON_MASS;
-            double mz1 = pow(2.0, (controlPoints.offset[0] + x + 0.5) / double(1L << controlPoints.scale[0])) +
-                         BasisBsplineMz::PROTON_MASS;
-
-            for (ii y = 0; y < controlPoints.extent[1]; y++)
-                controlPoints.coeffs[x + y * controlPoints.extent[0]] /= mz1 - mz0;
-        }
-    }
+    controlPoints.extent[0] = b_[0].n();
+    controlPoints.extent[1] = b_[0].m();
 }

@@ -37,7 +37,7 @@ public:
     virtual void write(const std::string& smlFilename, const std::string &id) = 0;
 
     virtual bool read(std::string& smlFilename, Seamass::Output &output, std::string &id) = 0;
-    virtual void write(const std::string& smlFilename, const Seamass::Output &output, const std::string &id) = 0;
+    virtual void write(const std::string& smlFilename, const Seamass &seamass, const std::string &id) = 0;
 };
 
 

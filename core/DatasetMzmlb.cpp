@@ -737,7 +737,7 @@ bool DatasetMzmlb::read(std::string& filePathSml, Seamass::Output &output, std::
 }
 
 
-void DatasetMzmlb::write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id)
+void DatasetMzmlb::write(const std::string& filePathSml, const Seamass &seamass, const std::string &id)
 {
     throw runtime_error("BUG: not yet implemented!");
 }

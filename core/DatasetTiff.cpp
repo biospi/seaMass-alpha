@@ -136,7 +136,9 @@ bool DatasetTiff::read(std::string& filePathSml, std::string &id)
 
 void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 {
-    // Ranjeet todo: read from SML file rather than from Seamass::Input, writing to TIFF in fileOut_
+    throw runtime_error("BUG: not yet implemented!");
+
+    // Ranjeet todo: move to other write function
 
     FileNetcdf fileSml(filePathSml_,NC_NOWRITE);
     int samplePerPixel = 1;
@@ -268,19 +270,17 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 
 bool DatasetTiff::read(std::string& filePathSml, Seamass::Output &output, std::string &id)
 {
-    output = Seamass::Output();
-
-    if (!read(filePathSml, id))
-        return false;
-
-    id = "";
-
-    return finished_ = true;
+    throw runtime_error("BUG: not yet implemented!");
 }
 
 
-void DatasetTiff::write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id)
+void DatasetTiff::write(const std::string& filePathSml, const Seamass &seamass, const std::string &id)
 {
+    Seamass::ControlPoints controlPoints;
+    seamass.getOutputControlPoints(controlPoints);
+    
+    cout << "going to write seaMass output with extent " << controlPoints.extent[0] << "x" << controlPoints.extent[1] << endl;
+    
     // Ranjeet todo: write seamass output to TIFF in fileOut_
  }
 

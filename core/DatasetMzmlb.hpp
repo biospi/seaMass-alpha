@@ -60,7 +60,7 @@ public:
     virtual void write(const std::string& filePathSml, const std::string &id);
 
     virtual bool read(std::string& filePathSml, Seamass::Output &output, std::string &id);
-    virtual void write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id);
+    virtual void write(const std::string& filePathSml, const Seamass &seamass, const std::string &id);
 
 private:
     static bool startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);

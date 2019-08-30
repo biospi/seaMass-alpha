@@ -82,9 +82,6 @@ public:
     // get seaMass output (for smv file)
     void getOutput(Output& output, bool synthesize) const;
 
-    // get restored 1D control points (i.e. per spectra) derived from seaMass output
-    void getOutputControlPoints1d(ControlPoints& controlPoints, bool density) const;
-
     // get restored control points with dimension depending on input (i.e. 1D or 2D)
     void getOutputControlPoints(ControlPoints& controlPoints) const;
 
