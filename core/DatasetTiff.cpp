@@ -198,7 +198,7 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 
     tsize_t lineBytes = samplePerPixel*n*bytesPerSample;     // length in memory of one row of pixel in the image.
     //unsigned char *buf = NULL;        // buffer used to store the row of pixel information for writing to file
-    void *buf = NULL;        // buffer used to store the row of pixel information for writing to file
+    float *buf = NULL;        // buffer used to store the row of pixel information for writing to file
 
     // Allocating memory to store the pixels of current row
     tsize_t  scanLen = TIFFScanlineSize(fileOut_);
@@ -236,7 +236,11 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 
     for (uint32 row = 0; row < m; row++)
     {
-        memcpy(buf, &image[(m-row-1)*lineBytes], lineBytes);    // check the index here, and figure out why not using h*linebytes
+        for(ii i = 0; i < n; ++i)
+        {
+            buf[i]=image[i+row*m];
+        }
+        //memcpy(buf, &image[(m-row-1)*lineBytes], lineBytes);    // check the index here, and figure out why not using h*linebytes
         if (TIFFWriteScanline(fileOut_, buf, row, 0) < 0)
             break;
     }
