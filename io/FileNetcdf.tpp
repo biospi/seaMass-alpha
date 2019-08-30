@@ -560,7 +560,8 @@ T FileNetcdf::searchGroup(size_t level, int parentId)
         parentId = ngrpids[0];
     }
 
-    istringstream(strGrp.substr(strGrpL-ds+1,ds-1))>>val;
+    //istringstream(strGrp.substr(strGrpL-ds+1,ds-1))>>val;
+    istringstream(strGrp.substr(strGrpL-ds,ds))>>val;
     return val;
 }
 
