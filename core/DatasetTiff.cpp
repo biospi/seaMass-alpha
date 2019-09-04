@@ -41,7 +41,7 @@ DatasetTiff::DatasetTiff(const std::string& filePathIn, const std::string& fileP
     if (!filePathStemOut.empty())
     {
         filePathSml_ = filePathStemOut + ".sml";
-        string filePathOut = filePathIn + ".seamass.tiff";
+        string filePathOut = filePathStemOut + ".seamass.tiff";
         fileOut_ = TIFFOpen(filePathOut.c_str(), "w");
         if (!fileOut_) throw runtime_error("");
     }
@@ -182,19 +182,46 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
     //char *image=new char [n*m*sampleperpixel];
     vector<float> image(n*m*samplePerPixel,0.0);
 
-   // Then format of the pixel information is store in the order RGBA, into the array, each channel occupies 1 byte (char).
-   // Now we need to set the tags in the new image file, and the essential ones are the following:
-    TIFFSetField(fileOut_, TIFFTAG_IMAGEWIDTH, n);  // set the width of the image
-    TIFFSetField(fileOut_, TIFFTAG_IMAGELENGTH, m);    // set the height of the image
-    TIFFSetField(fileOut_, TIFFTAG_SAMPLESPERPIXEL, samplePerPixel);   // set number of channels per pixel
-    TIFFSetField(fileOut_, TIFFTAG_BITSPERSAMPLE, bitsPerSample);    // set the size of the channels
-    TIFFSetField(fileOut_, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);    // set the origin of the image.
+    char *metaData;
+    if (TIFFGetField(fileIn_, TIFFTAG_IMAGEDESCRIPTION, &metaData) != 1) throw runtime_error("");
+    //size_t  lenMetaData = sizeof(metaData)/ sizeof(metaData[0]);
+    //cout<<"number of Chars in MetaData: "<<lenMetaData<<endl;
+
+    cout<<"Lets See if this works!!!"<<endl;
+    //cout<<metaData<<endl;
+
+
+    TIFFSetField(fileOut_, TIFFTAG_IMAGEWIDTH, n);
+    TIFFSetField(fileOut_, TIFFTAG_IMAGELENGTH, m);
+    TIFFSetField(fileOut_, TIFFTAG_BITSPERSAMPLE, bitsPerSample);
+    TIFFSetField(fileOut_, TIFFTAG_SAMPLESPERPIXEL, samplePerPixel);
+    TIFFSetField(fileOut_, TIFFTAG_ROWSPERSTRIP, 1);
+    TIFFSetField(fileOut_, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
     TIFFSetField(fileOut_, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(fileOut_, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    TIFFSetField(fileOut_, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+    TIFFSetField(fileOut_, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+    // Then format of the pixel information is store in the order RGBA, into the array, each channel occupies 1 byte (char).
+    // Now we need to set the tags in the new image file, and the essential ones are the following:
+    //if (TIFFSetField(fileOut_, TIFFTAG_IMAGEWIDTH, n) != 1) throw runtime_error("");  // set the width of the image
+    //if (TIFFSetField(fileOut_, TIFFTAG_IMAGELENGTH, m) != 1) throw runtime_error("");    // set the height of the image
+    //if (TIFFSetField(fileOut_, TIFFTAG_SAMPLESPERPIXEL, samplePerPixel) != 1) throw runtime_error("");   // set number of channels per pixel
+    //if (TIFFSetField(fileOut_, TIFFTAG_BITSPERSAMPLE, bitsPerSample) != 1) throw runtime_error("");    // set the size of the channels
+    //if (TIFFSetField(fileOut_, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG) != 1) throw runtime_error("");
+    //if (TIFFSetField(fileOut_, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(out, imagewidth*nsamples)) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_IMAGEDESCRIPTION, metaData) != 1) throw runtime_error("Error writing MetaData:");  // Put in original metaData.
+
+    // We set the strip size of the file to be size of one row of pixels
+    //if (TIFFSetField(fileOut_, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(fileOut_, n*samplePerPixel*bytesPerSample)) != 1) throw runtime_error("");
+
+
 
     // Some other essential fields to set that you do not have to understand for now.
     //TIFFSetField(fileOut_, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     //TIFFSetField(fileOut_, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
     //We will use most basic image data storing method provided by the library to write the data into the file, this method uses strips, and we are storing a line (row) of pixel at a time.  This following code writes the data from the char array image into the file:
+
+
 
     tsize_t lineBytes = samplePerPixel*n*bytesPerSample;     // length in memory of one row of pixel in the image.
     //unsigned char *buf = NULL;        // buffer used to store the row of pixel information for writing to file
@@ -209,21 +236,55 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
         buf = (float *)_TIFFmalloc(TIFFScanlineSize(fileOut_));
         //buf = (unsigned char *)_TIFFmalloc(TIFFScanlineSize(fileOut_));
 
-    // We set the strip size of the file to be size of one row of pixels
-    TIFFSetField(fileOut_, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(fileOut_, n*samplePerPixel));
 
     // recreate image from CSR format...
 
-    ii idxEnd = *(ijs+1);
+    //ii idxEnd = *(ijs+1);
     for (int i = 0; i < m-1; ++i)
     {
         ii idxBeg = ijs[i];
+        ii idxEnd = ijs[i+1];
         for (ii j = idxBeg; j < idxEnd; ++j)
         {
-            image[i*m + js[i*m + j] ] = vs[i*m + j];
+            image[i*n + js[j]] = vs[j];
         }
-        idxEnd = ijs[i+1];
     }
+
+    for (int i = 0; i < m; i++)
+    {
+        memcpy(buf, &image[i*n], n * sizeof(float));
+        TIFFWriteScanline(fileOut_, buf, i, 0);
+    }
+
+
+    TIFF *image_ = TIFFOpen("new_output.tif", "w");
+    TIFFSetField(image_, TIFFTAG_IMAGEWIDTH, n);
+    TIFFSetField(image_, TIFFTAG_IMAGELENGTH, m);
+    TIFFSetField(image_, TIFFTAG_BITSPERSAMPLE, 32);
+    TIFFSetField(image_, TIFFTAG_SAMPLESPERPIXEL, 1);
+    TIFFSetField(image_, TIFFTAG_ROWSPERSTRIP, 1);
+    TIFFSetField(image_, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+    TIFFSetField(image_, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(image_, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    TIFFSetField(image_, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+    TIFFSetField(image_, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+    if (TIFFSetField(image_, TIFFTAG_IMAGEDESCRIPTION, metaData) != 1) throw runtime_error("Error writing MetaData:");  // Put in original metaData.
+
+    float *scan_line = (float *)malloc(n*(sizeof(float)));
+
+    for (int i = 0; i < m; i++) {
+        //memcpy(scan_line, &image[i*n], n * sizeof(float));
+        memcpy(buf, &image[i*n], n * sizeof(float));
+        TIFFWriteScanline(image_, scan_line, i, 0);
+    }
+
+    TIFFClose(image_);
+    free(scan_line);
+
+
+
+
+
 
 
     // Now writing image to the file one strip at a time
@@ -234,6 +295,7 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
     */
 
 
+    /*
     for (uint32 row = 0; row < m; row++)
     {
         for(ii i = 0; i < n; ++i)
@@ -244,11 +306,14 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
         if (TIFFWriteScanline(fileOut_, buf, row, 0) < 0)
             break;
     }
+    */
 
     // Finally we close the output file, and destroy the buffer
     //(void) TIFFClose(out);
     //if (buf)
     _TIFFfree(buf);
+    TIFFClose(fileOut_);
+
 
     // ---------------------------------------------------------------------------------
 
