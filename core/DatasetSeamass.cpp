@@ -261,10 +261,13 @@ bool DatasetSeamass::read(std::string& filePathSml, Seamass::Output &output, std
 }
 
 
-void DatasetSeamass::write(const std::string& filePathSml, const Seamass::Output &output, const std::string &id)
+void DatasetSeamass::write(const std::string& filePathSml, const Seamass &seamass, const std::string &id)
 {
     write(filePathSml, id);
 
+    Seamass::Output output;
+    seamass.getOutput(output, false);
+    
     int groupId = fileOut_->createGroup("seamass");
 
     fileOut_->writeAttribute(output.scale, "scale", "", groupId);

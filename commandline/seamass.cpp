@@ -151,7 +151,6 @@ int main(int argc, const char * const * argv)
 
         while (dataset->read(filePathIn, id))
         {
-
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
@@ -198,33 +197,23 @@ int main(int argc, const char * const * argv)
                         datasetOut.write(input, output, id);
                     }*/
                     {
-                        Seamass::Output output;
-                        seamass.getOutput(output, true);
-
                         // write intermediate output in seaMass format
                         ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamass.getIteration();
                         DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                        datasetOut.write(filePathIn, output, id);
+                        datasetOut.write(filePathIn, seamass, id);
                     }
                 }
             }
             while (seamass.step());
 
             // write output
-            {
-                Seamass::Output output;
-                seamass.getOutput(output, false);
-                dataset->write(filePathIn, output, id);
-            }
+            dataset->write(filePathIn, seamass, id);
 
             if (debugLevel / 10 >= 1)
             {
-                Seamass::Output output;
-                seamass.getOutput(output, true);
-
-                ostringstream oss; oss << fileStemOut << ".synthesized";
+                 ostringstream oss; oss << fileStemOut << ".synthesized";
                 DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                datasetOut.write(filePathIn, output, id);
+                datasetOut.write(filePathIn, seamass, id);
             }
 
             if (debugLevel % 10 == 0)
