@@ -151,14 +151,22 @@ int main(int argc, const char * const * argv)
 
         while (dataset->read(filePathIn, id))
         {
-            // Temp test tiff test...
-            dataset->write(filePathIn, id);
 
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
             Seamass seamass(filePathIn, filePathLib, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
                             peakFwhm, chargeStates);
+
+            //Seamass::ControlPoints testData;
+            //Seamass::Output testOutput;
+
+            //seamass.getOutput(testOutput,false);
+            //seamass.getOutputControlPoints(testData);
+
+            // Temp test tiff test...
+            dataset->write(filePathIn, id);
+            //dataset->write(filePathIn,testOutput,id);
 
             if (debugLevel / 10 >= 1)
             {

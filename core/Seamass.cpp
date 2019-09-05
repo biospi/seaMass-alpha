@@ -119,7 +119,10 @@ void Seamass::init(const std::string& filePathIn, bool seed)
     b_.resize(1);
     fileSml.readMatrixSparseCsr(b_[0], "xScale=0");
     cout << "read in " << filePathIn << ", image is " << b_[0].m() << " rows by " << b_[0].n() << " columns" << endl;
- 
+
+    //Delete this Line. It is only here so the destructor doesnt fall over...
+    optimizer_ = NULL;
+
     // INIT BASIS FUNCTIONS
     // Create our tree of bases
     /*if (getDebugLevel() % 10 >= 1)
