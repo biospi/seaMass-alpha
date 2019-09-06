@@ -65,8 +65,6 @@ bool DatasetTiff::read(std::string& filePathSml, std::string &id)
     
     filePathSml = filePathSml_;
 
-    // Ranjeet todo: write into SML file rather than into Seamass::Input
-
     uint32 width, height;
     int16 bps, spp;
     if (TIFFGetField(fileIn_, TIFFTAG_IMAGEWIDTH, &width) != 1) throw runtime_error("");
@@ -136,8 +134,6 @@ bool DatasetTiff::read(std::string& filePathSml, std::string &id)
 
 void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 {
-    // Ranjeet todo: move to other write function
-
     FileNetcdf fileSml(filePathSml_,NC_NOWRITE);
     int samplePerPixel = 1;
     int bitsPerSample = 32;
@@ -186,6 +182,9 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 
     if (TIFFSetField(fileOut_, TIFFTAG_IMAGEWIDTH, n) != 1) throw runtime_error("");
     if (TIFFSetField(fileOut_, TIFFTAG_IMAGELENGTH, m) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_XRESOLUTION, 1.0) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_YRESOLUTION, 1.0) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_RESOLUTIONUNIT, RESUNIT_NONE) != 1) throw runtime_error("");
     if (TIFFSetField(fileOut_, TIFFTAG_BITSPERSAMPLE, bitsPerSample) != 1) throw runtime_error("");
     if (TIFFSetField(fileOut_, TIFFTAG_SAMPLESPERPIXEL, samplePerPixel) != 1) throw runtime_error("");
     if (TIFFSetField(fileOut_, TIFFTAG_ROWSPERSTRIP, 1) != 1) throw runtime_error("");
@@ -201,9 +200,9 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
 
     // Allocating memory to store the pixels of current row
     if (TIFFScanlineSize(fileOut_) != lineBytes)
-        buf =(float *)_TIFFmalloc(lineBytes);
+        buf = (float*)_TIFFmalloc(lineBytes);
     else
-        buf = (float *)_TIFFmalloc(TIFFScanlineSize(fileOut_));
+        buf = (float*)_TIFFmalloc(TIFFScanlineSize(fileOut_));
 
     // recreate image from CSR format...
     for (int i = 0; i < m-1; ++i)
@@ -223,10 +222,8 @@ void DatasetTiff::write(const std::string& filePathSml, const std::string &id)
         TIFFWriteScanline(fileOut_, buf, i, 0);
     }
 
-    // Finally we close the output file, and destroy the buffer
+    // Finally we destroy the buffer
     _TIFFfree(buf);
-    // Close file manually to test TIFF image creation. Only use when seamass loop is broken
-    //TIFFClose(fileOut_);
 }
 
 
@@ -242,9 +239,55 @@ void DatasetTiff::write(const std::string& filePathSml, const Seamass &seamass, 
     seamass.getOutputControlPoints(controlPoints);
     
     cout << "going to write seaMass output with extent " << controlPoints.extent[0] << "x" << controlPoints.extent[1] << endl;
-    
-    // Ranjeet todo: write seamass output to TIFF in fileOut_
- }
+
+    ii m = controlPoints.extent[1];
+    ii n = controlPoints.extent[0];
+
+    int samplePerPixel = 1;
+    int bitsPerSample = 32;
+    int bytesPerSample = 4;
+
+    // Read in metadata from the original TIFF file.
+    char *metaData;
+    if (TIFFGetField(fileIn_, TIFFTAG_IMAGEDESCRIPTION, &metaData) != 1) throw runtime_error("");
+    //cout<<"Lets See if this works!!!"<<endl;
+    //cout<<metaData<<endl;
+
+
+    if (TIFFSetField(fileOut_, TIFFTAG_IMAGEWIDTH, n) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_IMAGELENGTH, m) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_XRESOLUTION, 1.0) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_YRESOLUTION, 1.0) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_RESOLUTIONUNIT, RESUNIT_NONE) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_BITSPERSAMPLE, bitsPerSample) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_SAMPLESPERPIXEL, samplePerPixel) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_ROWSPERSTRIP, 1) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_COMPRESSION, COMPRESSION_NONE) != 1) throw runtime_error("");
+    if (TIFFSetField(fileOut_, TIFFTAG_IMAGEDESCRIPTION, metaData) != 1) throw runtime_error("Error writing MetaData:");  // Put in original metaData.
+
+    tsize_t lineBytes = samplePerPixel*n*bytesPerSample;     // length in memory of one row of pixel in the image.
+    float *buf = NULL;        // buffer used to store the row of pixel information for writing to file
+
+    // Allocating memory to store the pixels of current row
+    if (TIFFScanlineSize(fileOut_) != lineBytes)
+        buf = (float*)_TIFFmalloc(lineBytes);
+    else
+        buf = (float*)_TIFFmalloc(TIFFScanlineSize(fileOut_));
+
+    // Now writing image to the file one strip at a time
+    for (int i = 0; i < m; i++)
+    {
+        memcpy(buf, &controlPoints.coeffs[i*n], n * sizeof(float));
+        TIFFWriteScanline(fileOut_, buf, i, 0);
+    }
+
+    // Finally destroy the buffer
+    _TIFFfree(buf);
+}
 
 
 

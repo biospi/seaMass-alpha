@@ -157,15 +157,6 @@ int main(int argc, const char * const * argv)
             Seamass seamass(filePathIn, filePathLib, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
                             peakFwhm, chargeStates);
 
-            //Seamass::ControlPoints testData;
-            //Seamass::Output testOutput;
-
-            //seamass.getOutput(testOutput,false);
-            //seamass.getOutputControlPoints(testData);
-
-            // Temp test tiff test...
-            dataset->write(filePathIn, id);
-            //dataset->write(filePathIn,testOutput,id);
 
             if (debugLevel / 10 >= 1)
             {
@@ -206,6 +197,8 @@ int main(int argc, const char * const * argv)
             }
             while (seamass.step());
 
+            // Temp tiff test...
+            //dataset->write(filePathIn, id);
             // write output
             dataset->write(filePathIn, seamass, id);
 
