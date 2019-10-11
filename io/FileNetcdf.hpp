@@ -59,6 +59,7 @@ public:
     const string& getFileName();
 
     bool exists(const string& variable, int parentId = 0);
+    bool getFileStatus(void);
 
     int createGroup(const string& name, int parentId = 0);
     int openGroup(const string& name, int parentId = 0);

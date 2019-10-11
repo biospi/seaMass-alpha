@@ -53,7 +53,8 @@ public:
         size_t intensitiesOffset;
     };
 
-    DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+
+    DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, std::vector<short>& scale, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
     virtual ~DatasetMzmlb();
 
     virtual bool read(std::string& filePathSml, std::string &id);
@@ -63,11 +64,39 @@ public:
     virtual void write(const std::string& filePathSml, const Seamass &seamass, const std::string &id);
 
 private:
+    struct smlDataFrame
+    {
+        int matrixId;
+        int ijsId;
+        int jsId;
+        int vsId;
+    };
+
+    struct mzAxis
+    {
+        vector<double> mz;
+        vector<double> dmz;
+        vector<float> sc;
+        double mzMin;
+        double mzMax;
+        ii idxMin;
+        ii idxMax;
+        short scale;
+    };
+
     static bool startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
     static bool seamassOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
 
+    //void rebinMZ(vector<float> rawMZ, vector<float> rebin, li const idx, li const row);
+    //void genAxis(vector<double> &x, vector<double> dx, short scale, double min, double max);
+    void rebinMZ(const vector<double>& rawMz, const vector<float>& rawSc, mzAxis& mzBin);
+    void genAxis(mzAxis& mz_, short scale);
+
+    static const double PROTON_MASS;
+
     FileNetcdf fileIn_;
     FileNetcdf* fileOut_;
+    FileNetcdf* fileSml_;
 
     // Andy's reading stuff
     vector<SpectrumMetadata> metadata_; // this will be sorted for 'next()'
@@ -80,6 +109,10 @@ private:
     vector<li> specIdx_;
     li newMzmlIndex_;
     li spectrumListIdx_;
+    vector<short> scale_;
+    vector<smlDataFrame> smlDataId_;
+    mzAxis mzBin_;
+
 
     //void writeVecData(vector<fp>& data_);
     //void writeXmlData();
@@ -96,6 +129,7 @@ private:
     void writeChromatogramXmlEnd();
 };
 
+const double DatasetMzmlb::PROTON_MASS = 1.007276466879;
 
 // DEPRECATED!
 template<typename T>

@@ -102,6 +102,10 @@ bool FileNetcdf::exists(const string& variable, int parentId)
     return nc_inq_varid(parentId, variable.c_str(), &varid) == NC_NOERR;
 }
 
+bool FileNetcdf::getFileStatus()
+{
+    return  fileStatus_;
+}
 
 void FileNetcdf::readExtent(vector<size_t>& extent, const string& name, int parentId)
 {
