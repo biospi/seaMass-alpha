@@ -20,8 +20,8 @@
 //
 
 
-#ifndef _SEAMASS_CORE_BASISBSPLINEMZ_HPP_
-#define _SEAMASS_CORE_BASISBSPLINEMZ_HPP_
+#ifndef SEAMASS_CORE_BASISBSPLINEMZ_HPP
+#define SEAMASS_CORE_BASISBSPLINEMZ_HPP
 
 
 #include "BasisBspline.hpp"
@@ -30,16 +30,27 @@
 class BasisBsplineMz : public BasisBspline
 {
 public:
-	BasisBsplineMz(std::vector<Basis*>& bases, const std::vector<fp>& binCounts, const std::vector<li>& spectrumIndex,
-		           const std::vector<double>& binEdges, short resolution, ii order = 3, bool isTransient = false);
-	virtual ~BasisBsplineMz();
+    static double PROTON_MASS;
 
-	void synthesis(Matrix& f, const Matrix& x, bool accumulate) const;
-	void analysis(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
+    BasisBsplineMz(std::vector<Basis*>& bases, std::vector<MatrixSparse>& b, bool transient);
+
+    virtual ~BasisBsplineMz();
+
+    virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
+    virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
+
+    virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
+
+    const GridInfo& getBGridInfo() const;
 
 private:
-	std::vector<MatrixSparse> as_; // CSR sparse 'A' basis matrices
-	std::vector<li> is_; // spectrum_index into 'g'
+    GridInfo bGridInfo_;
+ 
+    MatrixSparse aT_;
+    MatrixSparse a_;
+
+    std::vector<MatrixSparse> gTs_;
+    std::vector<MatrixSparse> gs_;
 };
 
 

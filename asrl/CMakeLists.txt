@@ -1,0 +1,20 @@
+add_library(seamass_asrl
+        Basis.cpp
+        Basis.hpp
+        BasisMatrix.cpp
+        BasisMatrix.hpp
+        Optimizer.cpp
+        Optimizer.hpp
+        OptimizerSrl.cpp
+        OptimizerSrl.hpp
+        OptimizerAccelerationEve1.cpp
+        OptimizerAccelerationEve1.hpp
+        Asrl.cpp
+        Asrl.hpp
+        )
+target_include_directories(seamass_asrl PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(seamass_asrl
+        seamass_io
+        )

@@ -21,106 +21,135 @@
 
 
 #include "BasisBsplineScantime.hpp"
-
 #include "Bspline.hpp"
-
 #include <limits>
 #include <iomanip>
+#include <sstream>
 #include <cmath>
-
-
 using namespace std;
+using namespace kernel;
 
 
-BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes, const std::vector<double>& finishTimes,
-	const std::vector<fp>& exposures, short resolution, ii order, bool transient) : BasisBspline(bases, 2, transient, parentIndex)
+// TODO: support ion mobility
+BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex,
+                                           const std::vector<double>& startTimes,
+                                           const std::vector<double>& finishTimes,
+                                           const std::vector<fp>& exposures,
+                                           short scale, bool transient) :
+        BasisBspline(bases,
+                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
+                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().colDimensions(),
+                     transient, parentIndex)
 {
-	double scantimeMin = startTimes.front();
-	double scantimeMax = finishTimes.back();
-
-	double scantimeDiff = numeric_limits<double>::max();
-	for (ii j = 0; j < (ii)startTimes.size() - 1; j++)
-	{
-		double diff = 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
-		scantimeDiff = diff < scantimeDiff ? diff : scantimeDiff;
-	}
-
-	ii resolutionAuto = (ii)floor(log2(1.0 / scantimeDiff));
-	if (resolution == numeric_limits<short>::max())
-	{
-		resolution = resolutionAuto;
-		cout << "Autodetected st_resolution=" << resolution << endl;
-	}
-
-	// Bases per second
-	double bpi = pow(2.0, (double)resolution);
-
-	// fill in b-spline grid info
-	const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
-	gridInfo().n = 1;
-	gridInfo().scale[0] = parentGridInfo.scale[0];
-	gridInfo().offset[0] = parentGridInfo.offset[0];
-	gridInfo().extent[0] = parentGridInfo.extent[0];
-	gridInfo().scale[1] = resolution;
-	gridInfo().offset[1] = (ii)floor(scantimeMin * bpi);
-	gridInfo().extent[1] = ((ii)ceil(scantimeMax * bpi)) + order - gridInfo().offset[1];
-	ii m = parentGridInfo.n;
-	ii n = gridInfo().extent[1];
-    
-    // populate coo matrix
-    vector<fp> acoo;
-    vector<ii> rowind;
-    vector<ii> colind;
-	Bspline bspline(order, 65536); // bspline basis function lookup table
-	for (ii i = 0; i < startTimes.size(); i++)
+    if (getDebugLevel() % 10 >= 1)
     {
-		double xfMin = startTimes[i] * bpi;
-		double xfMax = finishTimes[i] * bpi;
-
-        ii xMin = (ii) floor(xfMin);
-        ii xMax = ((ii) ceil(xfMax)) + order;
-        
-		// work out basis coefficients
-		for (int x = xMin; x < xMax; x++)
-        {
-            double bfMin = (double)(x - order);
-            double bfMax = (double)(x + 1);
-            
-            // intersection of bin and basis, between 0 and order+1
-			double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
-			double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
-
-			// basis coefficient b is _integral_ of area under b-spline basis
-			fp b = (fp)(bspline.ibasis(bMax) - bspline.ibasis(bMin));
-
-			acoo.push_back(b);
-			rowind.push_back(i);
-			colind.push_back(x - gridInfo().offset[1]);
-        }
+        ostringstream oss;
+        oss << getTimeStamp();
+        if (getDebugLevel() % 10 >= 2)
+            oss << "   " << getIndex() << " BasisBsplineScantime";
+        else
+            oss << "   BasisBsplineScantime";
+        if (isTransient()) oss << " (transient)";
+        oss << " ...";
+        info(oss.str());
     }
 
-	// create 'a' and 'aT'
-	a_.init(m, n, (ii)acoo.size(), acoo.data(), rowind.data(), colind.data());
-	aT_.init(n, m, (ii)acoo.size(), acoo.data(), colind.data(), rowind.data());
+    double scantimeMin = startTimes.front();
+    double scantimeMax = finishTimes.back();
 
-#ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScantime";
-	if (isTransient()) cout << " (t)";
-	cout << " parent=" << getParentIndex();
-	cout << " range=" << setprecision(3) << fixed << scantimeMin << ":";
-	cout.unsetf(ios::floatfield); 
-	cout << scantimeDiff << ":" << fixed << scantimeMax << "s";
-	cout << " resolution=" << fixed << setprecision(1) << resolution << " (" << bpi << " bases per second)";
-	cout << " " << gridInfo() << endl;
-	cout << "  A" << a_ << " (";
-	cout.unsetf(ios::floatfield); 
-	cout << setprecision(2) << (a_.mem() + aT_.mem()) / 1024.0 / 1024.0 << "Mb)" << endl;
-#endif
-	
-	if (resolutionAuto != resolution)
-	{
-		cerr << endl << "WARNING: resolution is not the suggested value of " << resolutionAuto << ". Continue at your own risk!" << endl << endl;
-	}
+    double scantimeDiff = 0.0;
+    for (ii j = 0; j < ii(startTimes.size()) - 1; j++)
+        scantimeDiff += 0.5 * (startTimes[j + 1] + finishTimes[j + 1]) - 0.5 * (startTimes[j] + finishTimes[j]);
+    scantimeDiff /= ii(startTimes.size()) - 1;
+
+    ii scaleAuto = ii(round(log2(1.0 / scantimeDiff)));
+    if (scale == numeric_limits<short>::max())
+    {
+        scale = scaleAuto;
+        
+        if (getDebugLevel() % 10 >= 1)
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << scale;
+            info(oss.str());
+        }
+    }
+    
+    // fill in b-spline grid info
+    const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
+    double scale2 = pow(2.0, scale);
+
+    gridInfo().rowScale[0] = scale;
+    gridInfo().rowOffset[0] = ii(floor(scantimeMin * scale2)) - 1;
+    gridInfo().rowExtent[0] = (ii(ceil(scantimeMax * scale2)) + 1)  - gridInfo().rowOffset[0] + 1;
+
+    gridInfo().colScale = parentGridInfo.colScale;
+    gridInfo().colOffset = parentGridInfo.colOffset;
+    gridInfo().colExtent = parentGridInfo.colExtent;
+    
+    if (getDebugLevel() % 10 >= 2)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "     parent=" << getParentIndex();
+        info(oss.str());
+        ostringstream oss2;
+        oss2 << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
+        oss2.unsetf(std::ios::floatfield);
+        oss2 << scantimeDiff << ":" << fixed << scantimeMax << "seconds";
+        info(oss2.str());
+        ostringstream oss3;
+        oss3 << getTimeStamp() << "     " << gridInfo();
+        info(oss3.str());
+    }
+
+    // populate coo matrix
+    vector<ii> rowind;
+    vector<ii> colind;
+    vector<fp> acoo;
+    Bspline bspline(3, 65536); // bspline basis function lookup table
+    for (ii i = 0; i < startTimes.size(); i++)
+    {
+        double xfMin = startTimes[i] * scale2;
+        double xfMax = finishTimes[i] * scale2;
+
+        ii xMin = ii(floor(xfMin)) - 1;
+        ii xMax = ii(ceil(xfMax)) + 1;
+        
+        // work out basis coefficients
+        for (int x = xMin; x <= xMax; x++)
+        {
+            auto bfMin = double(x - 2);
+            auto bfMax = double(x + 2);
+            
+            // intersection of bin and basis, between 0.0 and 4.0
+            double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
+            double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
+
+            // basis coefficient b is _integral_ of area under b-spline basis
+            auto b = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+
+            if (b > 0.0)
+            {
+                if (exposures.empty())
+                    acoo.push_back(b);
+                else
+                    acoo.push_back(b * exposures[i]);
+
+                rowind.push_back(i);
+                colind.push_back(x - gridInfo().rowOffset[0]);
+            }
+       }
+    }
+
+    // create transformation matrix 'a'
+    aT_.importFromCoo(getGridInfo().m(), parentGridInfo.m(), acoo.size(), colind.data(), rowind.data(), acoo.data());
+
+    if (scaleAuto != scale && getDebugLevel() % 10 >= 2)
+    {
+        ostringstream oss;
+        oss << "WARNING: st_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";
+        warning(oss.str());
+    }
 }
 
 
@@ -129,34 +158,72 @@ BasisBsplineScantime::~BasisBsplineScantime()
 }
 
 
-void
-BasisBsplineScantime::
-synthesis(Matrix& f, const Matrix& x, bool accumulate) const
+void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
-#ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScantime::synthesis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::synthesise";
+        info(oss.str());
+    }
 
-	f.mul(a_, x, accumulate, false, false);
+    if (!f.size())
+        f.resize(1);
+
+    // zero basis functions that are no longer needed
+    MatrixSparse t;
+    ii rowsPruned = t.pruneRows(aT_, x[0], true, 0.75);
+    if (rowsPruned > 0)
+    {
+        aT_.swap(t);
+
+        if (getDebugLevel() % 10 >= 2)
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
+            info(oss.str());
+        }
+    }
+
+    // synthesise
+    f[0].matmul(true, aT_, x[0], accumulate);
+        
+    if (getDebugLevel() % 10 >= 3)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << f[0];
+        info(oss.str());
+    }
 }
 
 
-void
-BasisBsplineScantime::
-analysis(Matrix& xE, const Matrix& fE, bool sqrA) const
+void BasisBsplineScantime::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
-#ifndef NDEBUG
-	cout << " " << getIndex() << " BasisBsplineScantime::analysis" << endl;
-#endif
+    if (getDebugLevel() % 10 >= 3)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplineScantime::analyse";
+        info(oss.str());
+    }
 
-	if (sqrA)
-	{
-		MatrixSparse aTSqrd;
-		aTSqrd.elementwiseSqr(aT_);
-		xE.mul(aTSqrd, fE, false, false, false);
-	}
-	else
-	{
-		xE.mul(aT_, fE, false, false, false);
-	}
+    if (!xE.size())
+        xE.resize(1);
+
+    if (sqrA)
+    {
+        MatrixSparse t;
+        t.sqr(aT_);
+        xE[0].matmul(false, t, fE[0], false);
+    }
+    else
+    {
+        xE[0].matmul(false, aT_, fE[0], false);
+    }
+    
+    if (getDebugLevel() % 10 >= 3)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "       " << xE[0];
+        info(oss.str());
+    }
 }

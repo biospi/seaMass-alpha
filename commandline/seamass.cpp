@@ -1,7 +1,4 @@
 //
-// $Id$
-//
-//
 // Original author: Andrew Dowsey <andrew.dowsey <a.t> bristol.ac.uk>
 //
 // Copyright (C) 2016  biospi Laboratory, University of Bristol, UK
@@ -22,231 +19,263 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-
+#include "../kernel/Subject.hpp"
+#include "../core/DatasetSeamass.hpp"
+#include <kernel.hpp>
 #include <limits>
+#include <iomanip>
 #include <boost/program_options.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <omp.h>
-
-#include "../io/HDF5Writer.hpp"
-#include "../io/RTreeReader.hpp"
-#include "../io/MSFileData.hpp"
-#include "../core/SeamassCore.hpp"
-#include "../io/MzMLb.hpp"
-
 using namespace std;
+using namespace kernel;
 namespace po = boost::program_options;
 
-
-int main(int argc, char **argv)
+//vector<T> numStrBracketPair(string numket)
+template<typename T>
+void numStrBracketPair(const string numket, vector<T>& range)
 {
-	SeamassCore::notice();
+    T value;
+    size_t blhs;
+    size_t brhs;
+    size_t coma;
+    if ((coma=numket.find(",")) != string::npos)
+    {
+        blhs=numket.find("[");
+        brhs=numket.find("]");
 
-	string in_file;
-	vector<ii> scales(2);
-	ii shrinkageExponent;
-	ii toleranceExponent;
-	ii threads;
-	ii debugLevel;
+        if(blhs == coma-1)
+            range[0]=T(-1);
+            //range.push_back(T(-1));
+        else
+        {
+            istringstream(numket.substr(1,coma-1))>>value;
+            range[0]=value;
+            //range.push_back(value);
+        }
 
-	// *******************************************************************
+        if(brhs == coma+1)
+            range[1]=T(-1);
+            //range.push_back(T(-1));
+        else
+        {
+            istringstream(numket.substr(coma+1,brhs-coma-1))>>value;
+            range[1]=value;
+            //range.push_back(value);
+        }
+    }
+    else{
+        istringstream(numket)>>value;
+        //range.push_back(value);
+        //range.push_back(T(-1));
+        range[0]=value;
+        range[1]=T(-1);
+    }
+    return range;
+}
 
-	po::options_description general("Usage\n"
-			"-----\n"
-			"seamass [OPTIONS...] [MZMLB]\n"
-			"seamass <-f in_file> <-m mz_scale> <-r st_scale> <-s shrinkage> <-l tol> <-t threads> <-o out_type>\n"
-			"seamass -m 1 -r 4 -s -4 -l -9 -t 4 -o 0");
 
-	general.add_options()
-		("help,h", "Produce help message")
-		("file,f", po::value<string>(&in_file),
-			"Raw input file in seaMass Input format (mzMLb, csv etc.) "
-			"guidelines: Use pwiz-seamass to convert from mzML or vendor format")
-		("mz_scale,m",po::value<ii>(&scales[0])->default_value(numeric_limits<short>::max()),
-			"m/z resolution given as: \"b-splines per Th = 2^mz_scale * 60 / 1.0033548378\" "
-			"guidelines: between 0 to 1 for ToF (e.g. 1 is suitable for 30,000 resolution), 3 for Orbitrap, "
-			"default: auto")
-		("st_scale,r", po::value<ii>(&scales[1])->default_value(numeric_limits<short>::max()),
-			"Scan time resolution given as: \"b-splines per second = 2^st_scale\" "
-			"guidelines: around 4, "
-			"default: auto")
-		("shrinkage,s",po::value<ii>(&shrinkageExponent)->default_value(0),""
-			"Amount of denoising given as: \"L1 shrinkage = 2^shrinkage\" "
-			"guidelines: around 0, "
-			"default: 0")
-		("tolerance,t",po::value<ii>(&toleranceExponent)->default_value(-10),
-			"Convergence tolerance, given as: \"gradient <= 2^tol\" "
-			"guidelines: around -10, "
-			"default: -10")
-		("debug_level,d", po::value<ii>(&debugLevel)->default_value(0),
-			"Debug level, "
-			"guidelines: set to 1 for debugging information, 2 to additionally write intermediate iterations to disk, "
-			"default: 0")
-		("threads", po::value<ii>(&threads)->default_value(4),
-			"Number of OpenMP threads to use, "
-			"guidelines: set to amount of CPU cores or 4, whichever is smaller, "
-			"default: 4");
+int main(int argc, const char * const * argv)
+{
+#ifdef NDEBUG
+    try
+#endif
+    {
+        string filePathIn;
+        string filePathLib;
+        string scaleMz;
+        int scaleSt;
+        int lambdaExponent;
+        int lambdaGroupExponent;
+        bool noTaperLambda;
+        int toleranceExponent;
+        double peakFwhm;
+        short chargeStates;
+        int debugLevel;
 
-	po::options_description desc;
-	desc.add(general);
+        // *******************************************************************
 
-	try
-	{
-		po::positional_options_description pod;
-		pod.add("file", 1);
+        po::options_description general(
+            "Usage\n"
+            "-----\n"
+            "seamass [OPTIONS...] [MZMLB FILE]\n"
+            "seamass <-m mz_scale> <-s st_scale> <-l lambda> <-t tol> <file>"
+        );
 
-		po::variables_map vm;
-		po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
-		po::notify(vm);
+        general.add_options()
+            ("help,h",
+             "Produce this help message")
+            ("file,f", po::value<string>(&filePathIn),
+             "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
+             "from mzML/vendor format to mzMLb.")
+            ("lib", po::value<string>(&filePathLib),
+             "Spectral library in sml format."
+             "from mzML/vendor format to mzMLb.")
+            //("mz_scale,m", po::value<int>(&scaleMz),
+            ("mz_scale,m", po::value<string>(&scaleMz),
+             "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
+             "Format [5,10]"
+             "Default is to autodetect.")
+            ("st_scale,s", po::value<int>(&scaleSt),
+             "output scantime resolution given as \"2^st_scale\"."
+             "Default is to autodetect.")
+            ("lambda,l", po::value<int>(&lambdaExponent)->default_value(0),
+             "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Needs to be same or less than group_lambda."
+             "Use around 0.")
+            ("group_lambda,g", po::value<int>(&lambdaGroupExponent)->default_value(0),
+             "Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\". "
+             "Ignored if no groups are specified in the input. Use around 0.")
+            ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
+             "Use this to stop tapering of lambda to 0 before finishing.")
+            ("charge_states,c", po::value<short>(&chargeStates)->default_value(0),
+             "Highest charge state to deconvolute. Default is no charge state deconvolution.")
+            ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
+             "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+            ("fwhm,w", po::value<double>(&peakFwhm)->default_value(0.0),
+             "Peak FWHM.")
+            ("debug,d", po::value<int>(&debugLevel)->default_value(0),
+             "Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
+             "4 to output all maths, +10 to write intermediate results to disk.")
+        ;
 
-		if(vm.count("help"))
-		{
-			cout<<desc<<endl;
-			return 0;
-		}
-			if(vm.count("threads"))
-		{
-			threads=vm["threads"].as<int>();
-		}
-		else
-		{
-			threads = omp_get_max_threads();
-		}
-		if(vm.count("file"))
-		{
-			cout<<"Opening file: "<<vm["file"].as<string>()<<endl;
-		}
-		else
-		{
-			throw "Valid seamass input file was not given...";
-		}
-	}
-	catch(exception& e)
-	{
-		cerr<<"error: " << e.what() <<endl;
-		cout<<desc<<endl;
-		return 1;
-	}
-	catch(const char* msg)
-	{
-		cerr<<"error: "<<msg<<endl;
-		cout<<desc<<endl;
-		return 1;
-	}
-	catch(...)
-		{
-		cerr<<"Exception of unknown type!\n";
-	}
+        po::options_description desc;
+        desc.add(general);
 
-	mzMLbInputFile msFile(in_file);
-    OutmzMLb outmzMLb(in_file,msFile);
-	SeamassCore::Input input;
-	string id;
-	double tolerance = pow(2.0, toleranceExponent);
-	double shrinkage = pow(2.0, shrinkageExponent);
-	while (msFile.next(input, id))
-	{
-		cout << endl << "Processing " << id << ":" << endl;
+        po::positional_options_description pod;
+        pod.add("file", 1);
 
-		SeamassCore sm(input, scales, shrinkage, tolerance, debugLevel);
+        po::variables_map vm;
+        po::store(po::command_line_parser(argc, argv).options(general).positional(pod).run(), vm);
+        po::notify(vm);
 
-		do
-		{
-			if (debugLevel > 1)
-			{
-				// create SMV file
-				ostringstream oss;
-				oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smv";
-				HDF5Writer smv(oss.str());
+        cout << endl;
+        Seamass::notice();
+        cout << endl;
+        initKernel(debugLevel);
 
-				// save back input but with bin_counts now containing the residuals
-				vector<fp> originalBinCounts = input.binCounts;
-				sm.getOutputBinCounts(input.binCounts);
-				for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i];
-				smv.write_input(input);
-				input.binCounts = originalBinCounts;
+        Subject::setDebugLevel(debugLevel);
+        Observer* observer = 0;
+        if (debugLevel % 10 >= 1)
+            Subject::registerObserver(observer = new Observer());
 
-				// write RTree
-				SeamassCore::Output output;
-				sm.getOutput(output);
-				smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+        ObserverMatrix* observerMatrix = 0;
+        ObserverMatrixSparse* observerMatrixSparse = 0;
+        if (debugLevel / 10 >= 2)
+        {
+            SubjectMatrix::registerObserver(observerMatrix = new ObserverMatrix());
+            SubjectMatrixSparse::registerObserver(observerMatrixSparse = new ObserverMatrixSparse());
+        }
 
-				// for now, lets also write out an smo
-				ostringstream oss2;
-				oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << "." << setfill('0') << setw(4) << sm.getIteration() << ".smo";
-				HDF5Writer smo(oss2.str());
+        if(vm.count("help") || !vm.count("file"))
+        {
+            cout << desc << endl;
+            return 0;
+        }
 
-				SeamassCore::ControlPoints controlPoints;
-				sm.getOutputControlPoints(controlPoints);
-				smo.write_output_control_points(controlPoints);
-			}
-		}
-		while (sm.step());
+        // scale is now 3 long, with the following elements [mzMinScale, mzMaxScale, rtScale]
+        // if mzMinScale/mzMaxScale == -1 then it was not set.
+        vector<short> scale(3);
 
-		// write seaMass outputBinCounts to new mzMLb file 
-		vector<fp> outputBinCounts; 
-		sm.getOutputBinCounts(outputBinCounts); // retrieve seaMass processed outputBinCounts 
-		// convert ion counts into ion density (counts per Th) and scale by exposures
-		if (input.exposures.size() > 0)
-		{
-			if (input.spectrumIndex.size() > 0)
-			{
-				// 2D data
-				for (li j = 0; j < (li)input.spectrumIndex.size() - 1; j++)
-				{
-					for (li i = input.spectrumIndex[j]; i < input.spectrumIndex[j + 1]; i++)
-					{
-						outputBinCounts[i] /= (fp) (input.binEdges[i + j + 1] - input.binEdges[i + j]) * input.exposures[j];
-					}
-				}
-			}
-			else
-			{
-				// 1D data
-				for (li i = 0; i < (li)input.binCounts.size(); i++)
-				{
-					outputBinCounts[i] /= (fp) (input.binEdges[i + 1] - input.binEdges[i]) * input.exposures[0];
-				}
-			}
-		}
-		outmzMLb.writeVecData(outputBinCounts); // write to mzMLb
+        if(vm.count("mz_scale"))
+            numStrBracketPair(scaleMz, scale);
+            //scale[0] = short(scaleMz);
+        else
+        {
+            scale[0] = numeric_limits<short>::max();
+            scale[1] = -1;
+        }
 
-		// write SMV file
-		ostringstream oss;
-		oss << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smv";
-		HDF5Writer smv(oss.str());
-		vector<fp> originalBinCounts = input.binCounts; // save original input.binCounts
-		sm.getOutputBinCounts(input.binCounts); // retrieve seaMass processed outputBinCounts 
-		for (ii i = 0; i < input.binCounts.size(); i++) input.binCounts[i] = originalBinCounts[i] - input.binCounts[i]; // compute residuals
-		smv.write_input(input); // write residuals to smv
-		// write RTree
-		//SeaMass::Output output;
-		//sm.getOutput(output);
-		//smv.write_output(output, shrinkageExponent, toleranceExponent, 4096);
+        if(vm.count("st_scale"))
+            scale[2] = short(scaleSt);
+        else
+            scale[2] = numeric_limits<short>::max();
 
-        // write SMO file
-		ostringstream oss2;
-		oss2 << boost::filesystem::change_extension(in_file, "").string() << "." << id << ".smo";
-		HDF5Writer smo(oss2.str());
-		SeamassCore::ControlPoints controlPoints;
-		sm.getOutputControlPoints(controlPoints);
-		smo.write_output_control_points(controlPoints);
+        string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
+        Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, scale, Dataset::WriteType::InputOutput);
+        if (!dataset)
+            throw runtime_error("ERROR: Input file is missing or incorrect");
 
-		// demonstration code to load from smv back into seaMass:Input and seaMass:Output structs
-		// lets pretend Input struct and Output::baseline_size,baseline_scale,baseline_offset are already filled (as I'm not implementing a HDFReader class)
-		// therefore we just need to load from the RTree ito Output::weights,scales,offsets
-		/*SeaMass::Output loaded;
-		loaded.baselineOffset = output.baselineOffset;
-		loaded.baselineScale = output.baselineScale;
-		loaded.baselineExtent = output.baselineExtent;
-		RTreeReader rtree(oss.str());
-		rtree.read(loaded);
-		cout << "Number of saved bases: " << output.weights.size() << endl;
-		cout << "Number of loaded bases: " << loaded.weights.size() << endl;*/
-	}
+        string id;
+        fp tolerance = pow(2.0, fp(toleranceExponent));
+        fp lambda = pow(2.0, fp(lambdaExponent));
+        fp lambdaGroup = pow(2.0, fp(lambdaGroupExponent));
 
-    vector<spectrumMetaData> *spcPtr = msFile.getSpectrumMetaData();
-    outmzMLb.writeXmlData(spcPtr);
+        while (dataset->read(filePathIn, id))
+        {
+            if (debugLevel % 10 == 0)
+                cout << "Processing " << id << endl;
 
-	return 0;
+            Seamass seamass(filePathIn, filePathLib, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
+                            peakFwhm, chargeStates);
+
+
+            if (debugLevel / 10 >= 1)
+            {
+                /*Seamass::Input input2;
+                input2.countsIndex = input.countsIndex;
+                input2.startTimes = input.startTimes;
+                input2.finishTimes = input.finishTimes;
+                input2.exposures = input.exposures;
+                input2.type = input.type;
+                seamass.getInput(input2);
+
+                // write input in seaMass format
+                ostringstream oss; oss << fileStemOut << ".input";
+                DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::Input);
+                datasetOut.write(input2, id);*/
+            }
+
+            do
+            {
+                if (debugLevel / 10 >= 2)
+                {
+                    /*{
+                        Seamass::Output output;
+                        seamass.getOutput(output, false);
+
+                        // write intermediate output in seaMass format
+                        ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamass.getIteration();
+                        DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                        datasetOut.write(input, output, id);
+                    }*/
+                    {
+                        // write intermediate output in seaMass format
+                        ostringstream oss; oss << fileStemOut << ".synthesized." << setfill('0') << setw(4) << seamass.getIteration();
+                        DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                        datasetOut.write(filePathIn, seamass, id);
+                    }
+                }
+            }
+            while (seamass.step());
+
+            // Temp tiff test...
+            //dataset->write(filePathIn, id);
+            // write output
+            dataset->write(filePathIn, seamass, id);
+
+            if (debugLevel / 10 >= 1)
+            {
+                 ostringstream oss; oss << fileStemOut << ".synthesized";
+                DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                datasetOut.write(filePathIn, seamass, id);
+            }
+
+            if (debugLevel % 10 == 0)
+                cout << endl;
+        }
+
+        delete dataset;
+        if (observer) delete observer;
+        if (observerMatrix) delete observerMatrix;
+        if (observerMatrixSparse) delete observerMatrixSparse;
+        cout << endl;
+    }
+#ifdef NDEBUG
+    catch(exception& e)
+    {
+        cerr << e.what() << endl;
+        cout << endl;
+        return 1;
+    }
+#endif
+    return 0;
 }

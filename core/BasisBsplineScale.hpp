@@ -20,8 +20,8 @@
 //
 
 
-#ifndef _SEAMASS_CORE_BASISBSPLINESCALE_HPP_
-#define _SEAMASS_CORE_BASISBSPLINESCALE_HPP_
+#ifndef SEAMASS_CORE_BASISBSPLINESCALE_HPP
+#define SEAMASS_CORE_BASISBSPLINESCALE_HPP
 
 
 #include "BasisBspline.hpp"
@@ -30,17 +30,24 @@
 class BasisBsplineScale : public BasisBspline
 { 
 public:
-	BasisBsplineScale(std::vector<Basis*>& bases, ii parentIndex, ii dimension, ii order = 3, bool isTransient = false);
-	virtual ~BasisBsplineScale();
+    BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1, bool group,
+                      bool transient);
+    virtual ~BasisBsplineScale();
 
-	void synthesis(Matrix& f, const Matrix& x, bool accumulate) const;
-	void analysis(Matrix& xE, const Matrix& fE, bool sqrA = false) const;
+    virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
+    virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
+
+    virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
 
 private:
-	MatrixSparse a_;
-	MatrixSparse aT_;
+    MatrixSparse aT_;
+    MatrixSparse a_;
 
-	ii dimension_;
+    short dimension0_;
+    short dimension1_;
+
+    std::vector<MatrixSparse> gTs_;
+    std::vector<MatrixSparse> gs_;
 };
 
 
