@@ -19,7 +19,6 @@
 // along with seaMass.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-
 #include "../kernel/Subject.hpp"
 #include "../core/DatasetSeamass.hpp"
 #include <kernel.hpp>
@@ -31,6 +30,48 @@ using namespace std;
 using namespace kernel;
 namespace po = boost::program_options;
 
+//vector<T> numStrBracketPair(string numket)
+template<typename T>
+void numStrBracketPair(const string numket, vector<T>& range)
+{
+    T value;
+    size_t blhs;
+    size_t brhs;
+    size_t coma;
+    if ((coma=numket.find(",")) != string::npos)
+    {
+        blhs=numket.find("[");
+        brhs=numket.find("]");
+
+        if(blhs == coma-1)
+            range[0]=T(-1);
+            //range.push_back(T(-1));
+        else
+        {
+            istringstream(numket.substr(1,coma-1))>>value;
+            range[0]=value;
+            //range.push_back(value);
+        }
+
+        if(brhs == coma+1)
+            range[1]=T(-1);
+            //range.push_back(T(-1));
+        else
+        {
+            istringstream(numket.substr(coma+1,brhs-coma-1))>>value;
+            range[1]=value;
+            //range.push_back(value);
+        }
+    }
+    else{
+        istringstream(numket)>>value;
+        //range.push_back(value);
+        //range.push_back(T(-1));
+        range[0]=value;
+        range[1]=T(-1);
+    }
+}
+
 
 int main(int argc, const char * const * argv)
 {
@@ -40,7 +81,7 @@ int main(int argc, const char * const * argv)
     {
         string filePathIn;
         string filePathLib;
-        int scaleMz;
+        string scaleMz;
         int scaleSt;
         int lambdaExponent;
         int lambdaGroupExponent;
@@ -68,8 +109,10 @@ int main(int argc, const char * const * argv)
             ("lib", po::value<string>(&filePathLib),
              "Spectral library in sml format."
              "from mzML/vendor format to mzMLb.")
-            ("mz_scale,m", po::value<int>(&scaleMz),
+            //("mz_scale,m", po::value<int>(&scaleMz),
+            ("mz_scale,m", po::value<string>(&scaleMz),
              "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
+             "Format [5,10]"
              "Default is to autodetect.")
             ("st_scale,s", po::value<int>(&scaleSt),
              "output scantime resolution given as \"2^st_scale\"."
@@ -127,20 +170,26 @@ int main(int argc, const char * const * argv)
             return 0;
         }
 
-        vector<short> scale(2);
+        // scale is now 3 long, with the following elements [mzMinScale, mzMaxScale, rtScale]
+        // if mzMinScale/mzMaxScale == -1 then it was not set.
+        vector<short> scale(3);
 
         if(vm.count("mz_scale"))
-            scale[0] = short(scaleMz);
+            numStrBracketPair(scaleMz, scale);
+            //scale[0] = short(scaleMz);
         else
+        {
             scale[0] = numeric_limits<short>::max();
+            scale[1] = -1;
+        }
 
         if(vm.count("st_scale"))
-            scale[1] = short(scaleSt);
+            scale[2] = short(scaleSt);
         else
-            scale[1] = numeric_limits<short>::max();
+            scale[2] = numeric_limits<short>::max();
 
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
-        Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::InputOutput);
+        Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, scale, Dataset::WriteType::InputOutput);
         if (!dataset)
             throw runtime_error("ERROR: Input file is missing or incorrect");
 

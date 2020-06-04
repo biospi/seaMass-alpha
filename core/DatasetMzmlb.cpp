@@ -29,7 +29,11 @@ using namespace kernel;
 namespace xml = pugi;
 
 
-DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType) : fileOut_(0), spectrumIndex_(0), lastSpectrumIndex_(-1000), spectrumListIdx_(0)
+const double DatasetMzmlb::PROTON_MASS = 1.007276466879;
+
+
+DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, std::vector<short>& scale, Dataset::WriteType writeType) : scale_(scale),
+                        fileOut_(0), spectrumIndex_(0), lastSpectrumIndex_(-1000), spectrumListIdx_(0)
 {
     if (filePathIn.empty())
         throw runtime_error("BUG: mzMLb/mzMLv file cannot be written without an mzMLb/mzMLv to readMatrixSparse from.");
@@ -39,6 +43,8 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
         oss << getTimeStamp();
     oss << "Querying " << filePathIn << " ...";
     info(oss.str());
+
+    fileSml_ = NULL;
 
     fileIn_.open(filePathIn);
 
@@ -281,7 +287,7 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
                 info(oss.str());
             }
         }
-   }
+    }
 
     // sort spectra into appropriate order for next()
     if (metadata_.size() > 1)
@@ -400,8 +406,6 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
         mzML.clear();
     }
 
-
-
     ostringstream oss2;
     if (getDebugLevel() % 10 >= 1)
         oss2 << getTimeStamp() << " ";
@@ -446,7 +450,13 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
     if (spectrumIndex_ >= metadata_.size()) return false;
 
     // Ranjeet todo: write into SML file rather than into Seamass::Input
-    /*out = Seamass::Input();
+    //enum class Type { Binned, Sampled, Centroided } type;
+    std::vector<fp> counts;
+    std::vector<li> countsIndex;
+    std::vector<double> locations;
+    std::vector<double> startTimes;
+    std::vector<double> finishTimes;
+    std::vector<fp> exposures;
 
     // determine next set of spectra
     id = metadata_[spectrumIndex_].id;
@@ -457,11 +467,11 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
         // if at the end or any metadata is different in the next spectrum, we have come to the end of this channel
         if (spectrumIndex_ == metadata_.size() - 1 || metadata_[spectrumIndex_].id != metadata_[spectrumIndex_ + 1].id)
         {
-            out.countsIndex.push_back((li)out.counts.size());
+            countsIndex.push_back((li)counts.size());
             done = true;
         }
     }
-    extent_ = spectrumIndex_ - offset;
+    li extent_ = spectrumIndex_ - offset;
 
     // readMatrixSparse mzs
     if ((extent_ > 1 && getDebugLevel() % 10 >= 1) || getDebugLevel() % 10 >= 2)
@@ -471,13 +481,13 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
         info(oss.str());
     }
 
-    out.startTimes.resize(extent_);
-    out.finishTimes.resize(extent_);
+    startTimes.resize(extent_);
+    finishTimes.resize(extent_);
     vector< vector<double> > mzs(extent_);
     for (li i = 0; i < extent_; i++)
     {
-        out.startTimes[i] = metadata_[offset + i].startTime;
-        out.finishTimes[i] = metadata_[offset + i].finishTime;
+        startTimes[i] = metadata_[offset + i].startTime;
+        finishTimes[i] = metadata_[offset + i].finishTime;
 
         if(metadata_[offset + i].defaultArrayLength > 0)
         {
@@ -551,10 +561,10 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
     // For IonCurrent data, it converts the sampled data to binned counts by treating the
     //   mz values as the bin edges, and using trapezoid rule to integrate intensity values
     //
-    out.countsIndex.resize(extent_ + 1);
+    countsIndex.resize(extent_ + 1);
     for (ii i = 0; i < extent_; i++)
     {
-        out.countsIndex[i] = (li) out.counts.size();
+        countsIndex[i] = (li) counts.size();
 
         // load intensities
         vector<fp> intensities;
@@ -569,29 +579,29 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
         {
             case SpectrumMetadata::DataType::Unknown: // Just save as profile mode sampled data
             {
-                out.type = Seamass::Input::Type::Sampled;
+                //type = Type::Sampled;
 
-                out.locations.insert(out.locations.end(), mzs[i].begin(), mzs[i].end());
-                out.counts.insert(out.counts.end(), intensities.begin(), intensities.end());
+                locations.insert(locations.end(), mzs[i].begin(), mzs[i].end());
+                counts.insert(counts.end(), intensities.begin(), intensities.end());
             } break;
             case SpectrumMetadata::DataType::Centroided: // Just save as centroided data
             {
-                out.type = Seamass::Input::Type::Centroided;
+                //type = Type::Centroided;
 
-                out.locations.insert(out.locations.end(), mzs[i].begin(), mzs[i].end());
-                out.counts.insert(out.counts.end(), intensities.begin(), intensities.end());
+                locations.insert(locations.end(), mzs[i].begin(), mzs[i].end());
+                counts.insert(counts.end(), intensities.begin(), intensities.end());
             } break;
             case SpectrumMetadata::DataType::IonCount: // ToF, Quad, Ion trap etc, is already binned but have to create bin edges and exposures
             {
-                out.type = Seamass::Input::Type::Binned;
+                //type = Type::Binned;
 
                 if (intensities.size() == 0) // if empty we MUST add a zero bin!
                 {
-                    out.locations.push_back(mz0);
-                    out.counts.push_back(0.0);
-                    out.locations.push_back(mz1);
+                    locations.push_back(mz0);
+                    counts.push_back(0.0);
+                    locations.push_back(mz1);
 
-                    out.exposures.push_back(1.0);
+                    exposures.push_back(1.0);
                 }
                 else
                 {
@@ -603,13 +613,13 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
                             minimum = minimum < intensities[k] ? minimum : intensities[k];
                     // check to see if we can estimate the exposure i.e. is the minimum reasonable?
                     if (minimum < 1.0 || minimum > 1000.0) minimum = 1.0;
-                    out.exposures.push_back((fp) (1.0 / minimum));
+                    exposures.push_back((fp) (1.0 / minimum));
 
                     if (intensities.front() == 0.0) // only use the first m/z if the intensity is zero
                     {
                         double frontEdge = mz0 < mzs[i].front() ? mz0 : mzs[i].front();
-                        out.locations.push_back(frontEdge);
-                        out.counts.push_back(0.0);
+                        locations.push_back(frontEdge);
+                        counts.push_back(0.0);
                     }
 
                     // use all the intensities except first and last
@@ -617,41 +627,41 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
                     {
                         if (intensities[k] != 0.0 || intensities[k - 1] != 0.0) // merge zeros
                         {
-                            out.locations.push_back(0.5 * (mzs[i][k - 1] + mzs[i][k]));
-                            out.counts.push_back(((fp) intensities[k]) * out.exposures[i]);
+                            locations.push_back(0.5 * (mzs[i][k - 1] + mzs[i][k]));
+                            counts.push_back(((fp) intensities[k]) * exposures[i]);
                         }
                     }
-                    out.locations.push_back(0.5 * (mzs[i][mzs[i].size() - 2] + mzs[i].back()));
+                    locations.push_back(0.5 * (mzs[i][mzs[i].size() - 2] + mzs[i].back()));
 
                     if (intensities.back() == 0.0) // only use the last m/z if the intensity is zero
                     {
-                        out.counts.push_back(0.0);
+                        counts.push_back(0.0);
                         double backEdge = mz1 > mzs[i].back() ? mz1 : mzs[i].back();
-                        out.locations.push_back(backEdge);
+                        locations.push_back(backEdge);
                     }
                 }
             } break;
             case SpectrumMetadata::DataType::IonCurrent: // Orbitrap, FT-ICR etc, bin this data
             {
-                out.type = Seamass::Input::Type::Binned;
+                //type = Type::Binned;
 
                 if (intensities.front() == 0.0 && mz0 < mzs[i].front())
                 {
-                    out.locations.push_back(mz0);
-                    out.counts.push_back(0.0);
+                    locations.push_back(mz0);
+                    counts.push_back(0.0);
                 }
 
                 for (ii k = 0; k < (ii) intensities.size() - 1; k++)
                 {
-                    out.locations.push_back(mzs[i][k]);
-                    out.counts.push_back((fp) ((mzs[i][k + 1] - mzs[i][k]) * 0.5 * (intensities[k + 1] + intensities[k])));
+                    locations.push_back(mzs[i][k]);
+                    counts.push_back((fp) ((mzs[i][k + 1] - mzs[i][k]) * 0.5 * (intensities[k + 1] + intensities[k])));
                 }
-                out.locations.push_back(mzs[i][mzs[i].size() - 1]);
+                locations.push_back(mzs[i][mzs[i].size() - 1]);
 
                 if (intensities.back() == 0.0 && mz1 > mzs[i].back())
                 {
-                    out.counts.push_back(0.0);
-                    out.locations.push_back(mz1);
+                    counts.push_back(0.0);
+                    locations.push_back(mz1);
                 }
            } break;
         }
@@ -674,7 +684,43 @@ bool DatasetMzmlb::read(std::string& filePathSml, std::string &id)
             }
         }
     }
-    out.countsIndex.back() = (li)out.counts.size();*/
+    countsIndex.back() = (li)counts.size();
+
+    if (fileSml_ == NULL)
+    {
+        fileSml_ = new FileNetcdf(filePathSml, NC_NETCDF4);
+        li zero=0;
+        if (scale_[0] != -1 && scale_[1] != -1)
+        {
+            smlDataId.resize(scale_[1]-scale_[0]+1);
+            for (short i = scale_[0]; i < scale_[1]; ++i)
+            {
+                ostringstream oss;
+                oss << "/mzScale=" << i;
+                string groupName = oss.str();
+                smlDataId[i].matrixId = fileSml_->createGroup(groupName.c_str());
+                smlDataId[i].ijsId = fileSml_->write_VecNC("ijs", &zero, 1, NC_LONG,smlDataId[i].matrixId, true);
+                smlDataId[i].jsId = fileSml_->write_VecNC("js", vector<long int>(), NC_LONG, smlDataId[i].matrixId, true);
+                smlDataId[i].vsId = fileSml_->write_VecNC("vs", vector<float>(), NC_FLOAT, smlDataId[i].matrixId, true);
+            }
+        }
+        else
+        {
+            smlDataId.resize(1);
+            ostringstream oss;
+            oss << "/mzScale=" << (scale_[0] == -1 ? scale_[1]: scale_[0]);
+            string groupName = oss.str();
+            smlDataId[0].matrixId = fileSml_->createGroup(groupName.c_str());
+            smlDataId[0].ijsId = fileSml_->write_VecNC("ijs", &zero, 1, NC_LONG,smlDataId[0].matrixId, true);
+            smlDataId[0].jsId = fileSml_->write_VecNC("js", vector<long int>(), NC_LONG, smlDataId[0].matrixId, true);
+            smlDataId[0].vsId = fileSml_->write_VecNC("vs", vector<float>(), NC_FLOAT, smlDataId[0].matrixId, true);
+        }
+    }
+
+    if (fileSml_->getFileStatus())
+    {
+        // output data to SML
+    }
 
     return true;
 }
@@ -768,6 +814,96 @@ bool DatasetMzmlb::seamassOrder(const SpectrumMetadata &lhs, const SpectrumMetad
     }
 }
 
+
+void DatasetMzmlb::rebinMZ(vector<double> rawMZ, vector<double> imgbox, li const idx, li const row)
+{
+/*
+    for(lli i=raw.mzi[idx]; i < raw.mzi[idx+1]; ++i)
+    {
+        double dmz=fabs(raw.mz[i+1]-raw.mz[i]);
+        double xn=(raw.mz[i]-imgbox.mz[0])/imgbox.dmz;
+        double xp=(raw.mz[i+1]-imgbox.mz[0])/imgbox.dmz;
+        lli n = floor(xn);
+        lli p = floor(xp);
+        lli rowOffSet= (row > 0) ? row*(imgbox.xypxl.first): 0;
+
+        if(p > imgbox.xypxl.first-1) p=imgbox.xypxl.first-1;
+        if(n >= imgbox.xypxl.first-1) break;
+        // Overlapping image 1st box on boundary
+        if(n < 0 && p >= 0)
+        {
+            n=0;
+            for(lli col=n; col <= p; ++col)
+            {
+                double boxBegin=0.0;
+                double boxEnd=0.0;
+                double scaleMZ=0.0;
+                // Cut top overlap else its contained
+                (imgbox.mz[col] < raw.mz[i]) ? boxBegin=raw.mz[i] : boxBegin=imgbox.mz[col];
+                // Cut bottom overlap else its contained
+                (imgbox.mz[col+1] < raw.mz[i+1]) ? boxEnd=imgbox.mz[col+1] : boxEnd=raw.mz[i+1];
+                // Calculate MZ scaling
+                scaleMZ=(boxEnd-boxBegin)/dmz;
+                // Update Spectrum Count
+                imgbox.sc[col+rowOffSet]=imgbox.sc[col+rowOffSet]+raw.sc[i-idx]*float(scaleRT*scaleMZ);
+            }
+        }
+            // Multiple smaller image boxes within single raw data scanline
+        else if(n < p && n >=0)
+        {
+            for(lli col=n; col <= p; ++col)
+            {
+                double boxBegin=0.0;
+                double boxEnd=0.0;
+                double scaleMZ=0.0;
+                // Cut top overlap else its contained
+                (imgbox.mz[col] < raw.mz[i]) ? boxBegin=raw.mz[i] : boxBegin=imgbox.mz[col];
+                // Cut bottom overlap else its contained
+                (imgbox.mz[col+1] < raw.mz[i+1]) ? boxEnd=imgbox.mz[col+1] : boxEnd=raw.mz[i+1];
+                // Calculate MZ scaling
+                scaleMZ=(boxEnd-boxBegin)/dmz;
+                // Update Spectrum Count
+                imgbox.sc[col+rowOffSet]=imgbox.sc[col+rowOffSet]+raw.sc[i-idx]*float(scaleRT*scaleMZ);
+            }
+        }
+            // Raw data scanline contained within a Image box hence no scale needed.
+        else if(n == p && n > 0)
+        {
+            lli col =n;
+            double scaleMZ=1.0;
+            // Update Sectural Count
+            imgbox.sc[col+rowOffSet]=imgbox.sc[col+rowOffSet]+raw.sc[i-idx]*float(scaleRT*scaleMZ);
+        }
+    }
+*/
+}
+
+
+void DatasetMzmlb::genAxis(vector<double> &x, vector<double> &dx, ii scale ,double min, double max)
+{
+/*
+    //ii offset = ii(floor(log2(min - PROTON_MASS) * (1L << mzScale))) - 1;
+    //ii N = (ii(ceil(log2(max - PROTON_MASS) * (1L << mzScale))) + 1) - offset + 1;
+
+    double mzScale = double (1L << scale);
+
+    // make sure transform back to mz spans xMin -> xMax
+    ii binMin = ii(floor(log2(min - PROTON_MASS) * mzScale));
+    ii binMax = ii(ceil(log2(max - PROTON_MASS) * mzScale))+1;
+
+    ii N = binMax - binMin + 1;
+
+    x.resize(N);
+    dx.clear();
+
+    for(ii i = binMin; i <= binMax; ++i)
+    {
+        x[i] = pow(2,(i/mzScale)) + PROTON_MASS;
+        if(i > binMin)
+            dx.push_back(x[i-1]-x[i]);
+    }
+*/
+}
 
 /*
 void DatasetMzmlb::writeVecData(vector<float>& data_)

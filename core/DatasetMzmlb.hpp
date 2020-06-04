@@ -53,7 +53,16 @@ public:
         size_t intensitiesOffset;
     };
 
-    DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+    struct mzAxis
+    {
+        vector<double> mz;
+        vector<double> dmz;
+        double mzMin;
+        double mzMax;
+        ii idxMin;
+    };
+
+    DatasetMzmlb(const std::string& filePathIn, const std::string& filePathStemOut, std::vector<short>& scale, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
     virtual ~DatasetMzmlb();
 
     virtual bool read(std::string& filePathSml, std::string &id);
@@ -63,11 +72,26 @@ public:
     virtual void write(const std::string& filePathSml, const Seamass &seamass, const std::string &id);
 
 private:
+    struct smlDataFrame
+    {
+        int matrixId;
+        int ijsId;
+        int jsId;
+        int vsId;
+    };
+
     static bool startTimeOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
     static bool seamassOrder(const SpectrumMetadata &lhs, const SpectrumMetadata &rhs);
 
+    void rebinMZ(vector<double> rawMZ, vector<double> rebin, li const idx, li const row);
+    //void genAxis(vector<double> &x, double min, double max);
+    void genAxis(vector<double> &x, vector<double> &dx, ii scale ,double min, double max);
+
+    static const double PROTON_MASS;
+
     FileNetcdf fileIn_;
     FileNetcdf* fileOut_;
+    FileNetcdf* fileSml_;
 
     // Andy's reading stuff
     vector<SpectrumMetadata> metadata_; // this will be sorted for 'next()'
@@ -80,6 +104,8 @@ private:
     vector<li> specIdx_;
     li newMzmlIndex_;
     li spectrumListIdx_;
+    vector<short> scale_;
+    vector<smlDataFrame> smlDataId;
 
     //void writeVecData(vector<fp>& data_);
     //void writeXmlData();
@@ -95,7 +121,6 @@ private:
 
     void writeChromatogramXmlEnd();
 };
-
 
 // DEPRECATED!
 template<typename T>

@@ -46,7 +46,7 @@ void Seamass::notice()
 
 
 Seamass::Seamass(const string& filePathIn, const string& filePathLib, const std::vector<short>& scale,
-                 fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
+        fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
         innerOptimizer_(0), scale_(scale), filePathLib_(filePathLib), lambda_(lambda),
         lambdaStart_(lambda), lambdaGroup_(lambdaGroup), lambdaGroupStart_(lambdaGroup),
         taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0),

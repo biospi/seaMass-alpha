@@ -44,7 +44,7 @@ public:
 class FileFactory
 {
 public:
-    static Dataset* createFileObj(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
+    static Dataset* createFileObj(const std::string filePathIn, const std::string filePathStemOut, std::vector<short> scale, Dataset::WriteType writeType = Dataset::WriteType::InputOutput);
 };
 
 

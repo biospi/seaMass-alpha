@@ -26,7 +26,7 @@
 using namespace std;
 
 
-Dataset* FileFactory::createFileObj(const std::string filePathIn, const std::string filePathStemOut, Dataset::WriteType writeType)
+Dataset* FileFactory::createFileObj(const std::string filePathIn, const std::string filePathStemOut, std::vector<short> scale, Dataset::WriteType writeType)
 {
     size_t pos = filePathIn.find_last_of(".");
     if (pos != string::npos)
@@ -39,7 +39,7 @@ Dataset* FileFactory::createFileObj(const std::string filePathIn, const std::str
         }
         else if(ext == ".mzMLb" || ext == ".mzMLv")
         {
-            return new DatasetMzmlb(filePathIn, filePathStemOut, writeType);
+            return new DatasetMzmlb(filePathIn, filePathStemOut, scale, writeType);
         }
         else if(ext == ".tif" || ext == ".tiff")
         {

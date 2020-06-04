@@ -75,5 +75,4 @@ void findVecString(vector<char> &vecStr, vector<T> &vec,
     }
 }
 
-
 #endif //SEAMASS_DATASETMZMLB_TPP
