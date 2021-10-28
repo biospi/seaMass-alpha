@@ -1,7 +1,14 @@
 seamass
 =======
 
-seaMass sparse signal decomposition and restoration of raw LC-MS data
+seaMass sparse signal decomposition and restoration of raw Imaging Mass Cytometry (IMC) data.
+‘seaMass-IMC’ is a Poisson based sparse spatial regression and Bayesian models for the analysis of large-scale image-based datasets produced by Imaging Mass Cytometry instruments. We have designed seaMass-IMC to process image based ``TIFF`` datasets produced by current IMC instruments and export of denoised TIFF images for downstream processing in IMCs pipelines.
+Below is a demonstration of an IMC TIFF image of a biological dataset that has been processed using seaMass-IMC. 
+
+Imaging Mass Cytometry     |  SeaMass Imaging Mass Cytometry
+:-------------------------:|:-------------------------:
+![CyTof](https://github.com/biospi/seaMass-alpha/blob/feature/libraryImage/plots/142Nd_MHCcII.original.png?raw=true)  |  ![CyTof](https://github.com/biospi/seaMass-alpha/blob/feature/libraryImage/plots/142Nd_MHCcII.seamass2.png?raw=true)
+
 
 dependencies
 -------
