@@ -9,6 +9,33 @@
 #  INTEL_LIBRARIES, the libraries needed to use Intel's implementation of BLAS & LAPACK.
 #  INTEL_FOUND, If false, do not try to use.
 
+# NEW ----
+# 
+# - If Intel compiler/MKL/IPP are installed as part of Intel oneAPI toolkit,
+#	directory structure is different to older installs (at least on linux)
+#	
+#	2 extra directory layers added:
+#   - /oneapi inside /intel
+#	  so MKL etc. placed in /opt/intel/oneapi instead of /opt/intel
+#	- subdirectories for version (e.g. 2022.0.2) placed in /oneapi/mkl, /oneapi/ipp etc.
+#	  (symlink /oneapi/latest automatically points to these)
+#   
+# 	INTEL_ROOT_PATH now includes /oneapi if present (Mac & Linux)
+#	(and will ignore any other /opt/intel subdirectories)
+# 	
+#	MKL_INCLUDE_DIR, IPP_INCLUDE_DIR now include /latest if present
+# 	
+#	MKL_LIB_DIR, IPP_LIB_DIR now include /latest if present
+#	(not on Apple - unsure if this needs changing)
+#
+# 	(Linux only) INTEL_COMPILER_LIB_DIR now includes /latest if present, and checks additional path
+#	
+#	Above changes for 64-bit only, unsure if should be changed for 32-bit
+#
+# - If not installed by root, Intel compiler, MKL & IPP install in home directory
+# 	INTEL_ROOT_PATH now looks in $ENV{HOME} after looking in /opt
+# xxx ----
+
 
 if(WIN32)
 
@@ -21,7 +48,15 @@ else()
   if(DEFINED ENV{INTEL_ROOT_PATH})
     set(INTEL_ROOT_PATH "$ENV{INTEL_ROOT_PATH}" CACHE PATH "Where the MKL are stored")
   else()
-    set(INTEL_ROOT_PATH "/opt/intel" CACHE PATH "Where the MKL are stored")
+    if(EXISTS /opt/intel/oneapi)
+    	set(INTEL_ROOT_PATH "/opt/intel/oneapi" CACHE PATH "Where the MKL are stored")
+    elseif(EXISTS /opt/intel)
+    	set(INTEL_ROOT_PATH "/opt/intel" CACHE PATH "Where the MKL are stored")
+    elseif(EXISTS $ENV{HOME}/intel/oneapi)
+    	set(INTEL_ROOT_PATH "$ENV{HOME}/intel/oneapi" CACHE PATH "Where the MKL are stored")
+    else()
+    	set(INTEL_ROOT_PATH "$ENV{HOME}/intel" CACHE PATH "Where the MKL are stored")
+    endif()
   endif()
 
 endif()
@@ -30,7 +65,12 @@ endif()
 if(EXISTS ${INTEL_ROOT_PATH}/mkl)
 
   set(INTEL_FOUND TRUE)
-  message("MKL is found at ${INTEL_ROOT_PATH}/mkl")
+  
+  if(EXISTS ${INTEL_ROOT_PATH}/mkl/latest)
+  	message("MKL is found at ${INTEL_ROOT_PATH}/mkl/latest")
+  else()
+  	message("MKL is found at ${INTEL_ROOT_PATH}/mkl")
+  endif()
 
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set( USE_MKL_64BIT On )
@@ -48,7 +88,11 @@ endif()
 
 if(EXISTS ${INTEL_ROOT_PATH}/ipp)
 
-  message("IPP is found at ${INTEL_ROOT_PATH}/ipp")
+  if(EXISTS ${INTEL_ROOT_PATH}/ipp/latest)
+  	message("IPP is found at ${INTEL_ROOT_PATH}/ipp/latest")
+  else()
+  	message("IPP is found at ${INTEL_ROOT_PATH}/ipp")
+  endif()
 
 else()
 
@@ -60,8 +104,18 @@ endif()
 
 if(INTEL_FOUND)
 
-  set(MKL_INCLUDE_DIR "${INTEL_ROOT_PATH}/mkl/include")
-  set(IPP_INCLUDE_DIR "${INTEL_ROOT_PATH}/ipp/include")
+  if(EXISTS ${INTEL_ROOT_PATH}/mkl/latest)
+    set(MKL_INCLUDE_DIR "${INTEL_ROOT_PATH}/mkl/latest/include")
+  else()
+  	set(MKL_INCLUDE_DIR "${INTEL_ROOT_PATH}/mkl/include")
+  endif()
+  
+  if(EXISTS ${INTEL_ROOT_PATH}/ipp/latest)
+    set(IPP_INCLUDE_DIR "${INTEL_ROOT_PATH}/ipp/latest/include")
+  else()
+  	set(IPP_INCLUDE_DIR "${INTEL_ROOT_PATH}/ipp/include")
+  endif()
+  
   add_definitions(-DUSE_MKL)
 
   if(USE_MKL_64BIT)
@@ -71,13 +125,30 @@ if(INTEL_FOUND)
       set(IPP_LIB_DIR "${INTEL_ROOT_PATH}/ipp/lib")
       set(INTEL_COMPILER_LIB_DIR "${INTEL_ROOT_PATH}/lib")
     else()
-      set(MKL_LIB_DIR "${INTEL_ROOT_PATH}/mkl/lib/intel64")
-      set(IPP_LIB_DIR "${INTEL_ROOT_PATH}/ipp/lib/intel64")
+    
+      if(EXISTS ${INTEL_ROOT_PATH}/mkl/latest)
+    	set(MKL_LIB_DIR "${INTEL_ROOT_PATH}/mkl/latest/lib/intel64")
+      else()
+    	set(MKL_LIB_DIR "${INTEL_ROOT_PATH}/mkl/lib/intel64")	
+      endif()
+        
+      if(EXISTS ${INTEL_ROOT_PATH}/ipp/latest)
+    	set(IPP_LIB_DIR "${INTEL_ROOT_PATH}/ipp/latest/lib/intel64")
+      else()
+    	set(IPP_LIB_DIR "${INTEL_ROOT_PATH}/ipp/lib/intel64")	
+      endif()
+            
       if(WIN32)
         set(INTEL_COMPILER_LIB_DIR "${INTEL_ROOT_PATH}/compiler/lib/intel64")
       else()
-        set(INTEL_COMPILER_LIB_DIR "${INTEL_ROOT_PATH}/lib/intel64")
+      	if(EXISTS ${INTEL_ROOT_PATH}/compiler/latest/linux/compiler/lib/intel64)
+      		set(INTEL_COMPILER_LIB_DIR "${INTEL_ROOT_PATH}/compiler/latest/linux/compiler/lib/intel64")
+      	else()
+      		set(INTEL_COMPILER_LIB_DIR "${INTEL_ROOT_PATH}/lib/intel64")
+      	endif()
+      	
       endif()
+      
     endif()
 
     if(USE_MKL_64BIT_LIB)
