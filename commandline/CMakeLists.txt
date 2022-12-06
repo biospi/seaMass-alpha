@@ -49,6 +49,17 @@ target_link_libraries (mgf2sml LINK_PUBLIC
 	${Boost_LIBRARIES}
 	)
 
+add_executable(driams_raw2binned
+	driams_raw2binned.cpp
+	)
+target_include_directories(driams_raw2binned PUBLIC
+	${Boost_INCLUDE_DIRS}
+	)
+target_link_libraries (driams_raw2binned LINK_PUBLIC
+	seamass_core
+	${Boost_LIBRARIES}
+	)
+
 add_executable(image2sml
 	image2sml.cpp
 	)
