@@ -49,6 +49,7 @@ int main(int argc, const char * const * argv)
         double mzMin;
         double mzMax;
         float energy = -1.0;
+        bool deprotonation;
 
         // *******************************************************************
 
@@ -72,6 +73,8 @@ int main(int argc, const char * const * argv)
                  "Maximum product ion mz. ")
                 ("energy,e", po::value<float>(&energy),
                  "Override HCD collision energy written to sml.")
+                ("deprotonation,d", po::value<bool>(&deprotonation)->default_value(false),
+                 "Bins mz assuming deprotonation instead of protonation (adds proton mass instead of subtracts).")
                 ;
 
         po::options_description desc;
@@ -94,6 +97,11 @@ int main(int argc, const char * const * argv)
         {
             cout << desc << endl;
             return 0;
+        }
+
+        if(deprotonation)
+        {
+            PROTON_MASS = -PROTON_MASS;
         }
 
         // output SML
