@@ -25,8 +25,7 @@
 #include <iomanip>
 #include <sstream>
 #include <cassert>
-#include <ippcore.h>
-#include <ipps.h>
+#include <ipp.h>
 using namespace std;
 using namespace kernel;
 

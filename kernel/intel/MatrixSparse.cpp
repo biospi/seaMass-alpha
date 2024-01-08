@@ -28,8 +28,7 @@
 #include <cassert>
 #include <cstring>
 #include <algorithm>
-#include <ippcore.h>
-#include <ipps.h>
+#include <ipp.h>
 #if defined(_OPENMP)
   #include <omp.h>
 #endif

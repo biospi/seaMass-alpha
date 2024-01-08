@@ -26,7 +26,7 @@
 #if defined(_OPENMP)
   #include <omp.h>
 #endif
-#include <ippcore.h>
+#include <ipp.h>
 using namespace std;
 
 

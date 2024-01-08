@@ -1,5 +1,10 @@
-#set(USE_MKL_64BIT_LIB On)
-find_package(Intel REQUIRED)
+find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
+message(STATUS "Imported oneMKL targets: ${MKL_IMPORTED_TARGETS}")
+
+find_package(IPP CONFIG REQUIRED PATHS $ENV{IPPROOT})
+if(IPP_FOUND)
+message(STATUS "oneIPP found")
+endif()
 
 add_library(seamass_kernel
         ../Subject.cpp
@@ -20,9 +25,12 @@ add_library(seamass_kernel
         )
 target_include_directories(seamass_kernel PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${MKL_INCLUDE_DIR}
-        ${IPP_INCLUDE_DIR}
+        $<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>
+        $<TARGET_PROPERTY:IPP::ippcore,INTERFACE_INCLUDE_DIRECTORIES>
+        $<TARGET_PROPERTY:IPP::ipps,INTERFACE_INCLUDE_DIRECTORIES>
         )
-target_link_libraries(seamass_kernel
-        ${INTEL_LIBRARIES}
+target_link_libraries(seamass_kernel PUBLIC
+        $<LINK_ONLY:MKL::MKL>
+        $<LINK_ONLY:IPP::ippcore>
+        $<LINK_ONLY:IPP::ipps>
         )

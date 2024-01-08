@@ -24,7 +24,7 @@
 #define SEAMASS_KERNEL_INTEL_TYPES_HPP
 
 
-//#define MKL_ILP64 // use 64 bit addressing (comment out for 32 bit)
+#undef MKL_ILP64 // 64 bit addressing NOT IMPLEMENTED in seamass_kernel intel yet (and might never be as it increases memory usage)
 #include <mkl.h>
 #include <mkl_spblas.h>
 

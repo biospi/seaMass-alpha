@@ -36,7 +36,7 @@ public:
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
 
-    virtual const std::vector<MatrixSparse> * getGroups(bool transpose) const;
+    virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
 
 private:
     std::vector<MatrixSparse>& aTs_;
