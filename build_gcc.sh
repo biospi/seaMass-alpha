@@ -1,4 +1,5 @@
 #!/bin/bash                                                     
+source /opt/intel/oneapi/setvars.sh
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"                  
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/usr/include/x86_64-linux-gnu/c++/4.*
  

@@ -1,7 +1,7 @@
-find_package(MKL CONFIG REQUIRED PATHS $ENV{MKLROOT})
+find_package(MKL CONFIG REQUIRED)
 message(STATUS "Imported oneMKL targets: ${MKL_IMPORTED_TARGETS}")
 
-find_package(IPP CONFIG REQUIRED PATHS $ENV{IPPROOT})
+find_package(IPP CONFIG REQUIRED)
 if(IPP_FOUND)
 message(STATUS "oneIPP found")
 endif()
