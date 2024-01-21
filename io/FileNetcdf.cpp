@@ -397,7 +397,8 @@ int FileNetcdf::writeMatrixSparseCsr(const MatrixSparse& a, const string& name, 
 
 void FileNetcdf::err(int e)
 {
-    throw runtime_error("ERROR: '" + string(nc_strerror(e)) + "' processing " + filename_);
+    string err = nc_strerror(e);
+    throw runtime_error("ERROR: '" + err + "' processing " + filename_);
 }
 
 

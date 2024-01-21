@@ -1,3 +1,4 @@
+set(MKL_INTERFACE lp64)
 find_package(MKL CONFIG REQUIRED)
 message(STATUS "Imported oneMKL targets: ${MKL_IMPORTED_TARGETS}")
 

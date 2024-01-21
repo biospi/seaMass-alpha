@@ -24,13 +24,12 @@
 #define SEAMASS_KERNEL_INTEL_TYPES_HPP
 
 
-#undef MKL_ILP64 // 64 bit addressing NOT IMPLEMENTED in seamass_kernel intel yet (and might never be as it increases memory usage)
+// ilp64 64 bit addressing NOT IMPLEMENTED in seamass_kernel/intel yet (and might never be as it increases memory usage)
+// Note the lp64 or ilp64 define is handled in CMakeLists as it has to link in the correct library too
 #include <mkl.h>
 #include <mkl_spblas.h>
-
-
 typedef float fp; // fp is the selected floating point precision (float or double)
-typedef MKL_INT ii; // ii is the selected addressing (32 or 64 bit)
+typedef MKL_INT ii; // ii is the selected addressing (32bit for lp64 or 64 bit for ilp64)
 typedef MKL_INT64 li; // li is always 64 bit
 
 

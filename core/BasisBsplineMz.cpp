@@ -48,9 +48,9 @@ void convolution(vector<double>& x, const vector<double>& a, const vector<double
 
 
 BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>& b, const string& isotopesFilename,
-                               const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
-                               const std::vector<double>& binEdges, short scale, short chargeStates, bool transient) :
-        BasisBspline(bases, 1, 2, transient), bGridInfo_(1, 1), chargeDeconvolution_(chargeStates > 0), gTs_(1), gs_(1)
+    const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
+    const std::vector<double>& binEdges, short scale, short chargeStates, bool transient) :
+    BasisBspline(bases, 1, 2, transient), bGridInfo_(1, 1), chargeDeconvolution_(chargeStates > 0), gTs_(1), gs_(1)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -190,7 +190,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
                             acoo.push_back(bc);
                             rowind.push_back(i);
                             colind.push_back(j);
-                       }
+                        }
                     }
                 }
 
@@ -205,7 +205,7 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
             // create b
             MatrixSparse a;
             a.importFromCoo(ii(binCountsIndex[k + 1] - binCountsIndex[k]), bGridInfo_.n(), acoo.size(),
-                            rowind.data(), colind.data(), acoo.data());
+                rowind.data(), colind.data(), acoo.data());
 
             Matrix t;
             t.importFromArray(1, ii(binCountsIndex[k + 1] - binCountsIndex[k]), &binCounts.data()[binCountsIndex[k]]);
@@ -234,147 +234,153 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Load 'A'
+    // Load 'A' if specified
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (getDebugLevel() % 10 >= 2)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "    Loading " << isotopesFilename << "...";
-        info(oss.str());
+    if (isotopesFilename.empty()) {
+        gridInfo() = bGridInfo_;
     }
-
-    FileNetcdf fileIn(isotopesFilename);
-    ostringstream oss2;
-    oss2 << "s=" << setfill('0') << setw(2) << ii(bGridInfo_.colScale[0]);
-    int groupId = fileIn.openGroup(oss2.str());
-
-    vector<ii> offset;
-    fileIn.readAttribute(offset, "offset", "", groupId);
-
+    else 
     {
-        vector<short> zs;
-        vector<ii> is;
-        vector<ii> js;
-        vector<fp> vs;
-
-        ii iMin = numeric_limits<ii>::max();
-        ii iMax = 0;
-        ii jMin = bGridInfo_.colOffset[0];
-        ii jMax = bGridInfo_.colOffset[0] + bGridInfo_.colExtent[0] - 1;
-
-        for (short z = 0; z < chargeStates; z++)
+        if (getDebugLevel() % 10 >= 2)
         {
-            if (getDebugLevel() % 10 >= 2)
-            {
-                ostringstream oss;
-                oss << getTimeStamp() << "     z" << (z + 1);
-                info(oss.str());
-            }
-
             ostringstream oss;
-            oss << "z=" << setfill('0') << setw(4) << (z + 1);
-            MatrixSparse aTz;
-            fileIn.readMatrixSparseCsr(aTz, oss.str(), groupId);
+            oss << getTimeStamp() << "    Loading " << isotopesFilename << "...";
+            info(oss.str());
+        }
 
-            // this should be in MatrixSparse
-            for (ii _i = 0; _i < aTz.m(); _i++)
+        FileNetcdf fileIn(isotopesFilename);
+        ostringstream oss2;
+        oss2 << "s=" << setfill('0') << setw(2) << ii(bGridInfo_.colScale[0]);
+        int groupId = fileIn.openGroup(oss2.str());
+
+        vector<ii> offset;
+        fileIn.readAttribute(offset, "offset", "", groupId);
+
+        {
+            vector<short> zs;
+            vector<ii> is;
+            vector<ii> js;
+            vector<fp> vs;
+
+            ii iMin = numeric_limits<ii>::max();
+            ii iMax = 0;
+            ii jMin = bGridInfo_.colOffset[0];
+            ii jMax = bGridInfo_.colOffset[0] + bGridInfo_.colExtent[0] - 1;
+
+            for (short z = 0; z < chargeStates; z++)
             {
-                for (ii nz = aTz.ijs()[_i]; nz < aTz.ijs()[_i + 1]; nz++)
+                if (getDebugLevel() % 10 >= 2)
                 {
-                    ii i = offset[0] + _i;
-                    ii j = offset[1] + aTz.js()[nz];
+                    ostringstream oss;
+                    oss << getTimeStamp() << "     z" << (z + 1);
+                    info(oss.str());
+                }
 
-                    if (jMin <= j && j <= jMax)
+                ostringstream oss;
+                oss << "z=" << setfill('0') << setw(4) << (z + 1);
+                MatrixSparse aTz;
+                fileIn.readMatrixSparseCsr(aTz, oss.str(), groupId);
+
+                // this should be in MatrixSparse
+                for (ii _i = 0; _i < aTz.m(); _i++)
+                {
+                    for (ii nz = aTz.ijs()[_i]; nz < aTz.ijs()[_i + 1]; nz++)
                     {
-                        iMin = iMin < i ? iMin : i;
-                        iMax = iMax > i ? iMax : i;
+                        ii i = offset[0] + _i;
+                        ii j = offset[1] + aTz.js()[nz];
 
-                        zs.push_back(z);
-                        is.push_back(i);
-                        js.push_back(j - jMin);
-                        vs.push_back(aTz.vs()[nz]);
+                        if (jMin <= j && j <= jMax)
+                        {
+                            iMin = iMin < i ? iMin : i;
+                            iMax = iMax > i ? iMax : i;
+
+                            zs.push_back(z);
+                            is.push_back(i);
+                            js.push_back(j - jMin);
+                            vs.push_back(aTz.vs()[nz]);
+                        }
                     }
                 }
             }
-        }
 
-        for (ii nz = 0; nz < ii(is.size()); nz++)
-        {
-            is[nz] = (is[nz] - iMin) + zs[nz] * (iMax - iMin + 1);
-
-            //cout << iNs[nz] << "," << jNs[nz] << "=" << vNs[nz] << endl;
-        }
-
-        ii mN = chargeStates * (iMax - iMin + 1);
-        ii nN = jMax - jMin + 1;
-
-        aT_.importFromCoo(mN, nN, vs.size(), is.data(), js.data(), vs.data());
-        a_.transpose(aT_);
-
-        // Set up 'A'
-
-        gridInfo().rowScale[0] = bGridInfo_.rowScale[0];
-        gridInfo().rowOffset[0] = bGridInfo_.rowOffset[0];
-        gridInfo().rowExtent[0] = bGridInfo_.rowExtent[0];
-
-        gridInfo().colScale[0] = numeric_limits<short>::min();
-        gridInfo().colOffset[0] = 0;
-        gridInfo().colExtent[0] = chargeStates > 0 ? chargeStates : 1;
-
-        gridInfo().colScale[1] = bGridInfo_.colScale[0];
-        gridInfo().colOffset[1] = iMin;
-        gridInfo().colExtent[1] = iMax - iMin + 1;
-    }
-
-    if (getDebugLevel() % 10 >= 2)
-    {
-        ostringstream oss;
-        oss << getTimeStamp() << "     a_" << gridInfo();
-        info(oss.str());
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Gt = m x n matrix where m are the coefficients and n are the groups (monoisotope centroid mass).
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    {
-        vector<ii> is;
-        vector<ii> js;
-        vector<fp> vs;
-
-        ii m = getGridInfo().colExtent[0] * getGridInfo().colExtent[1];
-        ii n = getGridInfo().colExtent[1] +  ii(round(log2(double(chargeStates)) * (1L << getGridInfo().colScale[1])));
-
-        vector<ii> gSizes(n, 0);
-        for (ii z = 0; z < gridInfo().colExtent[0]; z++)
-        {
-            auto g0 = ii(round(log2(double(z + 1)) * (1L << getGridInfo().colScale[1])));
-
-            for (ii x = 0; x < gridInfo().colExtent[1]; x++)
+            for (ii nz = 0; nz < ii(is.size()); nz++)
             {
-                ii g = g0 + x;
-                gSizes[g]++;
+                is[nz] = (is[nz] - iMin) + zs[nz] * (iMax - iMin + 1);
 
-                double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
-                //cout << mass << endl;
-
-                is.push_back(x + z * gridInfo().colExtent[1]);
-                js.push_back(g);
-                vs.push_back(1.0);
-                //vs.push_back(1.0 / sqrt(mass); // this does not work
-                //vs.push_back(1.0 / pow(300.0*mass, 1.0/4.0));
-                //vs.push_back(1.0 / pow(6.0*mass, 1.0/3.0)); //vs.push_back(1.0 / sqrt(pow(6.0*mass, 2.0/3.0)));
+                //cout << iNs[nz] << "," << jNs[nz] << "=" << vNs[nz] << endl;
             }
+
+            ii mN = chargeStates * (iMax - iMin + 1);
+            ii nN = jMax - jMin + 1;
+
+            aT_.importFromCoo(mN, nN, vs.size(), is.data(), js.data(), vs.data());
+            a_.transpose(aT_);
+
+            // Set up 'A'
+
+            gridInfo().rowScale[0] = bGridInfo_.rowScale[0];
+            gridInfo().rowOffset[0] = bGridInfo_.rowOffset[0];
+            gridInfo().rowExtent[0] = bGridInfo_.rowExtent[0];
+
+            gridInfo().colScale[0] = numeric_limits<short>::min();
+            gridInfo().colOffset[0] = 0;
+            gridInfo().colExtent[0] = chargeStates > 0 ? chargeStates : 1;
+
+            gridInfo().colScale[1] = bGridInfo_.colScale[0];
+            gridInfo().colOffset[1] = iMin;
+            gridInfo().colExtent[1] = iMax - iMin + 1;
         }
 
-        /*for (ii nz = 0; nz < ii(vs.size()); nz++)
+        if (getDebugLevel() % 10 >= 2)
         {
-            vs[nz] /= sqrt(fp(gSizes[js[nz]]));
-        }*/
+            ostringstream oss;
+            oss << getTimeStamp() << "     a_" << gridInfo();
+            info(oss.str());
+        }
 
-        gTs_[0].importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
-        gs_[0].transpose(gTs_[0]);
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Gt = m x n matrix where m are the coefficients and n are the groups (monoisotope centroid mass).
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        {
+            vector<ii> is;
+            vector<ii> js;
+            vector<fp> vs;
+
+            ii m = getGridInfo().colExtent[0] * getGridInfo().colExtent[1];
+            ii n = getGridInfo().colExtent[1] + ii(round(log2(double(chargeStates)) * (1L << getGridInfo().colScale[1])));
+
+            vector<ii> gSizes(n, 0);
+            for (ii z = 0; z < gridInfo().colExtent[0]; z++)
+            {
+                auto g0 = ii(round(log2(double(z + 1)) * (1L << getGridInfo().colScale[1])));
+
+                for (ii x = 0; x < gridInfo().colExtent[1]; x++)
+                {
+                    ii g = g0 + x;
+                    gSizes[g]++;
+
+                    double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
+                    //cout << mass << endl;
+
+                    is.push_back(x + z * gridInfo().colExtent[1]);
+                    js.push_back(g);
+                    vs.push_back(1.0);
+                    //vs.push_back(1.0 / sqrt(mass); // this does not work
+                    //vs.push_back(1.0 / pow(300.0*mass, 1.0/4.0));
+                    //vs.push_back(1.0 / pow(6.0*mass, 1.0/3.0)); //vs.push_back(1.0 / sqrt(pow(6.0*mass, 2.0/3.0)));
+                }
+            }
+
+            /*for (ii nz = 0; nz < ii(vs.size()); nz++)
+            {
+                vs[nz] /= sqrt(fp(gSizes[js[nz]]));
+            }*/
+
+            gTs_[0].importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
+            gs_[0].transpose(gTs_[0]);
+        }
     }
 }
 
@@ -398,24 +404,35 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
     if (!f.size())
         f.resize(1);
 
-    // zero basis functions that are no longer needed
-    MatrixSparse t;
-    ii rowsPruned = t.pruneRows(aT_, x[0], false, 0.75);
-    if (rowsPruned > 0)
-    {
-        aT_.swap(t);
-        a_.transpose(aT_);
-
-        if (getDebugLevel() % 10 >= 3)
+    if (a_.size()) {
+        // zero basis functions that are no longer needed
+        MatrixSparse t;
+        ii rowsPruned = t.pruneRows(aT_, x[0], false, 0.75);
+        if (rowsPruned > 0)
         {
-            ostringstream oss;
-            oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
-            info(oss.str());
+            aT_.swap(t);
+            a_.transpose(aT_);
+
+            if (getDebugLevel() % 10 >= 3)
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
+                info(oss.str());
+            }
+        }
+
+        // synthesise
+        f[0].matmul(false, x[0], aT_, accumulate);
+    }
+    else
+    {
+        if (accumulate) {
+            f[0].add(1.0f, false, f[0], x[0]);
+        }
+        else {
+            f[0].copy(x[0]);
         }
     }
-
-    // synthesise
-    f[0].matmul(false, x[0], aT_, accumulate);
 
     if (getDebugLevel() % 10 >= 3)
     {
@@ -438,15 +455,20 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
     if (!xE.size())
         xE.resize(1);
 
-    if (sqrA)
-    {
-        MatrixSparse t;
-        t.sqr(a_);
-        xE[0].matmul(false, fE[0], t, false);
+    if (a_.size()) {
+        if (sqrA)
+        {
+            MatrixSparse t;
+            t.sqr(a_);
+            xE[0].matmul(false, fE[0], t, false);
+        }
+        else
+        {
+            xE[0].matmul(false, fE[0], a_, false);
+        }
     }
-    else
-    {
-        xE[0].matmul(false, fE[0], a_, false);
+    else {
+        xE[0].copy( fE[0]);
     }
 
     if (getDebugLevel() % 10 >= 3)

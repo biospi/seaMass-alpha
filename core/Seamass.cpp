@@ -131,8 +131,8 @@ void Seamass::init(Input& input, bool seed)
         outputBasis_ = new BasisBsplineMz(bases_, b_, isotopesFilename_, input.counts, input.countsIndex,
                                           input.locations, scale_[0], chargeStates_, false);
 
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
-            new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 1, true, false);
+         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[0] > 8; i++)
+            new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 0, false, false);
     }
     else
     {
@@ -151,10 +151,10 @@ void Seamass::init(Input& input, bool seed)
         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
         {
             if (i > 0)
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, true, false);
+                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, false, false);
 
             while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, true, false);
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, false, false);
         }
     }
 

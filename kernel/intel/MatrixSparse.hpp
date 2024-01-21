@@ -128,7 +128,7 @@ private:
     fp* vs_;
     bool isCsrOwned_; // true if data arrays owned by this object (false is owned by MKL or by a parent matrix)
 
-    //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routien has been run
+    //! Pointer to opaque MKL sparse matrix output if an MKL Inspector-executor Sparse BLAS routine has been run
     //!
     sparse_matrix_t mat_;
 

@@ -66,8 +66,7 @@ int main(int argc, const char * const * argv)
              "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
              "from mzML/vendor format to mzMLb.")
             ("isotopes_db,i", po::value<string>(&isotopesFilename),
-             "Isotope distribution database in smd format. Use genisodists to generate."
-             "from mzML/vendor format to mzMLb.")
+             "Isotope distribution database in smd format. Use genisodists to generate.")
             ("mz_scale,m", po::value<int>(&scaleMz),
              "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
              "Default is to autodetect.")
@@ -152,9 +151,6 @@ int main(int argc, const char * const * argv)
 
         while (dataset->read(input, id))
         {
-            // Temp test tiff test...
-            dataset->write(input,id);
-
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
@@ -181,7 +177,7 @@ int main(int argc, const char * const * argv)
             {
                 if (debugLevel / 10 >= 2)
                 {
-                    /*{
+                    {
                         Seamass::Output output;
                         seamass.getOutput(output, false);
 
@@ -189,7 +185,7 @@ int main(int argc, const char * const * argv)
                         ostringstream oss; oss << fileStemOut << "." << setfill('0') << setw(4) << seamass.getIteration();
                         DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
                         datasetOut.write(input, output, id);
-                    }*/
+                    }
                     {
                         Seamass::Output output;
                         seamass.getOutput(output, true);
