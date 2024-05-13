@@ -24,7 +24,7 @@
 #define SEAMASS_CORE_SEAMASS_HPP
 
 
-#include "BasisBspline.hpp"
+#include "BasisBsplineMz.hpp"
 #include "../asrl/OptimizerSrl.hpp"
 
 
@@ -53,8 +53,11 @@ public:
         double lambdaGroup;
         double tolerance;
         double peakFwhm;
-        std::string isotopesFilename;
+        std::string dbFilename;
         short chargeStates;
+
+        BasisBspline::GridInfo bGridInfo;
+        MatrixSparse b;
 
         std::vector<BasisBspline::GridInfo> gridInfos;
         std::vector<MatrixSparse> xs;
@@ -78,7 +81,7 @@ public:
         std::vector<ii> extent;
     };
 
-    Seamass(Input& input, const std::string& isotopesFilename, const std::vector<short>& scale,
+    Seamass(Input& input, const std::string& dbFilename, const std::vector<short>& scale,
             fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates);
     Seamass(Input& input, const Output& output);
     virtual ~Seamass();
@@ -103,14 +106,14 @@ private:
 
     short dimensions_;
     std::vector<Basis*> bases_;
-    Basis* outputBasis_;
+    BasisBsplineMz* mzBasis_;
     std::vector<MatrixSparse> b_;
 
     Optimizer* innerOptimizer_;
     Optimizer* optimizer_;
 
     const std::vector<short>& scale_;
-    const std::string& isotopesFilename_;
+    const std::string& dbFilename_;
     fp lambda_;
     fp lambdaStart_;
     fp lambdaGroup_;

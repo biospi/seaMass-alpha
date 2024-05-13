@@ -38,7 +38,7 @@ void initKernel(int debugLevel)
     // Init IPP library
     ippInit();
 
-    if (debugLevel % 10 >= 2)
+    if (debugLevel % 10 >= 3)
     {
         // Get MKL library version info
         MKLVersion Version;

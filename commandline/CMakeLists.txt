@@ -12,13 +12,13 @@ target_link_libraries (asrl LINK_PUBLIC
         ${Boost_LIBRARIES}
         )
 
-add_executable(genisodists
-        genisodists.cpp
+add_executable(generate_unknowns
+        generate_unknowns.cpp
         )
-target_include_directories(genisodists PUBLIC
+target_include_directories(generate_unknowns PUBLIC
         ${Boost_INCLUDE_DIRS}
         )
-target_link_libraries (genisodists LINK_PUBLIC
+target_link_libraries (generate_unknowns LINK_PUBLIC
         seamass_core
         ${Boost_LIBRARIES}
         )

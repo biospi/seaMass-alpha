@@ -9,14 +9,14 @@ add_library(seamass_core
         BasisBspline.cpp
         BasisBsplineMz.hpp
         BasisBsplineMz.cpp
-        BasisBsplinePeak.hpp
-        BasisBsplinePeak.cpp
         BasisBsplineScantime.cpp
         BasisBsplineScantime.hpp
         BasisBsplineCharge.cpp
         BasisBsplineCharge.hpp
         BasisBsplineScale.cpp
         BasisBsplineScale.hpp
+        BasisBsplineLibrary.cpp
+        BasisBsplineLibrary.hpp
         Seamass.cpp
         Seamass.hpp
         Dataset.cpp
@@ -26,17 +26,17 @@ add_library(seamass_core
         DatasetMzmlb.cpp
         DatasetSeamass.cpp
         DatasetMzmlb.tpp
-	DatasetTiff.cpp
+        DatasetTiff.cpp
         )
 target_include_directories(seamass_core PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${PugiXML_INCLUDE_DIR}
-	${TIFF_INCLUDE_DIR}
+        ${TIFF_INCLUDE_DIR}
         ${Boost_INCLUDE_DIRS}
 	)
 target_link_libraries(seamass_core
         seamass_asrl
         ${PugiXML_LIBRARIES}
-	${TIFF_LIBRARY}
+        ${TIFF_LIBRARY}
         ${Boost_LIBRARIES}
 	)

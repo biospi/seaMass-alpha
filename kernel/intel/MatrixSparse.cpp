@@ -943,13 +943,13 @@ void MatrixSparse::sqr(const MatrixSparse& a)
         commitCsr(a.isSorted_);
     }
 
-    for (ii nz = 0; nz < nnz(); nz++)
+    /*for (ii nz = 0; nz < nnz(); nz++)
     {
         if (vs_[nz] == 0.0)
         {
             cout << nz << ":" << vs_[nz] << endl;
         }
-    }
+    }*/
 
     if (getDebugLevel() % 10 >= 4)
     {

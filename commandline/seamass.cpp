@@ -39,7 +39,7 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
-        string isotopesFilename;
+        string dbFilename;
         int scaleMz;
         int scaleSt;
         int lambdaExponent;
@@ -65,8 +65,8 @@ int main(int argc, const char * const * argv)
             ("file,f", po::value<string>(&filePathIn),
              "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
              "from mzML/vendor format to mzMLb.")
-            ("isotopes_db,i", po::value<string>(&isotopesFilename),
-             "Isotope distribution database in smd format. Use genisodists to generate.")
+            ("db,b", po::value<string>(&dbFilename),
+             "Spectral library database in smd format. generate_unknowns will generate a generic db.")
             ("mz_scale,m", po::value<int>(&scaleMz),
              "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
              "Default is to autodetect.")
@@ -88,8 +88,8 @@ int main(int argc, const char * const * argv)
             ("fwhm,w", po::value<double>(&peakFwhm)->default_value(0.0),
              "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
-             "Debug level. Use 1+ for convergence stats, 2+ for performance stats, 3+ for sparsity info, "
-             "4 to output all maths, +10 to write intermediate results to disk.")
+             "Debug level. Use 1 for convergence stats, 2 for performance stats, 3 for sparsity info, "
+             "4 to output all maths, +10 to write synthesised output, +20 to also write intermediate results to disk.")
         ;
 
         po::options_description desc;
@@ -154,24 +154,8 @@ int main(int argc, const char * const * argv)
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamass(input, isotopesFilename, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
+            Seamass seamass(input, dbFilename, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
                             peakFwhm, chargeStates);
-
-            if (debugLevel / 10 >= 1)
-            {
-                Seamass::Input input2;
-                input2.countsIndex = input.countsIndex;
-                input2.startTimes = input.startTimes;
-                input2.finishTimes = input.finishTimes;
-                input2.exposures = input.exposures;
-                input2.type = input.type;
-                seamass.getInput(input2);
-
-                // write input in seaMass format
-                ostringstream oss; oss << fileStemOut << ".input";
-                DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::Input);
-                datasetOut.write(input2, id);
-            }
 
             do
             {

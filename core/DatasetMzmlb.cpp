@@ -158,14 +158,14 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
         // capture polarity
         nodes = mzmlDoc.select_nodes("spectrum/cvParam[@accession='MS:1000129']");
         if (!nodes.empty())
-            metadata_[i].id = "n";
+            metadata_[i].id = "neg";
         else
         {
             nodes = mzmlDoc.select_nodes("spectrum/cvParam[@accession='MS:1000130']");
             if (!nodes.empty())
-                metadata_[i].id = "p";
+                metadata_[i].id = "pos";
             else
-                metadata_[i].id = "u";
+                metadata_[i].id = "unk";
         }
 
         // capture scan info (we can only process files with one scan per spectra, so for us scan = spectrum)
@@ -223,25 +223,33 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
             metadata_[i].dataType = SpectrumMetadata::DataType::Centroided;
         }
 
-        // capture dataset and offset of mzs
-        nodes = mzmlDoc.select_nodes("spectrum/binaryDataArrayList/binaryDataArray/cvParam[@accession='MS:1000514']/../binary");
-        if(!nodes.empty())
-        {
-            istringstream(nodes.first().node().attribute("externalDataset").value()) >> metadata_[i].mzsDataset;
-            istringstream(nodes.first().node().attribute("offset").value()) >> metadata_[i].mzsOffset;
-        }
+        // capture dataset of intensities
+        nodes = mzmlDoc.select_nodes("spectrum/binaryDataArrayList/binaryDataArray/cvParam[@accession='MS:1000515']/../cvParam[@accession='MS:1002841']");
+        if (!nodes.empty())
+            istringstream(nodes.first().node().attribute("value").value()) >> metadata_[i].intensitiesDataset;
         else
-            throw runtime_error("Error: No <binary> m/z data in mzMLb input file");
+            throw runtime_error("Error: No <binary> intensity external dataset ref in mzMLb input file");
 
-        // capture dataset and offset of intensities
-        nodes = mzmlDoc.select_nodes("spectrum/binaryDataArrayList/binaryDataArray/cvParam[@accession='MS:1000515']/../binary");
-        if(!nodes.empty())
-        {
-            istringstream(nodes.first().node().attribute("externalDataset").value()) >> metadata_[i].intensitiesDataset;
-            istringstream(nodes.first().node().attribute("offset").value()) >> metadata_[i].intensitiesOffset;
-        }
+        // capture offset of intensities
+        nodes = mzmlDoc.select_nodes("spectrum/binaryDataArrayList/binaryDataArray/cvParam[@accession='MS:1000515']/../cvParam[@accession='MS:1002842']");
+        if (!nodes.empty())
+             istringstream(nodes.first().node().attribute("value").value()) >> metadata_[i].intensitiesOffset;
         else
-            throw runtime_error("Error: No <binary> intensity data in mzMLb input file");
+            throw runtime_error("Error: No <binary> intensity external offset in mzMLb input file");
+
+        // capture dataset of mzs
+        nodes = mzmlDoc.select_nodes("spectrum/binaryDataArrayList/binaryDataArray/cvParam[@accession='MS:1000514']/../cvParam[@accession='MS:1002841']");
+        if (!nodes.empty())
+            istringstream(nodes.first().node().attribute("value").value()) >> metadata_[i].mzsDataset;
+        else
+            throw runtime_error("Error: No <binary> intensity external dataset ref in mzMLb input file");
+
+        // capture offset of ms
+        nodes = mzmlDoc.select_nodes("spectrum/binaryDataArrayList/binaryDataArray/cvParam[@accession='MS:1000514']/../cvParam[@accession='MS:1002842']");
+        if (!nodes.empty())
+            istringstream(nodes.first().node().attribute("value").value()) >> metadata_[i].mzsOffset;
+        else
+            throw runtime_error("Error: No <binary> intensity external offset in mzMLb input file");
 
         if (getDebugLevel() % 10 >= 3)
         {
@@ -349,6 +357,8 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
 
     if (!filePathStemOut.empty())
     {
+        /* awd97 11/5/2024 - this is supposed to replicate input file so that seaMass output can be added, but its incomplete. disabling currently but probably should just be a simple copy
+        
         // Setup and start saving mzMLb output file...
         if(mzML.size() > 0) vector<char>().swap(mzML);
         idxDataArrayOffSet_=0;
@@ -363,10 +373,11 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
         size_t loc=0;
         size_t len=specIdx_[0];
         fileIn_.read_HypVecNC("mzML",mzML,&loc,&len);
+        */
 
         fileOut_ = new FileNetcdf(filePathStemOut + (writeType == Dataset::WriteType::InputOutput ? ".mzMLv" : ".mzMLb"), NC_NETCDF4);
 
-        if (dataSet.back().varName == "chromatogram_MS_1000595_double")
+        /*if (dataSet.back().varName == "chromatogram_MS_1000595_double")
         {
             vector<double> chroMz;
             vector<fp> chroBinCounts;
@@ -397,7 +408,7 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
         string s = "mzMLb 0.5";
         fileOut_->writeAttribute(s, "version", "mzML");
 
-        mzML.clear();
+        mzML.clear();*/
     }
 
 
@@ -551,6 +562,7 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
     //   mz values as the bin edges, and using trapezoid rule to integrate intensity values
     //
     out.countsIndex.resize(extent_ + 1);
+    double all_minimum = std::numeric_limits<double>::max();
     for (ii i = 0; i < extent_; i++)
     {
         out.countsIndex[i] = (li) out.counts.size();
@@ -563,6 +575,11 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
             size_t hypIdx = metadata_[offset + i].intensitiesOffset;
             fileIn_.read_HypVecNC(metadata_[offset + i].intensitiesDataset, intensities, &hypIdx, &rdLen);
         }
+
+        // HACK, see below
+        for (size_t k = 0; k < mzs[i].size(); k++)
+            if (intensities[k] > 0.0)
+                all_minimum = all_minimum < intensities[k] ? all_minimum : intensities[k];
 
         switch (metadata_[offset + i].dataType)
         {
@@ -594,17 +611,7 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
                 }
                 else
                 {
-                    // dividing by minimum to get back to ion counts for SWATH data which appears to be automatic gain
-                    // controlled to correct for dynamic range restrictions (hack!)
-                    double minimum = std::numeric_limits<double>::max();
-                    for (size_t k = 0; k < mzs[i].size(); k++)
-                        if (intensities[k] > 0.0)
-                            minimum = minimum < intensities[k] ? minimum : intensities[k];
-                    // check to see if we can estimate the exposure i.e. is the minimum reasonable?
-                    if (minimum < 1.0 || minimum > 1000.0) minimum = 1.0;
-                    out.exposures.push_back((fp) (1.0 / minimum));
-
-                    if (intensities.front() == 0.0) // only use the first m/z if the intensity is zero
+                     if (intensities.front() == 0.0) // only use the first m/z if the intensity is zero
                     {
                         double frontEdge = mz0 < mzs[i].front() ? mz0 : mzs[i].front();
                         out.locations.push_back(frontEdge);
@@ -617,7 +624,7 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
                         if (intensities[k] != 0.0 || intensities[k - 1] != 0.0) // merge zeros
                         {
                             out.locations.push_back(0.5 * (mzs[i][k - 1] + mzs[i][k]));
-                            out.counts.push_back(((fp) intensities[k]) * out.exposures[i]);
+                            out.counts.push_back(((fp)intensities[k]));
                         }
                     }
                     out.locations.push_back(0.5 * (mzs[i][mzs[i].size() - 2] + mzs[i].back()));
@@ -674,6 +681,11 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
         }
     }
     out.countsIndex.back() = (li)out.counts.size();
+
+    // HACKS for coping with intensity threshold used by (at least) Agilent GC/MS instruments (and maybe makes sense for Orbitrap)
+    // this breaks previous hack for SWATH AGC, need to fix that when needed
+    for (size_t k = 0; k < out.counts.size(); k++)
+        if (out.counts[k] < all_minimum) out.counts[k] = all_minimum;
 
     return true;
 }

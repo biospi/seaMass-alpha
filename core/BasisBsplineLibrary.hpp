@@ -20,18 +20,18 @@
 //
 
 
-#ifndef SEAMASS_CORE_BASISBSPLINEPEAK_HPP
-#define SEAMASS_CORE_BASISBSPLINEPEAK_HPP
+#ifndef SEAMASS_CORE_BASISBSPLINELIBRARY_HPP
+#define SEAMASS_CORE_BASISBSPLINELIBRARY_HPP
 
 
 #include "BasisBspline.hpp"
 
 
-class BasisBsplinePeak : public BasisBspline
+class BasisBsplineLibrary : public BasisBspline
 {
 public:
-    BasisBsplinePeak(std::vector<Basis*>& bases, int parentIndex, double fwhm, bool transient);
-    virtual ~BasisBsplinePeak();
+    BasisBsplineLibrary(std::vector<Basis*>& bases, int parentIndex, const std::string& dbFilename, bool transient);
+    virtual ~BasisBsplineLibrary();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
@@ -39,6 +39,9 @@ public:
 private:
     MatrixSparse aT_;
     MatrixSparse a_;
+
+    std::vector<MatrixSparse> gTs_;
+    std::vector<MatrixSparse> gs_;
 };
 
 

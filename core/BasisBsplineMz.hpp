@@ -32,16 +32,14 @@ class BasisBsplineMz : public BasisBspline
 public:
     static double PROTON_MASS;
 
-    BasisBsplineMz(std::vector<Basis*>& bases, std::vector<MatrixSparse>& b, const std::string& isotopesFilename,
+    BasisBsplineMz(std::vector<Basis*>& bases, std::vector<MatrixSparse>& b,
                    const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
-                   const std::vector<double>& binEdges, short scale, short chargeStates, bool transient);
+                   const std::vector<double>& binEdges, short scale, bool transient, double fwhm = 0.0);
 
     virtual ~BasisBsplineMz();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
-
-    virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
 
     const GridInfo& getBGridInfo() const;
 
@@ -51,9 +49,6 @@ private:
 
     MatrixSparse aT_;
     MatrixSparse a_;
-
-    std::vector<MatrixSparse> gTs_;
-    std::vector<MatrixSparse> gs_;
 };
 
 

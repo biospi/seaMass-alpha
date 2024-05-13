@@ -26,7 +26,6 @@
 #include <iomanip>
 #include <cmath>
 #include <sstream>
-#include "../io/FileNetcdf.hpp"
 using namespace std;
 using namespace kernel;
 
@@ -47,10 +46,10 @@ void convolution(vector<double>& x, const vector<double>& a, const vector<double
 }
 
 
-BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>& b, const string& isotopesFilename,
+BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>& b,
     const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
-    const std::vector<double>& binEdges, short scale, short chargeStates, bool transient) :
-    BasisBspline(bases, 1, 2, transient), bGridInfo_(1, 1), chargeDeconvolution_(chargeStates > 0), gTs_(1), gs_(1)
+    const std::vector<double>& binEdges, short scale, bool transient, double fwhm) :
+    BasisBspline(bases, 1, 2, transient), bGridInfo_(1, 1)
 {
     if (getDebugLevel() % 10 >= 2)
     {
@@ -71,316 +70,229 @@ BasisBsplineMz::BasisBsplineMz(std::vector<Basis*>& bases, vector<MatrixSparse>&
 
     // bspline basis function lookup table
     Bspline bspline(3, 65536);
+
+    std::vector<li> binCountsIndex;
+    std::vector<li> binEdgesIndex;
+    if (binCountsIndex_.size() > 0)
     {
-        std::vector<li> binCountsIndex;
-        std::vector<li> binEdgesIndex;
-        if (binCountsIndex_.size() > 0)
-        {
-            binCountsIndex = binCountsIndex_;
-            binEdgesIndex = binCountsIndex_;
-            for (ii i = 0; i < ii(binEdgesIndex.size()); i++) binEdgesIndex[i] += i;
-        }
-        else
-        {
-            binCountsIndex.push_back(0);
-            binCountsIndex.push_back(binCounts.size());
-            binEdgesIndex.push_back(0);
-            binEdgesIndex.push_back(binEdges.size());
-        }
+        binCountsIndex = binCountsIndex_;
+        binEdgesIndex = binCountsIndex_;
+        for (ii i = 0; i < ii(binEdgesIndex.size()); i++) binEdgesIndex[i] += i;
+    }
+    else
+    {
+        binCountsIndex.push_back(0);
+        binCountsIndex.push_back(binCounts.size());
+        binEdgesIndex.push_back(0);
+        binEdgesIndex.push_back(binEdges.size());
+    }
 
-        // find min and max m/z across spectra, m for each A
-        double mz0 = numeric_limits<double>::max();
-        double mz1 = 0.0;
-        double xDiff = 0.0;
-        li n = 0;
-        for (ii k = 0; k < ii(binEdgesIndex.size()) - 1; k++)
-        {
-            mz0 = binEdges[binEdgesIndex[k]] < mz0 ? binEdges[binEdgesIndex[k]] : mz0;
-            mz1 = binEdges[binEdgesIndex[k + 1] - 1] > mz1 ? binEdges[binEdgesIndex[k + 1] - 1] : mz1;
+    // find min and max m/z across spectra, m for each A
+    double mz0 = numeric_limits<double>::max();
+    double mz1 = 0.0;
+    double xDiff = 0.0;
+    li n = 0;
+    for (ii k = 0; k < ii(binEdgesIndex.size()) - 1; k++)
+    {
+        mz0 = binEdges[binEdgesIndex[k]] < mz0 ? binEdges[binEdgesIndex[k]] : mz0;
+        mz1 = binEdges[binEdgesIndex[k + 1] - 1] > mz1 ? binEdges[binEdgesIndex[k + 1] - 1] : mz1;
 
-            // find mean difference in index between edges, ignoring first, last and zeros
-            for (ii i = 1; i < binCountsIndex[k + 1] - binCountsIndex[k] - 1; i++)
+        // find mean difference in index between edges, ignoring first, last and zeros
+        for (ii i = 1; i < binCountsIndex[k + 1] - binCountsIndex[k] - 1; i++)
+        {
+            if (binCounts[binCountsIndex[k] + i] != 0)
             {
-                if (binCounts[binCountsIndex[k] + i] != 0)
+                li ei = binEdgesIndex[k] + i;
+                xDiff += log2(binEdges[ei + 1] - PROTON_MASS) - log2(binEdges[ei] - PROTON_MASS);
+                n++;
+            }
+        }
+    }
+    xDiff /= double(n);
+
+    ii scaleAuto = ii(ceil(log2(1.0 / xDiff))) + 1;
+    if (scale == numeric_limits<short>::max())
+    {
+        scale = scaleAuto;
+
+        if (getDebugLevel() % 10 >= 1)
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << int(scale);
+            info(oss.str());
+        }
+    }
+
+    double scale2 = pow(2.0, scale);
+    bGridInfo_.rowScale[0] = numeric_limits<short>::min();
+    bGridInfo_.rowOffset[0] = 0;
+    bGridInfo_.rowExtent[0] = ii(binCountsIndex.size()) - 1;
+    bGridInfo_.colScale[0] = scale;
+    bGridInfo_.colOffset[0] = ii(floor(log2(mz0 - PROTON_MASS) * scale2));
+    bGridInfo_.colExtent[0] = (ii(ceil(log2(mz1 - PROTON_MASS) * scale2))) - bGridInfo_.colOffset[0] + 1;
+
+    vector<MatrixSparse> bs(bGridInfo_.rowExtent[0]);
+    for (ii k = 0; k < bGridInfo_.rowExtent[0]; k++)
+    {
+        vector<ii> rowind;
+        vector<ii> colind;
+        vector<fp> acoo;
+
+        // create transformation matrix
+        for (ii i = 0; i < binEdgesIndex[k + 1] - binEdgesIndex[k] - 1; i++)
+        {
+            auto startNz = ii(acoo.size());
+            double rowSum = 0.0;
+
+            if (binCounts[binCountsIndex[k] + i] >= 0.0)
+            {
+                li ei = binEdgesIndex[k] + i;
+                double xfMin = log2(binEdges[ei] - PROTON_MASS) * scale2;
+                double xfMax = log2(binEdges[ei + 1] - PROTON_MASS) * scale2;
+
+                auto xMin = ii(floor(xfMin)) - 2;
+                auto xMax = ii(ceil(xfMax)) + 2;
+
+                // work out basis coefficients
+                for (ii x = xMin; x <= xMax; x++)
                 {
-                    li ei = binEdgesIndex[k] + i;
-                    xDiff += log2(binEdges[ei + 1] - PROTON_MASS) - log2(binEdges[ei] - PROTON_MASS);
-                    n++;
+                    double bfMin = x - 1.5;
+                    double bfMax = x + 2.5;
+
+                    // intersection of bin and basis, between 0.0 and 4.0
+                    double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
+                    double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
+
+                    // basis coefficient b is _integral_ of area under b-spline basis
+                    auto bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+
+                    ii j = x - bGridInfo_.colOffset[0];
+                    if (j >= 0 && j < bGridInfo_.colExtent[0] && bc > 0.0)
+                    {
+                        rowSum += bc;
+                        acoo.push_back(bc);
+                        rowind.push_back(i);
+                        colind.push_back(j);
+                    }
                 }
             }
-        }
-        xDiff /= double(n);
 
-        ii scaleAuto = ii(ceil(log2(1.0 / xDiff))) + 1;
-        if (scale == numeric_limits<short>::max())
-        {
-            scale = scaleAuto;
-
-            if (getDebugLevel() % 10 >= 1)
+            // normalise column
+            if (rowSum > 0.0)
             {
-                ostringstream oss;
-                oss << getTimeStamp() << "     autodetected_mz_scale=" << fixed << setprecision(1) << int(scale);
-                info(oss.str());
+                for (ii nz = startNz; nz < ii(acoo.size()); nz++)
+                    acoo[nz] /= rowSum;
             }
         }
 
-        double scale2 = pow(2.0, scale);
-        bGridInfo_.rowScale[0] = numeric_limits<short>::min();
-        bGridInfo_.rowOffset[0] = 0;
-        bGridInfo_.rowExtent[0] = ii(binCountsIndex.size()) - 1;
-        bGridInfo_.colScale[0] = scale;
-        bGridInfo_.colOffset[0] = ii(floor(log2(mz0 - PROTON_MASS) * scale2));
-        bGridInfo_.colExtent[0] = (ii(ceil(log2(mz1 - PROTON_MASS) * scale2))) - bGridInfo_.colOffset[0] + 1;
+        // create b
+        MatrixSparse a;
+        a.importFromCoo(ii(binCountsIndex[k + 1] - binCountsIndex[k]), bGridInfo_.n(), acoo.size(),
+            rowind.data(), colind.data(), acoo.data());
+
+        Matrix t;
+        t.importFromArray(1, ii(binCountsIndex[k + 1] - binCountsIndex[k]), &binCounts.data()[binCountsIndex[k]]);
+        MatrixSparse t2, t3;
+        t2.importFromMatrix(t);
+        t3.matmul(false, t2, a, false);
+        bs[k].pruneCells(t3);
+    }
+
+    b.resize(1);
+    b[0].concatenateRows(bs);
+
+    gridInfo() = bGridInfo_;
+    if (fwhm > 0.0)
+    {
+        // create our PSF kernel
+        Bspline bspline(3, 65536); // bspline basis function lookup table
+        ii nh = 2 * ii(ceil(2.0 * fwhm)) + 1;
+        vector<fp> hs(nh, 0.0);
+        for (ii k = 0; k < nh; k++)
+        {
+            ii l = k - (nh / 2);
+
+            double low = (l - 0.5) / fwhm;
+            low = low > -2.0 ? low : -2.0;
+            low = low < 2.0 ? low : 2.0;
+
+            double high = (l + 0.5) / fwhm;
+            high = high > -2.0 ? high : -2.0;
+            high = high < 2.0 ? high : 2.0;
+
+            hs[k] = Bspline::im(high + 2.0, 4) - Bspline::im(low + 2.0, 4);
+        }
+
+        gridInfo().colOffset[0] = bGridInfo_.colOffset[0] - (nh / 2);
+        gridInfo().colExtent[0] = bGridInfo_.colExtent[0] + 2 * (nh / 2);
 
         if (getDebugLevel() % 10 >= 2)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "     range=" << fixed << setprecision(3) << mz0 << ":" << mz1 << "Th";
+            oss << getTimeStamp() << "     parent=" << getParentIndex();
             info(oss.str());
-            ostringstream oss2;
-            oss2 << getTimeStamp() << "     charge_deconvolution=" << chargeDeconvolution_;
-            info(oss2.str());
-            ostringstream oss3;
-            oss3 << getTimeStamp() << "     charge_states=" << chargeStates;
-            info(oss3.str());
-            ostringstream oss4;
-            oss4 << getTimeStamp() << "     b_" << bGridInfo_;
-            info(oss4.str());
-        }
 
-        vector<MatrixSparse> bs(bGridInfo_.rowExtent[0]);
-        for (ii k = 0; k < bGridInfo_.rowExtent[0]; k++)
-        {
-            vector<ii> rowind;
-            vector<ii> colind;
-            vector<fp> acoo;
-
-            // create transformation matrix
-            for (ii i = 0; i < binEdgesIndex[k + 1] - binEdgesIndex[k] - 1; i++)
+            for (ii k = 0; k < nh; k++)
             {
-                auto startNz = ii(acoo.size());
-                double rowSum = 0.0;
-
-                if (binCounts[binCountsIndex[k] + i] >= 0.0)
-                {
-                    li ei = binEdgesIndex[k] + i;
-                    double xfMin = log2(binEdges[ei] - PROTON_MASS) * scale2;
-                    double xfMax = log2(binEdges[ei + 1] - PROTON_MASS) * scale2;
-
-                    auto xMin = ii(floor(xfMin)) - 2;
-                    auto xMax = ii(ceil(xfMax)) + 2;
-
-                    // work out basis coefficients
-                    for (ii x = xMin; x <= xMax; x++)
-                    {
-                        double bfMin = x - 1.5;
-                        double bfMax = x + 2.5;
-
-                        // intersection of bin and basis, between 0.0 and 4.0
-                        double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
-                        double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
-
-                        // basis coefficient b is _integral_ of area under b-spline basis
-                        auto bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
-
-                        ii j = x - bGridInfo_.colOffset[0];
-                        if (j >= 0 && j < bGridInfo_.colExtent[0] && bc > 0.0)
-                        {
-                            rowSum += bc;
-                            acoo.push_back(bc);
-                            rowind.push_back(i);
-                            colind.push_back(j);
-                        }
-                    }
-                }
-
-                // normalise column
-                if (rowSum > 0.0)
-                {
-                    for (ii nz = startNz; nz < ii(acoo.size()); nz++)
-                        acoo[nz] /= rowSum;
-                }
+                ostringstream oss2;
+                oss2 << getTimeStamp() << "     kernel=" << hs[k];
+                info(oss2.str());
             }
 
-            // create b
-            MatrixSparse a;
-            a.importFromCoo(ii(binCountsIndex[k + 1] - binCountsIndex[k]), bGridInfo_.n(), acoo.size(),
-                rowind.data(), colind.data(), acoo.data());
-
-            Matrix t;
-            t.importFromArray(1, ii(binCountsIndex[k + 1] - binCountsIndex[k]), &binCounts.data()[binCountsIndex[k]]);
-            MatrixSparse t2, t3;
-            t2.importFromMatrix(t);
-            t3.matmul(false, t2, a, false);
-            bs[k].pruneCells(t3);
+            ostringstream oss3;
+            oss3 << getTimeStamp() << "     " << gridInfo();
+            info(oss3.str());
         }
 
-        b.resize(1);
-        b[0].concatenateRows(bs);
+        // create A as a temporary COO matrix
+        ii m = bGridInfo_.colExtent[0];
+        ii n = gridInfo().colExtent[0];
+        vector<ii> is;
+        vector<ii> js;
+        vector<fp> vs;
 
-        if (scaleAuto != scale && getDebugLevel() % 10 >= 2)
+        for (ii j = 0; j < n; j++)
         {
-            ostringstream oss;
-            oss << "WARNING: mz_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";
-            warning(oss.str());
+            for (ii k = 0; k < nh; k++)
+            {
+                ii i = j + k - 2 * (nh / 2);
+                if (i < 0 || i >= m) continue;
+
+                if (hs[k] > 0.0)
+                {
+                    is.push_back(i);
+                    js.push_back(j);
+                    vs.push_back(hs[k]);
+                }
+            }
         }
+
+        // create A
+        aT_.importFromCoo(n, m, vs.size(), js.data(), is.data(), vs.data());
+        a_.transpose(aT_);
     }
 
     if (getDebugLevel() % 10 >= 2)
     {
+        ostringstream oss1;
+        oss1 << getTimeStamp() << "     range=" << fixed << setprecision(3) << mz0 << ":" << mz1 << "Th";
+        info(oss1.str());
         ostringstream oss;
-        oss << getTimeStamp() << "     input=B" << b[0];
+        oss << getTimeStamp() << "     input=A" << b[0];
         info(oss.str());
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Load 'A' if specified
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (isotopesFilename.empty()) {
-        gridInfo() = bGridInfo_;
-    }
-    else 
-    {
-        if (getDebugLevel() % 10 >= 2)
-        {
-            ostringstream oss;
-            oss << getTimeStamp() << "    Loading " << isotopesFilename << "...";
-            info(oss.str());
-        }
-
-        FileNetcdf fileIn(isotopesFilename);
         ostringstream oss2;
-        oss2 << "s=" << setfill('0') << setw(2) << ii(bGridInfo_.colScale[0]);
-        int groupId = fileIn.openGroup(oss2.str());
+        oss2 << getTimeStamp() << "     input_" << bGridInfo_;
+        info(oss2.str());
+        ostringstream oss3;
+        oss3 << getTimeStamp() << "     " << gridInfo();
+        info(oss3.str());
+    }
 
-        vector<ii> offset;
-        fileIn.readAttribute(offset, "offset", "", groupId);
-
-        {
-            vector<short> zs;
-            vector<ii> is;
-            vector<ii> js;
-            vector<fp> vs;
-
-            ii iMin = numeric_limits<ii>::max();
-            ii iMax = 0;
-            ii jMin = bGridInfo_.colOffset[0];
-            ii jMax = bGridInfo_.colOffset[0] + bGridInfo_.colExtent[0] - 1;
-
-            for (short z = 0; z < chargeStates; z++)
-            {
-                if (getDebugLevel() % 10 >= 2)
-                {
-                    ostringstream oss;
-                    oss << getTimeStamp() << "     z" << (z + 1);
-                    info(oss.str());
-                }
-
-                ostringstream oss;
-                oss << "z=" << setfill('0') << setw(4) << (z + 1);
-                MatrixSparse aTz;
-                fileIn.readMatrixSparseCsr(aTz, oss.str(), groupId);
-
-                // this should be in MatrixSparse
-                for (ii _i = 0; _i < aTz.m(); _i++)
-                {
-                    for (ii nz = aTz.ijs()[_i]; nz < aTz.ijs()[_i + 1]; nz++)
-                    {
-                        ii i = offset[0] + _i;
-                        ii j = offset[1] + aTz.js()[nz];
-
-                        if (jMin <= j && j <= jMax)
-                        {
-                            iMin = iMin < i ? iMin : i;
-                            iMax = iMax > i ? iMax : i;
-
-                            zs.push_back(z);
-                            is.push_back(i);
-                            js.push_back(j - jMin);
-                            vs.push_back(aTz.vs()[nz]);
-                        }
-                    }
-                }
-            }
-
-            for (ii nz = 0; nz < ii(is.size()); nz++)
-            {
-                is[nz] = (is[nz] - iMin) + zs[nz] * (iMax - iMin + 1);
-
-                //cout << iNs[nz] << "," << jNs[nz] << "=" << vNs[nz] << endl;
-            }
-
-            ii mN = chargeStates * (iMax - iMin + 1);
-            ii nN = jMax - jMin + 1;
-
-            aT_.importFromCoo(mN, nN, vs.size(), is.data(), js.data(), vs.data());
-            a_.transpose(aT_);
-
-            // Set up 'A'
-
-            gridInfo().rowScale[0] = bGridInfo_.rowScale[0];
-            gridInfo().rowOffset[0] = bGridInfo_.rowOffset[0];
-            gridInfo().rowExtent[0] = bGridInfo_.rowExtent[0];
-
-            gridInfo().colScale[0] = numeric_limits<short>::min();
-            gridInfo().colOffset[0] = 0;
-            gridInfo().colExtent[0] = chargeStates > 0 ? chargeStates : 1;
-
-            gridInfo().colScale[1] = bGridInfo_.colScale[0];
-            gridInfo().colOffset[1] = iMin;
-            gridInfo().colExtent[1] = iMax - iMin + 1;
-        }
-
-        if (getDebugLevel() % 10 >= 2)
-        {
-            ostringstream oss;
-            oss << getTimeStamp() << "     a_" << gridInfo();
-            info(oss.str());
-        }
-
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // Gt = m x n matrix where m are the coefficients and n are the groups (monoisotope centroid mass).
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        {
-            vector<ii> is;
-            vector<ii> js;
-            vector<fp> vs;
-
-            ii m = getGridInfo().colExtent[0] * getGridInfo().colExtent[1];
-            ii n = getGridInfo().colExtent[1] + ii(round(log2(double(chargeStates)) * (1L << getGridInfo().colScale[1])));
-
-            vector<ii> gSizes(n, 0);
-            for (ii z = 0; z < gridInfo().colExtent[0]; z++)
-            {
-                auto g0 = ii(round(log2(double(z + 1)) * (1L << getGridInfo().colScale[1])));
-
-                for (ii x = 0; x < gridInfo().colExtent[1]; x++)
-                {
-                    ii g = g0 + x;
-                    gSizes[g]++;
-
-                    double mass = pow(2.0, (gridInfo().colOffset[1] + g) / double(1L << gridInfo().colScale[1]));
-                    //cout << mass << endl;
-
-                    is.push_back(x + z * gridInfo().colExtent[1]);
-                    js.push_back(g);
-                    vs.push_back(1.0);
-                    //vs.push_back(1.0 / sqrt(mass); // this does not work
-                    //vs.push_back(1.0 / pow(300.0*mass, 1.0/4.0));
-                    //vs.push_back(1.0 / pow(6.0*mass, 1.0/3.0)); //vs.push_back(1.0 / sqrt(pow(6.0*mass, 2.0/3.0)));
-                }
-            }
-
-            /*for (ii nz = 0; nz < ii(vs.size()); nz++)
-            {
-                vs[nz] /= sqrt(fp(gSizes[js[nz]]));
-            }*/
-
-            gTs_[0].importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
-            gs_[0].transpose(gTs_[0]);
-        }
+    if (scaleAuto != scale)
+    {
+        ostringstream oss;
+        oss << "WARNING: mz_scale is not the suggested value of " << scaleAuto << ". Continue at your own risk!";
+        warning(oss.str());
     }
 }
 
@@ -403,8 +315,9 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
 
     if (!f.size())
         f.resize(1);
-
-    if (a_.size()) {
+    
+    if (aT_.size())
+    {
         // zero basis functions that are no longer needed
         MatrixSparse t;
         ii rowsPruned = t.pruneRows(aT_, x[0], false, 0.75);
@@ -426,10 +339,12 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
     }
     else
     {
-        if (accumulate) {
+        if (accumulate)
+        {
             f[0].add(1.0f, false, f[0], x[0]);
         }
-        else {
+        else
+        {
             f[0].copy(x[0]);
         }
     }
@@ -443,7 +358,7 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
 }
 
 
-void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
+void BasisBsplineMz::analyze(vector<MatrixSparse>& xE, const vector<MatrixSparse>& fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
     {
@@ -455,7 +370,8 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
     if (!xE.size())
         xE.resize(1);
 
-    if (a_.size()) {
+    if (a_.size())
+    {
         if (sqrA)
         {
             MatrixSparse t;
@@ -467,8 +383,9 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
             xE[0].matmul(false, fE[0], a_, false);
         }
     }
-    else {
-        xE[0].copy( fE[0]);
+    else
+    {
+        xE[0].copy(fE[0]);
     }
 
     if (getDebugLevel() % 10 >= 3)
@@ -477,15 +394,6 @@ void BasisBsplineMz::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse
         oss << getTimeStamp() << "       " << xE[0];
         info(oss.str());
     }
-}
-
-
-const vector<MatrixSparse> * BasisBsplineMz::getColGroups(bool transpose) const
-{
-    if (transpose)
-        return &gTs_;
-    else
-        return &gs_;
 }
 
 

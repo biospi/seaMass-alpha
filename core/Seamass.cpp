@@ -23,7 +23,8 @@
 #include "Seamass.hpp"
 #include "DatasetSeamass.hpp"
 #include "BasisBsplineMz.hpp"
-#include "BasisBsplinePeak.hpp"
+#include "BasisBsplineUnknowns.hpp"
+#include "BasisBsplineLibrary.hpp"
 #include "BasisBsplineScale.hpp"
 #include "BasisBsplineScantime.hpp"
 #include "BasisBsplineCharge.hpp"
@@ -45,9 +46,9 @@ void Seamass::notice()
 }
 
 
-Seamass::Seamass(Input& input, const string& isotopesFilename, const std::vector<short>& scale,
+Seamass::Seamass(Input& input, const string& dbFilename, const std::vector<short>& scale,
                  fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
-        innerOptimizer_(0), isotopesFilename_(isotopesFilename), scale_(scale), lambda_(lambda),
+        innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), lambda_(lambda),
         lambdaGroup_(lambdaGroup), lambdaStart_(lambda), lambdaGroupStart_(lambdaGroup),
         taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
         iteration_(0)
@@ -58,7 +59,7 @@ Seamass::Seamass(Input& input, const string& isotopesFilename, const std::vector
 
 
 Seamass::Seamass(Input& input, const Output& output) :
-        innerOptimizer_(0), isotopesFilename_(output.isotopesFilename), scale_(output.scale), lambda_(output.lambda),
+        innerOptimizer_(0), dbFilename_(output.dbFilename), scale_(output.scale), lambda_(output.lambda),
         lambdaGroup_(output.lambdaGroup), lambdaStart_(output.lambda), lambdaGroupStart_(output.lambdaGroup),
         tolerance_(output.tolerance), peakFwhm_(output.peakFwhm), chargeStates_(output.chargeStates), iteration_(0)
 {
@@ -125,35 +126,47 @@ void Seamass::init(Input& input, bool seed)
     {
         dimensions_ = 1;
 
-        //if (peakFwhm_ > 0.0)
-        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+         mzBasis_ = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex,
+                                          input.locations, scale_[0], false, peakFwhm_);
 
-        outputBasis_ = new BasisBsplineMz(bases_, b_, isotopesFilename_, input.counts, input.countsIndex,
-                                          input.locations, scale_[0], chargeStates_, false);
+         // Supplied spectral library
+         if (dbFilename_ != "")
+             new BasisBsplineLibrary(bases_, bases_.back()->getIndex(), dbFilename_, false);
 
-         for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[0] > 8; i++)
+         // Unknowns including any baseline
+         while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().colExtent[0] > 4)
             new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 0, false, false);
     }
     else
     {
         dimensions_ = 2;
+ 
+        mzBasis_ = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,
+                           scale_[0], true, peakFwhm_);
 
-        //if (peakFwhm_ > 0.0)
-        //    new BasisBsplinePeak(bases_, bases_.back()->getIndex(), peakFwhm_, true);
+        Basis* rtBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
+                input.finishTimes, input.exposures, scale_[1], false);
 
-        new BasisBsplineMz(bases_, b_, isotopesFilename_, input.counts, input.countsIndex, input.locations,
-                           scale_[0], chargeStates_, true);
-
-        outputBasis_ = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
-                                                input.finishTimes, input.exposures, scale_[1], false);
-
-        Basis* previousBasis = outputBasis_;
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().colScale[1] > 8; i++)
+        // Unknowns (m/z and scantime tensor convolution)
+        bool first = true;
+        Basis* previousBasis = rtBasis;
+        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4; i++)
         {
-            if (i > 0)
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 1, 1, false, false);
+            if (!first)
+                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, 0, false, false);
 
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4)
+            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().colExtent[0] > 4)
+                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, 0, false, false);
+
+            first = false;
+        }
+
+        if (dbFilename_ != "")
+        {
+            // Supplied spectral library (scantime convolution only)
+            new BasisBsplineLibrary(bases_, rtBasis->getIndex(), dbFilename_, false);
+
+            for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4; i++)
                 new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, false, false);
         }
     }
@@ -271,7 +284,7 @@ void Seamass::getOutput(Output& output, bool synthesize) const
     output.tolerance = tolerance_;
     output.peakFwhm = peakFwhm_;
     output.chargeStates = chargeStates_;
-    output.isotopesFilename = isotopesFilename_;
+    output.dbFilename = dbFilename_;
 
     output.gridInfos.resize(bases_.size());
     for (ii k = 0; k < ii(bases_.size()); k++)
@@ -279,6 +292,9 @@ void Seamass::getOutput(Output& output, bool synthesize) const
 
     if (synthesize)
     {
+        output.bGridInfo = mzBasis_->getBGridInfo();
+        output.b.copy(b_[0]);
+
         vector<vector<MatrixSparse> > xs;
         {
             vector<MatrixSparse> f;

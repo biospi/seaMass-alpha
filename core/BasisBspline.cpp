@@ -139,14 +139,20 @@ operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
     os << ",offset=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
-        os << gridInfo.rowOffset[i];
+        if (gridInfo.rowOffset[i] == numeric_limits<ii>::min())
+            os << "NA";
+        else
+            os << gridInfo.rowOffset[i];
         if (i < gridInfo.rowDimensions() - 1)
             os << ",";
     }
     os << "],[";
     for (short i = 0; i < gridInfo.colDimensions(); i++)
     {
-        os << gridInfo.colOffset[i];
+        if (gridInfo.colOffset[i] == numeric_limits<ii>::min())
+            os << "NA";
+        else
+            os << gridInfo.colOffset[i];
         if (i < gridInfo.colDimensions() - 1)
             os << ",";
     }

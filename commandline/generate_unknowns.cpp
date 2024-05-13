@@ -68,25 +68,25 @@ int main(int argc, const char * const * argv)
         po::options_description general(
             "Usage\n"
             "-----\n"
-            "Generates an isotope distribution database that seaMass needs to run.\n"
+            "Generates a seaMass input database of 'unknowns' based on minimal carbon isotope distributions.\n"
             "\n"
-            "genisodists [OPTIONS...] <file>\n"
+            "genunknowns [OPTIONS...] <file>\n"
         );
 
         general.add_options()
             ("help,h", "Produce help message")
             ("file,f", po::value<string>(&fileNameOut),
              "Output file.")
-            ("mz_min", po::value<double>(&mz0)->default_value(200.0),
+            ("mz_min", po::value<double>(&mz0)->default_value(50.0),
              "Minimum m/z to consider [default=50.0]")
             ("mz_max", po::value<double>(&mz1)->default_value(2500.0),
              "Maximum m/z to consider [default=2500.0]")
             ("mz_scale_min", po::value<int>(&mzScale0)->default_value(10),
              "Minimum m/z scale to consider [default=10]")
-            ("mz_scale_max", po::value<int>(&mzScale1)->default_value(16),
+            ("mz_scale_max", po::value<int>(&mzScale1)->default_value(20),
              "Maximum m/z scale to consider [default=20]")
-            ("charge_states,z", po::value<int>(&chargeStates)->default_value(100),
-             "Number of charge states to consider [default=100]")
+            ("charge_states,z", po::value<int>(&chargeStates)->default_value(6),
+             "Number of charge states to consider [default=6]")
             ("carbons,c", po::value<double>(&carbonsPerDalton)->default_value(0.03),
              "Number of carbon atoms per Dalton of mass. Set to 0 to generate no isotopes. [default=0.03]")
             ("threshold,t", po::value<fp>(&threshold)->default_value(0.00001),
@@ -106,7 +106,7 @@ int main(int argc, const char * const * argv)
         po::notify(vm);
 
         cout << endl;
-        cout << "genisodists : Copyright (C) 2017 - biospi Laboratory, University of Bristol, UK" << endl;
+        cout << "generate_unknowns : Copyright (C) 2017 - biospi Laboratory, University of Bristol, UK" << endl;
         cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
         cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
         cout << endl;
@@ -149,8 +149,7 @@ int main(int argc, const char * const * argv)
         else
         {
             auto maxCarbons = ii(ceil(massMax * carbonsPerDalton));
-            cout << "maxCarbons=" << maxCarbons << endl;
-
+ 
             carbons.resize(maxCarbons);
             carbons[0].resize(2);
             carbons[0][0] = 0.9893;
@@ -185,24 +184,27 @@ int main(int argc, const char * const * argv)
         Bspline bspline(3, 65536);
         for (ii s = mzScale0; s <= mzScale1; s++)
         {
-            cout << "mz_scale=" << s << endl;
+            cout << "m=" << s << endl;
 
-            ostringstream oss;  oss << "s=" << setfill('0') << setw(2) << s;
+            ostringstream oss;  oss << "m" << setfill('0') << setw(2) << s;
             int groupId = fileOut.createGroup(oss.str());
 
             vector<ii> offset(2);
             // offset of monoisotope centroid m/z
             offset[0] = ii(floor(log2(mz0 - PROTON_MASS) * (1L << s)));
             // extent of monoisotope centroid m/z
-            ii m = ii(floor(log2(mz1 - PROTON_MASS) * (1L << s))) - offset[0] + 1;
+            ii extent = ii(floor(log2(mz1 - PROTON_MASS) * (1L << s))) - offset[0] + 1;
             // offset of spectrum m/z
             offset[1] = offset[0] - ii(hs.size() - 1) / 2;
 
-            cout << "  offset=[" << offset[0] << "," << offset[1] << "]" << endl;
-            cout << "  m=" << m << endl;
+            cout << " offset=[" << offset[0] << "," << offset[1] << "], extent=" << extent << endl;
+           // fileOut.writeAttribute(offset, "offset", "", groupId);
 
-            fileOut.writeAttribute(offset, "offset", "", groupId);
-
+            ii m = 0;
+            ii n = 0;
+            vector<ii> is;
+            vector<ii> js;
+            vector<fp> vs;
             for (short z = 0; z < chargeStates; z++)
             {
                 // offset to monoisotope centroid neutral mass
@@ -214,12 +216,7 @@ int main(int argc, const char * const * argv)
                 cout << " z=" << (z+1) << endl;
                 cout << "  shift=" << fixed << shift << endl;
 
-                vector<ii> is;
-                vector<ii> js;
-                vector<fp> vs;
-
-                ii n = 0;
-                for (ii i = offset[0]; i < offset[0] + m; i++)
+                for (ii i = offset[0]; i < offset[0] + extent; i++)
                 {
                     // monoisotopic neutral mass
                     double massMono = pow(2.0, (i + offsetMass) / (1L << s));
@@ -233,7 +230,7 @@ int main(int argc, const char * const * argv)
 
                     ii jMin = numeric_limits<ii>::max();
                     ii jMax = 0;
-                    vector<double> feature(2 * m, 0); // just make it bigger than n probably is
+                    vector<double> feature(2 * extent, 0); // just make it bigger than n probably is
                     for (ii p = 0; p < ii(carbons[nCarbons - 1].size()); p++)
                     {
                         double mzIsotope = (massMono + p * (CARBON13_MASS - 12.0)) / (z+1) + PROTON_MASS;
@@ -272,22 +269,24 @@ int main(int argc, const char * const * argv)
                             n = n > j ? n : j;
                             fp v = feature[j - offset[1]];
 
-                            is.push_back(i - offset[0]);
-                            js.push_back(j - offset[1]);
+                            is.push_back(m);
+                            //is.push_back(i - offset[0]);
+                            js.push_back(j);
+                            //js.push_back(j - offset[1]);
                             vs.push_back(v);
+
+                           // cout << m << "," << j << "," << v << endl;
                         }
                     }
+                    // cout << endl;
+
+                    m++;
                 }
-                n++;
-
-                cout << "  n=" << n << endl;
-
-                MatrixSparse aTz;
-                aTz.importFromCoo(m, n, ii(vs.size()), is.data(), js.data(), vs.data());
-
-                ostringstream oss2;  oss2 << "z=" << setfill('0') << setw(4) << (z+1);
-                fileOut.writeMatrixSparseCsr(aTz, oss2.str(), groupId);
             }
+            MatrixSparse aT;
+            aT.importFromCoo(m, n, ii(vs.size()), is.data(), js.data(), vs.data());
+
+            fileOut.writeMatrixSparseCsr(aT, "At", groupId);
         }
 
         cout << endl;

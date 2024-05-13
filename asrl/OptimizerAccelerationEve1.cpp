@@ -204,7 +204,7 @@ fp OptimizerAccelerationEve1::step()
         cout << getTimeStamp() << fixed << setprecision(4) <<  "    acceleration       = " << a << endl;
 
 
-    if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
+    if (getDebugLevel() % 10 >= 3 && getElapsedTime() != 0.0)
     {
         accelerationDuration_ += accelerationDuration;
 

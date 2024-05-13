@@ -379,7 +379,7 @@ fp OptimizerSrl::step()
     }
     double updateDuration = getElapsedTime() - updateStart;
     
-    if (getDebugLevel() % 10 >= 2 && getElapsedTime() != 0.0)
+    if (getDebugLevel() % 10 >= 3 && getElapsedTime() != 0.0)
     {
         synthesisDuration_ += synthesisDuration;
         errorDuration_ += errorDuration;

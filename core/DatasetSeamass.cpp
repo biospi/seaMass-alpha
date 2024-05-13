@@ -146,7 +146,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
     output.tolerance = fileIn_->readAttribute<double>("tolerance", "", groupId);
     output.peakFwhm = fileIn_->readAttribute<double>("peakFwhm", "", groupId);
     output.chargeStates = fileIn_->readAttribute<short>("chargeStates", "", groupId);
-    fileIn_->readAttribute(output.isotopesFilename, "isotopesFilename", "", groupId);
+    fileIn_->readAttribute(output.dbFilename, "dbFilename", "", groupId);
 
     {
         ii n = 0;
@@ -270,7 +270,19 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
     fileOut_->writeAttribute(output.tolerance, "tolerance", "", groupId);
     fileOut_->writeAttribute(output.peakFwhm, "peakFwhm", "", groupId);
     fileOut_->writeAttribute(output.chargeStates, "chargeStates", "", groupId);
-    fileOut_->writeAttribute(output.isotopesFilename, "isotopesFilename", "", groupId);
+    fileOut_->writeAttribute(output.dbFilename, "dbFilename", "", groupId);
+
+    if (output.b.size() > 0)
+    {
+        int matrixId = fileOut_->writeMatrixSparseCsr(output.b, "0000 B", groupId);
+
+        fileOut_->writeAttribute(output.bGridInfo.rowScale, "gridInfo.rowScale", "", matrixId);
+        fileOut_->writeAttribute(output.bGridInfo.rowOffset, "gridInfo.rowOffset", "", matrixId);
+        fileOut_->writeAttribute(output.bGridInfo.rowExtent, "gridInfo.rowExtent", "", matrixId);
+        fileOut_->writeAttribute(output.bGridInfo.colScale, "gridInfo.colScale", "", matrixId);
+        fileOut_->writeAttribute(output.bGridInfo.colOffset, "gridInfo.colOffset", "", matrixId);
+        fileOut_->writeAttribute(output.bGridInfo.colExtent, "gridInfo.colExtent", "", matrixId);
+    }
 
     for (ii k = 0; k < ii(output.xs.size()); k++)
     {
