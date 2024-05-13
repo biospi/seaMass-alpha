@@ -20,35 +20,29 @@
 //
 
 
-#ifndef SEAMASS_CORE_BASISBSPLINEMZ_HPP
-#define SEAMASS_CORE_BASISBSPLINEMZ_HPP
+#ifndef SEAMASS_CORE_BASISBSPLINELIBRARY_HPP
+#define SEAMASS_CORE_BASISBSPLINELIBRARY_HPP
 
 
-#include "BasisBspline.hpp"
+#include "BasisGrid.hpp"
 
 
-class BasisBsplineMz : public BasisBspline
+class BasisLibrary : public BasisGrid
 {
 public:
-    static double PROTON_MASS;
-
-    BasisBsplineMz(std::vector<Basis*>& bases, std::vector<MatrixSparse>& b,
-                   const std::vector<fp>& binCounts, const std::vector<li>& binCountsIndex_,
-                   const std::vector<double>& binEdges, short scale, bool transient, double fwhm = 0.0);
-
-    virtual ~BasisBsplineMz();
+    BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo,
+        const std::string& dbFilename, bool transient);
+    virtual ~BasisLibrary();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
 
-    const GridInfo& getBGridInfo() const;
-
 private:
-    GridInfo bGridInfo_;
-    bool chargeDeconvolution_;
-
     MatrixSparse aT_;
     MatrixSparse a_;
+
+    std::vector<MatrixSparse> gTs_;
+    std::vector<MatrixSparse> gs_;
 };
 
 

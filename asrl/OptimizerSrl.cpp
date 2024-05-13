@@ -33,13 +33,13 @@ using namespace kernel;
 OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<MatrixSparse>& b, bool seed, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), lambdaGroup_(0.0), iteration_(0), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
     if (getDebugLevel() % 10 >= 1)
-        cout << getTimeStamp() << "  Creating optimizer SRL ..." << endl;
+        cout << getTimeStamp() << "  Initialising Sparse Richardon Lucy optimizer ..." << endl;
 
     if (seed)
     {
         {   // compute L2 and L1 norm of each basis function and store in 'l2s' and 'l1l2s'
-            if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "  Initialising L2 norms ..." << endl;
+            if (getDebugLevel() % 10 >= 2)
+                cout << getTimeStamp() << "   Calculating L2 norms ..." << endl;
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
@@ -47,15 +47,15 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
 
             analyze(l2s_, t, true, false);
 
-            if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "  Initialising L1 norms of L2 norms ..." << endl;
+            if (getDebugLevel() % 10 >= 2)
+                cout << getTimeStamp() << "   Calculating L1 norms of L2 norms ..." << endl;
 
             analyze(l1l2sPlusLambda_, t, false);
         }
 
         {   // initialise starting estimate of 'x' from analysis of 'b'
-            if (getDebugLevel() % 10 >= 1)
-                cout << getTimeStamp() << "  Seeding from analysis of input ..." << endl;
+            if (getDebugLevel() % 10 >= 2)
+                cout << getTimeStamp() << "   Seeding from analysis of input ..." << endl;
 
             vector<MatrixSparse> t(b_.size());
             for (ii k = 0; k < ii(t.size()); k++)
@@ -67,8 +67,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             for (ii k = 0; k < ii(b_.size()); k++)
                 sumB += b_[k].sum();
 
-            if (getDebugLevel() % 10 >= 2)
-                cout << getTimeStamp() << "    volume_b=" << fixed << sumB << endl;
+            if (getDebugLevel() % 10 >= 3)
+                cout << getTimeStamp() << "       volume_b=" << fixed << sumB << endl;
 
             double sumX = 0.0;
             for (ii l = 0; l < ii(bases_.size()); l++)

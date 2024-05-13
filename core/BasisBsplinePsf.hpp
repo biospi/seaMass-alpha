@@ -20,18 +20,19 @@
 //
 
 
-#ifndef SEAMASS_CORE_BASISBSPLINELIBRARY_HPP
-#define SEAMASS_CORE_BASISBSPLINELIBRARY_HPP
+#ifndef SEAMASS_CORE_BASISBSPLINEMZ_HPP
+#define SEAMASS_CORE_BASISBSPLINEMZ_HPP
 
 
-#include "BasisBspline.hpp"
+#include "BasisGrid.hpp"
 
 
-class BasisBsplineLibrary : public BasisBspline
+class BasisBsplinePsf : public BasisGrid
 {
 public:
-    BasisBsplineLibrary(std::vector<Basis*>& bases, int parentIndex, const std::string& dbFilename, bool transient);
-    virtual ~BasisBsplineLibrary();
+    BasisBsplinePsf(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, bool transient, double fwhm);
+
+    virtual ~BasisBsplinePsf();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
@@ -39,9 +40,6 @@ public:
 private:
     MatrixSparse aT_;
     MatrixSparse a_;
-
-    std::vector<MatrixSparse> gTs_;
-    std::vector<MatrixSparse> gs_;
 };
 
 

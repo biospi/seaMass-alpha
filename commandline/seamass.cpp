@@ -68,7 +68,7 @@ int main(int argc, const char * const * argv)
             ("db,b", po::value<string>(&dbFilename),
              "Spectral library database in smd format. generate_unknowns will generate a generic db.")
             ("mz_scale,m", po::value<int>(&scaleMz),
-             "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". "
+             "Output mz resolution given as \"2^mz_scale * log2(mz - polarity*1.007276466879)\". "
              "Default is to autodetect.")
             ("st_scale,s", po::value<int>(&scaleSt),
              "output scantime resolution given as \"2^st_scale\"."

@@ -32,7 +32,7 @@ using namespace kernel;
 OptimizerAccelerationEve1::OptimizerAccelerationEve1(Optimizer* optimizer) : optimizer_(optimizer), accelerationDuration_(0.0)
 {
     if (getDebugLevel() % 10 >= 1)
-        cout << getTimeStamp() << "  Initialising Biggs-Andrews Acceleration (EVE1) ..." << endl;
+        cout << getTimeStamp() << "  Initialising Biggs-Andrews acceleration (EVE1) ..." << endl;
 
     // temporaries required for acceleration
     x0s_.resize(xs().size());

@@ -24,7 +24,6 @@
 
 #include "../kernel/intel/types.hpp"
 #include <iostream>
-#include <BasisBsplineMz.hpp>
 
 
 template <typename T>
@@ -90,7 +89,7 @@ void genMZAxis(vector<double> &mz,Seamass::ControlPoints &cpts, int n, int res)
     double dmz=1.0/(res);
     for (lli i = 0; i < mz.size(); ++i)
     {
-        mz[i] = pow(2.0, (offset + i*dmz) / double(1L << cpts.scale[0])) + BasisBsplineMz::PROTON_MASS;
+        mz[i] = pow(2.0, (offset + i*dmz) / double(1L << cpts.scale[0])) + 1.007276466879;
     }
 }
 #endif //SEAMASS_SEAMASS_PEAK_HPP

@@ -24,13 +24,13 @@
 #define SEAMASS_CORE_BASISBSPLINESCALE_HPP
 
 
-#include "BasisBspline.hpp"
+#include "BasisGrid.hpp"
 
 
-class BasisBsplineScale : public BasisBspline
+class BasisBsplineScale : public BasisGrid
 { 
 public:
-    BasisBsplineScale(std::vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1, bool group,
+    BasisBsplineScale(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, short dimension0, short dimension1, bool group,
                       bool transient);
     virtual ~BasisBsplineScale();
 

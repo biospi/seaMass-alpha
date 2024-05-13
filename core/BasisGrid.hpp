@@ -20,19 +20,21 @@
 //
 
 
-#ifndef SEAMASS_CORE_BASISBSPLINE_HPP
-#define SEAMASS_CORE_BASISBSPLINE_HPP
+#ifndef SEAMASS_CORE_BASISGRID_HPP
+#define SEAMASS_CORE_BASISGRID_HPP
 
 
 #include "../asrl/Basis.hpp"
 #include <vector>
 
 
-class BasisBspline : public Basis
+class BasisGrid : public Basis
 {
 public:
     struct GridInfo
     {
+        int index;
+
         short rowDimensions() const;
         std::vector<short> rowScale; // dyadic scale for each dimension
         std::vector<ii> rowOffset;   // coefficient offset for each dimension
@@ -50,24 +52,24 @@ public:
         ii m() const;           // number of rows in resulting matrix
         ii n() const;           // number of columns in resulting matrix
         li size() const;        // number of coefficients across all grids
-
-        //void operator=(const GridInfo& gridInfo);
     };
 
-    BasisBspline(std::vector<Basis*>& bases, short rowDimensions, short colDimensions,
-                 bool transient, int parentIndex = -1);
-    virtual ~BasisBspline();
+    BasisGrid(std::vector<Basis*>& bases, const GridInfo& parentGridInfo, bool transient);
+    virtual ~BasisGrid();
 
     const GridInfo& getGridInfo() const;
+    const std::string& getConfig() const;
 
 protected:
     GridInfo& gridInfo();
+    std::string& config();
 
 private:
     GridInfo gridInfo_;
+    std::string config_;
 };
 
-std::ostream& operator<<(std::ostream& os, const BasisBspline::GridInfo& gridInfo);
+std::ostream& operator<<(std::ostream& os, const BasisGrid::GridInfo& gridInfo);
 
 
 #endif

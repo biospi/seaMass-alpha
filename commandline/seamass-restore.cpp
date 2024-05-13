@@ -222,9 +222,12 @@ int main(int argc, const char * const * argv)
                                   0.5, 0.0, 0.5, -1.0, 0.5, 0.0, -0.1666667, 0.5,
                                   -0.5, 0.1666667};
 
-                float *M = alcMat(M, k, k);
-                float *T = alcMat(T, m, k);
-                float *TM = alcMat(TM,m,k);
+                float* M = NULL;
+                float* T = NULL;
+                float* TM = NULL;
+                M = alcMat(M, k, k);
+                T = alcMat(T, m, k);
+                TM = alcMat(TM,m,k);
 
                 float dt = 1 / (float(m));
                 vector<float> t(m);
@@ -265,8 +268,10 @@ int main(int argc, const char * const * argv)
                      * P=TM*C
                      */
 
-                    float *C = alcMat(C, k, n);
-                    float *P = alcMat(P, m, n);
+                    float* C = NULL;
+                    float* P = NULL;
+                    C = alcMat(C, k, n);
+                    P = alcMat(P, m, n);
                     vector<double> mz;
 
                     ii crow,ccol,csize;

@@ -24,7 +24,7 @@
 #define SEAMASS_CORE_SEAMASS_HPP
 
 
-#include "BasisBsplineMz.hpp"
+#include "BasisGrid.hpp"
 #include "../asrl/OptimizerSrl.hpp"
 
 
@@ -38,6 +38,7 @@ public:
 
     struct Input {
         enum class Type { Binned, Sampled, Centroided } type;
+        short polarity;
         std::vector<fp> counts;
         std::vector<li> countsIndex;
         std::vector<double> locations;
@@ -56,22 +57,15 @@ public:
         std::string dbFilename;
         short chargeStates;
 
-        BasisBspline::GridInfo bGridInfo;
+        BasisGrid::GridInfo bGridInfo;
         MatrixSparse b;
 
-        std::vector<BasisBspline::GridInfo> gridInfos;
+        std::vector<ii> parents;
+        std::vector<std::string> configs;
+        std::vector<BasisGrid::GridInfo> gridInfos;
         std::vector<MatrixSparse> xs;
         std::vector<MatrixSparse> l2s;
         std::vector<MatrixSparse> l1l2s;
-
-        /*std::vector<char> baselineScale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
-        std::vector<ii> baselineOffset;  // offset of finest basis functions
-        std::vector<ii> baselineExtent;  // extent of finest basis functions
-        double shrinkage;                // shrinkage used
-        double tolerance;                // tolerance used
-        std::vector< std::vector<char> > scales; // scales of each basis function for each dimension
-        std::vector< std::vector<ii> > offsets; // offsets of each basis functions for each dimension
-        std::vector<fp> weights;         // weight of each basis functions (i.e. xs)*/
     };
 
     struct ControlPoints {
@@ -104,15 +98,17 @@ public:
 private:
     void init(Input& input, bool seed);
 
+    short polarity_;
     short dimensions_;
     std::vector<Basis*> bases_;
-    BasisBsplineMz* mzBasis_;
+    //BasisBsplinePsf* mzBasis_;
     std::vector<MatrixSparse> b_;
+    BasisGrid::GridInfo gridInfo_;
 
     Optimizer* innerOptimizer_;
     Optimizer* optimizer_;
 
-    const std::vector<short>& scale_;
+    std::vector<short> scale_;
     const std::string& dbFilename_;
     fp lambda_;
     fp lambdaStart_;

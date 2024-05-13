@@ -35,9 +35,6 @@ using namespace kernel;
 namespace po = boost::program_options;
 
 
-double PROTON_MASS = 1.007276466879;
-
-
 int main(int argc, const char * const * argv)
 {
 #ifdef NDEBUG
@@ -45,6 +42,7 @@ int main(int argc, const char * const * argv)
 #endif
     {
         string filePathIn;
+        short polarity;
         int mzScale;
         double mzMin;
         double mzMax;
@@ -64,8 +62,10 @@ int main(int argc, const char * const * argv)
                  "Produce this help message")
                 ("file,f", po::value<string>(&filePathIn),
                  "Input spectum file in raw DRIAMS txt format.")
+                ("polarity,p", po::value<short>(&polarity)->default_value(1),
+                "Ionisation polarity [default=+1]")
                 ("mz_scale,m", po::value<int>(&mzScale)->default_value(12),
-                 "Output mz resolution given as \"2^mz_scale * log2(mz - 1.007276466879)\". ")
+                 "Output mz resolution given as \"2^mz_scale * log2(mz - polarity*1.007276466879)\". ")
                 ("mz_min,0", po::value<double>(&mzMin)->default_value(2000.0),
                  "Minimum product ion mz. ")
                 ("mz_max,1", po::value<double>(&mzMax)->default_value(20000.0),
@@ -98,8 +98,8 @@ int main(int argc, const char * const * argv)
 
         ifstream raw(filePathIn, ios_base::in);
         ii m = 0;
-        ii offset = ii(floor(log2(mzMin - PROTON_MASS) * (1L << mzScale))) - 1;
-        ii n = (ii(ceil(log2(mzMax - PROTON_MASS) * (1L << mzScale))) + 1) - offset + 1;
+        ii offset = ii(floor(log2(mzMin - polarity*1.007276466879) * (1L << mzScale))) - 1;
+        ii n = (ii(ceil(log2(mzMax - polarity*1.007276466879) * (1L << mzScale))) + 1) - offset + 1;
 
         // output spectrum
         float* vs = new float[n];
@@ -121,7 +121,7 @@ int main(int argc, const char * const * argv)
             ++toki;
             double intensity = atof(toki->c_str());
 
-            double bin = log2(mz - PROTON_MASS) * (1L << mzScale) - offset;
+            double bin = log2(mz - polarity*1.007276466879) * (1L << mzScale) - offset;
 
             fp b0 = 0.0f;
             fp b1 = ceil(bin) - bin;

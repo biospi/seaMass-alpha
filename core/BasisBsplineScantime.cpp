@@ -31,26 +31,22 @@ using namespace kernel;
 
 
 // TODO: support ion mobility
-BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex,
+BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo,
                                            const std::vector<double>& startTimes,
                                            const std::vector<double>& finishTimes,
                                            const std::vector<fp>& exposures,
                                            short scale, bool transient) :
-        BasisBspline(bases,
-                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
-                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().colDimensions(),
-                     transient, parentIndex)
+    BasisGrid(bases, parentGridInfo, transient)
 {
+    ostringstream oss2;
+    oss2 << "BsplineScantime parent=" << getParentIndex();
+    if (isTransient()) oss2 << " (transient)";
+    config() = oss2.str();
+
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp();
-        if (getDebugLevel() % 10 >= 2)
-            oss << "   " << getIndex() << " BasisBsplineScantime";
-        else
-            oss << "   BasisBsplineScantime";
-        if (isTransient()) oss << " (transient)";
-        oss << " ...";
+        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str() << " ...";
         info(oss.str());
     }
 
@@ -70,13 +66,12 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
         if (getDebugLevel() % 10 >= 1)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "     autodetected_st_scale=" << fixed << setprecision(1) << scale;
+            oss << getTimeStamp() << "      autodetected_st_scale=" << fixed << setprecision(1) << scale;
             info(oss.str());
         }
     }
     
     // fill in b-spline grid info
-    const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
     double scale2 = pow(2.0, scale);
 
     gridInfo().rowScale[0] = scale;
@@ -89,16 +84,13 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, ii parent
     
     if (getDebugLevel() % 10 >= 2)
     {
-        ostringstream oss;
-        oss << getTimeStamp() << "     parent=" << getParentIndex();
-        info(oss.str());
         ostringstream oss2;
-        oss2 << getTimeStamp() << "     range=" << fixed << setprecision(3) << scantimeMin << ":";
+        oss2 << getTimeStamp() << "      range=" << fixed << setprecision(3) << scantimeMin << ":";
         oss2.unsetf(std::ios::floatfield);
         oss2 << scantimeDiff << ":" << fixed << scantimeMax << "seconds";
         info(oss2.str());
         ostringstream oss3;
-        oss3 << getTimeStamp() << "     " << gridInfo();
+        oss3 << getTimeStamp() << "      " << gridInfo();
         info(oss3.str());
     }
 

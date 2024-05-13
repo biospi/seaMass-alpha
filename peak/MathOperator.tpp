@@ -22,7 +22,6 @@
 #ifndef SMPEAK_MATHOPERATOR_TPP_
 #define SMPEAK_MATHOPERATOR_TPP_
 
-#include <BasisBsplineMz.hpp>
 #include "MathOperator.hpp"
 
 template<class T>
@@ -47,7 +46,7 @@ void OpUnitS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_m
 	//}
     for (lli i = 0; i < _mz.size(); ++i)
     {
-        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + 1.007276466879;
     }
 }
 
@@ -81,7 +80,7 @@ void OpNablaHS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &
 	//}
     for (lli i = 0; i < _mz.size(); ++i)
     {
-        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + 1.007276466879;
     }
 }
 
@@ -118,7 +117,7 @@ void OpNabla2HS<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> 
 	//}
     for (lli i = 0; i < _mz.size(); ++i)
     {
-        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + 1.007276466879;
     }
 }
 
@@ -148,7 +147,7 @@ void OpUnit<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_mz
 	//}
     for (lli i = 0; i < _mz.size(); ++i)
     {
-        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + 1.007276466879;
     }
 }
 
@@ -185,7 +184,7 @@ void OpNablaH<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &_
 	//}
     for (lli i = 0; i < _mz.size(); ++i)
     {
-        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + 1.007276466879;
     }
 }
 
@@ -225,7 +224,7 @@ void OpNabla2H<T>::axisMZ(uli dims, int _offset, double mz_res, vector<double> &
 	//}
     for (lli i = 0; i < _mz.size(); ++i)
     {
-        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + BasisBsplineMz::PROTON_MASS;
+        _mz[i] = pow(2.0, (offset + i) / double(1L << ii(mz_res) )) + 1.007276466879;
     }
 }
 

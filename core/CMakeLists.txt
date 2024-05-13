@@ -5,18 +5,16 @@ find_package(TIFF REQUIRED)
 add_library(seamass_core
         Bspline.hpp
         Bspline.cpp
-        BasisBspline.hpp
-        BasisBspline.cpp
-        BasisBsplineMz.hpp
-        BasisBsplineMz.cpp
-        BasisBsplineScantime.cpp
-        BasisBsplineScantime.hpp
-        BasisBsplineCharge.cpp
-        BasisBsplineCharge.hpp
+        BasisGrid.hpp
+        BasisGrid.cpp
+        BasisLibrary.cpp
+        BasisLibrary.hpp
         BasisBsplineScale.cpp
         BasisBsplineScale.hpp
-        BasisBsplineLibrary.cpp
-        BasisBsplineLibrary.hpp
+        BasisBsplinePsf.hpp
+        BasisBsplinePsf.cpp
+        BasisBsplineScantime.cpp
+        BasisBsplineScantime.hpp
         Seamass.cpp
         Seamass.hpp
         Dataset.cpp

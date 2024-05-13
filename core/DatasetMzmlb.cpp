@@ -158,14 +158,23 @@ DatasetMzmlb::DatasetMzmlb(const std::string& filePathIn, const std::string& fil
         // capture polarity
         nodes = mzmlDoc.select_nodes("spectrum/cvParam[@accession='MS:1000129']");
         if (!nodes.empty())
+        {
+            metadata_[i].polarity = -1;
             metadata_[i].id = "neg";
+        }
         else
         {
             nodes = mzmlDoc.select_nodes("spectrum/cvParam[@accession='MS:1000130']");
             if (!nodes.empty())
+            {
                 metadata_[i].id = "pos";
+                metadata_[i].polarity = 1;
+            }
             else
+            {
                 metadata_[i].id = "unk";
+                metadata_[i].polarity = 0;
+            }
         }
 
         // capture scan info (we can only process files with one scan per spectra, so for us scan = spectrum)
@@ -580,6 +589,9 @@ bool DatasetMzmlb::read(Seamass::Input &out, std::string &id)
         for (size_t k = 0; k < mzs[i].size(); k++)
             if (intensities[k] > 0.0)
                 all_minimum = all_minimum < intensities[k] ? all_minimum : intensities[k];
+
+        // save polarity
+        out.polarity = metadata_[offset + i].polarity;
 
         switch (metadata_[offset + i].dataType)
         {

@@ -20,7 +20,7 @@
 //
 
 
-#include "BasisBspline.hpp"
+#include "BasisGrid.hpp"
 
 #include <limits>
 
@@ -28,54 +28,43 @@
 using namespace std;
 
 
-BasisBspline::BasisBspline(std::vector<Basis*>& bases, short rowDimensions, short colDimensions,
-                           bool transient, int parentIndex)
-    : Basis(bases, transient, parentIndex), gridInfo_(rowDimensions, colDimensions)
+BasisGrid::BasisGrid(std::vector<Basis*>& bases, const GridInfo& parentGridInfo, bool transient)
+    : Basis(bases, transient, parentGridInfo.index), gridInfo_(parentGridInfo)
+{
+    gridInfo_.index = getIndex();
+}
+
+
+BasisGrid::~BasisGrid()
 {
 }
 
 
-BasisBspline::~BasisBspline()
-{
-}
-
-
-BasisBspline::GridInfo::GridInfo(short rowDimensions, short colDimensions)
-    : rowScale(rowDimensions), rowOffset(rowDimensions), rowExtent(rowDimensions),
+BasisGrid::GridInfo::GridInfo(short rowDimensions, short colDimensions)
+    : index(-1),
+      rowScale(rowDimensions), rowOffset(rowDimensions), rowExtent(rowDimensions),
       colScale(colDimensions), colOffset(colDimensions), colExtent(colDimensions)
 {
 }
 
-short BasisBspline::GridInfo::rowDimensions() const
+short BasisGrid::GridInfo::rowDimensions() const
 {
     return rowScale.size();
 }
 
 
-short BasisBspline::GridInfo::colDimensions() const
+short BasisGrid::GridInfo::colDimensions() const
 {
     return colScale.size();
 }
 
 
-/*void BasisBspline::GridInfo::operator=(const BasisBspline::GridInfo& mi)
-{
-    rowScale = mi.colScale;
-    colOffset = mi.colOffset;
-    colExtent = mi.colExtent;
-
-    colScale = mi.colScale;
-    colOffset = mi.colOffset;
-    colExtent = mi.colExtent;
-}*/
-
-
-BasisBspline::GridInfo::~GridInfo()
+BasisGrid::GridInfo::~GridInfo()
 {
 }
 
 
-ii BasisBspline::GridInfo::m() const
+ii BasisGrid::GridInfo::m() const
 {
     ii m = 1;
     for (short i = 0; i < rowDimensions(); i++)
@@ -86,7 +75,7 @@ ii BasisBspline::GridInfo::m() const
 }
 
 
-ii BasisBspline::GridInfo::n() const
+ii BasisGrid::GridInfo::n() const
 {
     ii n = 1;
     for (short i = 0; i < colDimensions(); i++)
@@ -97,30 +86,39 @@ ii BasisBspline::GridInfo::n() const
 }
 
 
-li BasisBspline::GridInfo::size() const
+li BasisGrid::GridInfo::size() const
 {
     return li(m()) * li(n());
 }
 
 
-const BasisBspline::GridInfo& BasisBspline::getGridInfo() const
+const BasisGrid::GridInfo& BasisGrid::getGridInfo() const
 {
     return gridInfo_;
 }
 
 
-BasisBspline::GridInfo& BasisBspline::gridInfo()
+BasisGrid::GridInfo& BasisGrid::gridInfo()
 {
     return gridInfo_;
 }
 
+
+const std::string& BasisGrid::getConfig() const
+{
+    return config_;
+}
+
+
+std::string& BasisGrid::config()
+{
+    return config_;
+}
 
 ostream&
-operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
+operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
 {
-    os << "gridInfo=[" << gridInfo.m() << "," << gridInfo.n() << "]";
-
-    os << ",extent=[[";
+    os << "A[" << gridInfo.m() << ", " << gridInfo.n() << "] extent=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
         os << gridInfo.rowExtent[i];
@@ -134,9 +132,7 @@ operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
         if (i < gridInfo.colDimensions() - 1)
             os << ",";
     }
-    os << "]]";
-
-    os << ",offset=[[";
+    os << "]] offset=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
         if (gridInfo.rowOffset[i] == numeric_limits<ii>::min())
@@ -156,9 +152,7 @@ operator<<(ostream& os, const BasisBspline::GridInfo& gridInfo)
         if (i < gridInfo.colDimensions() - 1)
             os << ",";
     }
-    os << "]]";
-
-    os << ",scale=[[";
+    os << "]] scale=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
         if (gridInfo.rowScale[i] == numeric_limits<short>::min())

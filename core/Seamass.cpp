@@ -22,12 +22,11 @@
 
 #include "Seamass.hpp"
 #include "DatasetSeamass.hpp"
-#include "BasisBsplineMz.hpp"
-#include "BasisBsplineUnknowns.hpp"
-#include "BasisBsplineLibrary.hpp"
+#include "Bspline.hpp"
+#include "BasisBsplinePsf.hpp"
+#include "BasisLibrary.hpp"
 #include "BasisBsplineScale.hpp"
 #include "BasisBsplineScantime.hpp"
-#include "BasisBsplineCharge.hpp"
 #include "../asrl/OptimizerAccelerationEve1.hpp"
 #include <kernel.hpp>
 #include <cstring>
@@ -51,7 +50,7 @@ Seamass::Seamass(Input& input, const string& dbFilename, const std::vector<short
         innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), lambda_(lambda),
         lambdaGroup_(lambdaGroup), lambdaStart_(lambda), lambdaGroupStart_(lambdaGroup),
         taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
-        iteration_(0)
+        iteration_(0), gridInfo_(1, 1), polarity_(input.polarity)
 {
     init(input, true);
     optimizer_->setLambda(lambda_, lambdaGroup_);
@@ -113,8 +112,155 @@ Seamass::~Seamass()
 
 void Seamass::init(Input& input, bool seed)
 {
-    // INIT BASIS FUNCTIONS
-    // Create our tree of bases
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // rebin the input data in the m/z dimension antialiased through B-spline kernel and place in 'b'
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    if (getDebugLevel() % 10 >= 1)
+    {
+        ostringstream oss;
+        oss << getTimeStamp() << "  Rebinning input m/z ...";
+        info(oss.str());
+    }
+
+    // bspline basis function lookup table
+    Bspline bspline(3, 65536);
+
+    std::vector<li> countsIndex;
+    std::vector<li> locationsIndex;
+    if (input.countsIndex.size() > 0)
+    {
+        countsIndex = input.countsIndex;
+        locationsIndex = input.countsIndex;
+        for (ii i = 0; i < ii(locationsIndex.size()); i++) locationsIndex[i] += i;
+    }
+    else
+    {
+        countsIndex.push_back(0);
+        countsIndex.push_back(input.counts.size());
+        locationsIndex.push_back(0);
+        locationsIndex.push_back(input.locations.size());
+    }
+
+    // find min and max m/z across spectra, m for each A
+    double mz0 = numeric_limits<double>::max();
+    double mz1 = 0.0;
+    double xDiff = 0.0;
+    li n = 0;
+    for (ii k = 0; k < ii(locationsIndex.size()) - 1; k++)
+    {
+        mz0 = input.locations[locationsIndex[k]] < mz0 ? input.locations[locationsIndex[k]] : mz0;
+        mz1 = input.locations[locationsIndex[k + 1] - 1] > mz1 ? input.locations[locationsIndex[k + 1] - 1] : mz1;
+
+        // find mean difference in index between edges, ignoring first, last and zeros
+        for (ii i = 1; i < countsIndex[k + 1] - countsIndex[k] - 1; i++)
+        {
+            if (input.counts[countsIndex[k] + i] != 0)
+            {
+                li ei = locationsIndex[k] + i;
+                xDiff += log2(input.locations[ei + 1] - input.polarity*1.007276466879) - log2(input.locations[ei] - input.polarity*1.007276466879);
+                n++;
+            }
+        }
+    }
+    xDiff /= double(n);
+
+    ii scaleAuto = ii(ceil(log2(1.0 / xDiff))) + 1;
+    if (scale_[0] == numeric_limits<short>::max())
+    {
+        scale_[0] = scaleAuto;
+
+        if (getDebugLevel() % 10 >= 1)
+        {
+            ostringstream oss;
+            oss << getTimeStamp() << "   autodetected_mz_scale=" << fixed << setprecision(1) << int(scale_[0]);
+            info(oss.str());
+        }
+    }
+
+    double scale2 = pow(2.0, scale_[0]);
+    gridInfo_.rowScale[0] = numeric_limits<short>::min();
+    gridInfo_.rowOffset[0] = 0;
+    gridInfo_.rowExtent[0] = ii(countsIndex.size()) - 1;
+    gridInfo_.colScale[0] = scale_[0];
+    gridInfo_.colOffset[0] = ii(floor(log2(mz0 - input.polarity*1.007276466879) * scale2));
+    gridInfo_.colExtent[0] = (ii(ceil(log2(mz1 - input.polarity*1.007276466879) * scale2))) - gridInfo_.colOffset[0] + 1;
+
+    vector<MatrixSparse> bs(gridInfo_.rowExtent[0]);
+    for (ii k = 0; k < gridInfo_.rowExtent[0]; k++)
+    {
+        vector<ii> rowind;
+        vector<ii> colind;
+        vector<fp> acoo;
+
+        // create transformation matrix
+        for (ii i = 0; i < locationsIndex[k + 1] - locationsIndex[k] - 1; i++)
+        {
+            auto startNz = ii(acoo.size());
+            double rowSum = 0.0;
+
+            if (input.counts[countsIndex[k] + i] >= 0.0)
+            {
+                li ei = locationsIndex[k] + i;
+                double xfMin = log2(input.locations[ei] - input.polarity*1.007276466879) * scale2;
+                double xfMax = log2(input.locations[ei + 1] - input.polarity*1.007276466879) * scale2;
+
+                auto xMin = ii(floor(xfMin)) - 2;
+                auto xMax = ii(ceil(xfMax)) + 2;
+
+                // work out basis coefficients
+                for (ii x = xMin; x <= xMax; x++)
+                {
+                    double bfMin = x - 1.5;
+                    double bfMax = x + 2.5;
+
+                    // intersection of bin and basis, between 0.0 and 4.0
+                    double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
+                    double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
+
+                    // basis coefficient b is _integral_ of area under b-spline basis
+                    auto bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+
+                    ii j = x - gridInfo_.colOffset[0];
+                    if (j >= 0 && j < gridInfo_.colExtent[0] && bc > 0.0)
+                    {
+                        rowSum += bc;
+                        acoo.push_back(bc);
+                        rowind.push_back(i);
+                        colind.push_back(j);
+                    }
+                }
+            }
+
+            // normalise column
+            if (rowSum > 0.0)
+            {
+                for (ii nz = startNz; nz < ii(acoo.size()); nz++)
+                    acoo[nz] /= rowSum;
+            }
+        }
+
+        // create b
+        MatrixSparse a;
+        a.importFromCoo(ii(countsIndex[k + 1] - countsIndex[k]), gridInfo_.n(), acoo.size(),
+            rowind.data(), colind.data(), acoo.data());
+
+        Matrix t;
+        t.importFromArray(1, ii(countsIndex[k + 1] - countsIndex[k]), &input.counts.data()[countsIndex[k]]);
+        MatrixSparse t2, t3;
+        t2.importFromMatrix(t);
+        t3.matmul(false, t2, a, false);
+        bs[k].pruneCells(t3);
+    }
+
+    b_.resize(1);
+    b_[0].concatenateRows(bs);
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // create our tree of basis functions
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
@@ -126,48 +272,48 @@ void Seamass::init(Input& input, bool seed)
     {
         dimensions_ = 1;
 
-         mzBasis_ = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex,
-                                          input.locations, scale_[0], false, peakFwhm_);
+        BasisGrid* prevBasis = new BasisBsplineScale(bases_, gridInfo_, 1, 0, false, false);
 
          // Supplied spectral library
          if (dbFilename_ != "")
-             new BasisBsplineLibrary(bases_, bases_.back()->getIndex(), dbFilename_, false);
+             prevBasis = new BasisLibrary(bases_, prevBasis->getGridInfo(), dbFilename_, false);
 
          // Unknowns including any baseline
-         while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().colExtent[0] > 4)
-            new BasisBsplineScale(bases_,  bases_.back()->getIndex(), 1, 0, false, false);
+         while (prevBasis->getGridInfo().colExtent[0] > 4)
+             prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
     }
     else
     {
         dimensions_ = 2;
  
-        mzBasis_ = new BasisBsplineMz(bases_, b_, input.counts, input.countsIndex, input.locations,
-                           scale_[0], true, peakFwhm_);
+        BasisGrid* rowBasis = new BasisBsplineScantime(bases_, gridInfo_,
+            input.startTimes, input.finishTimes, input.exposures, scale_[1], false);
 
-        Basis* rtBasis = new BasisBsplineScantime(bases_, bases_.back()->getIndex(), input.startTimes,
-                input.finishTimes, input.exposures, scale_[1], false);
+        // Supplied spectral library (scantime convolution only)
+        BasisGrid* prevBasis = rowBasis;
+        if (dbFilename_ != "")
+        {
+            prevBasis = new BasisLibrary(bases_, prevBasis->getGridInfo(), dbFilename_, false);
+
+            while (prevBasis->getGridInfo().rowExtent[0] > 4)
+                prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 0, 0, false, false);
+        }
 
         // Unknowns (m/z and scantime tensor convolution)
         bool first = true;
-        Basis* previousBasis = rtBasis;
-        for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4; i++)
+        prevBasis = rowBasis;
+        while (rowBasis->getGridInfo().rowExtent[0] > 4)
         {
             if (!first)
-                previousBasis = new BasisBsplineScale(bases_, previousBasis->getIndex(), 0, 0, false, false);
-
-            while (static_cast<BasisBspline*>(bases_.back())->getGridInfo().colExtent[0] > 4)
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 1, 0, false, false);
-
+            {
+                rowBasis = new BasisBsplineScale(bases_, rowBasis->getGridInfo(), 0, 0, false, false);
+                prevBasis = rowBasis;
+            }
+ 
+            while (prevBasis->getGridInfo().colExtent[0] > 4)
+                prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
+ 
             first = false;
-        }
-
-        if (dbFilename_ != "")
-        {
-            // Supplied spectral library (scantime convolution only)
-            new BasisBsplineLibrary(bases_, rtBasis->getIndex(), dbFilename_, false);
-
-            for (ii i = 0; static_cast<BasisBspline*>(bases_.back())->getGridInfo().rowExtent[0] > 4; i++)
-                new BasisBsplineScale(bases_, bases_.back()->getIndex(), 0, 0, false, false);
         }
     }
 
@@ -186,7 +332,7 @@ bool Seamass::step()
         li nx = 0;
         for (ii j = 0; j < (ii)bases_.size(); j++)
         {
-            if (!static_cast<BasisBspline *>(bases_[j])->isTransient())
+            if (!static_cast<BasisGrid *>(bases_[j])->isTransient())
             {
                 for (size_t k = 0; k < optimizer_->xs()[j].size(); k++)
                 {
@@ -211,7 +357,7 @@ bool Seamass::step()
         li nnz = 0;
         for (ii j = 0; j < (ii)bases_.size(); j++)
         {
-            if (!static_cast<BasisBspline *>(bases_[j])->isTransient())
+            if (!static_cast<BasisGrid *>(bases_[j])->isTransient())
             {
                 for (size_t k = 0; k < optimizer_->xs()[j].size(); k++)
                      nnz += optimizer_->xs()[j][k].nnz();
@@ -286,13 +432,17 @@ void Seamass::getOutput(Output& output, bool synthesize) const
     output.chargeStates = chargeStates_;
     output.dbFilename = dbFilename_;
 
+    output.configs.resize(bases_.size());
     output.gridInfos.resize(bases_.size());
     for (ii k = 0; k < ii(bases_.size()); k++)
-        output.gridInfos[k] = static_cast<BasisBspline*>(bases_[k])->getGridInfo();
+    {
+        output.configs[k] = static_cast<BasisGrid*>(bases_[k])->getConfig();
+        output.gridInfos[k] = static_cast<BasisGrid*>(bases_[k])->getGridInfo();
+    }
 
     if (synthesize)
     {
-        output.bGridInfo = mzBasis_->getBGridInfo();
+        output.bGridInfo = gridInfo_;
         output.b.copy(b_[0]);
 
         vector<vector<MatrixSparse> > xs;
@@ -392,7 +542,7 @@ void Seamass::getInput(Input &input, bool reconstruct) const
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBsplineMz*>(bases_[0])->getBGridInfo();
+    const BasisGrid::GridInfo& meshInfo = gridInfo_;
     vector<fp>(meshInfo.size()).swap(input.counts);
 
     if (reconstruct)
@@ -418,8 +568,7 @@ void Seamass::getInput(Input &input, bool reconstruct) const
 
         for (ii j = 0; j <= meshInfo.n(); j++)
         {
-            double mz = pow(2.0, (meshInfo.colOffset[0] + j) / double(1L << meshInfo.colScale[0])) +
-                        BasisBsplineMz::PROTON_MASS;
+            double mz = pow(2.0, (meshInfo.colOffset[0] + j) / double(1L << meshInfo.colScale[0])) + input.polarity*1.007276466879;
             input.locations[i * (meshInfo.n() + 1) + j] = mz;
         }
     }
@@ -435,8 +584,8 @@ void Seamass::getOutputControlPoints(ControlPoints& controlPoints) const
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo =
-            static_cast<BasisBspline*>(bases_[dimensions_])->getGridInfo();
+    const BasisGrid::GridInfo& meshInfo =
+            static_cast<BasisGrid*>(bases_[dimensions_])->getGridInfo();
 
     vector<MatrixSparse> c(1);
     {
@@ -464,7 +613,7 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool densit
         info(oss.str());
     }
 
-    const BasisBspline::GridInfo& meshInfo = static_cast<BasisBspline*>(bases_[1])->getGridInfo();
+    const BasisGrid::GridInfo& meshInfo = static_cast<BasisGrid*>(bases_[1])->getGridInfo();
     controlPoints.scale.resize(1);
     controlPoints.scale[0] = meshInfo.colScale[1];
 
@@ -507,10 +656,8 @@ void Seamass::getOutputControlPoints1d(ControlPoints& controlPoints, bool densit
     {
         for (ii x = 0; x < controlPoints.extent[0]; x++)
         {
-            double mz0 = pow(2.0, (controlPoints.offset[0] + x - 0.5) / double(1L << controlPoints.scale[0])) +
-                         BasisBsplineMz::PROTON_MASS;
-            double mz1 = pow(2.0, (controlPoints.offset[0] + x + 0.5) / double(1L << controlPoints.scale[0])) +
-                         BasisBsplineMz::PROTON_MASS;
+            double mz0 = pow(2.0, (controlPoints.offset[0] + x - 0.5) / double(1L << controlPoints.scale[0])) + polarity_*1.007276466879;
+            double mz1 = pow(2.0, (controlPoints.offset[0] + x + 0.5) / double(1L << controlPoints.scale[0])) + polarity_*1.007276466879;
 
             for (ii y = 0; y < controlPoints.extent[1]; y++)
                 controlPoints.coeffs[x + y * controlPoints.extent[0]] /= mz1 - mz0;

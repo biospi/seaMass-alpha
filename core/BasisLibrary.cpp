@@ -20,7 +20,7 @@
 //
 
 
-#include "BasisBsplineLibrary.hpp"
+#include "BasisLibrary.hpp"
 #include "Bspline.hpp"
 #include "../io/FileNetcdf.hpp"
 #include <limits>
@@ -31,22 +31,18 @@ using namespace std;
 using namespace kernel;
 
 
-BasisBsplineLibrary::BasisBsplineLibrary(std::vector<Basis*>& bases, int parentIndex, const std::string& dbFilename, bool transient) :
-        BasisBspline(bases,
-                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
-                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().colDimensions(),
-                     transient, parentIndex), gTs_(1), gs_(1)
+BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo,
+                           const std::string& dbFilename, bool transient) :
+    BasisGrid(bases, parentGridInfo, transient), gTs_(1), gs_(1)
 {
+    ostringstream oss3;
+    oss3 << "Library parent=" << getParentIndex() << " filename=" << dbFilename;
+    config() = oss3.str();
+
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
-        oss << getTimeStamp();
-        if (getDebugLevel() % 10 >= 2)
-            oss << "   " << getIndex() << " BasisBsplineLibrary";
-        else
-            oss << "   BasisBsplineLibrary";
-        if (isTransient()) oss << " (transient)";
-        oss << " ...";
+        oss << getTimeStamp() << "   " << getIndex() << " " << oss3.str() << " ...";
         info(oss.str());
     }
 
@@ -56,8 +52,6 @@ BasisBsplineLibrary::BasisBsplineLibrary(std::vector<Basis*>& bases, int parentI
         oss << getTimeStamp() << "     Loading " << dbFilename << " ...";
         info(oss.str());
     }
-
-    const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
 
     FileNetcdf fileIn(dbFilename);
     ostringstream oss2;
@@ -103,19 +97,11 @@ BasisBsplineLibrary::BasisBsplineLibrary(std::vector<Basis*>& bases, int parentI
     a_.transpose(aT_);
 
     // Set up 'A'
-    gridInfo().rowScale[0] = parentGridInfo.rowScale[0];
-    gridInfo().rowOffset[0] = parentGridInfo.rowOffset[0];
-    gridInfo().rowExtent[0] = parentGridInfo.rowExtent[0];
-
-    gridInfo().colScale[0] = parentGridInfo.colScale[0];
     gridInfo().colOffset[0] = numeric_limits<ii>::min();
     gridInfo().colExtent[0] = m;
 
     if (getDebugLevel() % 10 >= 2)
     {
-        ostringstream oss;
-        oss << getTimeStamp() << "     parent=" << getParentIndex();
-        info(oss.str());
         ostringstream oss3;
         oss3 << getTimeStamp() << "     " << gridInfo();
         info(oss3.str());
@@ -123,19 +109,19 @@ BasisBsplineLibrary::BasisBsplineLibrary(std::vector<Basis*>& bases, int parentI
 }
 
 
-BasisBsplineLibrary::~BasisBsplineLibrary()
+BasisLibrary::~BasisLibrary()
 {
 }
 
 
 void
-BasisBsplineLibrary::
+BasisLibrary::
 synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
 {
     if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplinePeak::synthesise";
+        oss << getTimeStamp() << "     " << getIndex() << " BasisGridPeak::synthesise";
         info(oss.str());
     }
 
@@ -170,12 +156,12 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
 }
 
 
-void BasisBsplineLibrary::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
+void BasisLibrary::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &fE, bool sqrA)
 {
     if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "     " << getIndex() << " BasisBsplinePeak::analyse";
+        oss << getTimeStamp() << "     " << getIndex() << " BasisGridPeak::analyse";
         info(oss.str());
     }
 

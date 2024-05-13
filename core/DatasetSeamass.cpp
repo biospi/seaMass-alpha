@@ -53,6 +53,13 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
     if(finished_ == true)
         return false;
 
+    vector<short> pols;
+    fileIn_->readAttribute(pols, "polarity", "");
+    if (pols.size() == 1)
+        input.polarity = pols[0];
+    else
+        input.polarity = 0;
+
     if (fileIn_->exists("counts"))
         fileIn_->readVector(input.counts, "counts");
     else
@@ -96,6 +103,8 @@ bool DatasetSeamass::read(Seamass::Input &input, std::string &id)
 
 void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
 {
+    fileOut_->writeAttribute(input.polarity, "polarity", "");
+
     if (input.startTimes.size() > 0)
         fileOut_->writeVector(input.startTimes, "startTimes");
 
@@ -274,7 +283,7 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
 
     if (output.b.size() > 0)
     {
-        int matrixId = fileOut_->writeMatrixSparseCsr(output.b, "0000 B", groupId);
+        int matrixId = fileOut_->writeMatrixSparseCsr(output.b, "B", groupId);
 
         fileOut_->writeAttribute(output.bGridInfo.rowScale, "gridInfo.rowScale", "", matrixId);
         fileOut_->writeAttribute(output.bGridInfo.rowOffset, "gridInfo.rowOffset", "", matrixId);
@@ -287,29 +296,20 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
     for (ii k = 0; k < ii(output.xs.size()); k++)
     {
         ostringstream oss;
-        oss << setw(4) << setfill('0') << k << " X";
-        int matrixId = fileOut_->writeMatrixSparseCsr(output.xs[k], oss.str(), groupId);
+        oss << setw(5) << setfill('0') << k;
+        int groupId2 = fileOut_->createGroup(oss.str(), groupId);
+ 
+        fileOut_->writeAttribute(output.configs[k], "basisConfig", "", groupId2);
+        fileOut_->writeAttribute(output.gridInfos[k].rowScale, "gridInfo.rowScale", "", groupId2);
+        fileOut_->writeAttribute(output.gridInfos[k].rowOffset, "gridInfo.rowOffset", "", groupId2);
+        fileOut_->writeAttribute(output.gridInfos[k].rowExtent, "gridInfo.rowExtent", "", groupId2);
+        fileOut_->writeAttribute(output.gridInfos[k].colScale, "gridInfo.colScale", "", groupId2);
+        fileOut_->writeAttribute(output.gridInfos[k].colOffset, "gridInfo.colOffset", "", groupId2);
+        fileOut_->writeAttribute(output.gridInfos[k].colExtent, "gridInfo.colExtent", "", groupId2);
 
-        fileOut_->writeAttribute(output.gridInfos[k].rowScale, "gridInfo.rowScale", "", matrixId);
-        fileOut_->writeAttribute(output.gridInfos[k].rowOffset, "gridInfo.rowOffset", "", matrixId);
-        fileOut_->writeAttribute(output.gridInfos[k].rowExtent, "gridInfo.rowExtent", "", matrixId);
-        fileOut_->writeAttribute(output.gridInfos[k].colScale, "gridInfo.colScale", "", matrixId);
-        fileOut_->writeAttribute(output.gridInfos[k].colOffset, "gridInfo.colOffset", "", matrixId);
-        fileOut_->writeAttribute(output.gridInfos[k].colExtent, "gridInfo.colExtent", "", matrixId);
-    }
-
-    for (ii k = 0; k < ii(output.l2s.size()); k++)
-    {
-        ostringstream oss;
-        oss << setw(4) << setfill('0') << k << " L2";
-        fileOut_->writeMatrixSparseCsr(output.l2s[k], oss.str(), groupId);
-    }
-
-    for (ii k = 0; k < ii(output.l1l2s.size()); k++)
-    {
-        ostringstream oss;
-        oss << setw(4) << setfill('0') << k << " L1L2";
-        fileOut_->writeMatrixSparseCsr(output.l1l2s[k], oss.str(), groupId);
+        fileOut_->writeMatrixSparseCsr(output.xs[k], "X", groupId2);
+        fileOut_->writeMatrixSparseCsr(output.l2s[k], "L2", groupId2);
+        fileOut_->writeMatrixSparseCsr(output.l1l2s[k], "L1L2", groupId2);
     }
 
     /*fileOut_->write_AttNC("", "baselineScale", output.baselineScale, NC_BYTE, grpid);

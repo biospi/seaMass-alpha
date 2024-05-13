@@ -45,6 +45,7 @@ public:
         string startTimeString;
 
         enum class DataType { Unknown, Centroided, IonCount, IonCurrent} dataType;
+        short polarity;
 
         size_t defaultArrayLength;
         std::string mzsDataset;

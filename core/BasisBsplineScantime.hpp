@@ -24,13 +24,13 @@
 #define SEAMASS_CORE_BASISBSPLINESCANTIME_HPP
 
 
-#include "BasisBspline.hpp"
+#include "BasisGrid.hpp"
 
 
-class BasisBsplineScantime : public BasisBspline
+class BasisBsplineScantime : public BasisGrid
 {
 public:
-    BasisBsplineScantime(std::vector<Basis*>& bases, ii parentIndex, const std::vector<double>& startTimes,
+    BasisBsplineScantime(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, const std::vector<double>& startTimes,
                          const std::vector<double>& finishTimes, const std::vector<fp>& exposures, short scale,
                          bool transient);
     virtual ~BasisBsplineScantime();

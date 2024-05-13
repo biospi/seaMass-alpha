@@ -32,10 +32,6 @@ using namespace kernel;
 namespace po = boost::program_options;
 
 
-double PROTON_MASS = 1.007276466879;
-
-double CARBON13_MASS = 13.0033548378;
-
 void convolution(vector<double>& x, const vector<double>& a, const vector<double>& b)
 {
     x.resize(a.size() + b.size() - 1, 0);
@@ -58,6 +54,7 @@ int main(int argc, const char * const * argv)
         string fileNameOut;
         double mz0;
         double mz1;
+        short polarity;
         int mzScale0;
         int mzScale1;
         int chargeStates;
@@ -77,6 +74,8 @@ int main(int argc, const char * const * argv)
             ("help,h", "Produce help message")
             ("file,f", po::value<string>(&fileNameOut),
              "Output file.")
+            ("polarity,p", po::value<short>(&polarity)->default_value(1),
+             "Ionisation polarity [default=+1]")
             ("mz_min", po::value<double>(&mz0)->default_value(50.0),
              "Minimum m/z to consider [default=50.0]")
             ("mz_max", po::value<double>(&mz1)->default_value(2500.0),
@@ -137,7 +136,7 @@ int main(int argc, const char * const * argv)
         // generate carbon isotope distributions
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-        double massMax = pow(2.0, log2(mz1 - PROTON_MASS) + log2(chargeStates));
+        double massMax = pow(2.0, log2(mz1 - polarity*1.007276466879) + log2(chargeStates));
 
         vector< vector<double> > carbons;
         if (carbonsPerDalton == 0.0)
@@ -191,9 +190,9 @@ int main(int argc, const char * const * argv)
 
             vector<ii> offset(2);
             // offset of monoisotope centroid m/z
-            offset[0] = ii(floor(log2(mz0 - PROTON_MASS) * (1L << s)));
+            offset[0] = ii(floor(log2(mz0 - polarity*1.007276466879) * (1L << s)));
             // extent of monoisotope centroid m/z
-            ii extent = ii(floor(log2(mz1 - PROTON_MASS) * (1L << s))) - offset[0] + 1;
+            ii extent = ii(floor(log2(mz1 - polarity*1.007276466879) * (1L << s))) - offset[0] + 1;
             // offset of spectrum m/z
             offset[1] = offset[0] - ii(hs.size() - 1) / 2;
 
@@ -233,9 +232,9 @@ int main(int argc, const char * const * argv)
                     vector<double> feature(2 * extent, 0); // just make it bigger than n probably is
                     for (ii p = 0; p < ii(carbons[nCarbons - 1].size()); p++)
                     {
-                        double mzIsotope = (massMono + p * (CARBON13_MASS - 12.0)) / (z+1) + PROTON_MASS;
+                        double mzIsotope = (massMono + p * (13.0033548378 - 12.0)) / (z+1) + polarity*1.007276466879;
 
-                        double offsetP = log2(mzIsotope - PROTON_MASS) * (1L << s) - shift;
+                        double offsetP = log2(mzIsotope - polarity*1.007276466879) * (1L << s) - shift;
                         auto offsetPi = ii(round(offsetP));
                         double offsetPf = offsetP - offsetPi;
 

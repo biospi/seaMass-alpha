@@ -29,19 +29,19 @@ using namespace kernel;
 
 
 BasisBsplineScale::
-BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, short dimension1, bool group,
+BasisBsplineScale(vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, short dimension0, short dimension1, bool group,
                   bool transient) :
-        BasisBspline(bases,
-                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().rowDimensions(),
-                     static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo().colDimensions(),
-                     transient, parentIndex), dimension0_(dimension0), dimension1_(dimension1)
+        BasisGrid(bases, parentGridInfo, transient), dimension0_(dimension0), dimension1_(dimension1)
 {
+    ostringstream oss2;
+    oss2 << "BsplineScale parent=" << getParentIndex() << " dimension=" << dimension0_ << ":" << dimension1_;
+    if (isTransient()) oss2 << " (transient)";
+    config() = oss2.str();
+
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "   " << getIndex() << " BasisBsplineScale";
-        if (isTransient()) oss << " (transient)";
-        oss;
+        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str();
         info(oss.str());
     }
 
@@ -49,8 +49,6 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, shor
     ii count, m, n, offset;
 
     // todo: support stride for non-major dimension!!
-    const GridInfo parentGridInfo = static_cast<BasisBspline*>(bases[parentIndex])->getGridInfo();
-    gridInfo() = parentGridInfo;
     if (dimension0_ == 0)
     {
         gridInfo().rowScale[dimension1_] = parentGridInfo.rowScale[dimension1_] - 1;
@@ -86,14 +84,8 @@ BasisBsplineScale(vector<Basis*>& bases, int parentIndex, short dimension0, shor
 
     if (getDebugLevel() % 10 >= 2)
     {
-        ostringstream oss;
-        oss << getTimeStamp() << "     parent=" << getParentIndex();
-        info(oss.str());
-        ostringstream oss2;
-        oss2 << getTimeStamp() << "     dimension=" << dimension0_ << ":" << dimension1_;
-        info(oss2.str());
         ostringstream oss3;
-        oss3 << getTimeStamp() << "     " << gridInfo();
+        oss3 << getTimeStamp() << "      " << gridInfo();
         info(oss3.str());
     }
 
