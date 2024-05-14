@@ -40,9 +40,6 @@ public:
     virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
 
 private:
-    MatrixSparse aT_;
-    MatrixSparse a_;
-
     short dimension0_;
     short dimension1_;
 

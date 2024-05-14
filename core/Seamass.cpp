@@ -434,10 +434,12 @@ void Seamass::getOutput(Output& output, bool synthesize) const
 
     output.configs.resize(bases_.size());
     output.gridInfos.resize(bases_.size());
+    output.aTs.resize(bases_.size());
     for (ii k = 0; k < ii(bases_.size()); k++)
     {
         output.configs[k] = static_cast<BasisGrid*>(bases_[k])->getConfig();
         output.gridInfos[k] = static_cast<BasisGrid*>(bases_[k])->getGridInfo();
+        output.aTs[k] = &static_cast<BasisGrid*>(bases_[k])->getAt();
     }
 
     if (synthesize)

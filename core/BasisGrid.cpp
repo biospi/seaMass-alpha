@@ -97,6 +97,10 @@ const BasisGrid::GridInfo& BasisGrid::getGridInfo() const
     return gridInfo_;
 }
 
+const MatrixSparse& BasisGrid::getAt() const
+{
+    return aT_;
+}
 
 BasisGrid::GridInfo& BasisGrid::gridInfo()
 {

@@ -66,6 +66,7 @@ public:
         std::vector<MatrixSparse> xs;
         std::vector<MatrixSparse> l2s;
         std::vector<MatrixSparse> l1l2s;
+        std::vector<const MatrixSparse*> aTs;
     };
 
     struct ControlPoints {

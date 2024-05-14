@@ -59,10 +59,14 @@ public:
 
     const GridInfo& getGridInfo() const;
     const std::string& getConfig() const;
+    const MatrixSparse& getAt() const;
 
 protected:
     GridInfo& gridInfo();
     std::string& config();
+
+    MatrixSparse aT_;
+    MatrixSparse a_;
 
 private:
     GridInfo gridInfo_;

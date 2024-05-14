@@ -310,6 +310,7 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
         fileOut_->writeMatrixSparseCsr(output.xs[k], "X", groupId2);
         fileOut_->writeMatrixSparseCsr(output.l2s[k], "L2", groupId2);
         fileOut_->writeMatrixSparseCsr(output.l1l2s[k], "L1L2", groupId2);
+        fileOut_->writeMatrixSparseCsr(*output.aTs[k], "At", groupId2);
     }
 
     /*fileOut_->write_AttNC("", "baselineScale", output.baselineScale, NC_BYTE, grpid);
