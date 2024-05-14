@@ -33,6 +33,7 @@
 #include <cmath>
 #include <iomanip>
 #include <sstream>
+#include <limits>
 using namespace std;
 using namespace kernel;
 
