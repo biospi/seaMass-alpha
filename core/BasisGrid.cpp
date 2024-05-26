@@ -144,7 +144,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "]] offset=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
-        if (gridInfo.rowOffset[i] < 0)
+        if (gridInfo.rowOffset[i] == -9999)
             os << "NA";
         else
             os << gridInfo.rowOffset[i];
@@ -154,7 +154,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "],[";
     for (short i = 0; i < gridInfo.colDimensions(); i++)
     {
-        if (gridInfo.colOffset[i] < 0)
+        if (gridInfo.colOffset[i] == -9999)
             os << "NA";
         else
             os << gridInfo.colOffset[i];
@@ -164,7 +164,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "]] scale=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
-        if (gridInfo.rowScale[i] < 0)
+        if (gridInfo.rowScale[i] == -9999)
             os << "NA";
         else
             os << gridInfo.rowScale[i];
@@ -175,7 +175,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "],[";
     for (short i = 0; i < gridInfo.colDimensions(); i++)
     {
-        if (gridInfo.colScale[i] < 0)
+        if (gridInfo.colScale[i] == -9999)
             os << "NA";
         else
             os << gridInfo.colScale[i];

@@ -17,7 +17,7 @@ add_library(seamass_core
         BasisBsplineScantime.hpp
         Seamass.cpp
         Seamass.hpp
-        Dataset.cpp
+        Dataset.hpp
         DatasetMzmlb.hpp
         DatasetSeamass.hpp
         Dataset.cpp

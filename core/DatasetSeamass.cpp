@@ -137,6 +137,8 @@ void DatasetSeamass::write(const Seamass::Input &input, const std::string &id)
                 throw runtime_error("BUG: input has no type");
         }
     }
+
+    fileOut_->flush();
 }
 
 
@@ -208,61 +210,7 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
         }
     }
 
-    /*for (ii k = 0; k < (ii)output.xs.size(); k++)
-    {
-        if (output.xs[k])
-        {
-            ostringstream oss; oss << "xs[" << k << "]";
-            fileOut_->write(*output.xs[k], oss.str(), grpid);
-        }
-    }
-
-    for (ii k = 0; k < (ii)output.l2s.size(); k++)
-    {
-        if (output.l2s[k])
-        {
-            ostringstream oss; oss << "l2s[" << k << "]";
-            fileOut_->write(*output.l2s[k], oss.str(), grpid);
-        }
-    }
-
-    for (ii k = 0; k < (ii)output.l1l2s.size(); k++)
-    {
-        if (output.l1l2s[k])
-        {
-            ostringstream oss; oss << "l1l2s[" << k << "]";
-            fileOut_->write(*output.l1l2s[k], oss.str(), grpid);
-        }
-    }*/
-
-    /*fileIn_->read_AttNC("baselineScale", NC_GLOBAL, output.baselineScale, grpid);
-    fileIn_->read_AttNC("baselineOffset", NC_GLOBAL, output.baselineOffset, grpid);
-    fileIn_->read_AttNC("baselineExtent", NC_GLOBAL, output.baselineExtent, grpid);
-
-    vector<double> shrinkage;
-    fileIn_->read_AttNC("shrinkage", NC_GLOBAL, shrinkage, grpid);
-    output.shrinkage = shrinkage[0];
-
-    vector<double> tolerance;
-    fileIn_->read_AttNC("tolerance", NC_GLOBAL, tolerance, grpid);
-    output.tolerance = tolerance[0];
-
-    if (fileIn_->read_VarIDNC("weights", grpid) != -1)
-        fileIn_->read_VecNC("weights", output.weights, grpid);
-
-    output.scales.resize(output.baselineExtent.size());
-    output.offsets.resize(output.baselineExtent.size());
-    for (ii d = 0; d < output.baselineExtent.size(); d++)
-    {
-        ostringstream oss1; oss1 << "scales[" << d << "]";
-        fileIn_->read_VecNC(oss1.str(), output.scales[d], grpid);
-
-        ostringstream oss2; oss2 << "offsets[" << d << "]";
-        fileIn_->readVector(oss2.str(), output.offsets[d], grpid);
-    }*/
-
     id = "";
-
     return finished_ = true;
 }
 
@@ -291,9 +239,13 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
         fileOut_->writeAttribute(output.bGridInfo.colScale, "gridInfo.colScale", "", matrixId);
         fileOut_->writeAttribute(output.bGridInfo.colOffset, "gridInfo.colOffset", "", matrixId);
         fileOut_->writeAttribute(output.bGridInfo.colExtent, "gridInfo.colExtent", "", matrixId);
+
+        fileOut_->flush();
     }
 
-    for (ii k = 0; k < ii(output.xs.size()); k++)
+    li nnz = 0;
+    ii nk = ii(output.xs.size());
+    for (ii k = 0; k < nk; k++)
     {
         ostringstream oss;
         oss << setw(5) << setfill('0') << k;
@@ -308,54 +260,39 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
         fileOut_->writeAttribute(output.gridInfos[k].colOffset, "gridInfo.colOffset", "", groupId2);
         fileOut_->writeAttribute(output.gridInfos[k].colExtent, "gridInfo.colExtent", "", groupId2);
 
-        if (output.xs[k].size() > 0)
+        if (output.xs[k].size() > 0) {
             fileOut_->writeMatrixSparseCsr(output.xs[k], "X", groupId2);
-        if (output.l2s[k].size() > 0)
-            fileOut_->writeMatrixSparseCsr(output.l2s[k], "L2", groupId2);
-        if (output.l1l2s[k].size() > 0)
-            fileOut_->writeMatrixSparseCsr(output.l1l2s[k], "L1L2", groupId2);
-        if (output.aTs[k]->size() > 0)
-            fileOut_->writeMatrixSparseCsr(*output.aTs[k], "At", groupId2);
-        if (output.ids[k]->size() > 0)
-            fileOut_->writeVector<ii>(*output.ids[k], "ids", groupId2);
-    }
-
-    /*fileOut_->write_AttNC("", "baselineScale", output.baselineScale, NC_BYTE, grpid);
-
-    vector<double> shrinkage(1); shrinkage[0] = output.shrinkage;
-    fileOut_->write_AttNC("", "shrinkage", shrinkage, NC_DOUBLE, grpid);
-
-    vector<double> tolerance(1); tolerance[0] = output.tolerance;
-    fileOut_->write_AttNC("", "tolerance", tolerance, NC_DOUBLE, grpid);
-
-    for (ii k = 0; k < output.baselineExtent.size(); d++)
-    {
-        ostringstream oss1; oss1 << "scales[" << d << "]";
-        fileOut_->write_VecNC(oss1.str(), output.scales[d], NC_BYTE, grpid);
-
-        ostringstream oss2; oss2 << "offsets[" << d << "]";
-        fileOut_->write_VecNC(oss2.str(), output.offsets[d], sizeof(output.offsets[0]) == 4 ? NC_INT : NC_INT64, grpid);
-    }*/
-
-    /*fileOut_->write_AttNC("", "baselineOffset", output.baselineOffset, sizeof(output.baselineOffset[0]) == 4 ? NC_INT : NC_INT64, grpid);
-    fileOut_->write_AttNC("", "baselineExtent", output.baselineExtent, sizeof(output.baselineExtent[0]) == 4 ? NC_INT : NC_INT64, grpid);
-
-    if (output.weights.size() > 0)
-    {
-        fileOut_->write_VecNC("weights", output.weights, sizeof(output.weights[0]) == 4 ? NC_FLOAT : NC_DOUBLE, grpid);
-
-        // ought to be a compound type rather than multiple datasets!
-        for (ii d = 0; d < output.baselineExtent.size(); d++)
-        {
-            ostringstream oss1; oss1 << "scales[" << d << "]";
-            fileOut_->write_VecNC(oss1.str(), output.scales[d], NC_BYTE, grpid);
-
-            ostringstream oss2; oss2 << "offsets[" << d << "]";
-            fileOut_->write_VecNC(oss2.str(), output.offsets[d], sizeof(output.offsets[0]) == 4 ? NC_INT : NC_INT64, grpid);
+            nnz += output.xs[k].nnz();
         }
-    }*/
+        if (output.l2s[k].size() > 0) {
+            fileOut_->writeMatrixSparseCsr(output.l2s[k], "L2", groupId2);
+            nnz += output.l2s[k].nnz();
+        }
+        if (output.l1l2s[k].size() > 0) {
+            fileOut_->writeMatrixSparseCsr(output.l1l2s[k], "L1L2", groupId2);
+            nnz += output.l1l2s[k].nnz();
+        }
+        if (output.aTs[k]->size() > 0) {
+            fileOut_->writeMatrixSparseCsr(*output.aTs[k], "At", groupId2);
+            nnz += output.aTs[k]->nnz();
+        }
+        if (output.ids[k]->size() > 0) {
+            fileOut_->writeVector<ii>(*output.ids[k], "ids", groupId2);
+            nnz += output.ids[k]->size();
+        }
+
+        if (nnz > 1048576) {           
+            fileOut_->flush();
+            nnz = 0;
+
+            if (getDebugLevel() % 10 >= 1) {
+                ostringstream oss;
+                oss << getTimeStamp() << "   Saved " << setw(1 + (int)(log10((float)nk))) << (k + 1) << " / " << nk;
+                info(oss.str());
+            }
+            else {
+                oss << "." << flush;
+            }
+        }
+    }
 }
-
-
-
-

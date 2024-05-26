@@ -46,6 +46,7 @@ void FileNetcdf::open(const string& filename, int omode)
     if (!fileStatus_)
     {
         filename_ = filename;
+        omode_ = omode;
 
         switch(omode)
         {
@@ -85,6 +86,15 @@ void FileNetcdf::close()
     {
         throw runtime_error("Error: No file to close");
     }
+}
+
+
+void FileNetcdf::flush()
+{
+    if ((retval_ = nc_close(ncid_) != NC_NOERR))
+        err(retval_);
+    if ((retval_ = nc_open(filename_.c_str(), NC_WRITE, &ncid_)) != NC_NOERR)
+        err(retval_);
 }
 
 

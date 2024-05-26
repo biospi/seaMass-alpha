@@ -43,7 +43,7 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, const Bas
     if (isTransient()) oss2 << " (transient)";
     type() = oss2.str();
 
-    if (getDebugLevel() % 10 >= 1)
+    if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
         oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str() << " parent = " << getParentIndex() << " ...";
@@ -66,7 +66,9 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, const Bas
         if (getDebugLevel() % 10 >= 1)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "      autodetected_st_scale=" << fixed << setprecision(1) << scale;
+            oss << getTimeStamp();
+            if (getDebugLevel() % 10 >= 2) oss << "  ";
+            oss << "   autodetected_st_scale = " << fixed << setprecision(1) << scale;
             info(oss.str());
         }
     }

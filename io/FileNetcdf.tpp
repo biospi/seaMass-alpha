@@ -164,17 +164,17 @@ void FileNetcdf::writeVector(const T* data, size_t length, const string& dataset
     if((retval_ = nc_def_var(parentId, dataset.c_str(), getType<T>(), 1, &dimId, &varId)))
         err(retval_);
 
-    if((retval_ = nc_def_var_chunking(parentId, varId, NC_CHUNKED, &chunkExtent)))
-        err(retval_);
-    if((retval_ = nc_def_var_deflate(parentId, varId, shuffle, deflateLevel, deflateLevel)))
-        err(retval_);
+    //if((retval_ = nc_def_var_chunking(parentId, varId, NC_CHUNKED, &chunkExtent)))
+    //    err(retval_);
+    //if((retval_ = nc_def_var_deflate(parentId, varId, shuffle, deflateLevel, deflateLevel)))
+    //    err(retval_);
 
     T attVal[1] = {0};
-    if((retval_ = nc_put_att(parentId, varId, "_FillValue", getType<T>(), 1, attVal) ))
-        err(retval_);
+    //if((retval_ = nc_put_att(parentId, varId, "_FillValue", getType<T>(), 1, attVal) ))
+    //    err(retval_);
 
-    if((retval_ = nc_enddef(parentId)))
-        err(retval_);
+    //if((retval_ = nc_enddef(parentId)))
+    //    err(retval_);
 
     // No need to explicitly end define mode for netCDF-4 files. Write
     // the data to the file.
@@ -589,9 +589,9 @@ int FileNetcdf::write_VecNC(const string dataSet, const vector<T> &vec, nc_type 
     }
 
     // Set chunking, shuffle, and deflate.
-    shuffle = NC_SHUFFLE;
-    if(deflate_level > 0 && deflate_level < 10)
-        deflate = 1;
+    //shuffle = NC_SHUFFLE;
+    //if(deflate_level > 0 && deflate_level < 10)
+    //    deflate = 1;
 
     // Define the dimensions.
     if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
@@ -602,21 +602,21 @@ int FileNetcdf::write_VecNC(const string dataSet, const vector<T> &vec, nc_type 
                              &dimid, &varid)))
         err(retval_);
 
-    if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
-        err(retval_);
-    if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
-                                     deflate_level)))
-        err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+    //    err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+    //                                 deflate_level)))
+    //    err(retval_);
 
     if(unlim == true)
     {
         T attVal[1] = {0};
-        if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-            err(retval_);
+        //if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+        //    err(retval_);
     }
 
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
+    //if((retval_ = nc_enddef(grpid)))
+    //    err(retval_);
 
     // No need to explicitly end define mode for netCDF-4 files. Write
     // the data to the file.
@@ -663,8 +663,8 @@ int FileNetcdf::write_VecNC(const string dataSet, const T *vec, size_t len, nc_t
 
     // Set chunking, shuffle, and deflate.
     shuffle = NC_SHUFFLE;
-    if(deflate_level > 0 && deflate_level < 10)
-        deflate = 1;
+    //if(deflate_level > 0 && deflate_level < 10)
+    //    deflate = 1;
 
     // Define the dimensions.
     if((retval_ = nc_def_dim(grpid, dataSet.c_str(), N, &dimid)))
@@ -675,21 +675,21 @@ int FileNetcdf::write_VecNC(const string dataSet, const T *vec, size_t len, nc_t
                              &dimid, &varid)))
         err(retval_);
 
-    if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
-        err(retval_);
-    if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
-                                     deflate_level)))
-        err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunks)))
+    //    err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+    //                                 deflate_level)))
+    //    err(retval_);
 
     if(unlim == true)
     {
         T attVal[1] = {0};
-        if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-            err(retval_);
+        //if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+        //    err(retval_);
     }
 
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
+    //if((retval_ = nc_enddef(grpid)))
+    //    err(retval_);
 
     // No need to explicitly end define mode for netCDF-4 files. Write
     // the data to the file.
@@ -790,14 +790,14 @@ int FileNetcdf::write_MatNC(const string dataSet, const VecMat<T> &vm, nc_type x
     if((retval_ = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
        err(retval_);
 
-    if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-       err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+    //   err(retval_);
 
-    if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-       err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+    //   err(retval_);
 
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
+    //if((retval_ = nc_enddef(grpid)))
+    //    err(retval_);
 
     // No need to explicitly end define mode for netCDF-4 files. Write
     // the data to the file.
@@ -878,31 +878,31 @@ int FileNetcdf::write_MatAxisNC(const string dataSet, const VecMat<T> &vm, nc_ty
     // Define Axises variables.
     if((retval_ = nc_def_var(grpid,dimName1.c_str(),ytype,vecDim,&dimid[0],&axisVarid[0])))
        err(retval_);
-    if((retval_ = nc_def_var_chunking(grpid,axisVarid[0],NC_CHUNKED,&ychunk)))
-       err(retval_);
-    if((retval_ = nc_def_var_deflate(grpid,axisVarid[0],shuffle,deflate,deflate_level)))
-       err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid,axisVarid[0],NC_CHUNKED,&ychunk)))
+    //   err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid,axisVarid[0],shuffle,deflate,deflate_level)))
+    //   err(retval_);
 
     if((retval_ = nc_def_var(grpid,dimName2.c_str(),xtype,vecDim,&dimid[1],&axisVarid[1])))
        err(retval_);
     if((retval_ = nc_def_var_chunking(grpid,axisVarid[1],NC_CHUNKED,&xchunk)))
        err(retval_);
-    if((retval_ = nc_def_var_deflate(grpid,axisVarid[1],shuffle,deflate,deflate_level)))
-       err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid,axisVarid[1],shuffle,deflate,deflate_level)))
+    //   err(retval_);
 
 
     // Define the Matrix variable.
     if((retval_ = nc_def_var(grpid,dataSet.c_str(),ztype,ndim,&dimid[0],&varid)))
        err(retval_);
 
-    if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-       err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+    //   err(retval_);
 
-    if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-       err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+    //   err(retval_);
 
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
+    //if((retval_ = nc_enddef(grpid)))
+    //    err(retval_);
 
     // Write the data to the file.
     if((retval_ = nc_put_var(grpid, axisVarid[0], &rowAxisY[0])))
@@ -942,18 +942,18 @@ void FileNetcdf::write_DefHypVecNC(const string dataSet, nc_type xtype, int grpi
                              &dimid, &varid)))
         err(retval_);
 
-    if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunk)))
-        err(retval_);
-    if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
-                                     deflate_level)))
-        err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid, varid, NC_CHUNKED, &chunk)))
+    //    err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid, varid, shuffle, deflate,
+    //                                 deflate_level)))
+    //    err(retval_);
 
     T attVal[1] = {0};
-    if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-        err(retval_);
+    //if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+    //    err(retval_);
 
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
+    //if((retval_ = nc_enddef(grpid)))
+    //    err(retval_);
 }
 
 template<typename T>
@@ -1070,18 +1070,18 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, size_t dims[], nc_type 
     if((retval_ = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
        err(retval_);
 
-    if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-       err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+    //   err(retval_);
 
-    if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-       err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+    //   err(retval_);
 
     T attVal[1] = {0};
-    if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-        err(retval_);
+    //if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+    //    err(retval_);
 
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
+    //if((retval_ = nc_enddef(grpid)))
+    //    err(retval_);
 }
 
 template<typename T>
@@ -1136,19 +1136,19 @@ void FileNetcdf::write_DefHypMatNC(const string dataSet, const string rowY, cons
     if((retval_ = nc_def_var(grpid,dataSet.c_str(),xtype,ndim,&dimid[0],&varid)))
        err(retval_);
 
-    if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
-       err(retval_);
+    //if((retval_ = nc_def_var_chunking(grpid,varid,NC_CHUNKED,&chunks[0])))
+    //  err(retval_);
 
-    if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
-       err(retval_);
+    //if((retval_ = nc_def_var_deflate(grpid,varid,shuffle,deflate,deflate_level)))
+    //   err(retval_);
 
 
     T attVal[1] = {0};
-    if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
-        err(retval_);
+    //if((retval_ = nc_put_att(grpid, varid,"_FillValue", xtype, 1, attVal) ))
+    //    err(retval_);
 
-    if((retval_ = nc_enddef(grpid)))
-        err(retval_);
+    //if((retval_ = nc_enddef(grpid)))
+    //    err(retval_);
 }
 
 template<typename T>

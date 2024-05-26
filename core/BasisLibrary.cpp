@@ -44,12 +44,9 @@ BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo
         ostringstream oss;
         oss << getTimeStamp() << "   " << getIndex() << " " << oss3.str() << " parent = " << getParentIndex() << " ...";
         info(oss.str());
-    }
-
-    if (getDebugLevel() % 10 >= 1)
-    {
+    } else if (getDebugLevel() % 10 == 1) {
         ostringstream oss;
-        oss << getTimeStamp() << "     Loading " << dbFilename << " ...";
+        oss << getTimeStamp() << "   loading " << dbFilename << " ...";
         info(oss.str());
     }
 
@@ -96,7 +93,7 @@ BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo
         ii m = i + 1;
         ii n = parentGridInfo.colExtent[0];
 
-        gridInfo().colOffset[0] = -1;
+        gridInfo().colOffset[0] = -9999;
         gridInfo().colExtent[0] = m;
 
         aT_.importFromCoo(m, n, is1.size(), is1.data(), js1.data(), vs1.data());

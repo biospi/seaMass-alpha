@@ -166,7 +166,7 @@ void Asrl::getOutput(Output& output) const
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "  Getting output ...";
+        oss << getTimeStamp() << "  Generating output ...";
         info(oss.str());
     }
 

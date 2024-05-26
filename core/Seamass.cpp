@@ -419,7 +419,7 @@ void Seamass::getOutput(Output& output, bool synthesize) const
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "  Getting " << (synthesize ? "synthesized " : "") << "output ...";
+        oss << getTimeStamp() << "  Generating " << (synthesize ? "synthesized " : "") << "output ...";
         info(oss.str());
     }
 

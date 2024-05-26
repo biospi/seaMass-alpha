@@ -26,7 +26,7 @@
 #include "Seamass.hpp"
 
 
-class Dataset
+class Dataset : public Subject
 {
 public:
     virtual ~Dataset();

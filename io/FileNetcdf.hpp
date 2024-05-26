@@ -56,6 +56,7 @@ public:
 
     void open(const string& filename, int omode = NC_NOWRITE);
     void close(void);
+    void flush(void);
 
     bool exists(const string& variable, int parentId = 0);
 
@@ -97,7 +98,7 @@ public:
     int readMatrixSparseCoo(MatrixSparse &a, const string& name, int parentId = 0);
     int writeMatrixSparseCoo(const MatrixSparse &a, const string& name, int parentId = 0);
 
-    int readMatrixSparseCsr(MatrixSparse& a, const string& dataset, int parentId = 0);
+    int readMatrixSparseCsr(MatrixSparse& a, const string& name, int parentId = 0);
     int writeMatrixSparseCsr(const MatrixSparse &a, const string& name, int parentId = 0);
 
 
@@ -194,6 +195,7 @@ private:
     void err(int e);
 
     string filename_;
+    int omode_;
 
     bool fileStatus_;
     int ncid_;
