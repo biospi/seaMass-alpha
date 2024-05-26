@@ -34,14 +34,14 @@ BasisBsplineScale(vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridIn
         BasisGrid(bases, parentGridInfo, transient), dimension0_(dimension0), dimension1_(dimension1)
 {
     ostringstream oss2;
-    oss2 << "BsplineScale parent=" << getParentIndex() << " dimension=" << dimension0_ << ":" << dimension1_;
+    oss2 << "BsplineScale dimension=" << dimension0_ << ":" << dimension1_;
     if (isTransient()) oss2 << " (transient)";
-    config() = oss2.str();
+    type() = oss2.str();
 
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str();
+        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str() << " parent = " << getParentIndex() << " ...";
         info(oss.str());
     }
 

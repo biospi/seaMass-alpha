@@ -47,14 +47,14 @@ BasisBsplinePsf::BasisBsplinePsf(std::vector<Basis*>& bases, const BasisGrid::Gr
     BasisGrid(bases, parentGridInfo, transient)
 {
     ostringstream oss2;
-    oss2 << "BsplinePsf parent=" << getParentIndex();
+    oss2 << "BsplinePsf";
     if (isTransient()) oss2 << " (transient)";
-    config() = oss2.str();
+    type() = oss2.str();
 
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str() << " ...";
+        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str() << " parent = " << getParentIndex() << " ...";
         info(oss.str());
     }
 

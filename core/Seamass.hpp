@@ -61,12 +61,13 @@ public:
         MatrixSparse b;
 
         std::vector<ii> parents;
-        std::vector<std::string> configs;
+        std::vector<std::string> types;
         std::vector<BasisGrid::GridInfo> gridInfos;
         std::vector<MatrixSparse> xs;
         std::vector<MatrixSparse> l2s;
         std::vector<MatrixSparse> l1l2s;
         std::vector<const MatrixSparse*> aTs;
+        std::vector<const std::vector<ii>*> ids;
     };
 
     struct ControlPoints {

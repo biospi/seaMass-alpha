@@ -39,14 +39,14 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, const Bas
     BasisGrid(bases, parentGridInfo, transient)
 {
     ostringstream oss2;
-    oss2 << "BsplineScantime parent=" << getParentIndex();
+    oss2 << "BsplineScantime";
     if (isTransient()) oss2 << " (transient)";
-    config() = oss2.str();
+    type() = oss2.str();
 
     if (getDebugLevel() % 10 >= 1)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str() << " ...";
+        oss << getTimeStamp() << "   " << getIndex() << " " << oss2.str() << " parent = " << getParentIndex() << " ...";
         info(oss.str());
     }
 

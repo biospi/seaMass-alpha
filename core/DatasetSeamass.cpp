@@ -299,7 +299,8 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
         oss << setw(5) << setfill('0') << k;
         int groupId2 = fileOut_->createGroup(oss.str(), groupId);
  
-        fileOut_->writeAttribute(output.configs[k], "basisConfig", "", groupId2);
+        fileOut_->writeAttribute(output.types[k], "basis.type", "", groupId2);
+        fileOut_->writeAttribute(output.parents[k], "basis.parentIndex", "", groupId2);
         fileOut_->writeAttribute(output.gridInfos[k].rowScale, "gridInfo.rowScale", "", groupId2);
         fileOut_->writeAttribute(output.gridInfos[k].rowOffset, "gridInfo.rowOffset", "", groupId2);
         fileOut_->writeAttribute(output.gridInfos[k].rowExtent, "gridInfo.rowExtent", "", groupId2);
@@ -307,10 +308,16 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
         fileOut_->writeAttribute(output.gridInfos[k].colOffset, "gridInfo.colOffset", "", groupId2);
         fileOut_->writeAttribute(output.gridInfos[k].colExtent, "gridInfo.colExtent", "", groupId2);
 
-        fileOut_->writeMatrixSparseCsr(output.xs[k], "X", groupId2);
-        fileOut_->writeMatrixSparseCsr(output.l2s[k], "L2", groupId2);
-        fileOut_->writeMatrixSparseCsr(output.l1l2s[k], "L1L2", groupId2);
-        fileOut_->writeMatrixSparseCsr(*output.aTs[k], "At", groupId2);
+        if (output.xs[k].size() > 0)
+            fileOut_->writeMatrixSparseCsr(output.xs[k], "X", groupId2);
+        if (output.l2s[k].size() > 0)
+            fileOut_->writeMatrixSparseCsr(output.l2s[k], "L2", groupId2);
+        if (output.l1l2s[k].size() > 0)
+            fileOut_->writeMatrixSparseCsr(output.l1l2s[k], "L1L2", groupId2);
+        if (output.aTs[k]->size() > 0)
+            fileOut_->writeMatrixSparseCsr(*output.aTs[k], "At", groupId2);
+        if (output.ids[k]->size() > 0)
+            fileOut_->writeVector<ii>(*output.ids[k], "ids", groupId2);
     }
 
     /*fileOut_->write_AttNC("", "baselineScale", output.baselineScale, NC_BYTE, grpid);

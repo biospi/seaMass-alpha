@@ -180,7 +180,7 @@ void Seamass::init(Input& input, bool seed)
     }
 
     double scale2 = pow(2.0, scale_[0]);
-    gridInfo_.rowScale[0] = numeric_limits<short>::min();
+    gridInfo_.rowScale[0] = -1;
     gridInfo_.rowOffset[0] = 0;
     gridInfo_.rowExtent[0] = ii(countsIndex.size()) - 1;
     gridInfo_.colScale[0] = scale_[0];
@@ -433,25 +433,29 @@ void Seamass::getOutput(Output& output, bool synthesize) const
     output.chargeStates = chargeStates_;
     output.dbFilename = dbFilename_;
 
-    output.configs.resize(bases_.size());
+    output.types.resize(bases_.size());
+    output.parents.resize(bases_.size());
     output.gridInfos.resize(bases_.size());
     output.aTs.resize(bases_.size());
+    output.ids.resize(bases_.size());
     for (ii k = 0; k < ii(bases_.size()); k++)
     {
-        output.configs[k] = static_cast<BasisGrid*>(bases_[k])->getConfig();
+        output.types[k] = static_cast<BasisGrid*>(bases_[k])->getType();
+        output.parents[k] = static_cast<BasisGrid*>(bases_[k])->getParentIndex();
         output.gridInfos[k] = static_cast<BasisGrid*>(bases_[k])->getGridInfo();
         output.aTs[k] = &static_cast<BasisGrid*>(bases_[k])->getAt();
+        output.ids[k] = &static_cast<BasisGrid*>(bases_[k])->getIDs();
     }
 
     if (synthesize)
     {
         output.bGridInfo = gridInfo_;
-        output.b.copy(b_[0]);
 
         vector<vector<MatrixSparse> > xs;
         {
             vector<MatrixSparse> f;
             optimizer_->synthesize(f, xs);
+            output.b.copy(f[0]);
         }
 
         output.xs.resize(xs.size());
@@ -473,6 +477,9 @@ void Seamass::getOutput(Output& output, bool synthesize) const
     }
     else
     {
+        output.bGridInfo = gridInfo_;
+        output.b.copy(b_[0]);
+
         output.xs.resize(optimizer_->xs().size());
         for (ii k = 0; k < ii(optimizer_->xs().size()); k++)
             if (!bases_[k]->isTransient())

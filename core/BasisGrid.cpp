@@ -102,21 +102,26 @@ const MatrixSparse& BasisGrid::getAt() const
     return aT_;
 }
 
+const std::vector<ii>& BasisGrid::getIDs() const
+{
+    return ids_;
+}
+
 BasisGrid::GridInfo& BasisGrid::gridInfo()
 {
     return gridInfo_;
 }
 
 
-const std::string& BasisGrid::getConfig() const
+const std::string& BasisGrid::getType() const
 {
-    return config_;
+    return type_;
 }
 
 
-std::string& BasisGrid::config()
+std::string& BasisGrid::type()
 {
-    return config_;
+    return type_;
 }
 
 ostream&
@@ -139,7 +144,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "]] offset=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
-        if (gridInfo.rowOffset[i] == numeric_limits<ii>::min())
+        if (gridInfo.rowOffset[i] < 0)
             os << "NA";
         else
             os << gridInfo.rowOffset[i];
@@ -149,7 +154,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "],[";
     for (short i = 0; i < gridInfo.colDimensions(); i++)
     {
-        if (gridInfo.colOffset[i] == numeric_limits<ii>::min())
+        if (gridInfo.colOffset[i] < 0)
             os << "NA";
         else
             os << gridInfo.colOffset[i];
@@ -159,7 +164,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "]] scale=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
-        if (gridInfo.rowScale[i] == numeric_limits<short>::min())
+        if (gridInfo.rowScale[i] < 0)
             os << "NA";
         else
             os << gridInfo.rowScale[i];
@@ -170,7 +175,7 @@ operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
     os << "],[";
     for (short i = 0; i < gridInfo.colDimensions(); i++)
     {
-        if (gridInfo.colScale[i] == numeric_limits<short>::min())
+        if (gridInfo.colScale[i] < 0)
             os << "NA";
         else
             os << gridInfo.colScale[i];

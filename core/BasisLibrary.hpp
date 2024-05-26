@@ -38,9 +38,6 @@ public:
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
 
 private:
-    MatrixSparse aT_;
-    MatrixSparse a_;
-
     std::vector<MatrixSparse> gTs_;
     std::vector<MatrixSparse> gs_;
 };

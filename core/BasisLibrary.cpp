@@ -36,13 +36,13 @@ BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo
     BasisGrid(bases, parentGridInfo, transient), gTs_(1), gs_(1)
 {
     ostringstream oss3;
-    oss3 << "Library parent=" << getParentIndex() << " filename=" << dbFilename;
-    config() = oss3.str();
+    oss3 << "Library filename=" << dbFilename;
+    type() = oss3.str();
 
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "   " << getIndex() << " " << oss3.str() << " ...";
+        oss << getTimeStamp() << "   " << getIndex() << " " << oss3.str() << " parent = " << getParentIndex() << " ...";
         info(oss.str());
     }
 
@@ -53,53 +53,56 @@ BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo
         info(oss.str());
     }
 
-    FileNetcdf fileIn(dbFilename);
-    ostringstream oss2;
-    oss2 << "m" << setfill('0') << setw(2) << ii(parentGridInfo.colScale[0]);
-
-    MatrixSparse db;
-    fileIn.readMatrixSparseCsr(db, oss2.str());
-
-    //  read in offset
-    ii db_offset = fileIn.readAttribute<ii>("offset", "", fileIn.openGroup(oss2.str()));
-
-    // extract relevant submatrix (not efficient atm and ought to be moved to SparseMatrix)
-    vector<ii> is1;
-    vector<ii> js1;
-    vector<fp> vs1;
-    ii i = -1;
-    ii j_min = parentGridInfo.colOffset[0];
-    ii j_max = parentGridInfo.colOffset[0] + parentGridInfo.colExtent[0] - 1;
-    bool new_row;
-    for (ii i0 = 0; i0 < db.m(); ++i0)
     {
-        new_row = true;
-        for (ii k = db.ijs()[i0]; k < db.ijs()[i0+1]; ++k)
+        FileNetcdf fileIn(dbFilename);
+        ostringstream oss2;
+        oss2 << "m" << setfill('0') << setw(2) << ii(parentGridInfo.colScale[0]);
+
+        MatrixSparse db;
+        fileIn.readMatrixSparseCsr(db, oss2.str());
+
+        //  read in offset
+        ii db_offset = fileIn.readAttribute<ii>("offset", "", fileIn.openGroup(oss2.str()));
+
+        // extract relevant submatrix (not efficient atm and ought to be moved to SparseMatrix)
+        vector<ii> is1;
+        vector<ii> js1;
+        vector<fp> vs1;
+        ii i = -1;
+        ii j_min = parentGridInfo.colOffset[0];
+        ii j_max = parentGridInfo.colOffset[0] + parentGridInfo.colExtent[0] - 1;
+        bool new_row;
+        for (ii i0 = 0; i0 < db.m(); ++i0)
         {
-            ii j = db_offset + db.js()[k];
+            new_row = true;
+            for (ii k = db.ijs()[i0]; k < db.ijs()[i0 + 1]; ++k)
+            {
+                ii j = db_offset + db.js()[k];
 
-            if (j >= j_min && j <= j_max) {
-                if (new_row)
-                {
-                    i++;
-                    new_row = false;
+                if (j >= j_min && j <= j_max) {
+                    if (new_row)
+                    {
+                        i++;
+                        new_row = false;
+                        ids_.push_back(i0);
+                    }
+
+                    is1.push_back(i);
+                    js1.push_back(j - j_min);
+                    vs1.push_back(db.vs()[k]);
                 }
-
-                is1.push_back(i);
-                js1.push_back(j - j_min);
-                vs1.push_back(db.vs()[k]);
             }
         }
+        ii m = i + 1;
+        ii n = parentGridInfo.colExtent[0];
+
+        gridInfo().colOffset[0] = -1;
+        gridInfo().colExtent[0] = m;
+
+        aT_.importFromCoo(m, n, is1.size(), is1.data(), js1.data(), vs1.data());
     }
-    ii m = i+1;
-    ii n = parentGridInfo.colExtent[0];
-    aT_.importFromCoo(m, n, is1.size(), is1.data(), js1.data(), vs1.data());
     a_.transpose(aT_);
-
-    // Set up 'A'
-    gridInfo().colOffset[0] = numeric_limits<ii>::min();
-    gridInfo().colExtent[0] = m;
-
+ 
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss3;

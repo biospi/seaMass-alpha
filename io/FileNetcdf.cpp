@@ -376,6 +376,7 @@ int FileNetcdf::writeMatrixSparseCsr(const MatrixSparse& a, const string& name, 
 {
     int matrixId = createGroup(name, parentId);
 
+    writeAttribute(a.m(), "m", "", matrixId);
     writeAttribute(a.n(), "n", "", matrixId);
 
     if (a.initCsr(a.nnz() > 0))

@@ -58,19 +58,21 @@ public:
     virtual ~BasisGrid();
 
     const GridInfo& getGridInfo() const;
-    const std::string& getConfig() const;
+    const std::string& getType() const;
     const MatrixSparse& getAt() const;
+    const std::vector<ii>& getIDs() const;
 
 protected:
     GridInfo& gridInfo();
-    std::string& config();
+    std::string& type();
 
     MatrixSparse aT_;
     MatrixSparse a_;
+    std::vector<ii> ids_;
 
 private:
     GridInfo gridInfo_;
-    std::string config_;
+    std::string type_;
 };
 
 std::ostream& operator<<(std::ostream& os, const BasisGrid::GridInfo& gridInfo);
