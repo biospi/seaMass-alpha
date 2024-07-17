@@ -121,7 +121,7 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
     if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "     " << getIndex() << " BasisGridPeak::synthesise";
+        oss << getTimeStamp() << "     " << getIndex() << " BasisLibrary::synthesise";
         info(oss.str());
     }
 
@@ -161,7 +161,7 @@ void BasisLibrary::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> 
     if (getDebugLevel() % 10 >= 3)
     {
         ostringstream oss;
-        oss << getTimeStamp() << "     " << getIndex() << " BasisGridPeak::analyse";
+        oss << getTimeStamp() << "     " << getIndex() << " BasisLibrary::analyse";
         info(oss.str());
     }
 

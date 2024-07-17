@@ -272,16 +272,15 @@ void Seamass::init(Input& input, bool seed)
     if (input.countsIndex.size() <= 2)
     {
         dimensions_ = 1;
+ 
+        // Supplied spectral library
+        if (dbFilename_ != "")
+            new BasisLibrary(bases_, gridInfo_, dbFilename_, false);
 
+        // Unknowns including any baseline
         BasisGrid* prevBasis = new BasisBsplineScale(bases_, gridInfo_, 1, 0, false, false);
-
-         // Supplied spectral library
-         if (dbFilename_ != "")
-             prevBasis = new BasisLibrary(bases_, prevBasis->getGridInfo(), dbFilename_, false);
-
-         // Unknowns including any baseline
-         while (prevBasis->getGridInfo().colExtent[0] > 4)
-             prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
+        while (prevBasis->getGridInfo().colExtent[0] > 4)
+            prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
     }
     else
     {

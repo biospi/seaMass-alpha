@@ -425,10 +425,10 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
             break;
         }
 
-        if (l > 0)
+        ii pi = bases_[l]->getParentIndex();
+        if (pi >= 0)
         {
-            ii pi = bases_[l]->getParentIndex();
-            
+             
             if (!xEs[pi].size() && !bases_[pi]->isTransient())
             {
                 xEs[pi].resize(xs_[pi].size());
@@ -444,7 +444,7 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
         }
         else
         {
-            bases_[0]->synthesize(f, xEs[0], false);
+            bases_[l]->synthesize(f, xEs[l], true);
         }
     }
 }
@@ -480,8 +480,10 @@ void OptimizerSrl::analyze(std::vector<std::vector<MatrixSparse> > &xEs, std::ve
 
     for (ii l = 1; l < ii(bases_.size()); l++)
     {
-        vector<MatrixSparse> t;
-        bases_[l]->analyze(t, xEs[bases_[l]->getParentIndex()], l2);
+        if (bases_[l]->getParentIndex() >= 0)
+            bases_[l]->analyze(t, xEs[bases_[l]->getParentIndex()], l2);
+        else
+            bases_[l]->analyze(t, fE, l2);
 
         if (xEs[l].size() != t.size())
         {
