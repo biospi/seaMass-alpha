@@ -44,7 +44,7 @@ const vector<MatrixSparse> * Basis::getColGroups(bool transpose) const
 }
 
 
-void Basis::synthesizeGroups(std::vector<MatrixSparse> &g, const vector<MatrixSparse> &x, bool accumulate)
+void Basis::synthesizeGroups(std::vector<MatrixSparse> &g, const vector<MatrixSparse> &x, bool accumulate, bool prune)
 {
     const std::vector<MatrixSparse>* gT = getColGroups(true);
     if (gT)
@@ -57,7 +57,7 @@ void Basis::synthesizeGroups(std::vector<MatrixSparse> &g, const vector<MatrixSp
     }
     else
     {
-        synthesize(g, x, accumulate);
+        synthesize(g, x, accumulate, prune);
     }
 }
 

@@ -61,7 +61,7 @@ BasisMatrix::~BasisMatrix()
 }
 
 
-void BasisMatrix::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
+void BasisMatrix::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate, bool prune)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "      BasisMatrix::synthesise" << endl;

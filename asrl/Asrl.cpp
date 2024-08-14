@@ -184,5 +184,5 @@ void Asrl::getOutput(Output& output) const
         output.xTaT[i].copy(f[i]);
 
     if (lambdaGroupStart_ > 0.0)
-        bases_[0]->synthesizeGroups(output.xTgT, optimizer_->xs()[0], false);
+        bases_[0]->synthesizeGroups(output.xTgT, optimizer_->xs()[0], false, true);
 }

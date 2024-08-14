@@ -281,7 +281,7 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
             nnz += output.ids[k]->size();
         }
 
-        if (nnz > 1048576) {           
+        /*if (nnz > 1048576) {
             fileOut_->flush();
             nnz = 0;
 
@@ -293,6 +293,6 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
             else {
                 oss << "." << flush;
             }
-        }
+        }*/
     }
 }

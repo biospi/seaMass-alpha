@@ -192,12 +192,22 @@ int main(int argc, const char * const * argv)
 
             if (debugLevel / 10 >= 1)
             {
-                Seamass::Output output;
-                seamass.getOutput(output, true);
+                {
+                    Seamass::Output output;
+                    seamass.getOutput(output, true, seamass.bases_mask_library_);
 
-                ostringstream oss; oss << fileStemOut << ".synthesized";
-                DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
-                datasetOut.write(input, output, id);
+                    ostringstream oss; oss << fileStemOut << ".synthesized.library";
+                    DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                    datasetOut.write(input, output, id);                
+                }
+                {
+                    Seamass::Output output;
+                    seamass.getOutput(output, true, seamass.bases_mask_unknowns_);
+
+                    ostringstream oss; oss << fileStemOut << ".synthesized.unknowns";
+                    DatasetSeamass datasetOut("", oss.str(), Dataset::WriteType::InputOutput);
+                    datasetOut.write(input, output, id);
+                }
             }
 
             if (debugLevel % 10 == 0)

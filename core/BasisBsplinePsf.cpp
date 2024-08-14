@@ -138,7 +138,7 @@ BasisBsplinePsf::~BasisBsplinePsf()
 
 void
 BasisBsplinePsf::
-synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
+synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate, bool prune)
 {
     if (getDebugLevel() % 10 >= 3)
     {
@@ -151,18 +151,21 @@ synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumula
         f.resize(1);
     
     // zero basis functions that are no longer needed
-    MatrixSparse t;
-    ii rowsPruned = t.pruneRows(aT_, x[0], false, 0.75);
-    if (rowsPruned > 0)
+    if (prune)
     {
-        aT_.swap(t);
-        a_.transpose(aT_);
-
-        if (getDebugLevel() % 10 >= 3)
+        MatrixSparse t;
+        ii rowsPruned = t.pruneRows(aT_, x[0], false, 0.75);
+        if (rowsPruned > 0)
         {
-            ostringstream oss;
-            oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
-            info(oss.str());
+            aT_.swap(t);
+            a_.transpose(aT_);
+
+            if (getDebugLevel() % 10 >= 3)
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
+                info(oss.str());
+            }
         }
     }
 

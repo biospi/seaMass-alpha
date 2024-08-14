@@ -89,7 +89,7 @@ public:
     void getInput(Input &input, bool reconstruct = false) const;
 
     // get seaMass output (for smv file)
-    void getOutput(Output& output, bool synthesize) const;
+    void getOutput(Output& output, bool synthesize, std::vector<bool> mask = std::vector<bool>()) const;
 
     // get restored 1D control points (i.e. per spectra) derived from seaMass output
     void getOutputControlPoints1d(ControlPoints& controlPoints, bool density) const;
@@ -97,13 +97,16 @@ public:
     // get restored control points with dimension depending on input (i.e. 1D or 2D)
     void getOutputControlPoints(ControlPoints& controlPoints) const;
 
+    std::vector<bool> bases_mask_library_;
+    std::vector<bool> bases_mask_unknowns_;
 private:
     void init(Input& input, bool seed);
 
     short polarity_;
     short dimensions_;
+
     std::vector<Basis*> bases_;
-    //BasisBsplinePsf* mzBasis_;
+ 
     std::vector<MatrixSparse> b_;
     BasisGrid::GridInfo gridInfo_;
 

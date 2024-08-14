@@ -399,7 +399,7 @@ fp OptimizerSrl::step()
 }
 
 
-void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis)
+void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSparse> >& xEs, ii basis, std::vector<bool> mask)
 {
     if (xEs.size() != bases_.size())
         xEs.resize(bases_.size());
@@ -413,7 +413,12 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
             if (l2s_.size())
             {
                 for (ii k = 0; k < ii(xEs[l].size()); k++)
-                    xEs[l][k].divNonzeros(xs_[l][k], l2s_[l][k]);
+                {
+                    if (mask.size() ? mask[l] : true)
+                        xEs[l][k].divNonzeros(xs_[l][k], l2s_[l][k]);
+                    else
+                        xEs[l][k].init(xs_[l][k].m(), xs_[l][k].n());
+                }
             }
         }
 
@@ -428,7 +433,6 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
         ii pi = bases_[l]->getParentIndex();
         if (pi >= 0)
         {
-             
             if (!xEs[pi].size() && !bases_[pi]->isTransient())
             {
                 xEs[pi].resize(xs_[pi].size());
@@ -436,15 +440,20 @@ void OptimizerSrl::synthesize(vector<MatrixSparse>& f, vector< vector<MatrixSpar
                 if (l2s_.size())
                 {
                     for (ii k = 0; k < ii(xEs[pi].size()); k++)
-                        xEs[pi][k].divNonzeros(xs_[pi][k], l2s_[pi][k]);
+                    {
+                        if (mask.size() ? mask[pi] : true)
+                            xEs[pi][k].divNonzeros(xs_[pi][k], l2s_[pi][k]);
+                        else
+                            xEs[pi][k].init(xs_[pi][k].m(), xs_[pi][k].n());
+                    }
                 }
             }
 
-            bases_[l]->synthesize(xEs[pi], xEs[l], !bases_[pi]->isTransient());
+            bases_[l]->synthesize(xEs[pi], xEs[l], !bases_[pi]->isTransient(), false);
         }
         else
         {
-            bases_[l]->synthesize(f, xEs[l], true);
+            bases_[l]->synthesize(f, xEs[l], true, false);
         }
     }
 }

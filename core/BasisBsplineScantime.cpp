@@ -152,7 +152,7 @@ BasisBsplineScantime::~BasisBsplineScantime()
 }
 
 
-void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate)
+void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<MatrixSparse> &x, bool accumulate, bool prune)
 {
     if (getDebugLevel() % 10 >= 3)
     {
@@ -165,17 +165,20 @@ void BasisBsplineScantime::synthesize(vector<MatrixSparse> &f, const vector<Matr
         f.resize(1);
 
     // zero basis functions that are no longer needed
-    MatrixSparse t;
-    ii rowsPruned = t.pruneRows(aT_, x[0], true, 0.75);
-    if (rowsPruned > 0)
+    if (prune)
     {
-        aT_.swap(t);
-
-        if (getDebugLevel() % 10 >= 2)
+        MatrixSparse t;
+        ii rowsPruned = t.pruneRows(aT_, x[0], true, 0.75);
+        if (rowsPruned > 0)
         {
-            ostringstream oss;
-            oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
-            info(oss.str());
+            aT_.swap(t);
+
+            if (getDebugLevel() % 10 >= 2)
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "      " << getIndex() << " pruned " << rowsPruned << " basis functions";
+                info(oss.str());
+            }
         }
     }
 

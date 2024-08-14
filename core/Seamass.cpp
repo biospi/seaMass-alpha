@@ -274,13 +274,22 @@ void Seamass::init(Input& input, bool seed)
         dimensions_ = 1;
  
         // Supplied spectral library
-        if (dbFilename_ != "")
+        if (dbFilename_ != "") {
             new BasisLibrary(bases_, gridInfo_, dbFilename_, false);
+            bases_mask_library_.push_back(true);
+            bases_mask_unknowns_.push_back(false);
+        }
 
         // Unknowns including any baseline
         BasisGrid* prevBasis = new BasisBsplineScale(bases_, gridInfo_, 1, 0, false, false);
-        while (prevBasis->getGridInfo().colExtent[0] > 4)
+        bases_mask_library_.push_back(false);
+        bases_mask_unknowns_.push_back(true);
+
+        while (prevBasis->getGridInfo().colExtent[0] > 4) {
             prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
+            bases_mask_library_.push_back(false);
+            bases_mask_unknowns_.push_back(true);
+        }
     }
     else
     {
@@ -288,15 +297,22 @@ void Seamass::init(Input& input, bool seed)
  
         BasisGrid* rowBasis = new BasisBsplineScantime(bases_, gridInfo_,
             input.startTimes, input.finishTimes, input.exposures, scale_[1], false);
+        bases_mask_library_.push_back(true);
+        bases_mask_unknowns_.push_back(true);
 
         // Supplied spectral library (scantime convolution only)
         BasisGrid* prevBasis = rowBasis;
         if (dbFilename_ != "")
         {
             prevBasis = new BasisLibrary(bases_, prevBasis->getGridInfo(), dbFilename_, false);
+            bases_mask_library_.push_back(true);
+            bases_mask_unknowns_.push_back(false);
 
-            while (prevBasis->getGridInfo().rowExtent[0] > 4)
+            while (prevBasis->getGridInfo().rowExtent[0] > 4) {
                 prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 0, 0, false, false);
+                bases_mask_library_.push_back(true);
+                bases_mask_unknowns_.push_back(false);
+            }                
         }
 
         // Unknowns (m/z and scantime tensor convolution)
@@ -307,11 +323,18 @@ void Seamass::init(Input& input, bool seed)
             if (!first)
             {
                 rowBasis = new BasisBsplineScale(bases_, rowBasis->getGridInfo(), 0, 0, false, false);
+                bases_mask_library_.push_back(false);
+                bases_mask_unknowns_.push_back(true);
+
                 prevBasis = rowBasis;
             }
  
             while (prevBasis->getGridInfo().colExtent[0] > 4)
+            {
                 prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
+                bases_mask_library_.push_back(false);
+                bases_mask_unknowns_.push_back(true);
+            }
  
             first = false;
         }
@@ -413,7 +436,7 @@ ii Seamass::getIteration() const
 }
 
 
-void Seamass::getOutput(Output& output, bool synthesize) const
+void Seamass::getOutput(Output& output, bool synthesize, std::vector<bool> mask) const
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -453,7 +476,7 @@ void Seamass::getOutput(Output& output, bool synthesize) const
         vector<vector<MatrixSparse> > xs;
         {
             vector<MatrixSparse> f;
-            optimizer_->synthesize(f, xs);
+            optimizer_->synthesize(f, xs, -1, mask);
             output.b.copy(f[0]);
         }
 
