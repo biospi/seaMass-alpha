@@ -56,6 +56,17 @@ target_link_libraries (driams_raw2binned LINK_PUBLIC
 	${Boost_LIBRARIES}
 	)
 
+add_executable(driams_raw2smb
+	driams_raw2smb.cpp
+	)
+target_include_directories(driams_raw2smb PUBLIC
+	${Boost_INCLUDE_DIRS}
+	)
+target_link_libraries (driams_raw2smb LINK_PUBLIC
+	seamass_core
+	${Boost_LIBRARIES}
+	)
+
 add_executable(image2sml
 	image2sml.cpp
 	)
