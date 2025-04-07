@@ -45,8 +45,8 @@ private:
     TIFF* fileIn_;
     FileNetcdf* fileOut_;
     bool finished_;
-    uint32 width;
-    uint32 height;
+    uint32_t width;
+    uint32_t height;
 };
 
 

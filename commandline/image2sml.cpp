@@ -80,7 +80,7 @@ int main(int argc, const char* argv[])
         }
 
         // libtiff variables
-        uint32 width, height;
+        uint32_t width, height;
         short bitPerSample;
         tsize_t scanLength;
 
@@ -134,7 +134,7 @@ int main(int argc, const char* argv[])
         //vector<float> scanSingle(width);
         ii* pixelIdx = new ii[width];
 
-        for (uint32 i = 0; i < height; ++i) {
+        for (uint32_t i = 0; i < height; ++i) {
             // Read image data allocating space for each line as we get it
             cout<<"Processing image scan: "<<height<<"/"<<i<<"\r";
             //TIFFReadScanline(imgTiff,scanSingle.data(),i);

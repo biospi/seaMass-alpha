@@ -9,6 +9,7 @@ mkdir $DIR/build/gcc
 mkdir $DIR/build/gcc/debug
 pushd $DIR/build/gcc/debug
 cmake -DCMAKE_BUILD_TYPE=Debug $@ -DCMAKE_INSTALL_PREFIX=install ../../..
+make -j $1
 popd
 
 mkdir $DIR/build/gcc/release
@@ -18,7 +19,7 @@ make -j $1
 make install
 popd
 
-### commented out as seamass broken atm (only asrl works)
+### commented out as these test mzMLb datasets are old format
 #source data.sh gcc release HYE124_TTOF6600_64var_lgillet_I150211_008__index_59994 p-55-227433333333 6
 #source data.sh gcc release P02U_Swath_1__mzWindow_602_605__scanTime_2300_3500 p 6
 

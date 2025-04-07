@@ -121,7 +121,7 @@ void FileNetcdf::readVector(T* data, const string& dataset, int parentId)
     vector<int> dimid(dimensions);
     vector<size_t> dimSize(dimensions);
 
-    /*if((retval_ = nc_inq_vardimid(parentId, varId, &dimid[0]) ))
+    if((retval_ = nc_inq_vardimid(parentId, varId, &dimid[0]) ))
         err(retval_);
 
     for (int i = 0; i < dimensions; ++i)

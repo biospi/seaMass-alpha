@@ -1,4 +1,4 @@
-find_package(Boost 1.54 COMPONENTS program_options REQUIRED)
+find_package(Boost 1.70 COMPONENTS program_options REQUIRED NO_MODULE)
 find_package(PugiXML REQUIRED)
 
 add_executable(peak

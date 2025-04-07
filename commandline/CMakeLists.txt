@@ -1,4 +1,4 @@
-find_package(Boost 1.54 COMPONENTS program_options filesystem system REQUIRED)
+find_package(Boost 1.70 COMPONENTS program_options filesystem system REQUIRED NO_MODULE)
 find_package(TIFF REQUIRED)
 
 add_executable(asrl

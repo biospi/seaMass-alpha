@@ -66,8 +66,8 @@ bool DatasetTiff::read(Seamass::Input &input, std::string &id)
     if(finished_ == true)
         return false;
 
-    uint32 width, height;
-    int16 bps, spp;
+    uint32_t width, height;
+    int16_t bps, spp;
     if (TIFFGetField(fileIn_, TIFFTAG_IMAGEWIDTH, &width) != 1) throw runtime_error("");
     if (TIFFGetField(fileIn_, TIFFTAG_IMAGELENGTH, &height) != 1) throw runtime_error("");
     if (TIFFGetField(fileIn_, TIFFTAG_BITSPERSAMPLE, &bps) != 1) throw runtime_error("");
@@ -84,7 +84,7 @@ bool DatasetTiff::read(Seamass::Input &input, std::string &id)
     float* scanSingle = (float*) _TIFFmalloc(TIFFScanlineSize(fileIn_));
     ii* pixelIdx = new ii[width];
 
-    for (uint32 i = 0; i < m; ++i) {
+    for (uint32_t i = 0; i < m; ++i) {
         // Read image data allocating space for each line as we get it
         TIFFReadScanline(fileIn_,scanSingle,i);
 

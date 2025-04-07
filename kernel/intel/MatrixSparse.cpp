@@ -781,7 +781,7 @@ void MatrixSparse::matmul(bool transposeA, const MatrixSparse& a, const MatrixSp
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this;
-        oss;
+        //oss;
         info(oss.str(), this);
     }
 }
@@ -828,7 +828,7 @@ void MatrixSparse::matmulDense(bool transposeA, const MatrixSparse &a, const Mat
     {
         ostringstream oss;
         oss << getTimeStamp() << "       ... X" << *this << " (DENSE)";
-        oss;
+        //oss;
         info(oss.str(), this);
     }
 }

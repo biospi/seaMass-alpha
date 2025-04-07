@@ -114,14 +114,21 @@ int main(int argc, const char * const * argv)
 
         input.aT.resize(1);
         fileIn.readMatrixSparseCsr(input.aT[0], "At");
+        if (debugLevel % 10 >= 1)
+            cout << getTimeStamp() << " Loaded At" << input.aT[0] << endl;
 
         input.bT.resize(1);
         fileIn.readMatrixSparseCsr(input.bT[0], "Bt");
+        if (debugLevel % 10 >= 1)
+            cout << getTimeStamp() << " Loaded Bt" << input.bT[0] << endl;
 
         try
         {
             input.xT.resize(1);
             fileIn.readMatrixSparseCsr(input.xT[0], "Xt");
+
+	    if (debugLevel % 10 >= 1)
+                cout << getTimeStamp() << " Loaded Xt" << input.xT[0] << endl;
         }
         catch(runtime_error& e)
         {
@@ -132,6 +139,9 @@ int main(int argc, const char * const * argv)
         {
             input.gT.resize(1);
             fileIn.readMatrixSparseCsr(input.gT[0], "Gt");
+
+            if (debugLevel % 10 >= 1)
+                cout << getTimeStamp() << " Loaded Gt" << input.gT[0] << endl;
         }
         catch(runtime_error& e)
         {

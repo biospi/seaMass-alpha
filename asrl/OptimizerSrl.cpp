@@ -219,7 +219,7 @@ fp OptimizerSrl::step()
             if (!bases_[l]->isTransient())
             {
                 // need to look at groups better later
-                /*
+                
                 const vector<MatrixSparse>* g = 0;
                 for (ii p = l; !g; p = bases_[p]->getParentIndex())
                     g = bases_[p]->getColGroups(false);
@@ -227,11 +227,11 @@ fp OptimizerSrl::step()
                 const vector<MatrixSparse>* gT = 0;
                 for (ii p = l; !gT; p = bases_[p]->getParentIndex())
                     gT = bases_[p]->getColGroups(true);
-                */
 
                 for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
                 {
-                    /*if ((*g)[k].size()) {
+                    if ((*g)[k].size())
+		    {
                         // group and individual shrinkage
                         if (getDebugLevel() % 10 >= 3)
                         {
@@ -266,30 +266,31 @@ fp OptimizerSrl::step()
                         xEs_ys[l][k].mul(xEs_ys[l][k], y);
                     }
                     else
-                    }*/
+		    {                    
 
-                    // individual shrinkage only
-                    if (getDebugLevel() % 10 >= 3)
-                    {
-                        ostringstream oss;
-                        oss << getTimeStamp() << "     " << l << " OptimizerSrl::shrinkage";
-                        info(oss.str());
-                    }
+                    	// individual shrinkage only
+                    	if (getDebugLevel() % 10 >= 3)
+                    	{
+                        	ostringstream oss;
+                        	oss << getTimeStamp() << "     " << l << " OptimizerSrl::shrinkage";
+                        	info(oss.str());
+                    	}
 
-                    // y = x / (l1l2 + lambda)
-                    MatrixSparse y;
-                    y.divNonzeros(xs_[l][k], l1l2sPlusLambda_[l][k]);
+                    	// y = x / (l1l2 + lambda)
+                    	MatrixSparse y;
+                    	y.divNonzeros(xs_[l][k], l1l2sPlusLambda_[l][k]);
 
-                    // y = xE * x / (l1l2 + lambda)
-                    xEs_ys[l][k].mul(xEs_ys[l][k], y);
+                    	// y = xE * x / (l1l2 + lambda)
+                    	xEs_ys[l][k].mul(xEs_ys[l][k], y);
 
-                    if (getDebugLevel() % 10 >= 3)
-                    {
-                        ostringstream oss;
-                        oss << getTimeStamp() << "       " << xEs_ys[l][0];
-                        info(oss.str());
-                    }
-                 }
+                    	if (getDebugLevel() % 10 >= 3)
+                  	 {
+                        	ostringstream oss;
+                        	oss << getTimeStamp() << "       " << xEs_ys[l][0];
+                        	info(oss.str());
+                    	}
+		    }
+                }
             }          
         }
     }

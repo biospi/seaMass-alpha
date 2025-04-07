@@ -1,4 +1,4 @@
-find_package(Boost 1.54 COMPONENTS filesystem REQUIRED)
+find_package(Boost 1.70 COMPONENTS filesystem REQUIRED NO_MODULE)
 find_package(PugiXML REQUIRED)
 find_package(TIFF REQUIRED)
 

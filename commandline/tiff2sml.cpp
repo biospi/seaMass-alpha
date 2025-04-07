@@ -82,8 +82,8 @@ int main(int argc, const char* argv[])
         TIFF* imgTiff = TIFFOpen(filePathIn.c_str(), "r");
         if (!imgTiff) throw runtime_error("");
         
-        uint32 width, height;
-        int16 bps, spp;
+        uint32_t width, height;
+        int16_t bps, spp;
         if (TIFFGetField(imgTiff, TIFFTAG_IMAGEWIDTH, &width) != 1) throw runtime_error("");
         if (TIFFGetField(imgTiff, TIFFTAG_IMAGELENGTH, &height) != 1) throw runtime_error("");
         if (TIFFGetField(imgTiff, TIFFTAG_BITSPERSAMPLE, &bps) != 1) throw runtime_error("");
@@ -110,7 +110,7 @@ int main(int argc, const char* argv[])
         float* scanSingle = (float*) _TIFFmalloc(TIFFScanlineSize(imgTiff));
         ii* pixelIdx = new ii[width];
 
-        for (uint32 i = 0; i < m; ++i) {
+        for (uint32_t i = 0; i < m; ++i) {
             // Read image data allocating space for each line as we get it
             TIFFReadScanline(imgTiff,scanSingle,i);
 
