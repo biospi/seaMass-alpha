@@ -3,6 +3,7 @@ project(seamass C CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
+# note on MSVC this doesn't setup the Intel openmp dll needed for MKL so need to set this up manually
 find_package(OpenMP)
 if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -17,8 +18,9 @@ add_subdirectory(peak)
 add_subdirectory(image)
 add_subdirectory(commandline)
 
-export(TARGETS seamass_kernel seamass_io seamass_asrl seamass_core
-        FILE exports.cmake
-        )
+export(
+    TARGETS seamass_kernel seamass_io seamass_asrl seamass_core
+    FILE exports.cmake
+)
 
 

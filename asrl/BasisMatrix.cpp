@@ -26,7 +26,7 @@ using namespace std;
 using namespace kernel;
 
 
-BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, std::vector<MatrixSparse>* gT, bool transient) : Basis(bases, transient), aTs_(aT), gT_(gT)
+BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, std::vector<MatrixSparse>* gT, bool transient) : Basis(bases, transient, -1, gT), aTs_(aT)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -43,21 +43,11 @@ BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& 
     as_.resize(aTs_.size());
     for (ii i = 0; i < ii(as_.size()); i++)
         as_[i].transpose(aTs_[i]);
-
-    if (gT_)
-    {
-        g_ = new vector<MatrixSparse>(gT_->size());
-
-        for (ii i = 0; i < ii(g_->size()); i++)
-            (*g_)[i].transpose((*gT_)[i]);
-    }
 }
 
 
 BasisMatrix::~BasisMatrix()
 {
-    if (gT_)
-         delete g_;
 }
 
 
@@ -121,11 +111,3 @@ void BasisMatrix::analyze(vector<MatrixSparse> &xE, const vector<MatrixSparse> &
         cout << getTimeStamp() << "       " << xE[0] << endl;
 }
 
-
-const vector<MatrixSparse> * BasisMatrix::getColGroups(bool transpose) const
-{
-    if (transpose)
-        return gT_;
-    else
-        return g_;
-}

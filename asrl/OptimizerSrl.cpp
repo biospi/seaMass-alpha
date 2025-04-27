@@ -218,20 +218,20 @@ fp OptimizerSrl::step()
         {
             if (!bases_[l]->isTransient())
             {
-                // need to look at groups better later
-                
+                // find related ColGroups, which could be in this basis or a parent
                 const vector<MatrixSparse>* g = 0;
-                for (ii p = l; !g; p = bases_[p]->getParentIndex())
-                    g = bases_[p]->getColGroups(false);
-
                 const vector<MatrixSparse>* gT = 0;
-                for (ii p = l; !gT; p = bases_[p]->getParentIndex())
+                for (ii p = l; p != -1; p = bases_[p]->getParentIndex())
+                {
+                    g = bases_[p]->getColGroups(false);
                     gT = bases_[p]->getColGroups(true);
+                    if (g && g->size() > 0) break;
+                }
 
                 for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
                 {
-                    if ((*g)[k].size())
-		    {
+                    if (g && (*g)[k].size() > 0)
+		            {
                         // group and individual shrinkage
                         if (getDebugLevel() % 10 >= 3)
                         {
@@ -266,8 +266,7 @@ fp OptimizerSrl::step()
                         xEs_ys[l][k].mul(xEs_ys[l][k], y);
                     }
                     else
-		    {                    
-
+		            {                    
                     	// individual shrinkage only
                     	if (getDebugLevel() % 10 >= 3)
                     	{
@@ -284,12 +283,12 @@ fp OptimizerSrl::step()
                     	xEs_ys[l][k].mul(xEs_ys[l][k], y);
 
                     	if (getDebugLevel() % 10 >= 3)
-                  	 {
+                  	    {
                         	ostringstream oss;
                         	oss << getTimeStamp() << "       " << xEs_ys[l][0];
                         	info(oss.str());
                     	}
-		    }
+		            }
                 }
             }          
         }

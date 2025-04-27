@@ -138,6 +138,22 @@ target_link_libraries(smb2mzmlb LINK_PUBLIC
         ${Boost_LIBRARIES}
         )
 
-install(TARGETS mzmlb2smb seamass seamass-restore smb2mzmlb
-        RUNTIME DESTINATION bin
-        )
+install(
+    TARGETS 
+        asrl
+        generate_unknowns
+        msp2sml
+        mgf2sml
+        driams_raw2binned
+        driams_raw2smb
+        image2sml
+        tiff2sml
+        mzmlb2smb
+        seamass
+        seamass-restore
+        smb2mzmlb    
+    RUNTIME DESTINATION bin
+)
+
+include(InstallRequiredSystemLibraries)
+install(FILES ${OMP_DLL} TYPE BIN)

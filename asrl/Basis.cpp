@@ -26,21 +26,25 @@ using namespace std;
 using namespace kernel;
 
 
-Basis::Basis(vector<Basis*>& bases, bool transient, int parentIndex) : parentIndex_(parentIndex), transient_(transient)
+Basis::Basis(vector<Basis*>& bases, bool transient, int parentIndex, std::vector<MatrixSparse>* gT) : parentIndex_(parentIndex), transient_(transient), gT_(gT), g_(0)
 {
     index_ = (ii) bases.size();
     bases.push_back(this);
+
+    if (gT_)
+    {
+        g_ = new vector<MatrixSparse>(gT_->size());
+
+        for (ii i = 0; i < ii(g_->size()); i++)
+            (*g_)[i].transpose((*gT_)[i]);
+    }
 }
 
 
 Basis::~Basis()
 {
-}
-
-
-const vector<MatrixSparse> * Basis::getColGroups(bool transpose) const
-{
-    return 0;
+    if (gT_)
+        delete g_;
 }
 
 
@@ -77,4 +81,13 @@ int Basis::getParentIndex() const
 bool Basis::isTransient() const
 {
     return transient_;
+}
+
+
+const vector<MatrixSparse>* Basis::getColGroups(bool transpose) const
+{
+    if (transpose)
+        return gT_;
+    else
+        return g_;
 }

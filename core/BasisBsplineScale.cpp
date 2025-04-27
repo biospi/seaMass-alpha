@@ -132,7 +132,7 @@ BasisBsplineScale(vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridIn
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Gt = m x n matrix where m are the coefficients and n are the groups (monoisotope centroid mass).
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    if (dimension0 == 1 && group)
+    /*if (dimension0 == 1 && group)
     {
         a_.transpose(aT_);
 
@@ -166,17 +166,17 @@ BasisBsplineScale(vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridIn
             }
         }
 
-        /*for (ii nz = 0; nz < ii(vs.size()); nz++)
-        {
-            vs[nz] /= sqrt(fp(gSizes[js[nz]]));
-        }*/
+        //for (ii nz = 0; nz < ii(vs.size()); nz++)
+        //{
+        //    vs[nz] /= sqrt(fp(gSizes[js[nz]]));
+        //}
 
         gTs_.resize(1);
         gs_.resize(1);
 
         gTs_[0].importFromCoo(m, n, vs.size(), is.data(), js.data(), vs.data());
         gs_[0].transpose(gTs_[0]);
-    }
+    }*/
 }
 
 
@@ -281,17 +281,4 @@ void BasisBsplineScale::analyze(vector<MatrixSparse> &xE, const vector<MatrixSpa
     }
 }
 
-const vector<MatrixSparse> * BasisBsplineScale::getColGroups(bool transpose) const
-{
-    if (dimension0_ == 1)
-    {
-        if (transpose)
-            return &gTs_;
-        else
-            return &gs_;
-    }
-    else
-    {
-        return 0;
-    }
-}
+
