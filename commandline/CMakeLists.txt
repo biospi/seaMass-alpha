@@ -155,5 +155,7 @@ install(
     RUNTIME DESTINATION bin
 )
 
-include(InstallRequiredSystemLibraries)
-install(FILES ${OMP_DLL} TYPE BIN)
+IF(WIN32)
+	include(InstallRequiredSystemLibraries)
+	install(FILES ${OMP_DLL} TYPE BIN)
+ENDIF()

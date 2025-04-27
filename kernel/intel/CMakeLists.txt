@@ -5,8 +5,10 @@ set(MKL_LINK static)
 find_package(MKL CONFIG REQUIRED)
 message(STATUS "Imported oneMKL targets: ${MKL_IMPORTED_TARGETS}")
 
-# only way I've managed to get Intel openmp dll is from findMKL results
-set(OMP_DLL "${OMP_DLL_DIR}/${OMP_DLLNAME}" PARENT_SCOPE)
+if(WIN32)
+	# only way I've managed to get Intel openmp dll is from findMKL results
+	set(OMP_DLL "${OMP_DLL_DIR}/${OMP_DLLNAME}" PARENT_SCOPE)
+endif()
 
 find_package(IPP CONFIG REQUIRED)
 if(IPP_FOUND)

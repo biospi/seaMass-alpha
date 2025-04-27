@@ -8,12 +8,14 @@ mkdir $DIR/build/icx
 
 mkdir $DIR/build/icx/debug
 pushd $DIR/build/icx/debug
-cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=install $@ ../../..
+cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=../../../install/icx/debug $@ ../../..
+make -j $1
+make install
 popd
 
 mkdir $DIR/build/icx/release
 pushd $DIR/build/icx/release
-cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=install $@ ../../..
+cmake -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icpx -DCMAKE_CXX_FLAGS="-std=c++11" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=../../../install/icx/release $@ ../../..
 make -j $1
 make install
 popd
