@@ -43,7 +43,7 @@ int main(int argc, const char * const * argv)
         int scaleMz;
         int scaleSt;
         int lambdaExponent;
-        int lambdaGroupExponent;
+        //int lambdaGroupExponent;
         bool noTaperLambda;
         int toleranceExponent;
         double peakFwhm;
@@ -76,9 +76,9 @@ int main(int argc, const char * const * argv)
             ("lambda,l", po::value<int>(&lambdaExponent)->default_value(0),
              "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Needs to be same or less than group_lambda."
              "Use around 0.")
-            ("group_lambda,g", po::value<int>(&lambdaGroupExponent)->default_value(0),
-             "Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\". "
-             "Ignored if no groups are specified in the input. Use around 0.")
+            //("group_lambda,g", po::value<int>(&lambdaGroupExponent)->default_value(0),
+             //"Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\". "
+             //"Ignored if no groups are specified in the input. Use around 0.")
             ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
              "Use this to stop tapering of lambda to 0 before finishing.")
             ("charge_states,c", po::value<short>(&chargeStates)->default_value(0),
@@ -147,14 +147,14 @@ int main(int argc, const char * const * argv)
         string id;
         fp tolerance = pow(2.0, fp(toleranceExponent));
         fp lambda = pow(2.0, fp(lambdaExponent));
-        fp lambdaGroup = pow(2.0, fp(lambdaGroupExponent));
+        //fp lambdaGroup = pow(2.0, fp(lambdaGroupExponent));
 
         while (dataset->read(input, id))
         {
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamass(input, dbFilename, scale, lambda, lambdaGroup, !noTaperLambda, tolerance,
+            Seamass seamass(input, dbFilename, scale, lambda, lambda /*lambdaGroup*/, !noTaperLambda, tolerance,
                             peakFwhm, chargeStates);
 
             do

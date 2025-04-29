@@ -26,7 +26,7 @@ using namespace std;
 using namespace kernel;
 
 
-BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, std::vector<MatrixSparse>* gT, bool transient) : Basis(bases, transient, -1, gT), aTs_(aT)
+BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, MatrixSparse& gT, bool transient) : Basis(bases, transient, -1), aTs_(aT)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -43,6 +43,12 @@ BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& 
     as_.resize(aTs_.size());
     for (ii i = 0; i < ii(as_.size()); i++)
         as_[i].transpose(aTs_[i]);
+
+    if (gT.size() > 0)
+    {
+        gT_.copy(gT);
+        g_.transpose(gT);
+    }
 }
 
 

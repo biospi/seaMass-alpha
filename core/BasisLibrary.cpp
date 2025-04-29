@@ -33,7 +33,7 @@ using namespace kernel;
 
 BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo,
                            const std::string& dbFilename, bool transient) :
-    BasisGrid(bases, parentGridInfo, transient), gTs_(1), gs_(1)
+    BasisGrid(bases, parentGridInfo, transient)
 {
     ostringstream oss3;
     oss3 << "Library filename=" << dbFilename;
@@ -50,18 +50,18 @@ BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo
         info(oss.str());
     }
 
+    FileNetcdf fileIn(dbFilename);
     {
-        FileNetcdf fileIn(dbFilename);
         ostringstream oss2;
         oss2 << "m" << setfill('0') << setw(2) << ii(parentGridInfo.colScale[0]);
-
+ 
         MatrixSparse db;
         fileIn.readMatrixSparseCsr(db, oss2.str());
 
         //  read in offset
         ii db_offset = fileIn.readAttribute<ii>("offset", "", fileIn.openGroup(oss2.str()));
 
-        // extract relevant submatrix (not efficient atm and ought to be moved to SparseMatrix)
+        // extract relevant At submatrix (not efficient atm and ought to be moved to SparseMatrix)
         vector<ii> is1;
         vector<ii> js1;
         vector<fp> vs1;
@@ -99,12 +99,74 @@ BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo
         aT_.importFromCoo(m, n, is1.size(), is1.data(), js1.data(), vs1.data());
     }
     a_.transpose(aT_);
- 
+
     if (getDebugLevel() % 10 >= 2)
     {
         ostringstream oss3;
         oss3 << getTimeStamp() << "     " << gridInfo();
         info(oss3.str());
+    }
+
+    // extract relevant Gt matrix
+    try
+    {
+        MatrixSparse t;
+        {
+            MatrixSparse dbg;
+            fileIn.readMatrixSparseCsr(dbg, "Gt");
+
+            // extract relevant rows
+            vector<ii> is1;
+            vector<ii> js1;
+            vector<fp> vs1;
+            for (ii i = 0; i < aT_.m(); ++i)
+            {
+                for (ii k = dbg.ijs()[ids_[i]]; k < dbg.ijs()[ids_[i] + 1]; ++k)
+                {
+                    is1.push_back(i);
+                    js1.push_back(dbg.js()[k]);
+                    vs1.push_back(dbg.vs()[k]);
+                }
+            }
+
+            // transpose
+            t.importFromCoo(dbg.n(), aT_.m(), is1.size(), js1.data(), is1.data(), vs1.data());
+        }
+
+        // keep only non-zero rows
+        vector<ii> is1;
+        vector<ii> js1;
+        vector<fp> vs1;
+        ii i = -1;
+        for (ii i0 = 0; i0 < t.m(); ++i0)
+        {
+            if (t.ijs()[i0] < t.ijs()[i0 + 1])
+            {
+                i++;
+                for (ii k = t.ijs()[i0]; k < t.ijs()[i0 + 1]; ++k)
+                {
+                    is1.push_back(i);
+                    js1.push_back(t.js()[k]);
+                    vs1.push_back(t.vs()[k]);                  
+                }
+            }
+        }
+
+        if (i >= 0)
+        {
+            g_.importFromCoo(i+1, t.n(), is1.size(), is1.data(), js1.data(), vs1.data());
+            gT_.transpose(g_);
+
+            if (getDebugLevel() % 10 >= 2)
+            {
+                ostringstream oss3;
+                oss3 << getTimeStamp() << "     G" << g_;
+                info(oss3.str());
+            }
+        }
+    }
+    catch (runtime_error& e)
+    {
     }
 }
 

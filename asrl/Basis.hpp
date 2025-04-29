@@ -32,26 +32,26 @@
 class Basis : public Subject
 {
 public:
-    Basis(std::vector<Basis*>& bases, bool transient, int parentIndex = -1, std::vector<MatrixSparse>* gT = 0);
+    Basis(std::vector<Basis*>& bases, bool transient, int parentIndex = -1);
     virtual ~Basis();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate, bool prune) = 0;
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA) = 0;
 
     virtual void synthesizeGroups(std::vector<MatrixSparse> &g, const std::vector<MatrixSparse> &x, bool accumulate, bool prune);
-    virtual const std::vector<MatrixSparse> * getColGroups(bool transpose) const;
+    virtual const MatrixSparse& getColGroups(bool transpose = false) const;
 
     int getIndex() const;
     int getParentIndex() const;
     bool isTransient() const;
 
-private:
+protected:
     int index_;       // index of this basis in the serialised tree
     int parentIndex_; // parent node
     bool transient_;  // if transient, coefficients not part of fitting
 
-    std::vector<MatrixSparse>* gT_;
-    std::vector<MatrixSparse>* g_;
+    MatrixSparse gT_; // groups
+    MatrixSparse g_;
 };
 
 

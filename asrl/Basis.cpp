@@ -26,38 +26,28 @@ using namespace std;
 using namespace kernel;
 
 
-Basis::Basis(vector<Basis*>& bases, bool transient, int parentIndex, std::vector<MatrixSparse>* gT) : parentIndex_(parentIndex), transient_(transient), gT_(gT), g_(0)
+Basis::Basis(vector<Basis*>& bases, bool transient, int parentIndex) : parentIndex_(parentIndex), transient_(transient)
 {
     index_ = (ii) bases.size();
     bases.push_back(this);
-
-    if (gT_)
-    {
-        g_ = new vector<MatrixSparse>(gT_->size());
-
-        for (ii i = 0; i < ii(g_->size()); i++)
-            (*g_)[i].transpose((*gT_)[i]);
-    }
 }
 
 
 Basis::~Basis()
 {
-    if (gT_)
-        delete g_;
 }
 
 
 void Basis::synthesizeGroups(std::vector<MatrixSparse> &g, const vector<MatrixSparse> &x, bool accumulate, bool prune)
 {
-    const std::vector<MatrixSparse>* gT = getColGroups(true);
-    if (gT)
+    const MatrixSparse& gT = getColGroups(true);
+    if (gT.size() > 0)
     {
         if (!g.size())
             g.resize(x.size());
 
         for (ii k = 0; k < ii(g.size()); k++)
-            g[k].matmul(false, x[k], (*gT)[k], accumulate);
+            g[k].matmul(false, x[k], gT, accumulate);
     }
     else
     {
@@ -84,7 +74,7 @@ bool Basis::isTransient() const
 }
 
 
-const vector<MatrixSparse>* Basis::getColGroups(bool transpose) const
+const MatrixSparse& Basis::getColGroups(bool transpose) const
 {
     if (transpose)
         return gT_;

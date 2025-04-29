@@ -36,10 +36,6 @@ public:
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate, bool prune);
     virtual void analyze(std::vector<MatrixSparse> &xE, const std::vector<MatrixSparse> &fE, bool sqrA = false);
-
-private:
-    std::vector<MatrixSparse> gTs_;
-    std::vector<MatrixSparse> gs_;
 };
 
 

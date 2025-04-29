@@ -127,7 +127,7 @@ std::string& BasisGrid::type()
 ostream&
 operator<<(ostream& os, const BasisGrid::GridInfo& gridInfo)
 {
-    os << "A[" << gridInfo.m() << ", " << gridInfo.n() << "] extent=[[";
+    os << "A[" << gridInfo.m() << "," << gridInfo.n() << "] extent=[[";
     for (short i = 0; i < gridInfo.rowDimensions(); i++)
     {
         os << gridInfo.rowExtent[i];

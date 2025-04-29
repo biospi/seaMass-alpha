@@ -137,15 +137,13 @@ int main(int argc, const char * const * argv)
 
         try
         {
-            input.gT.resize(1);
-            fileIn.readMatrixSparseCsr(input.gT[0], "Gt");
+            fileIn.readMatrixSparseCsr(input.gT, "Gt");
 
             if (debugLevel % 10 >= 1)
-                cout << getTimeStamp() << " Loaded Gt" << input.gT[0] << endl;
+                cout << getTimeStamp() << " Loaded Gt" << input.gT << endl;
         }
         catch(runtime_error& e)
         {
-            input.gT.resize(0);
         }
 
         double tolerance = pow(2.0, (double)toleranceExponent);

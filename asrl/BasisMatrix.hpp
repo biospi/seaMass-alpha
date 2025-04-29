@@ -30,7 +30,7 @@
 class BasisMatrix : public Basis
 {
 public:
-    BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, std::vector<MatrixSparse>* gT, bool transient);
+    BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, MatrixSparse& gT, bool transient);
     virtual ~BasisMatrix();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate, bool prune);

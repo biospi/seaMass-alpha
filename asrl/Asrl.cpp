@@ -48,7 +48,7 @@ Asrl::Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tole
         info(oss.str());
     }
 
-    new BasisMatrix(bases_, input.aT, input.gT.size() > 0 ? &input.gT : 0, false);
+    new BasisMatrix(bases_, input.aT, input.gT, false);
 
     innerOptimizer_ = new OptimizerSrl(bases_, bT_);
     optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);

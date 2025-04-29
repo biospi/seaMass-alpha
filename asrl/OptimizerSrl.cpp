@@ -218,21 +218,17 @@ fp OptimizerSrl::step()
         {
             if (!bases_[l]->isTransient())
             {
-                // find related ColGroups, which could be in this basis or a parent
-                const vector<MatrixSparse>* g = 0;
-                const vector<MatrixSparse>* gT = 0;
-                for (ii p = l; p != -1; p = bases_[p]->getParentIndex())
+                // find nearest ancestor ColGroups (if exists)      
+                ii p = l;
+                for (; p != -1; p = bases_[p]->getParentIndex())
                 {
-                    g = bases_[p]->getColGroups(false);
-                    gT = bases_[p]->getColGroups(true);
-                    if (g && g->size() > 0) break;
+                    if (bases_[p]->getColGroups(false).size() > 0) break;
                 }
 
                 for (ii k = 0; k < ii(xEs_ys[l].size()); k++)
                 {
-                    if (g && (*g)[k].size() > 0)
+                    if (p >= 0)
 		            {
-                        // group and individual shrinkage
                         if (getDebugLevel() % 10 >= 3)
                         {
                             ostringstream oss;
@@ -240,12 +236,55 @@ fp OptimizerSrl::step()
                             info(oss.str());
                         }
 
+                        // group shrinkage only
+
                         // y = groupNorm(x)
                         MatrixSparse t;
                         t.sqr(xs_[l][k]);
                         MatrixSparse y;
-                        y.matmul(false, t, (*gT)[k], false);
-                        t.matmul(false, y, (*g)[k], false);
+                        y.matmul(false, t, bases_[p]->getColGroups(true), false);
+                        t.matmul(false, y, bases_[p]->getColGroups(false), false);
+                        y.copyAatB(t, xs_[l][k]);
+                        t.clear();
+                        y.sqrt(y);
+
+                        // y = x * groupNorm(x)^-1)
+                        y.divNonzeros(xs_[l][k], y);
+
+                        // y = lambda * x * groupNorm(x)^-1
+                        y.mul(lambda_);
+
+                        // y = l1l2 + lambda + lambda * x * groupNorm(x)^-1
+                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
+
+                        // y = l1l2 + lambda * x * groupNorm(x)^-1 (QUICK HACK!!!)
+                        y.addNonzeros(-lambda_);
+
+                        // y = x / (l1l2 + lambda * x * groupNorm(x)^-1)
+                        y.divNonzeros(xs_[l][k], y);
+
+                        // y = xE * x / (l1l2 + lambda * x * groupNorm(x)^-1)
+                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
+
+                        // y = l1l2 + lambda * x * groupNorm(x)^-1
+                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
+
+                        // y = x / (l1l2 + lambda * x * groupNorm(x)^-1)
+                        y.divNonzeros(xs_[l][k], y);
+
+                        // y = xE * x / (l1l2 + lambda * x * groupNorm(x)^-1)
+                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
+
+                        
+                        /* 29/4/25 - NOT SURE THIS IS A GOOD IDEA doing both individual and group sparsity on some bases only)
+                        // group and individual shrinkage
+
+                        // y = groupNorm(x)
+                        MatrixSparse t;
+                        t.sqr(xs_[l][k]);
+                        MatrixSparse y;
+                        y.matmul(false, t, gT, false);
+                        t.matmul(false, y, g, false);
                         y.copyAatB(t, xs_[l][k]);
                         t.clear();
                         y.sqrt(y);
@@ -264,6 +303,15 @@ fp OptimizerSrl::step()
 
                         // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
                         xEs_ys[l][k].mul(xEs_ys[l][k], y);
+
+                        // y = l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1
+                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
+
+                        // y = x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
+                        y.divNonzeros(xs_[l][k], y);
+
+                        // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
+                        xEs_ys[l][k].mul(xEs_ys[l][k], y);*/
                     }
                     else
 		            {                    
