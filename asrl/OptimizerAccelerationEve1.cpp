@@ -52,20 +52,15 @@ OptimizerAccelerationEve1::~OptimizerAccelerationEve1()
 }
 
 
-void OptimizerAccelerationEve1::setLambda(fp lambda, fp lambdaGroup)
+void OptimizerAccelerationEve1::setLambda(fp lambda)
 {
-    optimizer_->setLambda(lambda, lambdaGroup);
+    optimizer_->setLambda(lambda);
 }
 
 
 fp OptimizerAccelerationEve1::getLambda() const
 {
     return optimizer_->getLambda();
-}
-
-fp OptimizerAccelerationEve1::getLambdaGroup() const
-{
-    return optimizer_->getLambdaGroup();
 }
 
 

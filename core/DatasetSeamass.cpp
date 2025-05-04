@@ -153,7 +153,6 @@ bool DatasetSeamass::read(Seamass::Input &input, Seamass::Output &output, std::s
 
     fileIn_->readAttribute(output.scale, "scale", "", groupId);
     output.lambda = fileIn_->readAttribute<double>("lambda", "", groupId);
-    output.lambdaGroup = fileIn_->readAttribute<double>("lambdaGroup", "", groupId);
     output.tolerance = fileIn_->readAttribute<double>("tolerance", "", groupId);
     output.peakFwhm = fileIn_->readAttribute<double>("peakFwhm", "", groupId);
     output.chargeStates = fileIn_->readAttribute<short>("chargeStates", "", groupId);
@@ -223,7 +222,6 @@ void DatasetSeamass::write(const Seamass::Input &input, const Seamass::Output &o
 
     fileOut_->writeAttribute(output.scale, "scale", "", groupId);
     fileOut_->writeAttribute(output.lambda, "lambda", "", groupId);
-    fileOut_->writeAttribute(output.lambdaGroup, "lambdaGroup", "", groupId);
     fileOut_->writeAttribute(output.tolerance, "tolerance", "", groupId);
     fileOut_->writeAttribute(output.peakFwhm, "peakFwhm", "", groupId);
     fileOut_->writeAttribute(output.chargeStates, "chargeStates", "", groupId);

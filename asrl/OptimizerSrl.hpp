@@ -34,7 +34,7 @@ public:
                  bool seed = true, fp pruneThreshold = fp(0.00001)); // need pruneThreshold otherwise get underflow problems
     virtual ~OptimizerSrl();
 
-    virtual void setLambda(fp lambda, fp lambdaGroup = fp(0.0));
+    virtual void setLambda(fp lambda);
     virtual fp getLambda() const;
     virtual fp getLambdaGroup() const;
 
@@ -64,7 +64,7 @@ private:
 
     std::vector< std::vector<MatrixSparse> > xs_;
     std::vector< std::vector<MatrixSparse> > l2s_;
-    std::vector< std::vector<MatrixSparse> > l1l2sPlusLambda_;
+    std::vector< std::vector<MatrixSparse> > l1l2s_;
     
     double synthesisDuration_;
     double errorDuration_;

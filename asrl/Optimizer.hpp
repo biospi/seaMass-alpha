@@ -33,9 +33,8 @@ public:
     Optimizer();
     virtual ~Optimizer();
     
-    virtual void setLambda(fp lambda, fp lambdaGroup = fp(0.0)) = 0;
+    virtual void setLambda(fp lambda) = 0;
     virtual fp getLambda() const = 0;
-    virtual fp getLambdaGroup() const = 0;
 
     virtual const std::vector<Basis*>& getBases() const = 0;
     virtual ii getIteration() const = 0;

@@ -30,7 +30,7 @@ using namespace std;
 using namespace kernel;
 
 
-OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<MatrixSparse>& b, bool seed, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), lambdaGroup_(0.0), iteration_(0), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
+OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<MatrixSparse>& b, bool seed, fp pruneThreshold) : bases_(bases), b_(b), pruneThreshold_(pruneThreshold), lambda_(0.0), iteration_(0), synthesisDuration_(0.0), errorDuration_(0.0), analysisDuration_(0.0), shrinkageDuration_(0.0), updateDuration_(0.0)
 {
     if (getDebugLevel() % 10 >= 1)
         cout << getTimeStamp() << "  Initialising Sparse Richardon Lucy optimizer ..." << endl;
@@ -50,7 +50,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
             if (getDebugLevel() % 10 >= 2)
                 cout << getTimeStamp() << "   Calculating L1 norms of L2 norms ..." << endl;
 
-            analyze(l1l2sPlusLambda_, t, false);
+            analyze(l1l2s_, t, false);
         }
 
         {   // initialise starting estimate of 'x' from analysis of 'b'
@@ -85,7 +85,7 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                     {
                         // remove unneeded l1l2sPlusLambda
                         MatrixSparse l1l2PlusLambda;
-                        l1l2PlusLambda.copyAatB(l1l2sPlusLambda_[l][k], xs_[l][k]);
+                        l1l2PlusLambda.copyAatB(l1l2s_[l][k], xs_[l][k]);
 
                         // normalise and prune xs
                         MatrixSparse x;
@@ -101,8 +101,8 @@ OptimizerSrl::OptimizerSrl(const vector<Basis*>& bases, const std::vector<Matrix
                         l2s_[l][k].swap(t);
 
                         // remove unneeded l1l2s
-                        t.copyAatB(l1l2sPlusLambda_[l][k], xs_[l][k]);
-                        l1l2sPlusLambda_[l][k].swap(t);
+                        t.copyAatB(l1l2s_[l][k], xs_[l][k]);
+                        l1l2s_[l][k].swap(t);
                     }
                 }
             }
@@ -116,24 +116,12 @@ OptimizerSrl::~OptimizerSrl()
 }
 
 
-void OptimizerSrl::setLambda(fp lambda, fp lambdaGroup)
+void OptimizerSrl::setLambda(fp lambda)
 {
     if (getDebugLevel() % 10 >= 3)
         cout << getTimeStamp() << "   lambda=" << lambda << endl;
 
-    for (ii l = 0; l < ii(bases_.size()); l++)
-    {
-        if (!bases_[l]->isTransient())
-        {
-            fp lambdaDelta = lambda - lambda_;
-
-            for (ii k = 0; k < ii(l1l2sPlusLambda_[l].size()); k++)
-                l1l2sPlusLambda_[l][k].addNonzeros(lambdaDelta);
-        }
-    }
-
     lambda_ = lambda;
-    lambdaGroup_ = lambdaGroup;
     iteration_ = 0;
 }
 
@@ -236,82 +224,34 @@ fp OptimizerSrl::step()
                             info(oss.str());
                         }
 
+
                         // group shrinkage only
 
-                        // y = groupNorm(x)
-                        MatrixSparse t;
-                        t.sqr(xs_[l][k]);
+                        // y = groupL2Norm(x)
                         MatrixSparse y;
-                        y.matmul(false, t, bases_[p]->getColGroups(true), false);
-                        t.matmul(false, y, bases_[p]->getColGroups(false), false);
-                        y.copyAatB(t, xs_[l][k]);
-                        t.clear();
+                        {
+                            MatrixSparse t;
+                            t.sqr(xs_[l][k]);
+                            y.matmul(false, t, bases_[p]->getColGroups(true), false);
+                            t.matmul(false, y, bases_[p]->getColGroups(false), false);
+                            y.copyAatB(t, xs_[l][k]);
+                        }
                         y.sqrt(y);
 
-                        // y = x * groupNorm(x)^-1)
+                        // y = x * groupL2Norm(x)^-1)
                         y.divNonzeros(xs_[l][k], y);
 
                         // y = lambda * x * groupNorm(x)^-1
                         y.mul(lambda_);
 
-                        // y = l1l2 + lambda + lambda * x * groupNorm(x)^-1
-                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
-
-                        // y = l1l2 + lambda * x * groupNorm(x)^-1 (QUICK HACK!!!)
-                        y.addNonzeros(-lambda_);
-
-                        // y = x / (l1l2 + lambda * x * groupNorm(x)^-1)
-                        y.divNonzeros(xs_[l][k], y);
-
-                        // y = xE * x / (l1l2 + lambda * x * groupNorm(x)^-1)
-                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
-
                         // y = l1l2 + lambda * x * groupNorm(x)^-1
-                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
+                        y.addNonzeros(y, l1l2s_[l][k]);
 
                         // y = x / (l1l2 + lambda * x * groupNorm(x)^-1)
                         y.divNonzeros(xs_[l][k], y);
 
                         // y = xE * x / (l1l2 + lambda * x * groupNorm(x)^-1)
-                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
-
-                        
-                        /* 29/4/25 - NOT SURE THIS IS A GOOD IDEA doing both individual and group sparsity on some bases only)
-                        // group and individual shrinkage
-
-                        // y = groupNorm(x)
-                        MatrixSparse t;
-                        t.sqr(xs_[l][k]);
-                        MatrixSparse y;
-                        y.matmul(false, t, gT, false);
-                        t.matmul(false, y, g, false);
-                        y.copyAatB(t, xs_[l][k]);
-                        t.clear();
-                        y.sqrt(y);
-
-                        // y = x * groupNorm(x)^-1)
-                        y.divNonzeros(xs_[l][k], y);
-
-                        // y = lambdaGroup * x * groupNorm(x)^-1
-                        y.mul(lambdaGroup_);
-
-                        // y = l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1
-                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
-
-                        // y = x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        y.divNonzeros(xs_[l][k], y);
-
-                        // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
-
-                        // y = l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1
-                        y.addNonzeros(y, l1l2sPlusLambda_[l][k]);
-
-                        // y = x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        y.divNonzeros(xs_[l][k], y);
-
-                        // y = xE * x / (l1l2 + lambda + lambdaGroup * x * groupNorm(x)^-1)
-                        xEs_ys[l][k].mul(xEs_ys[l][k], y);*/
+                        xEs_ys[l][k].mul(xEs_ys[l][k], y);                       
                     }
                     else
 		            {                    
@@ -323,12 +263,16 @@ fp OptimizerSrl::step()
                         	info(oss.str());
                     	}
 
-                    	// y = x / (l1l2 + lambda)
-                    	MatrixSparse y;
-                    	y.divNonzeros(xs_[l][k], l1l2sPlusLambda_[l][k]);
+                        // y = l1l2 + lambda
+                        MatrixSparse y;
+                        y.copy(l1l2s_[l][k]);
+                        y.addNonzeros(lambda_);
 
-                    	// y = xE * x / (l1l2 + lambda)
-                    	xEs_ys[l][k].mul(xEs_ys[l][k], y);
+                        // y = x / (l1l2 + lambda)
+                        y.divNonzeros(xs_[l][k], y);
+
+                        // y = xE * x / (l1l2 + lambda)
+                        xEs_ys[l][k].mul(xEs_ys[l][k], y);
 
                     	if (getDebugLevel() % 10 >= 3)
                   	    {
@@ -408,8 +352,8 @@ fp OptimizerSrl::step()
 
                     // prune l1l2s
                     MatrixSparse t;
-                    t.copyAatB(l1l2sPlusLambda_[l][k], xs_[l][k]);
-                    l1l2sPlusLambda_[l][k].swap(t);
+                    t.copyAatB(l1l2s_[l][k], xs_[l][k]);
+                    l1l2s_[l][k].swap(t);
 
                     // prune l2s
                     t.copyAatB(l2s_[l][k], xs_[l][k]);
@@ -649,5 +593,5 @@ std::vector< std::vector<MatrixSparse> >& OptimizerSrl::l2s()
 
 std::vector< std::vector<MatrixSparse> >& OptimizerSrl::l1l2s()
 {
-    return l1l2sPlusLambda_;
+    return l1l2s_;
 }

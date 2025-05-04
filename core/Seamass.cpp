@@ -47,20 +47,18 @@ void Seamass::notice()
 
 
 Seamass::Seamass(Input& input, const string& dbFilename, const std::vector<short>& scale,
-                 fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
-        innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), lambda_(lambda),
-        lambdaGroup_(lambdaGroup), lambdaStart_(lambda), lambdaGroupStart_(lambdaGroup),
+                 fp lambda, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
+        innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), lambda_(lambda), lambdaStart_(lambda),
         taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
         iteration_(0), gridInfo_(1, 1), polarity_(input.polarity)
 {
     init(input, true);
-    optimizer_->setLambda(lambda_, lambdaGroup_);
+    optimizer_->setLambda(lambda_);
 }
 
 
 Seamass::Seamass(Input& input, const Output& output) :
-        innerOptimizer_(0), dbFilename_(output.dbFilename), scale_(output.scale), lambda_(output.lambda),
-        lambdaGroup_(output.lambdaGroup), lambdaStart_(output.lambda), lambdaGroupStart_(output.lambdaGroup),
+        innerOptimizer_(0), dbFilename_(output.dbFilename), scale_(output.scale), lambda_(output.lambda), lambdaStart_(output.lambda),
         tolerance_(output.tolerance), peakFwhm_(output.peakFwhm), chargeStates_(output.chargeStates), iteration_(0)
 {
     init(input, false);
@@ -96,7 +94,7 @@ Seamass::Seamass(Input& input, const Output& output) :
         }
     }
 
-    optimizer_->setLambda(lambda_, lambdaGroup_);
+    optimizer_->setLambda(lambda_);
 }
 
 
@@ -410,7 +408,7 @@ bool Seamass::step()
         {
             if (getDebugLevel() % 10 == 0) cout << "o" << flush;
             lambda_ *= (lambda_ > 0.0625 ? 0.5 : 0.0);
-            optimizer_->setLambda(lambda_, lambdaGroup_);
+            optimizer_->setLambda(lambda_);
         }
     }
     else
@@ -449,7 +447,6 @@ void Seamass::getOutput(Output& output, bool synthesize, std::vector<bool> mask)
 
     output.scale = scale_;
     output.lambda = lambdaStart_;
-    output.lambdaGroup = lambdaGroupStart_;
     output.tolerance = tolerance_;
     output.peakFwhm = peakFwhm_;
     output.chargeStates = chargeStates_;

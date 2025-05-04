@@ -46,7 +46,6 @@ int main(int argc, const char * const * argv)
 
         string filePath;
         int lambdaExponent;
-        int lambdaGroupExponent;
         int toleranceExponent;
         int debugLevel;
         bool noTaperLambda;
@@ -58,9 +57,6 @@ int main(int argc, const char * const * argv)
                  "HDF5 or NetCDF4 input file in SAI format.")
                 ("lambda,l", po::value<int>(&lambdaExponent)->default_value(0),
                  "Amount of individual lambda given as \"L1_lambda = 2^lambda\". Use around 0.")
-                ("group_lambda,g", po::value<int>(&lambdaGroupExponent)->default_value(0),
-                 "Amount of group lambda given as \"L2_group_lambda = 2^lambda_group\". "
-                 "Ignored if no groups are specified in the input. Use around 0.")
                 ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
                  "Use this to stop tapering of lambda to 0 before finishing.")
                 ("tol,t", po::value<int>(&toleranceExponent)->default_value(-15),
@@ -148,12 +144,11 @@ int main(int argc, const char * const * argv)
 
         double tolerance = pow(2.0, (double)toleranceExponent);
         double lambda = pow(2.0, (double)lambdaExponent);
-        double lambdaGroup = input.gT.size() > 0 ? lambdaGroup = pow(2.0, (double)lambdaGroupExponent) : 0.0;
 
         string fileStemOut = boost::filesystem::path(filePath).stem().string();
 
         // optimise!
-        Asrl asrl(input, lambda, lambdaGroup, !noTaperLambda, tolerance);
+        Asrl asrl(input, lambda, !noTaperLambda, tolerance);
         do
         {
             if (debugLevel >= 10)

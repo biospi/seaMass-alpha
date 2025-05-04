@@ -44,7 +44,9 @@ BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo
         ostringstream oss;
         oss << getTimeStamp() << "   " << getIndex() << " " << oss3.str() << " parent = " << getParentIndex() << " ...";
         info(oss.str());
-    } else if (getDebugLevel() % 10 == 1) {
+    }
+    else if (getDebugLevel() % 10 == 1)
+    {
         ostringstream oss;
         oss << getTimeStamp() << "   loading " << dbFilename << " ...";
         info(oss.str());

@@ -50,7 +50,7 @@ public:
         std::vector<MatrixSparse> xTgT; // transpose of Gx
     };
 
-    Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance);
+    Asrl(Input &input, fp lambda, bool taperShrinkage, fp tolerance);
     virtual ~Asrl();
 
     bool step();
@@ -66,8 +66,6 @@ private:
     Optimizer* optimizer_;
 
     fp lambda_;
-    fp lambdaGroup_;
-    fp lambdaGroupStart_;
     bool taperShrinkage_;
     fp tolerance_;
     int iteration_;

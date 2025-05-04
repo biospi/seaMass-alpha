@@ -39,7 +39,7 @@ void Asrl::notice()
 }
 
 
-Asrl::Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tolerance) : bT_(input.bT), lambda_(lambda), lambdaGroup_(lambdaGroup), lambdaGroupStart_(lambdaGroup), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
+Asrl::Asrl(Input &input, fp lambda, bool taperShrinkage, fp tolerance) : bT_(input.bT), lambda_(lambda), taperShrinkage_(taperShrinkage), tolerance_(tolerance), iteration_(0)
 {
     if (getDebugLevel() % 10 >= 1)
     {
@@ -52,7 +52,7 @@ Asrl::Asrl(Input &input, fp lambda, fp lambdaGroup, bool taperShrinkage, fp tole
 
     innerOptimizer_ = new OptimizerSrl(bases_, bT_);
     optimizer_ = new OptimizerAccelerationEve1(innerOptimizer_);
-    optimizer_->setLambda(fp(lambda_), fp(lambdaGroup_));
+    optimizer_->setLambda(fp(lambda_));
 }
 
 
@@ -130,15 +130,13 @@ bool Asrl::step()
             if (getDebugLevel() % 10 == 0) cout << "o" << flush;
 
             lambda_ *= 0.5;
-            lambdaGroup_ *= 0.5;
 
-            if (lambda_ < 0.0625 && lambdaGroup_ < 0.0625)
+            if (lambda_ < 0.0625)
             {
                 lambda_ = 0.0;
-                lambdaGroup_ = 0.0;
             }
 
-            optimizer_->setLambda(fp(lambda_), fp(lambdaGroup_));
+            optimizer_->setLambda(fp(lambda_));
         }
     }
     else
@@ -183,6 +181,5 @@ void Asrl::getOutput(Output& output) const
     for (ii i = 0; i < ii(output.xTaT.size()); i++)
         output.xTaT[i].copy(f[i]);
 
-    if (lambdaGroupStart_ > 0.0)
-        bases_[0]->synthesizeGroups(output.xTgT, optimizer_->xs()[0], false, true);
+    //bases_[0]->synthesizeGroups(output.xTgT, optimizer_->xs()[0], false, true);
 }
