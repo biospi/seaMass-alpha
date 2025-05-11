@@ -54,7 +54,7 @@ public:
         li size() const;        // number of coefficients across all grids
     };
 
-    BasisGrid(std::vector<Basis*>& bases, const GridInfo& parentGridInfo, bool transient);
+    BasisGrid(std::vector<Basis*>& bases, const GridInfo& parentGridInfo, bool transient, fp lambdaScale = fp(1.0));
     virtual ~BasisGrid();
 
     const GridInfo& getGridInfo() const;

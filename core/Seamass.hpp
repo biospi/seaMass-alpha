@@ -51,8 +51,11 @@ public:
     {
         std::vector<short> scale; // scale of finest basis functions, vector of size dimensions (i.e. 1 or 2)
         double lambda;
+        double lambdaScale;
         double tolerance;
         double peakFwhm;
+        bool noUnknowns;
+        bool noTaperLambda;
         std::string dbFilename;
         short chargeStates;
 
@@ -77,7 +80,7 @@ public:
     };
 
     Seamass(Input& input, const std::string& dbFilename, const std::vector<short>& scale,
-            fp lambda, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates);
+            fp lambda, fp lambdaScale, bool noTaperLambda, bool noUnknowns, double peakFwhm, short chargeStates, fp tolerance);
     Seamass(Input& input, const Output& output);
     virtual ~Seamass();
 
@@ -116,9 +119,9 @@ private:
     const std::string& dbFilename_;
     fp lambda_;
     fp lambdaStart_;
-    fp lambdaGroup_;
-    fp lambdaGroupStart_;
-    bool taperShrinkage_;
+    fp lambdaScale_;
+    bool noTaperLambda_;
+    bool noUnknowns_;
     fp tolerance_;
     int iteration_;
     double peakFwhm_;

@@ -31,7 +31,7 @@ class BasisLibrary : public BasisGrid
 {
 public:
     BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo,
-        const std::string& dbFilename, bool transient);
+        const std::string& dbFilename, bool transient, fp lambdaScale = fp(1.0));
     virtual ~BasisLibrary();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate, bool prune);

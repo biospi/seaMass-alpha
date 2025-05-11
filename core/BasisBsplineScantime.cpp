@@ -35,11 +35,11 @@ BasisBsplineScantime::BasisBsplineScantime(std::vector<Basis*>& bases, const Bas
                                            const std::vector<double>& startTimes,
                                            const std::vector<double>& finishTimes,
                                            const std::vector<fp>& exposures,
-                                           short scale, bool transient) :
-    BasisGrid(bases, parentGridInfo, transient)
+                                           short scale, bool transient, fp lambdaScale) :
+    BasisGrid(bases, parentGridInfo, transient, lambdaScale)
 {
     ostringstream oss2;
-    oss2 << "BsplineScantime";
+    oss2 << "BsplineScantime lambdaScale = " << getLambdaScale();
     if (isTransient()) oss2 << " (transient)";
     type() = oss2.str();
 

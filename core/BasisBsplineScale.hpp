@@ -31,7 +31,7 @@ class BasisBsplineScale : public BasisGrid
 { 
 public:
     BasisBsplineScale(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, short dimension0, short dimension1, bool group,
-                      bool transient);
+                      bool transient, fp lambdaScale = fp(1.0));
     virtual ~BasisBsplineScale();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate, bool prune);

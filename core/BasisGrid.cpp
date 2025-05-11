@@ -28,8 +28,8 @@
 using namespace std;
 
 
-BasisGrid::BasisGrid(std::vector<Basis*>& bases, const GridInfo& parentGridInfo, bool transient)
-    : Basis(bases, transient, parentGridInfo.index), gridInfo_(parentGridInfo)
+BasisGrid::BasisGrid(std::vector<Basis*>& bases, const GridInfo& parentGridInfo, bool transient, fp lambdaScale)
+    : Basis(bases, transient, parentGridInfo.index, lambdaScale), gridInfo_(parentGridInfo)
 {
     gridInfo_.index = getIndex();
 }

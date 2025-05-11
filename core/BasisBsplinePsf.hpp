@@ -30,7 +30,7 @@
 class BasisBsplinePsf : public BasisGrid
 {
 public:
-    BasisBsplinePsf(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, bool transient, double fwhm);
+    BasisBsplinePsf(std::vector<Basis*>& bases, double fwhm, const BasisGrid::GridInfo& parentGridInfo, bool transient, fp lambdaScale = fp(1.0));
 
     virtual ~BasisBsplinePsf();
 

@@ -30,11 +30,11 @@ using namespace kernel;
 
 BasisBsplineScale::
 BasisBsplineScale(vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, short dimension0, short dimension1, bool group,
-                  bool transient) :
-        BasisGrid(bases, parentGridInfo, transient), dimension0_(dimension0), dimension1_(dimension1)
+                  bool transient, fp lambdaScale) :
+        BasisGrid(bases, parentGridInfo, transient, lambdaScale), dimension0_(dimension0), dimension1_(dimension1)
 {
     ostringstream oss2;
-    oss2 << "BsplineScale dimension=" << dimension0_ << ":" << dimension1_;
+    oss2 << "BsplineScale lambdaScale = " << getLambdaScale() << " dimension = " << dimension0_ << ":" << dimension1_;
     if (isTransient()) oss2 << " (transient)";
     type() = oss2.str();
 

@@ -32,7 +32,7 @@
 class Basis : public Subject
 {
 public:
-    Basis(std::vector<Basis*>& bases, bool transient, int parentIndex = -1);
+    Basis(std::vector<Basis*>& bases, bool transient, int parentIndex = -1, fp lambdaScale = fp(1.0));
     virtual ~Basis();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate, bool prune) = 0;
@@ -44,11 +44,13 @@ public:
     int getIndex() const;
     int getParentIndex() const;
     bool isTransient() const;
+    fp getLambdaScale() const;
 
 protected:
     int index_;       // index of this basis in the serialised tree
     int parentIndex_; // parent node
     bool transient_;  // if transient, coefficients not part of fitting
+    fp lambdaScale_;  // Scale lambda for this basis? 
 
     MatrixSparse gT_; // groups
     MatrixSparse g_;

@@ -26,7 +26,7 @@ using namespace std;
 using namespace kernel;
 
 
-Basis::Basis(vector<Basis*>& bases, bool transient, int parentIndex) : parentIndex_(parentIndex), transient_(transient)
+Basis::Basis(vector<Basis*>& bases, bool transient, int parentIndex, fp lambdaScale) : parentIndex_(parentIndex), transient_(transient), lambdaScale_(lambdaScale)
 {
     index_ = (ii) bases.size();
     bases.push_back(this);
@@ -71,6 +71,12 @@ int Basis::getParentIndex() const
 bool Basis::isTransient() const
 {
     return transient_;
+}
+
+
+fp Basis::getLambdaScale() const
+{
+    return lambdaScale_;
 }
 
 

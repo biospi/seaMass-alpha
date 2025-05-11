@@ -40,16 +40,17 @@ using namespace kernel;
 
 void Seamass::notice()
 {
-    cout << "seaMass - Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+    cout << "seaMass : Copyright (C) 2016-2025 : biospi Laboratory, University of Bristol, UK" << endl;
     cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
     cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
 }
 
 
 Seamass::Seamass(Input& input, const string& dbFilename, const std::vector<short>& scale,
-                 fp lambda, bool taperShrinkage, fp tolerance, double peakFwhm, short chargeStates) :
-        innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), lambda_(lambda), lambdaStart_(lambda),
-        taperShrinkage_(taperShrinkage), tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
+        fp lambda, fp lambdaScale, bool noTaperLambda, bool noUnknowns, double peakFwhm, short chargeStates, fp tolerance) :
+        innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), lambda_(lambda), lambdaStart_(lambda), lambdaScale_(lambdaScale),
+        noTaperLambda_(noTaperLambda), noUnknowns_(noUnknowns), 
+        tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
         iteration_(0), gridInfo_(1, 1), polarity_(input.polarity)
 {
     init(input, true);
@@ -58,7 +59,8 @@ Seamass::Seamass(Input& input, const string& dbFilename, const std::vector<short
 
 
 Seamass::Seamass(Input& input, const Output& output) :
-        innerOptimizer_(0), dbFilename_(output.dbFilename), scale_(output.scale), lambda_(output.lambda), lambdaStart_(output.lambda),
+        innerOptimizer_(0), dbFilename_(output.dbFilename), scale_(output.scale), lambda_(output.lambda), lambdaStart_(output.lambda), lambdaScale_(output.lambdaScale),
+        noTaperLambda_(output.noTaperLambda), noUnknowns_(output.noUnknowns),
         tolerance_(output.tolerance), peakFwhm_(output.peakFwhm), chargeStates_(output.chargeStates), iteration_(0)
 {
     init(input, false);
@@ -279,14 +281,16 @@ void Seamass::init(Input& input, bool seed)
         }
 
         // Unknowns including any baseline
-        BasisGrid* prevBasis = new BasisBsplineScale(bases_, gridInfo_, 1, 0, false, false);
-        bases_mask_library_.push_back(false);
-        bases_mask_unknowns_.push_back(true);
-
-        while (prevBasis->getGridInfo().colExtent[0] > 4) {
-            prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
+        if (!noUnknowns_) {
+            BasisGrid* prevBasis = new BasisBsplineScale(bases_, gridInfo_, 1, 0, false, false, lambdaScale_);
             bases_mask_library_.push_back(false);
             bases_mask_unknowns_.push_back(true);
+
+            while (prevBasis->getGridInfo().colExtent[0] > 4) {
+                prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false, lambdaScale_);
+                bases_mask_library_.push_back(false);
+                bases_mask_unknowns_.push_back(true);
+            }
         }
     }
     else
@@ -314,27 +318,29 @@ void Seamass::init(Input& input, bool seed)
         }
 
         // Unknowns (m/z and scantime tensor convolution)
-        bool first = true;
-        prevBasis = rowBasis;
-        while (rowBasis->getGridInfo().rowExtent[0] > 4)
-        {
-            if (!first)
+        if (!noUnknowns_) {
+            bool first = true;
+            prevBasis = rowBasis;
+            while (rowBasis->getGridInfo().rowExtent[0] > 4)
             {
-                rowBasis = new BasisBsplineScale(bases_, rowBasis->getGridInfo(), 0, 0, false, false);
-                bases_mask_library_.push_back(false);
-                bases_mask_unknowns_.push_back(true);
+                if (!first)
+                {
+                    rowBasis = new BasisBsplineScale(bases_, rowBasis->getGridInfo(), 0, 0, false, false, lambdaScale_);
+                    bases_mask_library_.push_back(false);
+                    bases_mask_unknowns_.push_back(true);
 
-                prevBasis = rowBasis;
+                    prevBasis = rowBasis;
+                }
+
+                while (prevBasis->getGridInfo().colExtent[0] > 4)
+                {
+                    prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false, lambdaScale_);
+                    bases_mask_library_.push_back(false);
+                    bases_mask_unknowns_.push_back(true);
+                }
+
+                first = false;
             }
- 
-            while (prevBasis->getGridInfo().colExtent[0] > 4)
-            {
-                prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false);
-                bases_mask_library_.push_back(false);
-                bases_mask_unknowns_.push_back(true);
-            }
- 
-            first = false;
         }
     }
 
@@ -398,7 +404,7 @@ bool Seamass::step()
 
     if (grad <= tolerance_)
     {
-        if (lambda_ == 0.0 || !taperShrinkage_)
+        if (lambda_ == 0.0 || noTaperLambda_)
         {
             if (getDebugLevel() % 10 == 0) cout << "o" << endl;
 
@@ -447,6 +453,9 @@ void Seamass::getOutput(Output& output, bool synthesize, std::vector<bool> mask)
 
     output.scale = scale_;
     output.lambda = lambdaStart_;
+    output.lambdaScale = lambdaScale_;
+    output.noTaperLambda = noTaperLambda_;
+    output.noUnknowns = noUnknowns_;
     output.tolerance = tolerance_;
     output.peakFwhm = peakFwhm_;
     output.chargeStates = chargeStates_;

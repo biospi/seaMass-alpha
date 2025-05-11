@@ -43,13 +43,14 @@ void convolution(vector<double>& x, const vector<double>& a, const vector<double
 }
 
 
-BasisBsplinePsf::BasisBsplinePsf(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, bool transient, double fwhm) :
-    BasisGrid(bases, parentGridInfo, transient)
+BasisBsplinePsf::BasisBsplinePsf(std::vector<Basis*>& bases, double fwhm, const BasisGrid::GridInfo& parentGridInfo, bool transient, fp lambdaScale) :
+    BasisGrid(bases, parentGridInfo, transient, lambdaScale)
 {
     ostringstream oss2;
-    oss2 << "BsplinePsf";
+    oss2 << "BsplinePsf lambdaScale = " << getLambdaScale();
     if (isTransient()) oss2 << " (transient)";
     type() = oss2.str();
+
 
     if (getDebugLevel() % 10 >= 2)
     {

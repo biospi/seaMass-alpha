@@ -42,9 +42,11 @@ int main(int argc, const char * const * argv)
         string dbFilename;
         int scaleMz;
         int scaleSt;
-        int lambdaExponent;
+        double lambdaExp;
+        double lambdaModExp;
         bool noTaperLambda;
-        int toleranceExponent;
+        bool noUnknowns;
+        double toleranceExp;
         double peakFwhm;
         short chargeStates;
         int debugLevel;
@@ -60,33 +62,38 @@ int main(int argc, const char * const * argv)
 
         general.add_options()
             ("help,h",
-             "Produce this help message")
+                "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
-             "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
-             "from mzML/vendor format to mzMLb.")
+                "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
+                "from mzML/vendor format to mzMLb.")
             ("db,b", po::value<string>(&dbFilename),
-             "Spectral library database in smd format. generate_unknowns will generate a generic db.")
+                "Spectral library database in smd format. generate_unknowns will generate a generic db.")
             ("mz_scale,m", po::value<int>(&scaleMz),
-             "Output mz resolution given as \"2^mz_scale * log2(mz - polarity*1.007276466879)\". "
-             "Default is to autodetect.")
+                "Output mz resolution given as \"2^mz_scale * log2(mz - polarity*1.007276466879)\". "
+                "Default is to autodetect.")
             ("st_scale,s", po::value<int>(&scaleSt),
-             "output scantime resolution given as \"2^st_scale\"."
-             "Default is to autodetect.")
-            ("lambda,l", po::value<int>(&lambdaExponent)->default_value(0),
-             "Amount of denoising given as \"L1 lambda = 2^shrinkage\". Needs to be same or less than group_lambda."
-             "Use around 0.")
+                "output scantime resolution given as \"2^st_scale\"."
+                "Default is to autodetect.")
+            ("lambda,l", po::value<double>(&lambdaExp)->default_value(0),
+                "Amount of shrinkage (denoising) given as \"L1 shrinkage = 2^lambda\"."
+                "Use around 0.")
+            ("lambda_mod,lm", po::value<double>(&lambdaModExp)->default_value(0),
+                "modifier for amount of shrinkage of the unknowns given as \"L1 shrinkage_db = 2^(lambda+lambda_mod)\"."
+                "For low resolution data, this should be >0, otherwise 0 is fine.")
             ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
-             "Use this to stop tapering of lambda to 0 before finishing.")
+                "Use this to stop tapering of lambda to 0 before finishing.")
+            ("no_unknowns", po::bool_switch(&noUnknowns)->default_value(false),
+                "Use this to turn off fitting of unknowns.")
+            ("tol,t", po::value<double>(&toleranceExp)->default_value(-10),
+                "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("charge_states,c", po::value<short>(&chargeStates)->default_value(0),
-             "Highest charge state to deconvolute. Default is no charge state deconvolution.")
-            ("tol,t", po::value<int>(&toleranceExponent)->default_value(-10),
-             "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+                "Highest charge state to deconvolute. Default is no charge state deconvolution. Currently unimplemented.")
             ("fwhm,w", po::value<double>(&peakFwhm)->default_value(0.0),
-             "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
+                "Full width at half maximum of peak width. Currently unimplemented.")
             ("debug,d", po::value<int>(&debugLevel)->default_value(0),
-             "Debug level. Use 1 for convergence stats, 2 for performance stats, 3 for sparsity info, "
-             "4 to output all maths, +10 to write synthesised output, +20 to also write intermediate results to disk.")
-        ;
+                "Debug level. Use 1 for convergence stats, 2 for performance stats, 3 for sparsity info, "
+                "4 to output all maths, +10 to write synthesised output, +20 to also write intermediate results to disk.")
+            ;
 
         po::options_description desc;
         desc.add(general);
@@ -141,16 +148,16 @@ int main(int argc, const char * const * argv)
 
         Seamass::Input input;
         string id;
-        fp tolerance = pow(2.0, fp(toleranceExponent));
-        fp lambda = pow(2.0, fp(lambdaExponent));
-        //fp lambdaGroup = pow(2.0, fp(lambdaGroupExponent));
+        fp tolerance = pow(2.0, fp(toleranceExp));
+        fp lambda = pow(2.0, fp(lambdaExp));
+        fp lambdaScale = pow(2.0, fp(lambdaModExp));
 
         while (dataset->read(input, id))
         {
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamass(input, dbFilename, scale, lambda, !noTaperLambda, tolerance, peakFwhm, chargeStates);
+            Seamass seamass(input, dbFilename, scale, lambda, lambdaScale, noTaperLambda, noUnknowns, peakFwhm, chargeStates, tolerance);
 
             do
             {

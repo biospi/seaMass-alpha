@@ -131,10 +131,6 @@ fp OptimizerSrl::getLambda() const
     return lambda_;
 }
 
-fp OptimizerSrl::getLambdaGroup() const
-{
-    return lambdaGroup_;
-}
 
 fp OptimizerSrl::step()
 {
@@ -206,6 +202,8 @@ fp OptimizerSrl::step()
         {
             if (!bases_[l]->isTransient())
             {
+                fp lambda = lambda_ * bases_[l]->getLambdaScale();
+
                 // find nearest ancestor ColGroups (if exists)      
                 ii p = l;
                 for (; p != -1; p = bases_[p]->getParentIndex())
@@ -242,7 +240,7 @@ fp OptimizerSrl::step()
                         y.divNonzeros(xs_[l][k], y);
 
                         // y = lambda * x * groupNorm(x)^-1
-                        y.mul(lambda_);
+                        y.mul(lambda);
 
                         // y = l1l2 + lambda * x * groupNorm(x)^-1
                         y.addNonzeros(y, l1l2s_[l][k]);
@@ -266,7 +264,7 @@ fp OptimizerSrl::step()
                         // y = l1l2 + lambda
                         MatrixSparse y;
                         y.copy(l1l2s_[l][k]);
-                        y.addNonzeros(lambda_);
+                        y.addNonzeros(lambda);
 
                         // y = x / (l1l2 + lambda)
                         y.divNonzeros(xs_[l][k], y);

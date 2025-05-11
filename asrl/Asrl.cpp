@@ -33,7 +33,7 @@ using namespace kernel;
 
 void Asrl::notice()
 {
-    cout << "seaMass-ASRL : Copyright (C) 2016 - biospi Laboratory, University of Bristol, UK" << endl;
+    cout << "seaMass-ASRL : Copyright (C) 2016-2025 : biospi Laboratory, University of Bristol, UK" << endl;
     cout << "This program comes with ABSOLUTELY NO WARRANTY." << endl;
     cout << "This is free software, and you are welcome to redistribute it under certain conditions." << endl;
 }

@@ -26,11 +26,11 @@ using namespace std;
 using namespace kernel;
 
 
-BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, MatrixSparse& gT, bool transient) : Basis(bases, transient, -1), aTs_(aT)
+BasisMatrix::BasisMatrix(std::vector<Basis*>& bases, std::vector<MatrixSparse>& aT, MatrixSparse& gT, bool transient, fp lambdaScale) : Basis(bases, transient, -1, lambdaScale), aTs_(aT)
 {
     if (getDebugLevel() % 10 >= 1)
     {
-        cout << getTimeStamp() << "   BasisMatrix";
+        cout << getTimeStamp() << "   BasisMatrix lambdaScale = " << getLambdaScale();
         if (isTransient()) cout << " (transient)";
         cout << " ..." << endl;
     }

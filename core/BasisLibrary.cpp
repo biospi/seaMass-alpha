@@ -32,11 +32,11 @@ using namespace kernel;
 
 
 BasisLibrary::BasisLibrary(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo,
-                           const std::string& dbFilename, bool transient) :
-    BasisGrid(bases, parentGridInfo, transient)
+                           const std::string& dbFilename, bool transient, fp lambdaScale) :
+    BasisGrid(bases, parentGridInfo, transient, lambdaScale)
 {
     ostringstream oss3;
-    oss3 << "Library filename=" << dbFilename;
+    oss3 << "Library lambdaScale = " << getLambdaScale() << " filename = " << dbFilename;
     type() = oss3.str();
 
     if (getDebugLevel() % 10 >= 2)

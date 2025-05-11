@@ -32,7 +32,7 @@ class BasisBsplineScantime : public BasisGrid
 public:
     BasisBsplineScantime(std::vector<Basis*>& bases, const BasisGrid::GridInfo& parentGridInfo, const std::vector<double>& startTimes,
                          const std::vector<double>& finishTimes, const std::vector<fp>& exposures, short scale,
-                         bool transient);
+                         bool transient, fp lambdaScale = fp(1.0));
     virtual ~BasisBsplineScantime();
 
     virtual void synthesize(std::vector<MatrixSparse> &f, const std::vector<MatrixSparse> &x, bool accumulate, bool prune);

@@ -36,7 +36,6 @@ public:
 
     virtual void setLambda(fp lambda);
     virtual fp getLambda() const;
-    virtual fp getLambdaGroup() const;
 
     virtual ii getIteration() const;
     virtual const std::vector<Basis*>& getBases() const;
@@ -59,7 +58,6 @@ private:
     fp pruneThreshold_;
 
     fp lambda_;
-    fp lambdaGroup_;
     int iteration_;
 
     std::vector< std::vector<MatrixSparse> > xs_;
