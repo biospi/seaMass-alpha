@@ -45,6 +45,10 @@ public:
         std::vector<double> startTimes;
         std::vector<double> finishTimes;
         std::vector<fp> exposures;
+
+        // for loading in sml directly
+        MatrixSparse b;
+        ii offset;
     };
 
     struct Output

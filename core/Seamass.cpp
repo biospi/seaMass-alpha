@@ -113,149 +113,164 @@ Seamass::~Seamass()
 
 void Seamass::init(Input& input, bool seed)
 {
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // rebin the input data in the m/z dimension antialiased through B-spline kernel and place in 'b'
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    b_.resize(1);
 
-    if (getDebugLevel() % 10 >= 1)
+    if (input.b.n() > 0)
     {
-        ostringstream oss;
-        oss << getTimeStamp() << "  Rebinning input m/z ...";
-        info(oss.str());
-    }
+        b_[0].copy(input.b);
 
-    // bspline basis function lookup table
-    Bspline bspline(3, 65536);
-
-    std::vector<li> countsIndex;
-    std::vector<li> locationsIndex;
-    if (input.countsIndex.size() > 0)
-    {
-        countsIndex = input.countsIndex;
-        locationsIndex = input.countsIndex;
-        for (ii i = 0; i < ii(locationsIndex.size()); i++) locationsIndex[i] += i;
+        gridInfo_.rowScale[0] = -1;
+        gridInfo_.rowOffset[0] = 0;
+        gridInfo_.rowExtent[0] = b_[0].m();
+        gridInfo_.colScale[0] = 10;
+        gridInfo_.colOffset[0] = input.offset;
+        gridInfo_.colExtent[0] = b_[0].n();
     }
     else
     {
-        countsIndex.push_back(0);
-        countsIndex.push_back(input.counts.size());
-        locationsIndex.push_back(0);
-        locationsIndex.push_back(input.locations.size());
-    }
-
-    // find min and max m/z across spectra, m for each A
-    double mz0 = numeric_limits<double>::max();
-    double mz1 = 0.0;
-    double xDiff = 0.0;
-    li n = 0;
-    for (ii k = 0; k < ii(locationsIndex.size()) - 1; k++)
-    {
-        mz0 = input.locations[locationsIndex[k]] < mz0 ? input.locations[locationsIndex[k]] : mz0;
-        mz1 = input.locations[locationsIndex[k + 1] - 1] > mz1 ? input.locations[locationsIndex[k + 1] - 1] : mz1;
-
-        // find mean difference in index between edges, ignoring first, last and zeros
-        for (ii i = 1; i < countsIndex[k + 1] - countsIndex[k] - 1; i++)
-        {
-            if (input.counts[countsIndex[k] + i] != 0)
-            {
-                li ei = locationsIndex[k] + i;
-                xDiff += log2(input.locations[ei + 1] - input.polarity*1.007276466879) - log2(input.locations[ei] - input.polarity*1.007276466879);
-                n++;
-            }
-        }
-    }
-    xDiff /= double(n);
-
-    ii scaleAuto = ii(ceil(log2(1.0 / xDiff))) + 1;
-    if (scale_[0] == numeric_limits<short>::max())
-    {
-        scale_[0] = scaleAuto;
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // rebin the input data in the m/z dimension antialiased through B-spline kernel and place in 'b'
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         if (getDebugLevel() % 10 >= 1)
         {
             ostringstream oss;
-            oss << getTimeStamp() << "   autodetected_mz_scale=" << fixed << setprecision(1) << int(scale_[0]);
+            oss << getTimeStamp() << "  Rebinning input m/z ...";
             info(oss.str());
         }
-    }
 
-    double scale2 = pow(2.0, scale_[0]);
-    gridInfo_.rowScale[0] = -1;
-    gridInfo_.rowOffset[0] = 0;
-    gridInfo_.rowExtent[0] = ii(countsIndex.size()) - 1;
-    gridInfo_.colScale[0] = scale_[0];
-    gridInfo_.colOffset[0] = ii(floor(log2(mz0 - input.polarity*1.007276466879) * scale2));
-    gridInfo_.colExtent[0] = (ii(ceil(log2(mz1 - input.polarity*1.007276466879) * scale2))) - gridInfo_.colOffset[0] + 1;
+        // bspline basis function lookup table
+        Bspline bspline(3, 65536);
 
-    vector<MatrixSparse> bs(gridInfo_.rowExtent[0]);
-    for (ii k = 0; k < gridInfo_.rowExtent[0]; k++)
-    {
-        vector<ii> rowind;
-        vector<ii> colind;
-        vector<fp> acoo;
-
-        // create transformation matrix
-        for (ii i = 0; i < locationsIndex[k + 1] - locationsIndex[k] - 1; i++)
+        std::vector<li> countsIndex;
+        std::vector<li> locationsIndex;
+        if (input.countsIndex.size() > 0)
         {
-            auto startNz = ii(acoo.size());
-            double rowSum = 0.0;
+            countsIndex = input.countsIndex;
+            locationsIndex = input.countsIndex;
+            for (ii i = 0; i < ii(locationsIndex.size()); i++) locationsIndex[i] += i;
+        }
+        else
+        {
+            countsIndex.push_back(0);
+            countsIndex.push_back(input.counts.size());
+            locationsIndex.push_back(0);
+            locationsIndex.push_back(input.locations.size());
+        }
 
-            if (input.counts[countsIndex[k] + i] >= 0.0)
+        // find min and max m/z across spectra, m for each A
+        double mz0 = numeric_limits<double>::max();
+        double mz1 = 0.0;
+        double xDiff = 0.0;
+        li n = 0;
+        for (ii k = 0; k < ii(locationsIndex.size()) - 1; k++)
+        {
+            mz0 = input.locations[locationsIndex[k]] < mz0 ? input.locations[locationsIndex[k]] : mz0;
+            mz1 = input.locations[locationsIndex[k + 1] - 1] > mz1 ? input.locations[locationsIndex[k + 1] - 1] : mz1;
+
+            // find mean difference in index between edges, ignoring first, last and zeros
+            for (ii i = 1; i < countsIndex[k + 1] - countsIndex[k] - 1; i++)
             {
-                li ei = locationsIndex[k] + i;
-                double xfMin = log2(input.locations[ei] - input.polarity*1.007276466879) * scale2;
-                double xfMax = log2(input.locations[ei + 1] - input.polarity*1.007276466879) * scale2;
-
-                auto xMin = ii(floor(xfMin)) - 2;
-                auto xMax = ii(ceil(xfMax)) + 2;
-
-                // work out basis coefficients
-                for (ii x = xMin; x <= xMax; x++)
+                if (input.counts[countsIndex[k] + i] != 0)
                 {
-                    double bfMin = x - 1.5;
-                    double bfMax = x + 2.5;
+                    li ei = locationsIndex[k] + i;
+                    xDiff += log2(input.locations[ei + 1] - input.polarity * 1.007276466879) - log2(input.locations[ei] - input.polarity * 1.007276466879);
+                    n++;
+                }
+            }
+        }
+        xDiff /= double(n);
 
-                    // intersection of bin and basis, between 0.0 and 4.0
-                    double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
-                    double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
+        ii scaleAuto = ii(ceil(log2(1.0 / xDiff))) + 1;
+        if (scale_[0] == numeric_limits<short>::max())
+        {
+            scale_[0] = scaleAuto;
 
-                    // basis coefficient b is _integral_ of area under b-spline basis
-                    auto bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+            if (getDebugLevel() % 10 >= 1)
+            {
+                ostringstream oss;
+                oss << getTimeStamp() << "   autodetected_mz_scale=" << fixed << setprecision(1) << int(scale_[0]);
+                info(oss.str());
+            }
+        }
 
-                    ii j = x - gridInfo_.colOffset[0];
-                    if (j >= 0 && j < gridInfo_.colExtent[0] && bc > 0.0)
+        double scale2 = pow(2.0, scale_[0]);
+        gridInfo_.rowScale[0] = -1;
+        gridInfo_.rowOffset[0] = 0;
+        gridInfo_.rowExtent[0] = ii(countsIndex.size()) - 1;
+        gridInfo_.colScale[0] = scale_[0];
+        gridInfo_.colOffset[0] = ii(floor(log2(mz0 - input.polarity * 1.007276466879) * scale2));
+        gridInfo_.colExtent[0] = (ii(ceil(log2(mz1 - input.polarity * 1.007276466879) * scale2))) - gridInfo_.colOffset[0] + 1;
+
+        vector<MatrixSparse> bs(gridInfo_.rowExtent[0]);
+        for (ii k = 0; k < gridInfo_.rowExtent[0]; k++)
+        {
+            vector<ii> rowind;
+            vector<ii> colind;
+            vector<fp> acoo;
+
+            // create transformation matrix
+            for (ii i = 0; i < locationsIndex[k + 1] - locationsIndex[k] - 1; i++)
+            {
+                auto startNz = ii(acoo.size());
+                double rowSum = 0.0;
+
+                if (input.counts[countsIndex[k] + i] >= 0.0)
+                {
+                    li ei = locationsIndex[k] + i;
+                    double xfMin = log2(input.locations[ei] - input.polarity * 1.007276466879) * scale2;
+                    double xfMax = log2(input.locations[ei + 1] - input.polarity * 1.007276466879) * scale2;
+
+                    auto xMin = ii(floor(xfMin)) - 2;
+                    auto xMax = ii(ceil(xfMax)) + 2;
+
+                    // work out basis coefficients
+                    for (ii x = xMin; x <= xMax; x++)
                     {
-                        rowSum += bc;
-                        acoo.push_back(bc);
-                        rowind.push_back(i);
-                        colind.push_back(j);
+                        double bfMin = x - 1.5;
+                        double bfMax = x + 2.5;
+
+                        // intersection of bin and basis, between 0.0 and 4.0
+                        double bMin = xfMin > bfMin ? xfMin - bfMin : 0.0;
+                        double bMax = xfMax < bfMax ? xfMax - bfMin : bfMax - bfMin;
+
+                        // basis coefficient b is _integral_ of area under b-spline basis
+                        auto bc = fp(bspline.ibasis(bMax) - bspline.ibasis(bMin));
+
+                        ii j = x - gridInfo_.colOffset[0];
+                        if (j >= 0 && j < gridInfo_.colExtent[0] && bc > 0.0)
+                        {
+                            rowSum += bc;
+                            acoo.push_back(bc);
+                            rowind.push_back(i);
+                            colind.push_back(j);
+                        }
                     }
+                }
+
+                // normalise column
+                if (rowSum > 0.0)
+                {
+                    for (ii nz = startNz; nz < ii(acoo.size()); nz++)
+                        acoo[nz] /= rowSum;
                 }
             }
 
-            // normalise column
-            if (rowSum > 0.0)
-            {
-                for (ii nz = startNz; nz < ii(acoo.size()); nz++)
-                    acoo[nz] /= rowSum;
-            }
+            // create b
+            MatrixSparse a;
+            a.importFromCoo(ii(countsIndex[k + 1] - countsIndex[k]), gridInfo_.n(), acoo.size(),
+                rowind.data(), colind.data(), acoo.data());
+
+            Matrix t;
+            t.importFromArray(1, ii(countsIndex[k + 1] - countsIndex[k]), &input.counts.data()[countsIndex[k]]);
+            MatrixSparse t2, t3;
+            t2.importFromMatrix(t);
+            t3.matmul(false, t2, a, false);
+            bs[k].pruneCells(t3);
         }
 
-        // create b
-        MatrixSparse a;
-        a.importFromCoo(ii(countsIndex[k + 1] - countsIndex[k]), gridInfo_.n(), acoo.size(),
-            rowind.data(), colind.data(), acoo.data());
-
-        Matrix t;
-        t.importFromArray(1, ii(countsIndex[k + 1] - countsIndex[k]), &input.counts.data()[countsIndex[k]]);
-        MatrixSparse t2, t3;
-        t2.importFromMatrix(t);
-        t3.matmul(false, t2, a, false);
-        bs[k].pruneCells(t3);
+        b_[0].concatenateRows(bs);
     }
-
-    b_.resize(1);
-    b_[0].concatenateRows(bs);
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

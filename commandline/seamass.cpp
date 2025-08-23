@@ -64,7 +64,7 @@ int main(int argc, const char * const * argv)
             ("help,h",
                 "Produce this help message")
             ("file,f", po::value<string>(&filePathIn),
-                "Input file in mzMLb or binned smb format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
+                "Input file in mzMLb, smb or (binned) sml format. Use pwiz-mzmlb (https://github.com/biospi/mzmlb) to convert "
                 "from mzML/vendor format to mzMLb.")
             ("db,b", po::value<string>(&dbFilename),
                 "Spectral library database in smd format. generate_unknowns will generate a generic db.")

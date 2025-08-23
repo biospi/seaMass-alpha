@@ -45,6 +45,17 @@ target_link_libraries (mgf2sml LINK_PUBLIC
 	${Boost_LIBRARIES}
 	)
 
+add_executable(csv2binned
+	csv2binned.cpp
+	)
+target_include_directories(csv2binned PUBLIC
+	${Boost_INCLUDE_DIRS}
+	)
+target_link_libraries (csv2binned LINK_PUBLIC
+	seamass_core
+	${Boost_LIBRARIES}
+	)
+
 add_executable(driams_raw2binned
 	driams_raw2binned.cpp
 	)
@@ -144,6 +155,7 @@ install(
         generate_unknowns
         msp2sml
         mgf2sml
+        csv2binned
         driams_raw2binned
         driams_raw2smb
         image2sml

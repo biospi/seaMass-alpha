@@ -20,9 +20,11 @@ add_library(seamass_core
         Dataset.hpp
         DatasetMzmlb.hpp
         DatasetSeamass.hpp
+        DatasetLibrary.hpp
         Dataset.cpp
         DatasetMzmlb.cpp
         DatasetSeamass.cpp
+        DatasetLibrary.cpp
         DatasetMzmlb.tpp
         DatasetTiff.cpp
         )
