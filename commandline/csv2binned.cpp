@@ -97,61 +97,65 @@ int main(int argc, const char* const* argv)
         typedef boost::tokenizer< boost::escaped_list_separator<char> > so_tokenizer;
 
         ifstream raw(filePathIn, ios_base::in);
-        ii m = 0;
-        ii offset = ii(floor(log2(mzMin - polarity * 1.007276466879) * (1L << mzScale))) - 1;
-        ii n = (ii(ceil(log2(mzMax - polarity * 1.007276466879) * (1L << mzScale))) + 1) - offset + 1;
-
-        // output spectrum
-        float* vs = new float[n];
-        ii* js = new ii[n];
-        for (ii j = 0; j < n; j++) vs[j] = 0.0f;
-
-        Bspline bspline(3, 65536); // bspline basis function lookup table
-        string line;
-        do
+        if (raw.good())
         {
-            boost::trim(line);
-            if (line.size() == 0 || line[0] == '#')
-                continue;
+            ii m = 0;
+            ii offset = ii(floor(log2(mzMin - polarity * 1.007276466879) * (1L << mzScale))) - 1;
+            ii n = (ii(ceil(log2(mzMax - polarity * 1.007276466879) * (1L << mzScale))) + 1) - offset + 1;
 
-            so_tokenizer tok(line, boost::escaped_list_separator<char>("", ",", "\"\'"));
+            // output spectrum
+            float* vs = new float[n];
+            ii* js = new ii[n];
+            for (ii j = 0; j < n; j++) vs[j] = 0.0f;
 
-            so_tokenizer::iterator toki = tok.begin();
-            double mz = atof(toki->c_str());
-            ++toki;
-            double intensity = atof(toki->c_str());
+            Bspline bspline(3, 65536); // bspline basis function lookup table
+            string line;
+            while (getline(raw, line))
+            {
+                boost::trim(line);
+                if (line.size() == 0 || line[0] == '#')
+                    continue;
 
-            double bin = log2(mz - polarity * 1.007276466879) * (1L << mzScale) - offset;
+                so_tokenizer tok(line, boost::escaped_list_separator<char>("", ",", "\"\'"));
 
-            fp b0 = 0.0f;
-            fp b1 = ceil(bin) - bin;
-            fp b2 = b1 + 1.0f;
-            fp b3 = b2 + 1.0f;
-            fp b4 = b3 + 1.0f;
-            fp b5 = 4.0;
+                so_tokenizer::iterator toki = tok.begin();
+                double mz = atof(toki->c_str());
+                ++toki;
+                double intensity = atof(toki->c_str());
 
-            ii ibin = ii(bin);
-            if (ibin - 2 >= 0 && ibin - 2 < n) vs[ibin - 2] += intensity * fp(bspline.ibasis(b1) - bspline.ibasis(b0));
-            if (ibin - 1 >= 0 && ibin - 1 < n) vs[ibin - 1] += intensity * fp(bspline.ibasis(b2) - bspline.ibasis(b1));
-            if (ibin >= 0 && ibin < n) vs[ibin] += intensity * fp(bspline.ibasis(b3) - bspline.ibasis(b2));
-            if (ibin + 1 >= 0 && ibin + 1 < n) vs[ibin + 1] += intensity * fp(bspline.ibasis(b4) - bspline.ibasis(b3));
-            if (ibin + 2 >= 0 && ibin + 2 < n) vs[ibin + 2] += intensity * fp(bspline.ibasis(b5) - bspline.ibasis(b4));
-        } while (getline(raw, line));
+                double bin = log2(mz - polarity * 1.007276466879) * (1L << mzScale) - offset;
 
-        cout << "bin counts" << endl;
+                fp b0 = 0.0f;
+                fp b1 = ceil(bin) - bin;
+                fp b2 = b1 + 1.0f;
+                fp b3 = b2 + 1.0f;
+                fp b4 = b3 + 1.0f;
+                fp b5 = 4.0;
 
+                ii ibin = ii(bin);
+                if (ibin - 2 >= 0 && ibin - 2 < n) vs[ibin - 2] += intensity * fp(bspline.ibasis(b1) - bspline.ibasis(b0));
+                if (ibin - 1 >= 0 && ibin - 1 < n) vs[ibin - 1] += intensity * fp(bspline.ibasis(b2) - bspline.ibasis(b1));
+                if (ibin >= 0 && ibin < n) vs[ibin] += intensity * fp(bspline.ibasis(b3) - bspline.ibasis(b2));
+                if (ibin + 1 >= 0 && ibin + 1 < n) vs[ibin + 1] += intensity * fp(bspline.ibasis(b4) - bspline.ibasis(b3));
+                if (ibin + 2 >= 0 && ibin + 2 < n) vs[ibin + 2] += intensity * fp(bspline.ibasis(b5) - bspline.ibasis(b4));
+            }
 
-        // trim 4 non-zero bins from each end  
-        ii min_j = 0;
-        for (; min_j < n; min_j++) if (vs[min_j] > 0) break;
+            cout << "bin counts" << endl;
 
-        ii max_j = n - 1;
-        for (; max_j >= 0; max_j--) if (vs[max_j] > 0) break;
+            // trim 4 non-zero bins from each end  
+            ii min_j = 0;
+            for (; min_j < n; min_j++) if (vs[min_j] > 0) break;
 
-        for (ii j = min_j + 4; j <= max_j - 4; j++) cout << offset + j << " " << vs[j] << endl;
+            ii max_j = n - 1;
+            for (; max_j >= 0; max_j--) if (vs[max_j] > 0) break;
 
-        delete[] vs;
-        delete[] js;
+            for (ii j = min_j + 4; j <= max_j - 4; j++) cout << offset + j << " " << vs[j] << endl;
+
+            delete[] vs;
+            delete[] js;
+        }
+
+      
     }
 #ifdef NDEBUG
     catch (exception& e)
