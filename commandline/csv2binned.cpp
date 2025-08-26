@@ -106,7 +106,7 @@ int main(int argc, const char* const* argv)
             // output spectrum
             float* vs = new float[n];
             ii* js = new ii[n];
-            for (ii j = 0; j < n; j++) vs[j] = 0.0f;
+            for (ii j = 0; j < n; j++) vs[j] = -1.0f;
 
             Bspline bspline(3, 65536); // bspline basis function lookup table
             string line;
@@ -133,22 +133,38 @@ int main(int argc, const char* const* argv)
                 fp b5 = 4.0;
 
                 ii ibin = ii(bin);
-                if (ibin - 2 >= 0 && ibin - 2 < n) vs[ibin - 2] += intensity * fp(bspline.ibasis(b1) - bspline.ibasis(b0));
-                if (ibin - 1 >= 0 && ibin - 1 < n) vs[ibin - 1] += intensity * fp(bspline.ibasis(b2) - bspline.ibasis(b1));
-                if (ibin >= 0 && ibin < n) vs[ibin] += intensity * fp(bspline.ibasis(b3) - bspline.ibasis(b2));
-                if (ibin + 1 >= 0 && ibin + 1 < n) vs[ibin + 1] += intensity * fp(bspline.ibasis(b4) - bspline.ibasis(b3));
-                if (ibin + 2 >= 0 && ibin + 2 < n) vs[ibin + 2] += intensity * fp(bspline.ibasis(b5) - bspline.ibasis(b4));
+                if (ibin - 2 >= 0 && ibin - 2 < n) {
+                    if (vs[ibin - 2] < 0.0) vs[ibin - 2] = 0.0;
+                    vs[ibin - 2] += intensity * fp(bspline.ibasis(b1) - bspline.ibasis(b0));
+                }
+                if (ibin - 1 >= 0 && ibin - 1 < n) {
+                    if (vs[ibin - 1] < 0.0) vs[ibin - 1] = 0.0;
+                    vs[ibin - 1] += intensity * fp(bspline.ibasis(b2) - bspline.ibasis(b1));
+                }
+                if (ibin >= 0 && ibin < n) {
+                    if (vs[ibin] < 0.0) vs[ibin] = 0.0;
+                    vs[ibin] += intensity * fp(bspline.ibasis(b3) - bspline.ibasis(b2));
+                }
+                if (ibin + 1 >= 0 && ibin + 1 < n) {
+                    if (vs[ibin + 1] < 0.0) vs[ibin + 1] = 0.0;
+                    vs[ibin + 1] += intensity * fp(bspline.ibasis(b4) - bspline.ibasis(b3));
+                }
+                if (ibin + 2 >= 0 && ibin + 2 < n) {
+                    if (vs[ibin + 2] < 0.0) vs[ibin + 2] = 0.0;
+                    vs[ibin + 2] += intensity * fp(bspline.ibasis(b5) - bspline.ibasis(b4));
+                }
             }
 
             cout << "bin counts" << endl;
 
-            // trim 4 non-zero bins from each end  
+            // find begin and end  
             ii min_j = 0;
-            for (; min_j < n; min_j++) if (vs[min_j] > 0) break;
+            for (; min_j < n; min_j++) if (vs[min_j] >= 0.0) break;
 
             ii max_j = n - 1;
-            for (; max_j >= 0; max_j--) if (vs[max_j] > 0) break;
+            for (; max_j >= 0; max_j--) if (vs[max_j] >= 0.0) break;
 
+            // trim 4 non-zero bins from each end 
             for (ii j = min_j + 4; j <= max_j - 4; j++) cout << offset + j << " " << vs[j] << endl;
 
             delete[] vs;
