@@ -42,10 +42,11 @@ int main(int argc, const char * const * argv)
         string dbFilename;
         int scaleMz;
         int scaleSt;
+        int unkScalesMz;
+        int unkScalesSt;
         double lambdaExp;
         double lambdaModExp;
         bool noTaperLambda;
-        bool noUnknowns;
         double toleranceExp;
         double peakFwhm;
         short chargeStates;
@@ -74,6 +75,12 @@ int main(int argc, const char * const * argv)
             ("st_scale,s", po::value<int>(&scaleSt),
                 "output scantime resolution given as \"2^st_scale\"."
                 "Default is to autodetect.")
+            ("mz_unk_scales", po::value<int>(&unkScalesMz)->default_value(256),
+                "Maximum scales of mz dimension unknowns modelled."
+                "Default is to autodetect.")
+            ("st_unk_scales", po::value<int>(&unkScalesSt)->default_value(256),
+                "Maximum scales of st dimension unknowns modelled."
+                "Default is to autodetect.")
             ("lambda,l", po::value<double>(&lambdaExp)->default_value(0),
                 "Amount of shrinkage (denoising) given as \"L1 shrinkage = 2^lambda\"."
                 "Use around 0.")
@@ -82,8 +89,6 @@ int main(int argc, const char * const * argv)
                 "For low resolution data, this should be >0, otherwise 0 is fine.")
             ("no_taper", po::bool_switch(&noTaperLambda)->default_value(false),
                 "Use this to stop tapering of lambda to 0 before finishing.")
-            ("no_unknowns", po::bool_switch(&noUnknowns)->default_value(false),
-                "Use this to turn off fitting of unknowns.")
             ("tol,t", po::value<double>(&toleranceExp)->default_value(-10),
                 "Convergence tolerance, given as \"gradient <= 2^tol\". Use around -10.")
             ("charge_states,c", po::value<short>(&chargeStates)->default_value(0),
@@ -141,6 +146,10 @@ int main(int argc, const char * const * argv)
         else
             scale[1] = numeric_limits<short>::max();
 
+        vector<short> unkScales(2);
+        unkScales[0] = short(unkScalesMz);
+        unkScales[1] = short(unkScalesSt);
+
         string fileStemOut = boost::filesystem::path(filePathIn).stem().string();
         Dataset* dataset = FileFactory::createFileObj(filePathIn, fileStemOut, Dataset::WriteType::InputOutput);
         if (!dataset)
@@ -157,7 +166,7 @@ int main(int argc, const char * const * argv)
             if (debugLevel % 10 == 0)
                 cout << "Processing " << id << endl;
 
-            Seamass seamass(input, dbFilename, scale, lambda, lambdaScale, noTaperLambda, noUnknowns, peakFwhm, chargeStates, tolerance);
+            Seamass seamass(input, dbFilename, scale, unkScales, lambda, lambdaScale, noTaperLambda, peakFwhm, chargeStates, tolerance);
 
             do
             {

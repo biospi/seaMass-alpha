@@ -46,10 +46,10 @@ void Seamass::notice()
 }
 
 
-Seamass::Seamass(Input& input, const string& dbFilename, const std::vector<short>& scale,
-        fp lambda, fp lambdaScale, bool noTaperLambda, bool noUnknowns, double peakFwhm, short chargeStates, fp tolerance) :
-        innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), lambda_(lambda), lambdaStart_(lambda), lambdaScale_(lambdaScale),
-        noTaperLambda_(noTaperLambda), noUnknowns_(noUnknowns), 
+Seamass::Seamass(Input& input, const string& dbFilename, const std::vector<short>& scale, const std::vector<short>& unkScales,
+        fp lambda, fp lambdaScale, bool noTaperLambda, double peakFwhm, short chargeStates, fp tolerance) :
+        innerOptimizer_(0), dbFilename_(dbFilename), scale_(scale), unkScales_(unkScales), lambda_(lambda), lambdaStart_(lambda), lambdaScale_(lambdaScale),
+        noTaperLambda_(noTaperLambda), 
         tolerance_(tolerance), peakFwhm_(peakFwhm), chargeStates_(chargeStates),
         iteration_(0), gridInfo_(1, 1), polarity_(input.polarity)
 {
@@ -290,18 +290,19 @@ void Seamass::init(Input& input, bool seed)
  
         // Supplied spectral library
         if (dbFilename_ != "") {
-            new BasisLibrary(bases_, gridInfo_, dbFilename_, false);
+            new BasisLibrary(bases_, gridInfo_, dbFilename_, unkScales_[0] == 0);
             bases_mask_library_.push_back(true);
             bases_mask_unknowns_.push_back(false);
         }
 
         // Unknowns including any baseline
-        if (!noUnknowns_) {
+        if (unkScales_[0] > 0)
+        {
             BasisGrid* prevBasis = new BasisBsplineScale(bases_, gridInfo_, 1, 0, false, false, lambdaScale_);
             bases_mask_library_.push_back(false);
             bases_mask_unknowns_.push_back(true);
 
-            while (prevBasis->getGridInfo().colExtent[0] > 4) {
+            for (short i = 0; i < unkScales_[0] && prevBasis->getGridInfo().colExtent[0] > 4; ++i) {
                 prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false, lambdaScale_);
                 bases_mask_library_.push_back(false);
                 bases_mask_unknowns_.push_back(true);
@@ -313,7 +314,7 @@ void Seamass::init(Input& input, bool seed)
         dimensions_ = 2;
  
         BasisGrid* rowBasis = new BasisBsplineScantime(bases_, gridInfo_,
-            input.startTimes, input.finishTimes, input.exposures, scale_[1], false);
+            input.startTimes, input.finishTimes, input.exposures, scale_[1], unkScales_[0] == 0 || unkScales_[1] == 0);
         bases_mask_library_.push_back(true);
         bases_mask_unknowns_.push_back(true);
 
@@ -333,29 +334,27 @@ void Seamass::init(Input& input, bool seed)
         }
 
         // Unknowns (m/z and scantime tensor convolution)
-        if (!noUnknowns_) {
-            bool first = true;
-            prevBasis = rowBasis;
-            while (rowBasis->getGridInfo().rowExtent[0] > 4)
+        bool first = true;
+        prevBasis = rowBasis;
+        for (short j = 0; j < unkScales_[1] && rowBasis->getGridInfo().rowExtent[0] > 4; ++j)
+        {
+            if (!first)
             {
-                if (!first)
-                {
-                    rowBasis = new BasisBsplineScale(bases_, rowBasis->getGridInfo(), 0, 0, false, false, lambdaScale_);
-                    bases_mask_library_.push_back(false);
-                    bases_mask_unknowns_.push_back(true);
+                rowBasis = new BasisBsplineScale(bases_, rowBasis->getGridInfo(), 0, 0, false, false, lambdaScale_);
+                bases_mask_library_.push_back(false);
+                bases_mask_unknowns_.push_back(true);
 
-                    prevBasis = rowBasis;
-                }
-
-                while (prevBasis->getGridInfo().colExtent[0] > 4)
-                {
-                    prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false, lambdaScale_);
-                    bases_mask_library_.push_back(false);
-                    bases_mask_unknowns_.push_back(true);
-                }
-
-                first = false;
+                prevBasis = rowBasis;
             }
+            
+            for (short i = 0; i < unkScales_[0]-1 && prevBasis->getGridInfo().colExtent[0] > 4; ++i)
+            {
+                prevBasis = new BasisBsplineScale(bases_, prevBasis->getGridInfo(), 1, 0, false, false, lambdaScale_);
+                bases_mask_library_.push_back(false);
+                bases_mask_unknowns_.push_back(true);
+            }
+
+            first = false;
         }
     }
 

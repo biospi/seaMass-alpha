@@ -83,8 +83,8 @@ public:
         std::vector<ii> extent;
     };
 
-    Seamass(Input& input, const std::string& dbFilename, const std::vector<short>& scale,
-            fp lambda, fp lambdaScale, bool noTaperLambda, bool noUnknowns, double peakFwhm, short chargeStates, fp tolerance);
+    Seamass(Input& input, const std::string& dbFilename, const std::vector<short>& scale, const std::vector<short>& unkScales,
+            fp lambda, fp lambdaScale, bool noTaperLambda, double peakFwhm, short chargeStates, fp tolerance);
     Seamass(Input& input, const Output& output);
     virtual ~Seamass();
 
@@ -120,6 +120,7 @@ private:
     Optimizer* optimizer_;
 
     std::vector<short> scale_;
+    std::vector<short> unkScales_;
     const std::string& dbFilename_;
     fp lambda_;
     fp lambdaStart_;
